@@ -1,0 +1,22 @@
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: production
+#    depends_on:
+#      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost|| exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+networks:
+  app-network:
+    driver: bridge
