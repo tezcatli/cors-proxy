@@ -1,4 +1,4 @@
-FROM python:3.14
+FROM python:3.14-alpine
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
@@ -7,7 +7,9 @@ COPY . .
 
 
 # Expose the application port
-#EXPOSE 5000
+EXPOSE 8000
 
 # Run the application
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:app"]
+#CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:app"]
+
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "app:app"]

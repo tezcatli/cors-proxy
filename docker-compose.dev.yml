@@ -1,6 +1,6 @@
 
 services:
-  web:
+  app:
     build:
       context: ./app
       dockerfile: Dockerfile.dev
