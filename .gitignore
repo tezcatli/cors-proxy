@@ -1,2 +1,6 @@
 rproxy_config.env
+silence/config.js
+silence/secret.js
+silence/secret.dev.js
+silence/secret.prod.js
 

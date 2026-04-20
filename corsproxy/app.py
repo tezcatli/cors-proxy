@@ -12,9 +12,16 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
 
-if Config.PROXY_SECRET == None:
+
+
+if Config.DEBUG:
+    logger.warning("Running in DEBUG mode. This is not recommended for production!")
+    app = Flask(__name__, static_folder="static", static_url_path="/silence")
+else:
+    app = Flask(__name__)
+
+if Config.PROXY_SECRET == None and not Config.DEBUG:
     logger.error("SECRET NOT SET")
 
 # Upstream CORS headers we replace with our own
@@ -34,6 +41,8 @@ _HOP_BY_HOP = frozenset([
 
 
 def _authenticated(headers: dict) -> bool:
+    if Config.DEBUG == True:
+        return True
     if "Cors-Proxy-Auth" in headers:
         if headers["Cors-Proxy-Auth"] == Config.PROXY_SECRET:
             return True
@@ -137,3 +146,4 @@ def proxy():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
+    

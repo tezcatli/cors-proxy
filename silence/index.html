@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#e94560" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Silence on Joue — Catalogue des Jeux</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ─── MAIN VIEW ──────────────────────────────────────────────────────── -->
+  <div id="mainView">
+
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="header-brand">
+          <span>🎮</span>
+          <div>
+            <h1 class="header-title">Silence on Joue</h1>
+            <p class="header-sub">Catalogue des jeux</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span id="gameCount" class="badge-count"></span>
+          <button id="refreshBtn" class="btn-icon" title="Actualiser le flux RSS">
+            <span id="refreshIcon" class="icon-spin">↻</span>
+          </button>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span id="lastRefresh"></span>
+        <span id="nextRefresh"></span>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="searchInput" placeholder="Rechercher un jeu…"
+               autocomplete="off" spellcheck="false" />
+        <button id="clearSearch" class="btn-clear" aria-label="Effacer" style="display:none">✕</button>
+      </div>
+      <div class="sort-bar">
+        <button class="sort-opt active" data-mode="alpha">Nom <span class="sort-dir">↑</span></button>
+        <button class="sort-opt" data-mode="date">Date <span class="sort-dir"></span></button>
+        <button class="sort-opt" data-mode="meta">Meta <span class="sort-dir"></span></button>
+      </div>
+      <span id="filteredCount" class="filtered-count"></span>
+    </div>
+
+    <div class="grid-area">
+      <div id="spinner" class="spinner-wrap" style="display:none">
+        <div class="spinner"></div>
+      </div>
+
+      <div id="emptyState" class="empty-state" style="display:none">
+        <span>🕹️</span>
+        <p id="emptyMsg">Aucun jeu trouvé.</p>
+      </div>
+
+      <main id="gameGrid" class="game-grid"></main>
+    </div>
+
+  </div>
+
+  <!-- ─── DETAIL VIEW ────────────────────────────────────────────────────── -->
+  <div id="detailView" class="detail-view" style="display:none" role="main">
+
+    <!-- Artwork -->
+    <div class="detail-artwork">
+      <img id="detailImg" class="detail-artwork-img" src="" alt="" style="display:none" />
+      <div class="detail-img-ph" id="detailImgPh">🎮</div>
+      <div class="detail-topbar">
+        <button class="btn-back" id="detailBack" aria-label="Retour">← Retour</button>
+      </div>
+    </div>
+
+    <!-- Informations -->
+    <div class="detail-informations">
+      <h2 id="detailTitle" class="detail-title"></h2>
+      <div id="detailRawgInfo" class="detail-rawg-info"></div>
+      <div class="detail-info-footer">
+        <p id="detailEpCount" class="detail-ep-count"></p>
+        <div id="detailNowPlaying" class="detail-now-playing" style="display:none">
+          <span class="np-dot">▶</span>
+          <span id="detailNpTitle" class="np-title"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lecteur -->
+    <div class="detail-lecteur" id="detailSheet">
+      <div id="detailEpisodes" class="detail-episodes"></div>
+    </div>
+
+  </div>
+
+  <!-- ─── AUDIO PLAYER ──────────────────────────────────────────────────── -->
+  <div id="audioPlayer" class="audio-player">
+    <div class="player-info">
+      <span class="player-game" id="playerGame"></span>
+      <span class="player-sep">·</span>
+      <span class="player-episode" id="playerEpisode"></span>
+      <span class="player-ts" id="playerTs"></span>
+    </div>
+    <div id="audioWrap"><audio id="audioEl" controls preload="none"></audio></div>
+    <button class="player-close" id="playerClose" aria-label="Fermer le lecteur">✕</button>
+  </div>
+  <script src="config.js"></script>
+  <script src="secret.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

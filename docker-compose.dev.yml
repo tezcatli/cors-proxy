@@ -1,14 +1,18 @@
 
 services:
-  app:
+  corsproxy:
     build:
-      context: ./app
+      context: ./corsproxy
       dockerfile: Dockerfile.dev
+    depends_on:
+      silence:
+        condition: service_completed_successfully
     ports:
       - "5000:5000"
     environment:
       FLASK_ENV: production
-      HTTP_SERVER_PORT: 80
+      DEBUG: "true"
+#      HTTP_SERVER_PORT: 80
 #    depends_on:
 #      - redis
     healthcheck:
@@ -17,7 +21,14 @@ services:
       timeout: 10s
       retries: 3
     volumes:
-      - ./app:/app
+      - ./corsproxy:/corsproxy
+      - ./silence:/corsproxy/static
+  silence:
+    build:
+      context: ./silence
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./silence:/silence
 
 
 networks:

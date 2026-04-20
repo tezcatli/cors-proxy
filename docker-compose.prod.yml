@@ -1,8 +1,8 @@
 
 services:
-  app:
+  corsproxy:
     build:
-      context: ./app
+      context: ./corsproxy
       dockerfile: Dockerfile.prod
     restart: unless-stopped
     ports:
@@ -17,7 +17,7 @@ services:
       timeout: 10s
       retries: 3
     env_file: rproxy_config.env
-  rproxy:
+  nginx:
     build:
       context: ./nginx
       dockerfile: Dockerfile.prod
@@ -26,13 +26,21 @@ services:
       - "80:80"
     restart: unless-stopped
     depends_on:
-      - app
+      - corsproxy
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www:/var/www:ro
+      - silence:/var/www/silence:ro
     environment:
       - FLASK_ENV=production
+  silence:
+    build:
+      context: ./silence
+      dockerfile: Dockerfile.prod
+    volumes:
+      - silence:/silence
 
+volumes:
+  silence:
 
 networks:
   app-network:
