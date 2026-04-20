@@ -1,3 +1,3 @@
 const PROXIES  = [
-  url => `http://main.tezcat.fr/proxy?url=${url}`
+  url => `https://tezcat.fr/proxy?url=${url}`
 ];

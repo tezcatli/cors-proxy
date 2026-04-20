@@ -26,7 +26,10 @@ services:
       - "80:80"
     restart: unless-stopped
     depends_on:
-      - corsproxy
+      corsproxy:
+        condition: service_started
+      silence:
+        condition: service_completed_successfully
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - silence:/var/www/silence:ro

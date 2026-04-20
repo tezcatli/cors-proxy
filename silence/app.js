@@ -110,9 +110,7 @@ async function fetchRss() {
   let lastErr;
   for (const proxy of PROXIES) {
     try {
-      const r = await fetch(proxy(RSS_URL), (PROXY_SECRET) => { if (PROXY_SECRET != null)
-          return {headers:{'Cors-Proxy-Auth':PROXY_SECRET}}
-      });
+      const r = await fetch(proxy(RSS_URL), (PROXY_SECRET != null) ? {headers:{'Cors-Proxy-Auth':PROXY_SECRET}} : {} );
       if (r.ok) return r.text();
       lastErr = new Error(`HTTP ${r.status}`);
     } catch (err) {

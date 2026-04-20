@@ -1,9 +1,12 @@
 FROM alpine:latest
 RUN apk add --no-cache gettext
 
-CMD ["sh", "-c", "cp /silence/config.prod.js /silence/config.js"]
-CMD ["sh", "-c", "cp /silence/secret.prod.js /silence/secret.js"]
+COPY . /silence-src/
+
+CMD ["sh", "-c", "cp -r /silence-src/. /silence/ && cp /silence-src/config.prod.js /silence/config.js && cp /silence-src/secret.prod.js /silence/secret.js"]
 
 
-#CMD ["sh", "-c", "envsubst '$PROXY_BASE_URL' < /silence/config.js.template > /silence/config.js"]
-#CMD ["sh", "-c", "envsubst '$RAWG_KEY' < /silence/secret.js.template > /silence/secret.js"]
+
+
+
+
