@@ -30,8 +30,8 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www:/var/www:ro
     environment:
-      FLASK_ENV: production
-      env_file: "rproxy_config.env"
+      - FLASK_ENV=production
+    env_file: rproxy_config.env
 
 
 networks:

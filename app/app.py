@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-if PROXY_SECRET == None:
+if Config.PROXY_SECRET == None:
     logger.error("SECRET NOT SET")
 
 # Upstream CORS headers we replace with our own
