@@ -16,6 +16,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    env_file: rproxy_config.env
   rproxy:
     build:
       context: ./nginx
@@ -31,7 +32,6 @@ services:
       - /var/www:/var/www:ro
     environment:
       - FLASK_ENV=production
-    env_file: rproxy_config.env
 
 
 networks:
