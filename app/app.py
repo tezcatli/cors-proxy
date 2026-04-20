@@ -9,10 +9,13 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
+
 logger = logging.getLogger(__name__)
 
-
 app = Flask(__name__)
+
+if PROXY_SECRET == None:
+    logger.error("SECRET NOT SET")
 
 # Upstream CORS headers we replace with our own
 _UPSTREAM_CORS = frozenset([

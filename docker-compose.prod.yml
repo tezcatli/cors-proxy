@@ -28,8 +28,9 @@ services:
       - app
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
-#    environment:
-#      FLASK_ENV: production
+    environment:
+      FLASK_ENV: production
+      env_file: "rproxy_config.env"
 
 
 networks:

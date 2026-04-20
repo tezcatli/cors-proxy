@@ -7,8 +7,7 @@ class Config:
         o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()
     ]
 
-
-    PROXY_SECRET="ubjcYpnoFHTqr4hPaO0k88S3JqzI2kLRzcevTcA2ZNE"
+    PROXY_SECRET = os.getenv("CORSPROXY_SECRET")
 
     REQUEST_TIMEOUT: int = int(os.getenv("REQUEST_TIMEOUT", "10"))
     
