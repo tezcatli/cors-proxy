@@ -1,6 +1,6 @@
-rproxy_config.env
-silence/config.js
-silence/secret.js
-silence/secret.dev.js
-silence/secret.prod.js
 
+silence/config.js
+silence/secrets.js
+
+corsproxy_secrets.env
+silence_secrets.env

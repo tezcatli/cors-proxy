@@ -3,7 +3,8 @@ RUN apk add --no-cache gettext
 
 COPY . /silence-src/
 
-CMD ["sh", "-c", "cp -r /silence-src/. /silence/ && cp /silence-src/config.prod.js /silence/config.js && cp /silence-src/secret.prod.js /silence/secret.js"]
+CMD ["sh", "-c", "cp -r /silence-src/. /silence/ && envsubst '$RAWG_KEY $PROXY_SECRET' < /silence-src/secrets.js.template > /silence/secret.js && cp /silence-src/config.prod.js /silence/config.js"]
+
 
 
 
