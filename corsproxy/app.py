@@ -21,8 +21,8 @@ if Config.DEBUG:
 else:
     app = Flask(__name__)
 
-if Config.PROXY_SECRET == None and not Config.DEBUG:
-    logger.error("SECRET NOT SET")
+if (Config.PROXY_SECRET == None or Config.PROXY_SECRET == "") and not Config.DEBUG:
+    logger.error("PROXY SECRET NOT SET")
 
 # Upstream CORS headers we replace with our own
 _UPSTREAM_CORS = frozenset([
@@ -46,6 +46,8 @@ def _authenticated(headers: dict) -> bool:
     if "Cors-Proxy-Auth" in headers:
         if headers["Cors-Proxy-Auth"] == Config.PROXY_SECRET:
             return True
+        else:
+            logger.info("RECEIVED=%s SECRET=%s", headers["Cors-Proxy-Auth"], Config.PROXY_SECRET)
     return False
 
 def _allowed(url: str) -> bool:
