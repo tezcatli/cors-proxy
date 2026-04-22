@@ -23,6 +23,7 @@ if Config.DEBUG:
 else:
     app = Flask(__name__)
 
+
 if Config.DEBUG:
     from flask import send_from_directory, redirect
 
