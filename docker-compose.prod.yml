@@ -14,6 +14,8 @@ services:
         required: true
 #    depends_on:
 #      - redis
+    volumes:
+      - corsproxy_data:/corsproxy/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost|| exit 1"]
       interval: 30s
@@ -41,16 +43,12 @@ services:
     build:
       context: ./silence
       dockerfile: Dockerfile.prod
-    env_file: 
-      - path: ./corsproxy_secrets.env
-        required: true
-      - path: ./silence_secrets.env
-        required: true
     volumes:
       - silence:/silence
 
 volumes:
   silence:
+  corsproxy_data:
 
 networks:
   app-network:

@@ -25,7 +25,9 @@
           </div>
         </div>
         <div class="header-actions">
+          <span id="userEmail" class="user-email"></span>
           <span id="gameCount" class="badge-count"></span>
+          <button id="logoutBtn" class="btn-icon" title="Se déconnecter" hidden>⏻</button>
           <button id="refreshBtn" class="btn-icon" title="Actualiser le flux RSS">
             <span id="refreshIcon" class="icon-spin">↻</span>
           </button>
@@ -110,8 +112,71 @@
     <div id="audioWrap"><audio id="audioEl" controls preload="none"></audio></div>
     <button class="player-close" id="playerClose" aria-label="Fermer le lecteur">✕</button>
   </div>
-  <script src="config.js"></script>
-  <script src="secrets.js"></script>
-  <script src="app.js"></script>
+
+  <!-- ─── LOGIN OVERLAY ─────────────────────────────────────────────────── -->
+  <div id="loginOverlay" class="login-overlay" hidden>
+    <div class="login-card">
+
+      <!-- Login -->
+      <div id="authLogin" class="auth-view">
+        <h2 class="auth-title">Connexion</h2>
+        <p class="auth-info" hidden></p>
+        <p class="auth-error" hidden></p>
+        <form id="formLogin" novalidate>
+          <input type="email"    id="loginEmail"    class="auth-input" placeholder="Adresse e-mail"  required autocomplete="email" />
+          <input type="password" id="loginPassword" class="auth-input" placeholder="Mot de passe"    required autocomplete="current-password" />
+          <button type="submit" class="auth-btn">Se connecter</button>
+        </form>
+        <div class="auth-links">
+          <a href="#" id="linkForgotPassword">Mot de passe oublié ?</a>
+        </div>
+      </div>
+
+      <!-- Register -->
+      <div id="authRegister" class="auth-view" hidden>
+        <h2 class="auth-title">Créer un compte</h2>
+        <p class="auth-error" hidden></p>
+        <form id="formRegister" novalidate>
+          <input type="hidden"   id="inviteToken" />
+          <input type="email"    id="registerEmail"     class="auth-input" placeholder="Adresse e-mail"              required autocomplete="email" />
+          <input type="password" id="registerPassword"  class="auth-input" placeholder="Mot de passe (8 car. min.)" required autocomplete="new-password" />
+          <input type="password" id="registerPassword2" class="auth-input" placeholder="Confirmer le mot de passe"   required autocomplete="new-password" />
+          <button type="submit" class="auth-btn">Créer le compte</button>
+        </form>
+        <div class="auth-links">
+          <a href="#" id="linkToLogin">Déjà inscrit ? Se connecter</a>
+        </div>
+      </div>
+
+      <!-- Reset request -->
+      <div id="authResetRequest" class="auth-view" hidden>
+        <h2 class="auth-title">Mot de passe oublié</h2>
+        <p class="auth-info"  hidden></p>
+        <p class="auth-error" hidden></p>
+        <form id="formResetRequest" novalidate>
+          <input type="email" id="resetEmail" class="auth-input" placeholder="Adresse e-mail" required autocomplete="email" />
+          <button type="submit" class="auth-btn">Envoyer le lien</button>
+        </form>
+        <div class="auth-links">
+          <a href="#" id="linkResetToLogin">Retour à la connexion</a>
+        </div>
+      </div>
+
+      <!-- Reset confirm (reached via ?reset=<token> in URL) -->
+      <div id="authReset" class="auth-view" hidden>
+        <h2 class="auth-title">Nouveau mot de passe</h2>
+        <p class="auth-error" hidden></p>
+        <form id="formReset" novalidate>
+          <input type="hidden"   id="authResetToken" />
+          <input type="password" id="newPassword"  class="auth-input" placeholder="Nouveau mot de passe (8 car. min.)" required autocomplete="new-password" />
+          <input type="password" id="newPassword2" class="auth-input" placeholder="Confirmer le mot de passe"           required autocomplete="new-password" />
+          <button type="submit" class="auth-btn">Changer le mot de passe</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

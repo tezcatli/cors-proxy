@@ -4,6 +4,7 @@
 
 /* ─── Reset & variables ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 
 :root {
   --bg:       #0f0f1a;
@@ -798,3 +799,102 @@ audio::-webkit-media-controls-panel { background: var(--surface2); }
   .detail-lecteur { height: clamp(240px, 36dvh, 520px); }
   .detail-title { font-size: 2.2rem; }
 }
+
+/* ─── User email in header ───────────────────────────────────────────────── */
+.user-email {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Login overlay ──────────────────────────────────────────────────────── */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 28px;
+}
+
+.auth-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+
+.auth-input {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color var(--trans);
+}
+.auth-input:focus { border-color: var(--accent); }
+.auth-input::placeholder { color: var(--text-dim); }
+
+.auth-btn {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  margin-top: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity var(--trans);
+}
+.auth-btn:hover  { opacity: 0.88; }
+.auth-btn:disabled { opacity: 0.5; cursor: default; }
+
+.auth-error {
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.auth-info {
+  font-size: 0.85rem;
+  color: #4caf8a;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 16px;
+}
+.auth-links a {
+  font-size: 0.85rem;
+  color: var(--accent-h);
+  text-decoration: none;
+}
+.auth-links a:hover { text-decoration: underline; }

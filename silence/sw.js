@@ -1,7 +1,7 @@
 'use strict';
 
 const CACHE  = 'soj-v4';
-const STATIC = ['/index.html', '/style.css', '/app.js', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const STATIC = ['/index.html', '/style.css', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
@@ -19,19 +19,6 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-
-  // RAWG — cache-first (game art and scores rarely change)
-  if (url.hostname === 'api.rawg.io') {
-    e.respondWith(
-      caches.match(e.request).then(cached => cached ||
-        fetch(e.request).then(res => {
-          if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-          return res;
-        })
-      )
-    );
-    return;
-  }
 
   // RSS via proxy — network-first, cache as fallback
   if (url.hostname.includes('corsproxy.io') || url.hostname.includes('allorigins.win')) {

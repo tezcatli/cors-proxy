@@ -1,8 +1,12 @@
 import time
 import logging
-from flask import Flask, request, abort, Response
+import jwt
+from flask import Flask, request, abort, Response, jsonify
 from urllib.parse import urlparse
 from config import Config
+from db import init_db
+from auth import auth_bp
+from rawg import rawg_bp
 import requests
 
 logging.basicConfig(
@@ -13,16 +17,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
-
 if Config.DEBUG:
     logger.warning("Running in DEBUG mode. This is not recommended for production!")
     app = Flask(__name__, static_folder="static", static_url_path="/silence")
 else:
     app = Flask(__name__)
 
-if Config.PROXY_SECRET == None and not Config.DEBUG:
-    logger.error("SECRET NOT SET")
+if Config.DEBUG:
+    from flask import send_from_directory, redirect
+
+    @app.route("/silence")
+    def silence_redirect():
+        qs = request.query_string.decode()
+        return redirect(f"/silence/?{qs}" if qs else "/silence/")
+
+    @app.route("/silence/")
+    def silence_index():
+        return send_from_directory(app.static_folder, "index.html")
+
+app.register_blueprint(auth_bp)
+app.register_blueprint(rawg_bp)
+init_db()
 
 # Upstream CORS headers we replace with our own
 _UPSTREAM_CORS = frozenset([
@@ -41,12 +56,17 @@ _HOP_BY_HOP = frozenset([
 
 
 def _authenticated(headers: dict) -> bool:
-    if Config.DEBUG == True:
+    if Config.DEBUG:
         return True
-    if "Cors-Proxy-Auth" in headers:
-        if headers["Cors-Proxy-Auth"] == Config.PROXY_SECRET:
-            return True
-    return False
+    auth = headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return False
+    try:
+        jwt.decode(auth[7:], Config.JWT_SECRET, algorithms=["HS256"])
+        return True
+    except jwt.PyJWTError:
+        return False
+
 
 def _allowed(url: str) -> bool:
     if not Config.ALLOWED_ORIGINS:
@@ -55,9 +75,21 @@ def _allowed(url: str) -> bool:
     origin = f"{parsed.scheme}://{parsed.netloc}"
     return any(origin.startswith(allowed) for allowed in Config.ALLOWED_ORIGINS)
 
+
 def _strip(headers: dict, extras: frozenset = frozenset()) -> dict:
     blocked = _HOP_BY_HOP | extras
     return {k: v for k, v in headers.items() if k.lower() not in blocked}
+
+
+@app.errorhandler(400)
+@app.errorhandler(401)
+@app.errorhandler(403)
+@app.errorhandler(404)
+@app.errorhandler(409)
+@app.errorhandler(410)
+@app.errorhandler(500)
+def json_error(e):
+    return jsonify(error=str(e.description)), e.code
 
 
 @app.before_request
@@ -72,7 +104,7 @@ def _add_cors(response: Response) -> Response:
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = (
-        "Content-Type, Authorization, X-Requested-With, Cors-Proxy-Auth"
+        "Content-Type, Authorization, X-Requested-With"
     )
     response.headers["Access-Control-Max-Age"] = "86400"
     response.headers["Vary"] = "Origin"
@@ -87,7 +119,7 @@ def _log(response: Response) -> Response:
         request.method,
         request.path,
         response.status_code,
-        ms
+        ms,
     )
     return response
 
@@ -95,6 +127,7 @@ def _log(response: Response) -> Response:
 @app.route("/")
 def hello():
     return "Guten tag das monde!!!"
+
 
 @app.route("/proxy", methods=["GET"])
 def proxy():
@@ -112,7 +145,6 @@ def proxy():
         abort(403, "Not authenticated")
 
     forward_headers = _strip(dict(request.headers), extras=frozenset(["host"]))
-
 
     try:
         upstream = requests.request(
@@ -144,6 +176,6 @@ def proxy():
         direct_passthrough=True,
     )
 
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
-    

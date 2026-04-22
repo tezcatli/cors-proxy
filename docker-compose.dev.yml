@@ -29,11 +29,6 @@ services:
     build:
       context: ./silence
       dockerfile: Dockerfile.dev
-    env_file: 
-      - path: ./corsproxy_secrets.env
-        required: true
-      - path: ./silence_secrets.env
-        required: true
     volumes:
       - ./silence:/silence
 
