@@ -1,15 +1,3 @@
 FROM alpine:latest
 COPY . /silence-src/
-<<<<<<< HEAD
 CMD ["sh", "-c", "cp -r /silence-src/. /silence/ && cp /silence-src/config.prod.js /silence/config.js"]
-=======
-
-CMD ["sh", "-c", "cp -r /silence-src/. /silence/ && envsubst '$RAWG_KEY $CORSPROXY_SECRET' < /silence-src/secrets.js.template > /silence/secrets.js && cp /silence-src/config.prod.js /silence/config.js"]
-
-
-
-
-
-
-
->>>>>>> 8818fe4685ff996b2c82c608f75aecf2aefb037f

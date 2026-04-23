@@ -4,12 +4,12 @@ import { stripHtml, timestampToSeconds, normalizeForMatch } from './utils.js';
 
 const RSS_URL = 'https://feeds.acast.com/public/shows/silence-on-joue';
 
-function extractGameNamesFromTitle(title) {
+export function extractGameNamesFromTitle(title) {
   if (!title) return [];
   return [...title.matchAll(/«([^»]+)»/g)].map(m => m[1].trim()).filter(n => n.length > 1);
 }
 
-function extractChapters(text) {
+export function extractChapters(text) {
   const chapters = [];
   for (const line of text.split(/[\n\r]+/)) {
     const m = line.trim().match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$/);
@@ -24,9 +24,9 @@ const NON_GAME_CHAPTERS = [
   /^la?\s+chronique/i, /^outro$/i, /^g[eé]n[eé]rique/i, /^\s*$/,
 ];
 
-function isNonGameChapter(title) { return NON_GAME_CHAPTERS.some(re => re.test(title)); }
+export function isNonGameChapter(title) { return NON_GAME_CHAPTERS.some(re => re.test(title)); }
 
-function findTimestampForGame(gameName, chapters) {
+export function findTimestampForGame(gameName, chapters) {
   const normGame = normalizeForMatch(gameName);
   let best = null, bestScore = 0;
   for (const chapter of chapters) {

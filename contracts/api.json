@@ -1,0 +1,42 @@
+{
+  "auth": {
+    "invite": {
+      "success":   { "status": 201, "fields": ["invite_url"] },
+      "forbidden": { "status": 403, "fields": ["error"] },
+      "bad_email": { "status": 400, "fields": ["error"] }
+    },
+    "invite_info": {
+      "success":   { "status": 200, "fields": ["email"] },
+      "not_found": { "status": 404, "fields": ["error"] },
+      "used":      { "status": 410, "fields": ["error"] }
+    },
+    "register": {
+      "success":         { "status": 201, "fields": ["access_token"] },
+      "invalid_invite":  { "status": 400, "fields": ["error"] },
+      "duplicate_email": { "status": 409, "fields": ["error"] },
+      "weak_password":   { "status": 400, "fields": ["error"] }
+    },
+    "login": {
+      "success":         { "status": 200, "fields": ["access_token"] },
+      "bad_credentials": { "status": 401, "fields": ["error"] },
+      "missing_fields":  { "status": 400, "fields": ["error"] }
+    },
+    "reset_request": {
+      "success": { "status": 204 }
+    },
+    "reset_confirm": {
+      "success":       { "status": 204 },
+      "invalid_token": { "status": 400, "fields": ["error"] },
+      "expired_token": { "status": 410, "fields": ["error"] },
+      "weak_password": { "status": 400, "fields": ["error"] }
+    }
+  },
+  "rawg": {
+    "games": {
+      "success":        { "status": 200, "fields": ["results"] },
+      "unauthorized":   { "status": 401, "fields": ["error"] },
+      "upstream_error": { "status": 502, "fields": ["error"] },
+      "no_key":         { "status": 503, "fields": ["error"] }
+    }
+  }
+}

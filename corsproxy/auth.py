@@ -18,9 +18,9 @@ def _check(password: str, hashed: str) -> bool:
 
 
 def _make_jwt(user_id: int, email: str) -> str:
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
     payload = {
-        "sub":   user_id,
+        "sub":   str(user_id),
         "email": email,
         "iat":   now,
         "exp":   now + datetime.timedelta(seconds=Config.JWT_TTL_SECONDS),
@@ -123,7 +123,7 @@ def reset_request():
         if user:
             token   = secrets.token_urlsafe(32)
             expires = (
-                datetime.datetime.utcnow()
+                datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
                 + datetime.timedelta(seconds=Config.RESET_TTL_SECONDS)
             ).isoformat()
             conn.execute(
@@ -140,7 +140,7 @@ def reset_confirm():
     _require_fields(data, "token", "new_password")
     if len(data["new_password"]) < 8:
         abort(400, "Le mot de passe doit contenir au moins 8 caractères")
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
     with get_db() as conn:
         row = conn.execute(
             "SELECT user_id, expires_at FROM reset_tokens WHERE token = ?",

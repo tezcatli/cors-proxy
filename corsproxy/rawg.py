@@ -32,7 +32,7 @@ def _cache_get(key):
         ).fetchone()
     if not row:
         return None
-    age = datetime.datetime.utcnow() - datetime.datetime.fromisoformat(row['cached_at'])
+    age = datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.datetime.fromisoformat(row['cached_at'])
     if age.days >= TTL_DAYS:
         return None
     return json.loads(row['data'])
@@ -42,7 +42,7 @@ def _cache_set(key, data):
     with get_db() as conn:
         conn.execute(
             'INSERT OR REPLACE INTO rawg_cache (key, data, cached_at) VALUES (?, ?, ?)',
-            (key, json.dumps(data), datetime.datetime.utcnow().isoformat()),
+            (key, json.dumps(data), datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()),
         )
 
 

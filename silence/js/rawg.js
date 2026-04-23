@@ -1,6 +1,7 @@
 const imageCache = new Map();
+export function clearCache() { imageCache.clear(); }
 
-function normName(s) {
+export function normName(s) {
   return s.toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]/g, '');
@@ -12,7 +13,7 @@ async function rawgSearch(query) {
   return data.results || [];
 }
 
-function rankResults(results, gameName) {
+export function rankResults(results, gameName) {
   const q    = normName(gameName);
   const base = normName(gameName.replace(/\s*[:\-–].+$/, '').trim());
   return [...results].sort((a, b) => {
@@ -28,7 +29,7 @@ function rankResults(results, gameName) {
   });
 }
 
-function simplifyPlatform(name) {
+export function simplifyPlatform(name) {
   if (/playstation/i.test(name))      return 'PlayStation';
   if (/xbox/i.test(name))             return 'Xbox';
   if (/switch|nintendo/i.test(name))  return 'Switch';

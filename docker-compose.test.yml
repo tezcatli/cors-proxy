@@ -1,0 +1,24 @@
+services:
+  corsproxy-test:
+    build:
+      context: ./corsproxy
+      dockerfile: Dockerfile.test
+    environment:
+      DEBUG: "false"
+      JWT_SECRET: "test-jwt-secret-long-enough-for-hs256"
+      ADMIN_KEY: "test-admin-key"
+      RAWG_KEY: "test-rawg-key"
+      RESET_BASE_URL: "http://testserver"
+      SMTP_HOST: ""
+    volumes:
+      - ./corsproxy:/corsproxy
+      - ./contracts:/contracts
+
+  frontend-test:
+    build:
+      context: ./silence
+      dockerfile: Dockerfile.test
+    volumes:
+      - ./silence:/silence
+      - /silence/node_modules
+      - ./contracts:/contracts

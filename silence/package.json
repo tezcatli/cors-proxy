@@ -1,0 +1,11 @@
+{
+  "name": "silence-tests",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0",
+    "jsdom": "^26.0.0"
+  }
+}
