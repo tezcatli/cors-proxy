@@ -1,3 +1,10 @@
+FROM node:22-alpine AS builder
+COPY package.json package-lock.json* /
+RUN cd / && npm install
+WORKDIR /silence
+COPY . .
+RUN node /node_modules/.bin/vite build
+
 FROM alpine:latest
-COPY . /silence-src/
-CMD ["sh", "-c", "cp -r /silence-src/. /silence/ && cp /silence-src/config.prod.js /silence/config.js"]
+COPY --from=builder /silence/dist /silence-dist
+CMD ["sh", "-c", "cp -r /silence-dist/. /silence/"]

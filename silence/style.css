@@ -395,11 +395,11 @@ body.player-open .grid-area {
   background: var(--bg);
   display: flex;
   flex-direction: column;
-  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.detail-view.exiting {
-  animation: slideOutRight 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
+
+/* Vue Router <Transition name="slide-right"> */
+.slide-right-enter-active { animation: slideInRight  0.30s cubic-bezier(0.4, 0, 0.2, 1); }
+.slide-right-leave-active { animation: slideOutRight 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
 /* ── Artwork ─────────────────────────────────────────────────────────────── */
 .detail-artwork {

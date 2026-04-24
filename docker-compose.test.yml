@@ -20,5 +20,4 @@ services:
       dockerfile: Dockerfile.test
     volumes:
       - ./silence:/silence
-      - /silence/node_modules
       - ./contracts:/contracts

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { normName, rankResults, simplifyPlatform, fetchImage, clearCache } from '../js/rawg.js';
+import { normName, rankResults, simplifyPlatform, fetchImage, clearCache } from '../src/lib/rawg.js';
 import { RAWG, mockResponse } from './contract.js';
 
 beforeEach(() => clearCache());

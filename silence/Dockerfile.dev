@@ -1,2 +1,7 @@
-FROM alpine:latest
-CMD ["sh", "-c", "cp /silence/config.dev.js /silence/config.js"]
+FROM node:22-alpine
+# Install node_modules at /node_modules (outside the bind-mounted /silence),
+# so the host mount never hides them and no anonymous volume is needed.
+COPY package.json package-lock.json* /
+RUN cd / && npm install
+WORKDIR /silence
+CMD ["node", "/node_modules/.bin/vite", "build", "--watch", "--mode", "development"]

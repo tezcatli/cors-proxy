@@ -5,7 +5,7 @@ import {
   isNonGameChapter,
   findTimestampForGame,
   parseFeed,
-} from '../js/rss.js';
+} from '../src/lib/rss.js';
 
 // ── extractGameNamesFromTitle ─────────────────────────────────────────────
 

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   stripHtml, timestampToSeconds, normalizeForMatch,
-  formatDate, timeAgo, escHtml, latestDate, getScoreClass,
-} from '../js/utils.js';
+  formatDate, timeAgo, escHtml, latestDate, getScoreClass, formatEpisodeCount,
+} from '../src/lib/utils.js';
 
 // ── stripHtml ──────────────────────────────────────────────────────────────
 
@@ -161,5 +161,20 @@ describe('formatDate', () => {
     const result = formatDate('2024-01-15');
     expect(typeof result).toBe('string');
     expect(result.length).toBeGreaterThan(0);
+  });
+});
+
+// ── formatEpisodeCount ────────────────────────────────────────────────────
+
+describe('formatEpisodeCount', () => {
+  it('uses singular for 1', () => {
+    expect(formatEpisodeCount(1)).toBe('1 épisode');
+  });
+  it('uses plural for 2+', () => {
+    expect(formatEpisodeCount(2)).toBe('2 épisodes');
+    expect(formatEpisodeCount(10)).toBe('10 épisodes');
+  });
+  it('handles 0', () => {
+    expect(formatEpisodeCount(0)).toBe('0 épisode');
   });
 });

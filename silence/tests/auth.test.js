@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getToken, getUserEmail, isLoggedIn, logout, login, register, resetRequest, resetConfirm } from '../js/auth.js';
+import { getToken, getUserEmail, isLoggedIn, logout, login, register, resetRequest, resetConfirm } from '../src/lib/auth.js';
 import { AUTH, mockResponse } from './contract.js';
 
 const TOKEN_KEY = 'soj-auth-token';

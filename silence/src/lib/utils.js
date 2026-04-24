@@ -57,3 +57,7 @@ export const latestDate = g => Math.max(0, ...g.episodes.map(ep => ep.pubDate ? 
 export function getScoreClass(score) {
   return score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
 }
+
+export function formatEpisodeCount(n) {
+  return `${n} épisode${n > 1 ? 's' : ''}`;
+}

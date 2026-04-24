@@ -65,6 +65,7 @@ def create_app():
         _app = Flask(__name__)
 
     if Config.DEBUG:
+        import pathlib
         from flask import send_from_directory, redirect
 
         @_app.route("/silence")
@@ -72,8 +73,12 @@ def create_app():
             qs = request.query_string.decode()
             return redirect(f"/silence/?{qs}" if qs else "/silence/")
 
-        @_app.route("/silence/")
-        def silence_index():
+        @_app.route("/silence/", defaults={"path": ""})
+        @_app.route("/silence/<path:path>")
+        def silence_spa(path):
+            full = pathlib.Path(_app.static_folder) / path
+            if full.is_file():
+                return send_from_directory(_app.static_folder, path)
             return send_from_directory(_app.static_folder, "index.html")
 
     _app.register_blueprint(auth_bp)

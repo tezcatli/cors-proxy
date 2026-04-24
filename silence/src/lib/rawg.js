@@ -7,8 +7,19 @@ export function normName(s) {
     .replace(/[^a-z0-9]/g, '');
 }
 
+function authHeaders() {
+  try {
+    const token = localStorage.getItem('soj-auth-token') || '';
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function rawgSearch(query) {
-  const r = await fetch(`/rawg/games?search=${encodeURIComponent(query)}&page_size=10`);
+  const r = await fetch(`/rawg/games?search=${encodeURIComponent(query)}&page_size=10`, {
+    headers: authHeaders(),
+  });
   const data = await r.json();
   return data.results || [];
 }
@@ -69,7 +80,7 @@ async function fetchRawgData(gameName) {
 
     if (best?.slug) {
       try {
-        const detail = await fetch(`/rawg/games/${encodeURIComponent(best.slug)}`).then(r => r.json());
+        const detail = await fetch(`/rawg/games/${encodeURIComponent(best.slug)}`, { headers: authHeaders() }).then(r => r.json());
         if (!url) url = detail.background_image || detail.background_image_additional || null;
         developer = detail.developers?.[0]?.name || null;
         const rawDesc = (detail.description_raw || '').trim();

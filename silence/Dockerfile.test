@@ -1,6 +1,6 @@
 FROM node:22-alpine
+COPY package.json package-lock.json* /
+RUN cd / && npm install
 WORKDIR /silence
-COPY package.json .
-RUN npm install
 COPY . .
-CMD ["npm", "test"]
+CMD ["node", "/node_modules/.bin/vitest", "run"]

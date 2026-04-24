@@ -5,3 +5,7 @@ silence/secrets.js
 corsproxy_secrets.env
 silence_secrets.env
 __pycache__
+corsproxy/data/users.db
+
+node_modules
+silence/dist/

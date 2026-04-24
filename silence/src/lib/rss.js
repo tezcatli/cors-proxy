@@ -1,4 +1,3 @@
-import { PROXIES } from '../config.js';
 import { getToken } from './auth.js';
 import { stripHtml, timestampToSeconds, normalizeForMatch } from './utils.js';
 
@@ -63,17 +62,10 @@ function xmlText(item, tag) {
 }
 
 async function fetchRss() {
-  let lastErr;
-  for (const proxy of PROXIES) {
-    try {
-      const r = await fetch(proxy(RSS_URL), { headers: { 'Authorization': `Bearer ${getToken()}` } });
-      if (r.ok) return r.text();
-      lastErr = new Error(`HTTP ${r.status}`);
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-  throw new Error(`RSS indisponible : ${lastErr?.message}`);
+  const url = `${import.meta.env.VITE_PROXY_URL}?url=${RSS_URL}`;
+  const r = await fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.text();
 }
 
 export async function parseFeed() {
