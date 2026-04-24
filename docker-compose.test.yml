@@ -14,10 +14,37 @@ services:
       - ./corsproxy:/corsproxy
       - ./contracts:/contracts
 
+  corsproxy-server:
+    build:
+      context: ./corsproxy
+      dockerfile: Dockerfile.dev
+    environment:
+      FLASK_APP: app.py
+      DEBUG: "true"
+      JWT_SECRET: "test-jwt-secret-long-enough-for-hs256"
+      ADMIN_KEY: "test-admin-key"
+      RAWG_KEY: "test-rawg-key"
+      RESET_BASE_URL: "http://testserver"
+      SMTP_HOST: ""
+    volumes:
+      - ./corsproxy:/corsproxy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
   frontend-test:
     build:
       context: ./silence
       dockerfile: Dockerfile.test
+    depends_on:
+      corsproxy-server:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://corsproxy-server:5000
+      ADMIN_KEY: test-admin-key
     volumes:
       - ./silence:/silence
       - ./contracts:/contracts

@@ -38,5 +38,13 @@
       "upstream_error": { "status": 502, "fields": ["error"] },
       "no_key":         { "status": 503, "fields": ["error"] }
     }
+  },
+  "proxy": {
+    "success":        { "status": 200 },
+    "missing_url":    { "status": 400, "fields": ["error"] },
+    "invalid_url":    { "status": 400, "fields": ["error"] },
+    "unauthorized":   { "status": 403, "fields": ["error"] },
+    "upstream_error": { "status": 502, "fields": ["error"] },
+    "timeout":        { "status": 504, "fields": ["error"] }
   }
 }

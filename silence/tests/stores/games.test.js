@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useGamesStore } from '../../src/stores/games.js'
 
-vi.mock('../../js/rss.js', () => ({ parseFeed: vi.fn() }))
+vi.mock('../../src/lib/rss.js', () => ({ parseFeed: vi.fn() }))
 import { parseFeed } from '../../src/lib/rss.js'
 
 const GAMES = [

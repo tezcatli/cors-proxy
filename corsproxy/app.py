@@ -59,7 +59,7 @@ def _strip(headers: dict, extras: frozenset = frozenset()) -> dict:
 
 def create_app():
     if Config.DEBUG:
-        _app = Flask(__name__, static_folder="static", static_url_path="/silence")
+        _app = Flask(__name__, static_folder="static")
         logger.warning("Running in DEBUG mode. This is not recommended for production!")
     else:
         _app = Flask(__name__)
