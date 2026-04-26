@@ -25,13 +25,7 @@ body {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 80px;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-}
-
-body.player-open .grid-area {
-  padding-bottom: 160px;
-  padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ─── Login form input (avoids DaisyUI v4 .input class collision) ─────────── */
@@ -223,11 +217,6 @@ audio::-webkit-media-controls-panel { background: #1a2a50; }
 .audio-player { display: none; }
 
 .audio-player.active {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 300;
   background: rgba(15, 15, 26, 0.97);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -241,6 +230,14 @@ audio::-webkit-media-controls-panel { background: #1a2a50; }
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   animation: slideUpPlayer 0.2s ease;
 }
+body.detail-open .audio-player.active {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+}
+
 @keyframes slideUpPlayer { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .player-info {

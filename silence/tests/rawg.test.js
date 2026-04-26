@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { normKey } from '../src/lib/utils.js';
 import { correct } from '../src/lib/corrections.js';
-import { ensureIgdbData, clearCache, getCachedMeta, getCachedData } from '../src/lib/igdb.js';
+import { ensureIgdbData, clearCache, getCachedMeta, getCachedData, igdbCacheVersion } from '../src/lib/igdb.js';
 import { IGDB, mockResponse } from './contract.js';
 
 // ── normKey ───────────────────────────────────────────────────────────────
@@ -83,6 +83,21 @@ describe('ensureIgdbData', () => {
     await ensureIgdbData('Test Game');
     await ensureIgdbData('test game');
     expect(apiFetch).toHaveBeenCalledOnce();
+  });
+
+  it('year param is passed to API but does not affect cache key', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    await ensureIgdbData('Test Game', 2021);
+    await ensureIgdbData('Test Game');
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(apiFetch.mock.calls[0][0]).toContain('year=2021');
+  });
+
+  it('increments igdbCacheVersion on each fetch', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    const before = igdbCacheVersion.value;
+    await ensureIgdbData('Test Game');
+    expect(igdbCacheVersion.value).toBe(before + 1);
   });
 
   it('caches null for not-found games', async () => {

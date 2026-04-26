@@ -43,10 +43,13 @@ watch(searchQuery, q => {
 
 const displayedGames = computed(() => gamesStore.filtered(searchQuery.value.trim()))
 
-// Body class for audio player padding
+// Body classes for layout context
 watch(() => playerStore.visible, v => {
   document.body.classList.toggle('player-open', v)
 })
+watch(() => route.path, p => {
+  document.body.classList.toggle('detail-open', p.startsWith('/game/'))
+}, { immediate: true })
 
 function handleLogout() {
   showAccountModal.value = false

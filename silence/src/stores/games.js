@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { parseFeed } from '../lib/rss.js'
-import { getCachedMeta } from '../lib/igdb.js'
+import { getCachedMeta, igdbCacheVersion } from '../lib/igdb.js'
 import { latestDate } from '../lib/utils.js'
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
@@ -15,6 +15,7 @@ export const useGamesStore = defineStore('games', () => {
   const error     = ref(null)
 
   function _sort(games) {
+    void igdbCacheVersion.value
     const dir = sortAsc.value ? 1 : -1
     return [...games].sort((a, b) => {
       if (sortMode.value === 'date')
