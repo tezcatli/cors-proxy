@@ -4,7 +4,7 @@ from pathlib import Path
 _path = Path(__file__).resolve().parents[2] / 'contracts' / 'api.json'
 CONTRACT = json.loads(_path.read_text())
 AUTH  = CONTRACT['auth']
-RAWG  = CONTRACT['rawg']
+IGDB  = CONTRACT['igdb']
 PROXY = CONTRACT['proxy']
 
 

@@ -5,7 +5,8 @@ import tempfile
 os.environ['DEBUG']          = 'false'
 os.environ['JWT_SECRET']     = 'test-jwt-secret-long-enough-for-hs256'
 os.environ['ADMIN_KEY']      = 'test-admin-key'
-os.environ['RAWG_KEY']       = 'test-rawg-key'
+os.environ['IGDB_CLIENT_ID']     = 'test-igdb-client-id'
+os.environ['IGDB_CLIENT_SECRET'] = 'test-igdb-client-secret'
 os.environ['RESET_BASE_URL'] = 'http://testserver'
 os.environ['SMTP_HOST']      = ''
 
@@ -33,7 +34,7 @@ def clean_db():
     yield
     with _db.get_db() as conn:
         conn.executescript("""
-            DELETE FROM rawg_cache;
+            DELETE FROM igdb_cache;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
             DELETE FROM users;

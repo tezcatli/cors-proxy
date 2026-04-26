@@ -34,6 +34,8 @@ export function norm(s) {
     .trim()
 }
 
+export const normKey = s => norm(s).replaceAll(' ', '')
+
 export function formatDate(str) {
   if (!str) return '';
   try { return new Date(str).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }); }
@@ -56,6 +58,11 @@ export function escHtml(str) {
 }
 
 export const latestDate = g => Math.max(0, ...g.episodes.map(ep => ep.pubDate ? +new Date(ep.pubDate) : 0));
+
+export function gameYear(episodes) {
+  const years = episodes.map(ep => ep.pubDate ? new Date(ep.pubDate).getFullYear() : null).filter(Boolean)
+  return years.length ? Math.min(...years) : null
+}
 
 export function getScoreClass(score) {
   return score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';

@@ -1,7 +1,8 @@
 x-test-env: &test-env
   JWT_SECRET: "test-jwt-secret-long-enough-for-hs256"
   ADMIN_KEY: "test-admin-key"
-  RAWG_KEY: "test-rawg-key"
+  IGDB_CLIENT_ID: "test-igdb-client-id"
+  IGDB_CLIENT_SECRET: "test-igdb-client-secret"
   RESET_BASE_URL: "http://testserver"
   SMTP_HOST: ""
 

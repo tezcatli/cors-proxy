@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from config import Config
 from db import init_db
 from auth import auth_bp, _decode_jwt
-from rawg import rawg_bp
+from igdb import igdb_bp
 import requests
 
 logging.basicConfig(
@@ -76,7 +76,7 @@ def create_app():
             return resp
 
     _app.register_blueprint(auth_bp)
-    _app.register_blueprint(rawg_bp)
+    _app.register_blueprint(igdb_bp)
     init_db()
 
     def json_error(e):

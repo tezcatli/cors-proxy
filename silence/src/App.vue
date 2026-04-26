@@ -28,7 +28,7 @@ function handleShowAccount() {
 const searchQuery = ref(route.query.q || '')
 
 // URL → input (back/forward)
-watch(() => route.query.q, q => { searchQuery.value = q || '' })
+watch(() => route.query.q, q => { if (route.path === '/') searchQuery.value = q || '' })
 
 // Input → URL (debounced, only while on the grid)
 let searchTimer

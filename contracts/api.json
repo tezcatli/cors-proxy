@@ -31,12 +31,14 @@
       "weak_password": { "status": 400, "fields": ["error"] }
     }
   },
-  "rawg": {
-    "games": {
-      "success":        { "status": 200, "fields": ["results"] },
+  "igdb": {
+    "game": {
+      "success":        { "status": 200, "fields": ["url"] },
+      "not_found":      { "status": 200 },
       "unauthorized":   { "status": 401, "fields": ["error"] },
-      "upstream_error": { "status": 502, "fields": ["error"] },
-      "no_key":         { "status": 503, "fields": ["error"] }
+      "missing_name":   { "status": 400, "fields": ["error"] },
+      "no_creds":       { "status": 503, "fields": ["error"] },
+      "upstream_error": { "status": 502, "fields": ["error"] }
     }
   },
   "proxy": {

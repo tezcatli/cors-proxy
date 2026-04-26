@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  stripHtml, timestampToSeconds, normalizeForMatch,
-  formatDate, timeAgo, escHtml, latestDate, getScoreClass, formatEpisodeCount,
+  stripHtml, timestampToSeconds, norm, normKey,
+  formatDate, timeAgo, escHtml, latestDate, getScoreClass, formatEpisodeCount, gameYear,
 } from '../src/lib/utils.js';
 
 // ── stripHtml ──────────────────────────────────────────────────────────────
@@ -52,17 +52,31 @@ describe('timestampToSeconds', () => {
   });
 });
 
-// ── normalizeForMatch ──────────────────────────────────────────────────────
+// ── norm ──────────────────────────────────────────────────────────────────
 
-describe('normalizeForMatch', () => {
+describe('norm', () => {
   it('lowercases', () => {
-    expect(normalizeForMatch('ZELDA')).toBe('zelda');
+    expect(norm('ZELDA')).toBe('zelda');
   });
-  it('strips guillemets and punctuation', () => {
-    expect(normalizeForMatch('«Zelda: Breath»')).toBe('zelda breath');
+  it('strips accents', () => {
+    expect(norm('Élodie')).toBe('elodie');
   });
-  it('collapses whitespace', () => {
-    expect(normalizeForMatch('a  b')).toBe('a b');
+  it('strips punctuation, preserves spaces', () => {
+    expect(norm('«Zelda: Breath»')).toBe('zelda breath');
+  });
+  it('collapses multiple spaces', () => {
+    expect(norm('a  b')).toBe('a b');
+  });
+});
+
+// ── normKey ───────────────────────────────────────────────────────────────
+
+describe('normKey', () => {
+  it('removes all spaces', () => {
+    expect(normKey('Zelda: Breath of the Wild')).toBe('zeldabreathofthewild');
+  });
+  it('handles empty string', () => {
+    expect(normKey('')).toBe('');
   });
 });
 
@@ -98,6 +112,29 @@ describe('getScoreClass', () => {
     expect(getScoreClass(0)).toBe('score-low');
   });
 });
+
+// ── gameYear ──────────────────────────────────────────────────────────────
+
+describe('gameYear', () => {
+  it('returns the earliest episode year', () => {
+    const episodes = [
+      { pubDate: '2022-06-01T00:00:00Z' },
+      { pubDate: '2021-03-15T00:00:00Z' },
+      { pubDate: '2023-11-20T00:00:00Z' },
+    ]
+    expect(gameYear(episodes)).toBe(2021)
+  })
+  it('returns null for empty array', () => {
+    expect(gameYear([])).toBeNull()
+  })
+  it('ignores episodes without pubDate', () => {
+    const episodes = [{ pubDate: null }, { pubDate: '2022-01-01T00:00:00Z' }]
+    expect(gameYear(episodes)).toBe(2022)
+  })
+  it('returns null when all episodes lack pubDate', () => {
+    expect(gameYear([{ pubDate: null }, { pubDate: null }])).toBeNull()
+  })
+})
 
 // ── latestDate ────────────────────────────────────────────────────────────
 

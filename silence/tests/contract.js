@@ -8,7 +8,7 @@ const CONTRACT = JSON.parse(
 );
 
 export const AUTH = CONTRACT.auth;
-export const RAWG = CONTRACT.rawg;
+export const IGDB = CONTRACT.igdb;
 
 export function mockResponse(entry, body = {}) {
   return {

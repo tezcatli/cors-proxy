@@ -37,7 +37,7 @@ def init_db():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 used_at    DATETIME
             );
-            CREATE TABLE IF NOT EXISTS rawg_cache (
+            CREATE TABLE IF NOT EXISTS igdb_cache (
                 key        TEXT     PRIMARY KEY,
                 data       TEXT     NOT NULL,
                 cached_at  DATETIME NOT NULL

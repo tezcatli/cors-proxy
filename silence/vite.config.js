@@ -8,8 +8,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/auth':  'http://corsproxy:5000',
-      '/rawg':  'http://corsproxy:5000',
-      '/proxy': 'http://corsproxy:5000',
+'/proxy': 'http://corsproxy:5000',
     },
   },
 })

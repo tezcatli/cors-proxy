@@ -64,10 +64,10 @@ describe('full auth flow', () => {
     const regRes = await register(email, 'password123', token)
     const { access_token } = await regRes.json()
 
-    const r = await fetch(`${BASE}/rawg/games?search=zelda`, {
+    const r = await fetch(`${BASE}/igdb/game?name=zelda`, {
       headers: { Authorization: `Bearer ${access_token}` },
     })
-    // 200 (cached or upstream) or 502/503 (no RAWG key / upstream down) — anything but 401
+    // 200 (cached or upstream) or 502/503 (no IGDB creds / upstream down) — anything but 401
     expect(r.status).not.toBe(401)
   })
 })

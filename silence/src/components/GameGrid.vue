@@ -23,13 +23,11 @@ defineProps({
     </div>
 
     <!--
-    <div v-else class="grid grid-cols-2 gap-2.5 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-3 sm:gap-3.5 sm:px-5 sm:pt-4 
-    sm:pb-7 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:gap-[18px] lg:px-7 lg:pt-5 lg:pb-10 xl:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+    <div v-else class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-4 sm:gap-2.5 sm:px-5 sm:pt-4 sm:pb-7 lg:grid-cols-[repeat(auto-fill,minmax(110px,1fr))] lg:gap-3 lg:px-7 lg:pt-5 lg:pb-10">
       <GameCard v-for="game in games" :key="game.name" :game="game" />
     </div>
     -->
-    <div v-else class="grid grid-cols-2 gap-2.5 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-3 sm:gap-3.5 sm:px-5 sm:pt-4 
-    sm:pb-7 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:gap-[18px] lg:px-7 lg:pt-5 lg:pb-10 xl:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+    <div v-else class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-4 sm:gap-2.5 sm:px-5 sm:pt-4 sm:pb-7 lg:grid-cols-[repeat(auto-fill,minmax(110px,1fr))] lg:gap-3 lg:px-7 lg:pt-5 lg:pb-10">
       <GameCard v-for="game in games" :key="game.name" :game="game" />
     </div>
   </div>

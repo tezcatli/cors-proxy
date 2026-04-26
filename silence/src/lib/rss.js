@@ -1,5 +1,6 @@
 import { apiFetch } from './auth.js';
 import { stripHtml, timestampToSeconds, norm } from './utils.js';
+import { correct } from './corrections.js';
 
 const RSS_URL = 'https://feeds.acast.com/public/shows/silence-on-joue';
 
@@ -92,7 +93,7 @@ export async function parseFeed() {
     const chapters  = extractChapters(plainText);
 
     for (let name of gameNames) {
-      name = name.replace(/^[,\s]+/, '').trim();
+      name = correct(name.replace(/^[,\s]+/, '').trim());
       if (name.length < 2) continue;
       const key = norm(name).replaceAll(' ', '');
       if (!gamesMap.has(key)) gamesMap.set(key, { name, episodes: [] });

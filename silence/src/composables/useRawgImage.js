@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { ensureRawgData } from '../lib/rawg.js'
+import { ensureIgdbData } from '../lib/igdb.js'
 
 export function useRawg() {
   const data       = ref(null)
@@ -8,12 +8,12 @@ export function useRawg() {
 
   const imgUrl = computed(() => data.value?.url ?? null)
 
-  async function load(name) {
-    data.value   = null
+  async function load(name, year = null) {
+    data.value       = null
     imgFailed.value  = false
     imgLoading.value = true
     try {
-      data.value = await ensureRawgData(name)
+      data.value = await ensureIgdbData(name, year)
     } finally {
       imgLoading.value = false
     }

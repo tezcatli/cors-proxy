@@ -1,7 +1,9 @@
 <script setup>
 import { computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getScoreClass, formatEpisodeCount } from '../lib/utils.js'
+import { getScoreClass, formatEpisodeCount, gameYear } from '../lib/utils.js'
+import placeholderCover from '../assets/placeholder-cover.svg'
+import placeholderBg    from '../assets/placeholder-bg.svg'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
 import EpisodeCard from './EpisodeCard.vue'
@@ -12,7 +14,7 @@ const router      = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const { data: rawg, imgUrl, imgFailed, load: loadRawg } = useRawg()
+const { data: igdb, imgUrl, imgFailed, load: loadRawg } = useRawg()
 
 const game = computed(() => {
   const name = decodeURIComponent(route.params.slug)
@@ -20,11 +22,6 @@ const game = computed(() => {
 })
 
 const epCount = computed(() => formatEpisodeCount(game.value?.episodes?.length ?? 0))
-
-const nowPlayingTitle = computed(() => {
-  if (!playerStore.current || !game.value) return null
-  return game.value.episodes.find(e => e.audioUrl === playerStore.current.url)?.title ?? null
-})
 
 function isEpPlaying(ep) {
   return !!playerStore.current && ep.audioUrl === playerStore.current.url
@@ -42,7 +39,7 @@ function playEp(ep) {
 
 function togglePause() { playerStore.setPaused(!playerStore.paused) }
 
-watch(game, g => { if (g) loadRawg(g.name) }, { immediate: true })
+watch(game, g => { if (g) loadRawg(g.name, gameYear(g.episodes)) }, { immediate: true })
 
 function close() { router.push('/') }
 
@@ -57,14 +54,13 @@ onUnmounted(() => {
 })
 
 const badges = computed(() => {
-  if (!rawg.value) return []
-  const { metacritic, rating, released, esrb, playtime, genres, platforms } = rawg.value
+  if (!igdb.value) return []
+  const { metacritic, rating, released, esrb, genres, platforms } = igdb.value
   const list = []
   if (metacritic) list.push({ text: `Metacritic ${metacritic}`, cls: getScoreClass(metacritic) })
-  if (rating)     list.push({ text: `★ ${rating}/5`, cls: 'rawg-rating' })
+  if (rating)     list.push({ text: `★ ${rating}/5`, cls: 'igdb-rating' })
   if (released)   list.push({ text: released })
   if (esrb)       list.push({ text: esrb })
-  if (playtime)   list.push({ text: `~${playtime}h` })
   if (genres?.length)    list.push({ text: genres.join(' · ') })
   if (platforms?.length) list.push({ text: platforms.join(' · ') })
   return list
@@ -84,68 +80,68 @@ const badges = computed(() => {
   </div>
 
   <!-- Main view -->
-  <div v-else class="fixed inset-0 z-[150] overflow-y-auto bg-base-100">
+  <div v-else class="fixed inset-0 z-[150]">
 
-    <!-- Sticky back bar -->
-    <div class="sticky top-0 z-10 flex items-center px-3 h-11 bg-base-100/80 backdrop-blur-sm border-b border-base-content/[0.06]">
-      <button class="btn btn-sm btn-ghost" @click="close">← Retour</button>
-    </div>
-
-    <!-- Artwork (bounded height, full-bleed) -->
-    <div class="detail-artwork">
+    <!-- Background -->
+    <div class="absolute inset-0 overflow-hidden">
       <img
-        v-if="imgUrl && !imgFailed"
-        class="absolute inset-0 w-full h-full object-cover object-center block"
-        :src="imgUrl"
-        :alt="game.name"
-        @error="imgFailed = true"
+        class="w-full h-full object-cover object-center"
+        :src="imgUrl && !imgFailed ? imgUrl : placeholderBg"
+        alt=""
+        aria-hidden="true"
       />
-      <div v-else class="absolute inset-0 flex items-center justify-center text-[5rem] bg-gradient-to-br from-base-300 to-base-100">🎮</div>
+      <div class="absolute inset-0 bg-black/55" />
     </div>
 
-    <!-- Info -->
-    <div class="flex-shrink-0 px-5 py-4 bg-base-100 border-t border-base-content/10 sm:px-6 lg:px-7">
+    <!-- Content (scrollable over background) -->
+    <div class="relative h-full overflow-y-auto flex flex-col">
 
-      <!-- Title row -->
-      <div class="flex items-start justify-between gap-4 mb-2">
-        <h2 class="text-[1.35rem] font-extrabold leading-tight line-clamp-2 sm:text-[1.65rem] lg:text-[1.9rem]">{{ game.name }}</h2>
-        <span class="text-[0.68rem] text-base-content/40 font-semibold uppercase tracking-wide flex-shrink-0 mt-1">{{ epCount }}</span>
+      <!-- Sticky back bar -->
+      <div class="sticky top-0 z-10 flex items-center px-3 h-11 bg-black/30 backdrop-blur-md border-b border-white/10 flex-shrink-0">
+        <button class="btn btn-sm btn-ghost text-white/90 hover:text-white" @click="close">← Retour</button>
       </div>
 
-      <!-- Badges + developer -->
-      <div v-if="rawg && (badges.length || rawg.developer)" class="flex flex-wrap items-center gap-1.5 mb-2">
-        <span v-for="b in badges" :key="b.text" class="badge badge-sm rawg-badge" :class="b.cls">{{ b.text }}</span>
-        <span v-if="rawg.developer" class="text-[0.72rem] text-base-content/40">{{ rawg.developer }}</span>
-      </div>
-
-      <!-- Description + now-playing -->
-      <div class="flex items-end gap-4">
-        <p v-if="rawg?.description" class="text-[0.78rem] text-base-content/50 leading-relaxed line-clamp-8 flex-1 min-w-0">{{ rawg.description }}</p>
-        <!--
-        <div v-if="nowPlayingTitle" class="flex items-center gap-1.5 text-[0.72rem] text-secondary flex-shrink-0 max-w-[45%] min-w-0">
-          <span class="text-[0.5rem] flex-shrink-0">●</span>
-          <span class="truncate">{{ nowPlayingTitle }}</span>
+      <!-- Cover card (centered, h ≈ 33vh) -->
+      <div class="flex justify-center px-4 pt-5 pb-3 flex-shrink-0">
+        <div class="detail-cover-card">
+          <img
+            class="w-full h-full object-cover block"
+            :src="imgUrl && !imgFailed ? imgUrl : placeholderCover"
+            :alt="game.name"
+            @error="imgFailed = true"
+          />
         </div>
-        -->
+      </div>
+
+      <!-- Info panel (glass) -->
+      <div class="detail-glass mx-4 mb-3">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <h2 class="text-[1.2rem] font-extrabold leading-tight sm:text-[1.45rem]">{{ game.name }}</h2>
+          <span class="text-[0.65rem] text-white/50 font-semibold uppercase tracking-wide flex-shrink-0 mt-1">{{ epCount }}</span>
+        </div>
+        <div v-if="badges.length || igdb?.developer" class="flex flex-wrap items-center gap-1.5 mb-2">
+          <span v-for="b in badges" :key="b.text" class="badge badge-sm igdb-badge" :class="b.cls">{{ b.text }}</span>
+          <span v-if="igdb?.developer" class="text-[0.7rem] text-white/40">{{ igdb.developer }}</span>
+        </div>
+        <p v-if="igdb?.description" class="text-[0.78rem] text-white/60 leading-relaxed line-clamp-4">{{ igdb.description }}</p>
+      </div>
+
+      <!-- Episodes -->
+      <div class="detail-lecteur mx-4 mb-4">
+        <div class="flex flex-col gap-1.5">
+          <EpisodeCard
+            v-for="ep in game.episodes"
+            :key="ep.title"
+            :episode="ep"
+            :game-name="game.name"
+            :is-playing="isEpPlaying(ep)"
+            :is-paused="playerStore.paused"
+            @play="playEp"
+            @toggle-pause="togglePause"
+          />
+        </div>
       </div>
 
     </div>
-
-    <!-- Episodes -->
-    <div class="detail-lecteur">
-      <div class="flex flex-col gap-0.5">
-        <EpisodeCard
-          v-for="ep in game.episodes"
-          :key="ep.title"
-          :episode="ep"
-          :game-name="game.name"
-          :is-playing="isEpPlaying(ep)"
-          :is-paused="playerStore.paused"
-          @play="playEp"
-          @toggle-pause="togglePause"
-        />
-      </div>
-    </div>
-
   </div>
 </template>

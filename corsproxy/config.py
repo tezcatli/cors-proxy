@@ -13,8 +13,9 @@ class Config:
     # Admin
     ADMIN_KEY: str = os.getenv("ADMIN_KEY", "")
 
-    # RAWG
-    RAWG_KEY: str = os.getenv("RAWG_KEY", "")
+    # IGDB
+    IGDB_CLIENT_ID:     str = os.getenv("IGDB_CLIENT_ID", "")
+    IGDB_CLIENT_SECRET: str = os.getenv("IGDB_CLIENT_SECRET", "")
 
     # Auth
     JWT_SECRET: str      = os.getenv("JWT_SECRET", "dev-insecure-change-me")

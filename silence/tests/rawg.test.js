@@ -1,125 +1,121 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { normName, rankResults, simplifyPlatform, fetchImage, clearCache } from '../src/lib/rawg.js';
-import { RAWG, mockResponse } from './contract.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { normKey } from '../src/lib/utils.js';
+import { correct } from '../src/lib/corrections.js';
+import { ensureIgdbData, clearCache, getCachedMeta, getCachedData } from '../src/lib/igdb.js';
+import { IGDB, mockResponse } from './contract.js';
 
-beforeEach(() => clearCache());
+// ── normKey ───────────────────────────────────────────────────────────────
 
-// ── normName ──────────────────────────────────────────────────────────────
-
-describe('normName', () => {
+describe('normKey', () => {
   it('lowercases', () => {
-    expect(normName('ZELDA')).toBe('zelda');
+    expect(normKey('ZELDA')).toBe('zelda');
   });
   it('strips accents', () => {
-    expect(normName('Élodie')).toBe('elodie');
-    expect(normName('Château')).toBe('chateau');
+    expect(normKey('Élodie')).toBe('elodie');
+    expect(normKey('Château')).toBe('chateau');
   });
-  it('removes all non-alphanumeric characters', () => {
-    expect(normName('Zelda: Breath of the Wild')).toBe('zeldabreathofthewild');
-    expect(normName("Mario's World")).toBe('mariosworld');
+  it('removes non-alphanumeric characters and spaces', () => {
+    expect(normKey('Zelda: Breath of the Wild')).toBe('zeldabreathofthewild');
+    expect(normKey("Mario's World")).toBe('mariosworld');
   });
   it('handles empty string', () => {
-    expect(normName('')).toBe('');
+    expect(normKey('')).toBe('');
   });
 });
 
-// ── simplifyPlatform ──────────────────────────────────────────────────────
+// ── correct ───────────────────────────────────────────────────────────────
 
-describe('simplifyPlatform', () => {
-  it.each([
-    ['PlayStation 4', 'PlayStation'],
-    ['PlayStation 5', 'PlayStation'],
-    ['Xbox One', 'Xbox'],
-    ['Xbox Series X', 'Xbox'],
-    ['Nintendo Switch', 'Switch'],
-    ['PC', 'PC'],
-    ['macOS', 'Mac'],
-    ['iOS', 'iOS'],
-    ['iPhone', 'iOS'],
-    ['Android', 'Android'],
-  ])('%s → %s', (input, expected) => {
-    expect(simplifyPlatform(input)).toBe(expected);
+describe('correct', () => {
+  it('returns canonical name for known misspelling', () => {
+    expect(correct('Artic Eggs')).toBe('Arctic Eggs');
   });
-  it('returns null for unknown platforms', () => {
-    expect(simplifyPlatform('Atari 2600')).toBeNull();
-    expect(simplifyPlatform('Commodore 64')).toBeNull();
+  it('is case-insensitive', () => {
+    expect(correct('ARTIC EGGS')).toBe('Arctic Eggs');
+    expect(correct('artic eggs')).toBe('Arctic Eggs');
+  });
+  it('returns original name when no correction found', () => {
+    expect(correct('Elden Ring')).toBe('Elden Ring');
   });
 });
 
-// ── rankResults ───────────────────────────────────────────────────────────
+// ── ensureIgdbData ────────────────────────────────────────────────────────
 
-describe('rankResults', () => {
-  it('exact match scores highest', () => {
-    const results = [
-      { name: 'Breath of the Wild' },
-      { name: 'Zelda: Breath of the Wild' },
-    ];
-    const ranked = rankResults(results, 'Zelda: Breath of the Wild');
-    expect(ranked[0].name).toBe('Zelda: Breath of the Wild');
+const SAMPLE_DATA = {
+  url: 'https://images.igdb.com/igdb/image/upload/t_cover_big_2x/abc123.jpg',
+  metacritic: 85,
+  developer: 'Test Studio',
+  genres: ['Action'],
+  released: '2021',
+  platforms: ['PC'],
+  rating: 80,
+  esrb: 'T',
+  description: 'A great game.',
+};
+
+vi.mock('../src/lib/auth.js', () => ({
+  apiFetch: vi.fn(),
+}));
+
+import { apiFetch } from '../src/lib/auth.js';
+
+beforeEach(() => {
+  clearCache();
+  vi.resetAllMocks();
+});
+
+describe('ensureIgdbData', () => {
+  it('fetches and returns data on cache miss', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    const data = await ensureIgdbData('Test Game');
+    expect(data).toEqual(SAMPLE_DATA);
+    expect(apiFetch).toHaveBeenCalledOnce();
   });
 
-  it('base name (before colon) scores second', () => {
-    const results = [
-      { name: 'Unrelated Game' },
-      { name: 'Zelda' },
-    ];
-    const ranked = rankResults(results, 'Zelda: Breath of the Wild');
-    expect(ranked[0].name).toBe('Zelda');
+  it('returns cached result on second call without re-fetching', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    await ensureIgdbData('Test Game');
+    await ensureIgdbData('Test Game');
+    expect(apiFetch).toHaveBeenCalledOnce();
   });
 
-  it('prefix match scores above no match', () => {
-    const results = [
-      { name: 'Unrelated' },
-      { name: 'Zelda Adventures' },
-    ];
-    const ranked = rankResults(results, 'Zelda');
-    expect(ranked[0].name).toBe('Zelda Adventures');
+  it('cache key is case-insensitive', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    await ensureIgdbData('Test Game');
+    await ensureIgdbData('test game');
+    expect(apiFetch).toHaveBeenCalledOnce();
   });
 
-  it('does not mutate the original array', () => {
-    const results = [{ name: 'A' }, { name: 'B' }];
-    const copy = [...results];
-    rankResults(results, 'A');
-    expect(results).toEqual(copy);
-  });
-
-  it('handles empty results array', () => {
-    expect(rankResults([], 'Zelda')).toEqual([]);
+  it('caches null for not-found games', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.not_found, null));
+    const data = await ensureIgdbData('Unknown Game');
+    expect(data).toBeNull();
+    await ensureIgdbData('Unknown Game');
+    expect(apiFetch).toHaveBeenCalledOnce();
   });
 });
 
-// ── fetchImage (public API with contract-shaped mocks) ────────────────────
+// ── getCachedMeta / getCachedData ─────────────────────────────────────────
 
-describe('fetchImage', () => {
-  afterEach(() => { vi.unstubAllGlobals(); });
-
-  it('returns the background_image URL on success', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      mockResponse(RAWG.games.success, {
-        results: [{ name: 'Zelda', background_image: 'https://img.example.com/zelda.jpg', slug: null }],
-      })
-    ));
-    const url = await fetchImage('Zelda');
-    expect(url).toBe('https://img.example.com/zelda.jpg');
+describe('getCachedMeta', () => {
+  it('returns null before any fetch', () => {
+    expect(getCachedMeta('Test Game')).toBeNull();
   });
 
-  it('returns cached result on second call (fetch not called again)', async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      mockResponse(RAWG.games.success, {
-        results: [{ name: 'Mario', background_image: 'https://img.example.com/mario.jpg', slug: null }],
-      })
-    );
-    vi.stubGlobal('fetch', mockFetch);
-    await fetchImage('Mario');
-    await fetchImage('Mario');
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+  it('returns metacritic score after fetch', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    await ensureIgdbData('Test Game');
+    expect(getCachedMeta('Test Game')).toBe(85);
+  });
+});
+
+describe('getCachedData', () => {
+  it('returns null before any fetch', () => {
+    expect(getCachedData('Test Game')).toBeNull();
   });
 
-  it('returns null when upstream returns no results', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      mockResponse(RAWG.games.success, { results: [] })
-    ));
-    const url = await fetchImage('UnknownGame42');
-    expect(url).toBeNull();
+  it('returns full data object after fetch', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    await ensureIgdbData('Test Game');
+    expect(getCachedData('Test Game')).toEqual(SAMPLE_DATA);
   });
 });

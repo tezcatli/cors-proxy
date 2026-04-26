@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { parseFeed } from '../lib/rss.js'
-import { getCachedMeta } from '../lib/rawg.js'
+import { getCachedMeta } from '../lib/igdb.js'
 import { latestDate } from '../lib/utils.js'
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
