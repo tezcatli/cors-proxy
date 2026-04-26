@@ -46,6 +46,14 @@ def _make_jwt(user_id: int, email: str) -> str:
     return jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
 
 
+def require_auth():
+    if Config.DEBUG:
+        return
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer ") or not _decode_jwt(auth[7:]):
+        abort(401, "Not authenticated")
+
+
 def _require_fields(data: dict, *fields):
     for f in fields:
         if not data.get(f):

@@ -1,22 +1,22 @@
-import json
 import re
 import time
 import threading
 import datetime
-import unicodedata
 import requests as http
 from flask import Blueprint, request, jsonify, abort
-from db import get_db, utcnow
+from db import cache_get, cache_set, SENTINEL
 from config import Config
-from auth import _decode_jwt
+from auth import _decode_jwt, require_auth
+from utils import norm_key as _norm_key
 
 igdb_bp = Blueprint('igdb', __name__, url_prefix='/igdb')
+igdb_bp.before_request(require_auth)
 
 TTL_DAYS   = 30
+TTL_SECONDS = TTL_DAYS * 86400
 _IGDB_BASE = 'https://api.igdb.com/v4'
 _TWITCH    = 'https://id.twitch.tv/oauth2/token'
 _ESRB      = {6: 'RP', 7: 'EC', 8: 'E', 9: 'E10+', 10: 'T', 11: 'M', 12: 'AO'}
-_SENTINEL  = object()
 
 # ── OAuth ─────────────────────────────────────────────────────────────────────
 _token_lock    = threading.Lock()
@@ -57,35 +57,6 @@ class _Throttle:
 
 
 _throttle = _Throttle(4)
-
-
-# ── SQLite cache ──────────────────────────────────────────────────────────────
-def _cache_get(key):
-    with get_db() as conn:
-        row = conn.execute(
-            'SELECT data, cached_at FROM igdb_cache WHERE key = ?', (key,)
-        ).fetchone()
-    if not row:
-        return _SENTINEL
-    age = utcnow() - datetime.datetime.fromisoformat(row['cached_at'])
-    if age.days >= TTL_DAYS:
-        return _SENTINEL
-    return json.loads(row['data'])
-
-
-def _cache_set(key, data):
-    with get_db() as conn:
-        conn.execute(
-            'INSERT OR REPLACE INTO igdb_cache (key, data, cached_at) VALUES (?, ?, ?)',
-            (key, json.dumps(data), utcnow().isoformat()),
-        )
-
-
-# ── Normalization (mirrors JS normKey) ────────────────────────────────────────
-def _norm_key(s):
-    s = unicodedata.normalize('NFD', s.lower())
-    s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
-    return re.sub(r'[^a-z0-9]+', '', s)
 
 
 # ── Platform simplification ───────────────────────────────────────────────────
@@ -182,16 +153,6 @@ def _normalize(g):
                 description=description, developer=developer)
 
 
-# ── Auth ──────────────────────────────────────────────────────────────────────
-@igdb_bp.before_request
-def _require_auth():
-    if Config.DEBUG:
-        return
-    auth = request.headers.get('Authorization', '')
-    if not auth.startswith('Bearer ') or not _decode_jwt(auth[7:]):
-        abort(401, 'Not authenticated')
-
-
 # ── Query helpers ─────────────────────────────────────────────────────────────
 def _year_window(year):
     lo = int(datetime.datetime(year - 1, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
@@ -235,8 +196,8 @@ def game():
 
     norm  = _norm_key(name)
     key   = f'{norm}_{year}' if year else norm
-    cached = _cache_get(key)
-    if cached is not _SENTINEL:
+    cached = cache_get('igdb_cache', key, TTL_SECONDS)
+    if cached is not SENTINEL:
         return jsonify(cached)
 
     safe      = name.replace('\\', '').replace('"', '')
@@ -256,11 +217,11 @@ def game():
             results = _fetch_pass(fields, safe, safe_base)
 
         if not results:
-            _cache_set(key, None)
+            cache_set('igdb_cache', key, None)
             return jsonify(None)
 
         data = _normalize(_rank(results, name)[0])
-        _cache_set(key, data)
+        cache_set('igdb_cache', key, data)
         return jsonify(data)
 
     except http.exceptions.RequestException as exc:

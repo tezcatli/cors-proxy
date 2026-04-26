@@ -35,6 +35,7 @@ def clean_db():
     with _db.get_db() as conn:
         conn.executescript("""
             DELETE FROM igdb_cache;
+            DELETE FROM games_cache;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
             DELETE FROM users;

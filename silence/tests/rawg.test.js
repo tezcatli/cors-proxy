@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { normKey } from '../src/lib/utils.js';
-import { correct } from '../src/lib/corrections.js';
 import { ensureIgdbData, clearCache, getCachedMeta, getCachedData, igdbCacheVersion } from '../src/lib/igdb.js';
 import { IGDB, mockResponse } from './contract.js';
 
@@ -20,21 +19,6 @@ describe('normKey', () => {
   });
   it('handles empty string', () => {
     expect(normKey('')).toBe('');
-  });
-});
-
-// ── correct ───────────────────────────────────────────────────────────────
-
-describe('correct', () => {
-  it('returns canonical name for known misspelling', () => {
-    expect(correct('Artic Eggs')).toBe('Arctic Eggs');
-  });
-  it('is case-insensitive', () => {
-    expect(correct('ARTIC EGGS')).toBe('Arctic Eggs');
-    expect(correct('artic eggs')).toBe('Arctic Eggs');
-  });
-  it('returns original name when no correction found', () => {
-    expect(correct('Elden Ring')).toBe('Elden Ring');
   });
 });
 

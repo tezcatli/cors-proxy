@@ -6,6 +6,7 @@ from config import Config
 from db import init_db
 from auth import auth_bp, _decode_jwt
 from igdb import igdb_bp
+from rss import rss_bp
 import requests
 
 logging.basicConfig(
@@ -77,6 +78,7 @@ def create_app():
 
     _app.register_blueprint(auth_bp)
     _app.register_blueprint(igdb_bp)
+    _app.register_blueprint(rss_bp)
     init_db()
 
     def json_error(e):
