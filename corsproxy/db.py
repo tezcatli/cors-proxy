@@ -1,7 +1,12 @@
 import sqlite3
 import os
+import datetime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'users.db')
+
+
+def utcnow():
+    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
 
 def get_db():

@@ -1,22 +1,19 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getCachedData } from '../lib/rawg.js'
 import { getScoreClass, formatEpisodeCount } from '../lib/utils.js'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
 import EpisodeCard from './EpisodeCard.vue'
-import { useRawgImage } from '../composables/useRawgImage.js'
+import { useRawg } from '../composables/useRawgImage.js'
 
 const route       = useRoute()
 const router      = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const { imgUrl, imgFailed, load: loadImg } = useRawgImage()
-const rawg = ref(null)
+const { data: rawg, imgUrl, imgFailed, load: loadRawg } = useRawg()
 
-// Look up game by slug; wait if store is still loading
 const game = computed(() => {
   const name = decodeURIComponent(route.params.slug)
   return gamesStore.all.find(g => g.name === name) ?? null
@@ -44,12 +41,6 @@ function playEp(ep) {
 }
 
 function togglePause() { playerStore.setPaused(!playerStore.paused) }
-
-async function loadRawg(name) {
-  rawg.value = getCachedData(name) || null
-  await loadImg(name)
-  rawg.value = getCachedData(name) || rawg.value
-}
 
 watch(game, g => { if (g) loadRawg(g.name) }, { immediate: true })
 
@@ -81,55 +72,68 @@ const badges = computed(() => {
 </script>
 
 <template>
-  <!-- While games are loading on a direct deep-link visit -->
-  <div v-if="gamesStore.loading || !game" class="detail-view">
-    <div class="detail-topbar">
-      <button class="btn-back" @click="close">← Retour</button>
+  <!-- Loading / not found -->
+  <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[150] bg-base-100 flex flex-col">
+    <div class="flex items-center px-4 py-3 border-b border-base-content/10">
+      <button class="btn btn-sm btn-ghost" @click="close">← Retour</button>
     </div>
-    <div class="spinner-wrap" style="flex:1">
-      <div v-if="gamesStore.loading" class="spinner"></div>
-      <p v-else style="color:var(--text-dim)">Jeu introuvable.</p>
+    <div class="flex flex-1 items-center justify-center">
+      <span v-if="gamesStore.loading" class="loading loading-spinner loading-lg text-primary"></span>
+      <p v-else class="text-base-content/50">Jeu introuvable.</p>
     </div>
   </div>
 
-  <div v-else class="detail-view">
-    <!-- Artwork -->
+  <!-- Main view -->
+  <div v-else class="fixed inset-0 z-[150] overflow-y-auto bg-base-100">
+
+    <!-- Sticky back bar -->
+    <div class="sticky top-0 z-10 flex items-center px-3 h-11 bg-base-100/80 backdrop-blur-sm border-b border-base-content/[0.06]">
+      <button class="btn btn-sm btn-ghost" @click="close">← Retour</button>
+    </div>
+
+    <!-- Artwork (bounded height, full-bleed) -->
     <div class="detail-artwork">
       <img
         v-if="imgUrl && !imgFailed"
-        class="detail-artwork-img"
+        class="absolute inset-0 w-full h-full object-cover object-center block"
         :src="imgUrl"
         :alt="game.name"
         @error="imgFailed = true"
       />
-      <div v-else class="detail-img-ph">🎮</div>
-      <div class="detail-topbar">
-        <button class="btn-back" @click="close">← Retour</button>
-      </div>
+      <div v-else class="absolute inset-0 flex items-center justify-center text-[5rem] bg-gradient-to-br from-base-300 to-base-100">🎮</div>
     </div>
 
     <!-- Info -->
-    <div class="detail-informations">
-      <div class="detail-title">{{ game.name }}</div>
-      <div v-if="rawg" class="detail-rawg-info">
-        <div v-if="badges.length" class="rawg-badges">
-          <span v-for="b in badges" :key="b.text" class="rawg-badge" :class="b.cls">{{ b.text }}</span>
-        </div>
-        <div v-if="rawg.developer" class="rawg-developer">{{ rawg.developer }}</div>
-        <p   v-if="rawg.description" class="rawg-description">{{ rawg.description }}</p>
+    <div class="flex-shrink-0 px-5 py-4 bg-base-100 border-t border-base-content/10 sm:px-6 lg:px-7">
+
+      <!-- Title row -->
+      <div class="flex items-start justify-between gap-4 mb-2">
+        <h2 class="text-[1.35rem] font-extrabold leading-tight line-clamp-2 sm:text-[1.65rem] lg:text-[1.9rem]">{{ game.name }}</h2>
+        <span class="text-[0.68rem] text-base-content/40 font-semibold uppercase tracking-wide flex-shrink-0 mt-1">{{ epCount }}</span>
       </div>
-      <div class="detail-info-footer">
-        <span class="detail-ep-count">{{ epCount }}</span>
-        <div v-if="nowPlayingTitle" class="detail-now-playing">
-          <span class="np-dot">●</span>
-          <span class="np-title">{{ nowPlayingTitle }}</span>
-        </div>
+
+      <!-- Badges + developer -->
+      <div v-if="rawg && (badges.length || rawg.developer)" class="flex flex-wrap items-center gap-1.5 mb-2">
+        <span v-for="b in badges" :key="b.text" class="badge badge-sm rawg-badge" :class="b.cls">{{ b.text }}</span>
+        <span v-if="rawg.developer" class="text-[0.72rem] text-base-content/40">{{ rawg.developer }}</span>
       </div>
+
+      <!-- Description + now-playing -->
+      <div class="flex items-end gap-4">
+        <p v-if="rawg?.description" class="text-[0.78rem] text-base-content/50 leading-relaxed line-clamp-8 flex-1 min-w-0">{{ rawg.description }}</p>
+        <!--
+        <div v-if="nowPlayingTitle" class="flex items-center gap-1.5 text-[0.72rem] text-secondary flex-shrink-0 max-w-[45%] min-w-0">
+          <span class="text-[0.5rem] flex-shrink-0">●</span>
+          <span class="truncate">{{ nowPlayingTitle }}</span>
+        </div>
+        -->
+      </div>
+
     </div>
 
     <!-- Episodes -->
     <div class="detail-lecteur">
-      <div class="detail-episodes">
+      <div class="flex flex-col gap-0.5">
         <EpisodeCard
           v-for="ep in game.episodes"
           :key="ep.title"
@@ -142,5 +146,6 @@ const badges = computed(() => {
         />
       </div>
     </div>
+
   </div>
 </template>

@@ -1,21 +1,23 @@
-import { ref } from 'vue'
-import { fetchImage } from '../lib/rawg.js'
+import { ref, computed } from 'vue'
+import { ensureRawgData } from '../lib/rawg.js'
 
-export function useRawgImage() {
-  const imgUrl     = ref(null)
+export function useRawg() {
+  const data       = ref(null)
   const imgFailed  = ref(false)
   const imgLoading = ref(false)
 
+  const imgUrl = computed(() => data.value?.url ?? null)
+
   async function load(name) {
-    imgUrl.value     = null
+    data.value   = null
     imgFailed.value  = false
     imgLoading.value = true
     try {
-      imgUrl.value = await fetchImage(name)
+      data.value = await ensureRawgData(name)
     } finally {
       imgLoading.value = false
     }
   }
 
-  return { imgUrl, imgFailed, imgLoading, load }
+  return { data, imgUrl, imgFailed, imgLoading, load }
 }

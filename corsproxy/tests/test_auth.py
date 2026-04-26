@@ -32,8 +32,7 @@ def _insert_reset_token(email, expires_delta_seconds):
     with db.get_db() as conn:
         user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         token = 'test-reset-token'
-        expires = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None) +
-                   datetime.timedelta(seconds=expires_delta_seconds)).isoformat()
+        expires = (db.utcnow() + datetime.timedelta(seconds=expires_delta_seconds)).isoformat()
         conn.execute(
             "INSERT OR REPLACE INTO reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
             (token, user['id'], expires),

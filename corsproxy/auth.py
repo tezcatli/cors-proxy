@@ -3,8 +3,13 @@ import datetime
 import bcrypt
 import jwt
 from flask import Blueprint, request, jsonify, abort
-from db import get_db
+from db import get_db, utcnow
 from config import Config
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -17,8 +22,21 @@ def _check(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
+def _decode_jwt(token: str) -> bool:
+    try:
+        jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+        return True
+    except jwt.PyJWTError:
+        return False
+
+
+def _validate_password(password: str):
+    if len(password) < 8:
+        abort(400, "Le mot de passe doit contenir au moins 8 caractères")
+
+
 def _make_jwt(user_id: int, email: str) -> str:
-    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    now = utcnow()
     payload = {
         "sub":   str(user_id),
         "email": email,
@@ -41,8 +59,7 @@ def register():
     email    = data["email"].strip().lower()
     password = data["password"]
     invite   = data["invitation_token"]
-    if len(password) < 8:
-        abort(400, "Le mot de passe doit contenir au moins 8 caractères")
+    _validate_password(password)
     with get_db() as conn:
         inv = conn.execute(
             "SELECT email, used_at FROM invitations WHERE token = ?", (invite,)
@@ -70,6 +87,7 @@ def register():
 @auth_bp.route("/invite", methods=["POST"])
 def invite():
     from mail import send_invite_email
+    
     if not Config.ADMIN_KEY or request.headers.get("X-Admin-Key") != Config.ADMIN_KEY:
         abort(403, "Accès refusé")
     data = request.get_json(silent=True) or {}
@@ -122,10 +140,7 @@ def reset_request():
         user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         if user:
             token   = secrets.token_urlsafe(32)
-            expires = (
-                datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-                + datetime.timedelta(seconds=Config.RESET_TTL_SECONDS)
-            ).isoformat()
+            expires = (utcnow() + datetime.timedelta(seconds=Config.RESET_TTL_SECONDS)).isoformat()
             conn.execute(
                 "INSERT OR REPLACE INTO reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
                 (token, user["id"], expires),
@@ -138,9 +153,8 @@ def reset_request():
 def reset_confirm():
     data = request.get_json(silent=True) or {}
     _require_fields(data, "token", "new_password")
-    if len(data["new_password"]) < 8:
-        abort(400, "Le mot de passe doit contenir au moins 8 caractères")
-    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
+    _validate_password(data["new_password"])
+    now = utcnow().isoformat()
     with get_db() as conn:
         row = conn.execute(
             "SELECT user_id, expires_at FROM reset_tokens WHERE token = ?",

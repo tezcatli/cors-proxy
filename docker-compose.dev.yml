@@ -6,7 +6,6 @@ services:
     ports:
       - "5000:5000"
     environment:
-      FLASK_ENV: production
       DEBUG: "true"
     env_file:
       - path: ./corsproxy_secrets.env
@@ -18,7 +17,7 @@ services:
       retries: 3
     volumes:
       - ./corsproxy:/corsproxy
-      - ./silence/dist:/corsproxy/static   # Flask serves the Vite build output
+      - ./silence/dist:/corsproxy/static
 
   silence:
     build:
@@ -26,8 +25,3 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./silence:/silence
-
-
-networks:
-  app-network:
-    driver: bridge

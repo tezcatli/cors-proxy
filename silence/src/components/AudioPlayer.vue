@@ -9,7 +9,6 @@ watch(() => playerStore.current, cur => {
   if (!cur || !audioEl.value) return
   const el = audioEl.value
   if (el.src === cur.url) {
-    // Same track — just seek + play
     seekAndPlay(el, cur.ts)
     return
   }
@@ -47,7 +46,7 @@ function onPlay()  { playerStore.setPaused(false) }
           ⏱ {{ playerStore.current.timestamp }}
         </span>
       </div>
-      <button class="player-close btn-icon" @click="close" aria-label="Fermer le lecteur">✕</button>
+      <button class="btn btn-circle btn-ghost !size-9 !min-h-9 text-[1.1rem] [grid-area:close] self-center" @click="close" aria-label="Fermer le lecteur">✕</button>
     </template>
     <audio
       id="audioEl"

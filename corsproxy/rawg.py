@@ -1,10 +1,10 @@
 import json
 import datetime
 import requests as http
-import jwt as pyjwt
 from flask import Blueprint, request, jsonify, abort
-from db import get_db
+from db import get_db, utcnow
 from config import Config
+from auth import _decode_jwt
 
 rawg_bp = Blueprint('rawg', __name__, url_prefix='/rawg')
 
@@ -17,11 +17,7 @@ def _require_auth():
     if Config.DEBUG:
         return
     auth = request.headers.get('Authorization', '')
-    if not auth.startswith('Bearer '):
-        abort(401, 'Not authenticated')
-    try:
-        pyjwt.decode(auth[7:], Config.JWT_SECRET, algorithms=['HS256'])
-    except pyjwt.PyJWTError:
+    if not auth.startswith('Bearer ') or not _decode_jwt(auth[7:]):
         abort(401, 'Not authenticated')
 
 
@@ -32,7 +28,7 @@ def _cache_get(key):
         ).fetchone()
     if not row:
         return None
-    age = datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - datetime.datetime.fromisoformat(row['cached_at'])
+    age = utcnow() - datetime.datetime.fromisoformat(row['cached_at'])
     if age.days >= TTL_DAYS:
         return None
     return json.loads(row['data'])
@@ -42,7 +38,7 @@ def _cache_set(key, data):
     with get_db() as conn:
         conn.execute(
             'INSERT OR REPLACE INTO rawg_cache (key, data, cached_at) VALUES (?, ?, ?)',
-            (key, json.dumps(data), datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()),
+            (key, json.dumps(data), utcnow().isoformat()),
         )
 
 

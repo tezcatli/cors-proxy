@@ -1,11 +1,10 @@
 import time
 import logging
-import jwt
 from flask import Flask, request, abort, Response, jsonify
 from urllib.parse import urlparse
 from config import Config
 from db import init_db
-from auth import auth_bp
+from auth import auth_bp, _decode_jwt
 from rawg import rawg_bp
 import requests
 
@@ -35,13 +34,7 @@ def _authenticated(headers: dict) -> bool:
     if Config.DEBUG:
         return True
     auth = headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return False
-    try:
-        jwt.decode(auth[7:], Config.JWT_SECRET, algorithms=["HS256"])
-        return True
-    except jwt.PyJWTError:
-        return False
+    return auth.startswith("Bearer ") and _decode_jwt(auth[7:])
 
 
 def _allowed(url: str) -> bool:
@@ -77,26 +70,20 @@ def create_app():
         @_app.route("/silence/<path:path>")
         def silence_spa(path):
             full = pathlib.Path(_app.static_folder) / path
-            if full.is_file():
-                return send_from_directory(_app.static_folder, path)
-            return send_from_directory(_app.static_folder, "index.html")
+            filename = path if full.is_file() else "index.html"
+            resp = send_from_directory(_app.static_folder, filename)
+            resp.headers["Cache-Control"] = "no-store"
+            return resp
 
     _app.register_blueprint(auth_bp)
     _app.register_blueprint(rawg_bp)
     init_db()
 
-    @_app.errorhandler(400)
-    @_app.errorhandler(401)
-    @_app.errorhandler(403)
-    @_app.errorhandler(404)
-    @_app.errorhandler(409)
-    @_app.errorhandler(410)
-    @_app.errorhandler(500)
-    @_app.errorhandler(502)
-    @_app.errorhandler(503)
-    @_app.errorhandler(504)
     def json_error(e):
         return jsonify(error=str(e.description)), e.code
+
+    for _code in (400, 401, 403, 404, 409, 410, 500, 502, 503, 504):
+        _app.register_error_handler(_code, json_error)
 
     @_app.before_request
     def _mark_start():

@@ -16,9 +16,12 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  // Forward legacy reset/invite query params to the login page
-  if (to.query.reset)  return { path: '/login', query: { reset:  to.query.reset  } }
-  if (to.query.invite) return { path: '/login', query: { invite: to.query.invite } }
+  // Forward reset/invite query params from non-login routes to the login page.
+  // Guard is skipped when already on /login to avoid an infinite redirect loop.
+  if (to.path !== '/login') {
+    if (to.query.reset)  return { path: '/login', query: { reset:  to.query.reset  } }
+    if (to.query.invite) return { path: '/login', query: { invite: to.query.invite } }
+  }
 
   // Auth guard — all routes except /login require a valid session
   if (to.path !== '/login' && !isLoggedIn()) {

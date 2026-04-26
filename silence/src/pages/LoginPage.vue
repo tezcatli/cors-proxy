@@ -1,8 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { login, register, resetRequest, resetConfirm } from '../lib/auth.js'
+import { login, register, resetRequest, resetConfirm, apiFetch } from '../lib/auth.js'
 import { useAuthForm } from '../composables/useAuthForm.js'
+import FormAlerts from '../components/FormAlerts.vue'
+import SubmitBtn  from '../components/SubmitBtn.vue'
 
 const router = useRouter()
 const route  = useRoute()
@@ -64,72 +66,98 @@ onMounted(() => {
     regEmail.value         = ''
     regEmailReadOnly.value = true
     setView('register')
-    busy.value = true
-    fetch(`/auth/invite-info/${encodeURIComponent(it)}`)
-      .then(r => r.ok ? r.json() : r.json().then(j => Promise.reject(new Error(j.error || 'Invitation invalide'))))
-      .then(data => { regEmail.value = data.email })
-      .catch(err => { errorMsg.value = err.message })
-      .finally(() => { busy.value = false })
+    run(() => apiFetch(`/auth/invite-info/${encodeURIComponent(it)}`).then(r => r.json()).then(data => { regEmail.value = data.email }))
   }
 })
 </script>
 
 <template>
-  <div class="login-overlay">
-    <div class="login-card">
+  <div class="fixed inset-0 z-[200] bg-base-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
 
-      <div v-if="view === 'login'">
-        <div class="auth-title">Connexion</div>
-        <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
-        <p v-if="infoMsg"  class="auth-info">{{ infoMsg }}</p>
-        <form @submit.prevent="submitLogin">
-          <input v-model="loginEmail"    class="auth-input" type="email"    placeholder="E-mail" autocomplete="email" required />
-          <input v-model="loginPassword" class="auth-input" type="password" placeholder="Mot de passe" autocomplete="current-password" required />
-          <button class="auth-btn" type="submit" :disabled="busy">Se connecter</button>
-        </form>
-        <div class="auth-links">
-          <a href="#" @click.prevent="setView('reset-request')">Mot de passe oublié ?</a>
-        </div>
+      <div class="text-center mb-6">
+        <div class="text-4xl mb-1">🎮</div>
+        <h1 class="text-xl font-bold">Silence on Joue</h1>
       </div>
 
-      <div v-else-if="view === 'register'">
-        <div class="auth-title">Créer un compte</div>
-        <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
-        <form @submit.prevent="submitRegister">
-          <input v-model="regEmail"     class="auth-input" type="email"    placeholder="E-mail" :readonly="regEmailReadOnly" autocomplete="email" required />
-          <input v-model="regPassword"  class="auth-input" type="password" placeholder="Mot de passe" autocomplete="new-password" required />
-          <input v-model="regPassword2" class="auth-input" type="password" placeholder="Confirmer le mot de passe" autocomplete="new-password" required />
-          <button class="auth-btn" type="submit" :disabled="busy">Créer le compte</button>
-        </form>
-        <div class="auth-links">
-          <a href="#" @click.prevent="setView('login')">Déjà un compte ?</a>
-        </div>
-      </div>
+      <div class="rounded-2xl bg-base-200 shadow-xl p-8">
 
-      <div v-else-if="view === 'reset-request'">
-        <div class="auth-title">Mot de passe oublié</div>
-        <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
-        <p v-if="infoMsg"  class="auth-info">{{ infoMsg }}</p>
-        <form @submit.prevent="submitResetRequest">
-          <input v-model="resetEmail" class="auth-input" type="email" placeholder="Votre e-mail" autocomplete="email" required />
-          <button class="auth-btn" type="submit" :disabled="busy">Envoyer le lien</button>
-        </form>
-        <div class="auth-links">
-          <a href="#" @click.prevent="setView('login')">Retour à la connexion</a>
+        <div v-if="view === 'login'">
+          <h2 class="text-xl font-bold mb-4">Connexion</h2>
+          <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
+          <form @submit.prevent="submitLogin" class="flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-base-content/70">E-mail</label>
+              <input v-model="loginEmail" class="login-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
+            </div>
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-medium text-base-content/70">Mot de passe</label>
+                <a href="#" class="text-xs text-base-content/50 link link-hover" @click.prevent="setView('reset-request')">Oublié ?</a>
+              </div>
+              <input v-model="loginPassword" class="login-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
+            </div>
+            <SubmitBtn :busy="busy" label="Se connecter" />
+          </form>
         </div>
-      </div>
 
-      <div v-else-if="view === 'reset'">
-        <div class="auth-title">Nouveau mot de passe</div>
-        <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
-        <form @submit.prevent="submitReset">
-          <input v-model="newPassword"  class="auth-input" type="password" placeholder="Nouveau mot de passe" autocomplete="new-password" required />
-          <input v-model="newPassword2" class="auth-input" type="password" placeholder="Confirmer" autocomplete="new-password" required />
-          <button class="auth-btn" type="submit" :disabled="busy">Enregistrer</button>
-        </form>
-        <div class="auth-links">
-          <a href="#" @click.prevent="setView('login')">Retour à la connexion</a>
+        <div v-else-if="view === 'register'">
+          <h2 class="text-xl font-bold mb-4">Créer un compte</h2>
+          <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
+          <form @submit.prevent="submitRegister" class="flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-base-content/70">E-mail</label>
+              <input v-model="regEmail" class="login-input" type="email" placeholder="vous@exemple.com" :readonly="regEmailReadOnly" autocomplete="email" required />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-base-content/70">Mot de passe</label>
+              <input v-model="regPassword" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-base-content/70">Confirmer</label>
+              <input v-model="regPassword2" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+            </div>
+            <SubmitBtn :busy="busy" label="Créer le compte" />
+          </form>
+          <p class="text-center text-sm mt-4">
+            <a href="#" class="link link-primary" @click.prevent="setView('login')">Déjà un compte ?</a>
+          </p>
         </div>
+
+        <div v-else-if="view === 'reset-request'">
+          <h2 class="text-xl font-bold mb-4">Mot de passe oublié</h2>
+          <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
+          <form @submit.prevent="submitResetRequest" class="flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-base-content/70">E-mail</label>
+              <input v-model="resetEmail" class="login-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
+            </div>
+            <SubmitBtn :busy="busy" label="Envoyer le lien" />
+          </form>
+          <p class="text-center text-sm mt-4">
+            <a href="#" class="link link-primary" @click.prevent="setView('login')">Retour à la connexion</a>
+          </p>
+        </div>
+
+        <div v-else-if="view === 'reset'">
+          <h2 class="text-xl font-bold mb-4">Nouveau mot de passe</h2>
+          <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
+          <form @submit.prevent="submitReset" class="flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-base-content/70">Nouveau mot de passe</label>
+              <input v-model="newPassword" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-base-content/70">Confirmer</label>
+              <input v-model="newPassword2" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+            </div>
+            <SubmitBtn :busy="busy" label="Enregistrer" />
+          </form>
+          <p class="text-center text-sm mt-4">
+            <a href="#" class="link link-primary" @click.prevent="setView('login')">Retour à la connexion</a>
+          </p>
+        </div>
+
       </div>
 
     </div>

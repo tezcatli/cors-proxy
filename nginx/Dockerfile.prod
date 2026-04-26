@@ -1,33 +1,5 @@
 FROM nginx:alpine
-
-
-#ENV NGINX_HTML_DIR=/usr/share/nginx/html \
-#    NGINX_CONF_DIR=/etc/nginx \
-#    NGINX_LOG_DIR=/var/log/nginx \
-#    NGINX_CACHE_DIR=/var/cache/nginx \
-#    NGINX_PORT=80
-
-USER root
 RUN apk add --no-cache curl
-
-#COPY nginx.conf ${NGINX_CONF_DIR}/nginx.conf
-
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-#RUN addgroup -S nginxgroup && adduser -S nginxuser -G nginxgroup \
-#    && mkdir -p ${NGINX_CACHE_DIR} /run/nginx \
-#    && chown -R nginxuser:nginxgroup ${NGINX_HTML_DIR} \
-#    && chown -R nginxuser:nginxgroup ${NGINX_CONF_DIR} \
-#    && chown -R nginxuser:nginxgroup ${NGINX_LOG_DIR} \
-#    && chown -R nginxuser:nginxgroup ${NGINX_CACHE_DIR} \
-#    && chown -R nginxuser:nginxgroup /run/nginx
-
-#USER nginxuser:nginxgroup
-
-#WORKDIR ${NGINX_HTML_DIR}
-
-#CMD ["nginx", "-g", "daemon off;"]
-
-# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${NGINX_PORT}/ || exit 1
+  CMD curl -f http://localhost/ || exit 1

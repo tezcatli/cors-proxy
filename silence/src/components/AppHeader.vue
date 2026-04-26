@@ -3,8 +3,6 @@ import { computed } from 'vue'
 import { timeAgo } from '../lib/utils.js'
 
 const props = defineProps({
-  loggedIn:      Boolean,
-  userEmail:     String,
   gameCount:     Number,
   filteredCount: Number,
   searchQuery:   String,
@@ -13,15 +11,14 @@ const props = defineProps({
   loading:       Boolean,
   lastFetch:     String,
 })
-const emit = defineEmits([
-  'update:searchQuery',
-  'setSort',
-  'refresh',
-  'showLogin',
-  'logout',
-])
+const emit = defineEmits(['update:searchQuery', 'setSort', 'refresh'])
 
-const lastFetchLabel = computed(() => timeAgo(props.lastFetch))
+const subtitle = computed(() => {
+  const parts = []
+  if (props.gameCount)  parts.push(`${props.gameCount} jeux`)
+  if (props.lastFetch)  parts.push(`mis à jour ${timeAgo(props.lastFetch)}`)
+  return parts.length ? parts.join(' · ') : 'Catalogue des jeux'
+})
 
 const sortOptions = [
   { mode: 'alpha', label: 'A–Z' },
@@ -32,46 +29,37 @@ const sortOptions = [
 
 <template>
   <header class="app-header">
-    <div class="header-inner">
-      <div class="header-brand">
-        <span>🎮</span>
+
+    <!-- Row 1: branding + actions -->
+    <div class="flex items-center justify-between gap-3 px-4 py-3 max-w-[1400px] mx-auto">
+      <div class="flex items-center gap-2.5 leading-none">
+        <span class="text-[1.6rem] lg:text-[1.8rem]">🎮</span>
         <div>
-          <div class="header-title">Silence on Joue</div>
-          <div class="header-sub">Catalogue des jeux</div>
+          <div class="text-[1.1rem] font-bold tracking-[-0.2px] leading-[1.2] lg:text-[1.25rem]">Silence on Joue</div>
+          <div class="text-[0.7rem] text-base-content/50 mt-px">{{ subtitle }}</div>
         </div>
       </div>
 
-      <span v-if="gameCount" class="badge-count">{{ gameCount }}</span>
-
-      <div class="header-actions">
+      <div class="flex items-center gap-2 flex-shrink-0">
         <button
-          class="btn-icon"
+          class="btn btn-circle btn-ghost !size-9 !min-h-9 text-[1.1rem]"
           :disabled="loading"
           :aria-label="loading ? 'Chargement…' : 'Actualiser'"
           @click="emit('refresh')"
         >
           <span class="icon-spin" :class="{ spinning: loading }">↻</span>
         </button>
-
-        <template v-if="loggedIn">
-          <span v-if="userEmail" class="user-email">{{ userEmail }}</span>
-          <button class="btn-icon" aria-label="Déconnexion" @click="emit('logout')">⎋</button>
-        </template>
-        <button v-else class="btn-icon" aria-label="Connexion" @click="emit('showLogin')">👤</button>
+        <slot name="account" />
       </div>
     </div>
 
-    <div v-if="lastFetch" class="header-meta">
-      <span>Mis à jour {{ lastFetchLabel }}</span>
-    </div>
-
-    <div class="controls">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
+    <!-- Row 2: search + sort -->
+    <div class="max-w-[1400px] mx-auto px-3 pb-2.5 flex flex-col gap-2 bg-base-100 flex-shrink-0 sm:flex-row sm:items-center sm:pb-3 sm:px-5 lg:px-7 lg:gap-3">
+      <div class="relative w-full sm:flex-1 sm:max-w-[440px] lg:max-w-[520px]">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[0.9rem] pointer-events-none z-[1]">🔍</span>
         <input
           id="searchInput"
           type="search"
-          class="search-input"
           placeholder="Rechercher un jeu…"
           :value="searchQuery"
           @input="emit('update:searchQuery', $event.target.value)"
@@ -84,21 +72,24 @@ const sortOptions = [
         >✕</button>
       </div>
 
-      <div class="sort-bar">
-        <button
-          v-for="opt in sortOptions"
-          :key="opt.mode"
-          class="sort-opt"
-          :class="{ active: sortMode === opt.mode }"
-          @click="emit('setSort', opt.mode)"
-        >
-          {{ opt.label }}
-          <span v-if="sortMode === opt.mode" class="sort-dir">{{ sortAsc ? '↑' : '↓' }}</span>
-        </button>
-        <span v-if="searchQuery" class="filtered-count">
+      <div class="flex gap-1.5 items-center sm:flex-none">
+        <div class="join">
+          <button
+            v-for="opt in sortOptions"
+            :key="opt.mode"
+            class="join-item btn btn-sm"
+            :class="sortMode === opt.mode ? 'btn-primary' : 'btn-ghost'"
+            @click="emit('setSort', opt.mode)"
+          >
+            {{ opt.label }}
+            <span v-if="sortMode === opt.mode">{{ sortAsc ? '↑' : '↓' }}</span>
+          </button>
+        </div>
+        <span v-if="searchQuery" class="text-[0.8rem] text-base-content/50 pl-0.5">
           {{ filteredCount }} / {{ gameCount }}
         </span>
       </div>
     </div>
+
   </header>
 </template>

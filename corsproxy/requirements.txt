@@ -3,5 +3,3 @@ gunicorn
 requests
 PyJWT
 bcrypt
-pytest
-pytest-mock

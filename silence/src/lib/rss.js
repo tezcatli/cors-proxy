@@ -1,5 +1,5 @@
-import { getToken } from './auth.js';
-import { stripHtml, timestampToSeconds, normalizeForMatch } from './utils.js';
+import { apiFetch } from './auth.js';
+import { stripHtml, timestampToSeconds, norm } from './utils.js';
 
 const RSS_URL = 'https://feeds.acast.com/public/shows/silence-on-joue';
 
@@ -26,11 +26,11 @@ const NON_GAME_CHAPTERS = [
 export function isNonGameChapter(title) { return NON_GAME_CHAPTERS.some(re => re.test(title)); }
 
 export function findTimestampForGame(gameName, chapters) {
-  const normGame = normalizeForMatch(gameName);
+  const normGame = norm(gameName);
   let best = null, bestScore = 0;
   for (const chapter of chapters) {
     if (isNonGameChapter(chapter.title)) continue;
-    const normChapter = normalizeForMatch(chapter.title);
+    const normChapter = norm(chapter.title);
     let score = 0;
     if (normChapter === normGame) {
       score = 3;
@@ -62,10 +62,8 @@ function xmlText(item, tag) {
 }
 
 async function fetchRss() {
-  const url = `${import.meta.env.VITE_PROXY_URL}?url=${RSS_URL}`;
-  const r = await fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.text();
+  const r = await apiFetch(`${import.meta.env.VITE_PROXY_URL}?url=${RSS_URL}`)
+  return r.text()
 }
 
 export async function parseFeed() {
@@ -96,7 +94,7 @@ export async function parseFeed() {
     for (let name of gameNames) {
       name = name.replace(/^[,\s]+/, '').trim();
       if (name.length < 2) continue;
-      const key = name.toLowerCase();
+      const key = norm(name).replaceAll(' ', '');
       if (!gamesMap.has(key)) gamesMap.set(key, { name, episodes: [] });
       const ts = findTimestampForGame(name, chapters);
       gamesMap.get(key).episodes.push({

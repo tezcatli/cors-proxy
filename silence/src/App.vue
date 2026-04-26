@@ -4,9 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { isLoggedIn, getUserEmail, logout } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
 import { usePlayerStore } from './stores/player.js'
-import AppHeader   from './components/AppHeader.vue'
-import GameGrid    from './components/GameGrid.vue'
-import AudioPlayer from './components/AudioPlayer.vue'
+import AppHeader    from './components/AppHeader.vue'
+import GameGrid     from './components/GameGrid.vue'
+import AudioPlayer  from './components/AudioPlayer.vue'
+import AccountModal from './components/AccountModal.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -14,8 +15,14 @@ const router = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const loggedIn = computed(() => isLoggedIn())
+const loggedIn  = computed(() => isLoggedIn())
 const userEmail = computed(() => getUserEmail())
+
+const showAccountModal = ref(false)
+
+function handleShowAccount() {
+  showAccountModal.value = true
+}
 
 // ── Search (Phase 4) ──────────────────────────────────────────────────────
 const searchQuery = ref(route.query.q || '')
@@ -42,6 +49,7 @@ watch(() => playerStore.visible, v => {
 })
 
 function handleLogout() {
+  showAccountModal.value = false
   logout()
   router.push('/login')
 }
@@ -56,8 +64,6 @@ onMounted(() => {
 <template>
   <div id="mainView">
     <AppHeader
-      :logged-in="loggedIn"
-      :user-email="userEmail"
       :game-count="gamesStore.all.length"
       :filtered-count="displayedGames.length"
       :search-query="searchQuery"
@@ -68,9 +74,16 @@ onMounted(() => {
       @update:searchQuery="searchQuery = $event"
       @set-sort="gamesStore.setSort"
       @refresh="handleRefresh"
-      @show-login="router.push('/login')"
-      @logout="handleLogout"
-    />
+    >
+      <template #account>
+        <button
+          class="btn btn-circle btn-ghost !size-9 !min-h-9 text-[1.1rem]"
+          :class="loggedIn ? 'text-primary' : 'text-base-content/50'"
+          :aria-label="loggedIn ? 'Mon compte' : 'Connexion'"
+          @click="handleShowAccount"
+        >👤</button>
+      </template>
+    </AppHeader>
 
     <GameGrid
       :games="displayedGames"
@@ -87,5 +100,12 @@ onMounted(() => {
     </RouterView>
 
     <AudioPlayer />
+
+    <AccountModal
+      v-if="showAccountModal"
+      :user-email="userEmail"
+      @close="showAccountModal = false"
+      @logout="handleLogout"
+    />
   </div>
 </template>

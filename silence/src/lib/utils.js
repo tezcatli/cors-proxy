@@ -27,8 +27,11 @@ export function timestampToSeconds(ts) {
   return 0;
 }
 
-export function normalizeForMatch(s) {
-  return s.toLowerCase().replace(/[«»:,\.!\?'"()\[\]]/g, '').replace(/\s+/g, ' ').trim();
+export function norm(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
 }
 
 export function formatDate(str) {
