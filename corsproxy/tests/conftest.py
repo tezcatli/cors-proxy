@@ -13,8 +13,21 @@ os.environ['SMTP_HOST']      = ''
 import db as _db
 _db.DB_PATH = os.path.join(tempfile.mkdtemp(), 'test.db')
 
+import datetime
+import jwt
 import pytest
 from app import create_app
+from config import Config
+
+
+def auth_header(email='user@example.com'):
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    token = jwt.encode(
+        {'sub': '1', 'email': email, 'iat': now,
+         'exp': now + datetime.timedelta(hours=1)},
+        Config.JWT_SECRET, algorithm='HS256',
+    )
+    return {'Authorization': f'Bearer {token}'}
 
 
 @pytest.fixture(scope='session')

@@ -108,14 +108,10 @@ def _rank(results, name):
 
 # ── Normalize IGDB result → frontend shape ────────────────────────────────────
 def _normalize(g):
-    url = None
-    if g.get('cover') and g['cover'].get('image_id'):
-        url = f"https://images.igdb.com/igdb/image/upload/t_cover_big_2x/{g['cover']['image_id']}.jpg"
+    cover_image_id = g['cover']['image_id'] if g.get('cover') and g['cover'].get('image_id') else None
 
-    bg_url = None
     shots = g.get('screenshots') or []
-    if shots and shots[0].get('image_id'):
-        bg_url = f"https://images.igdb.com/igdb/image/upload/t_720p/{shots[0]['image_id']}.jpg"
+    bg_image_id = shots[0]['image_id'] if shots and shots[0].get('image_id') else None
 
     metacritic = None
     if g.get('aggregated_rating') and g.get('aggregated_rating_count', 0) >= 3:
@@ -148,7 +144,7 @@ def _normalize(g):
             developer = ic['company'].get('name')
             break
 
-    return dict(url=url, bgUrl=bg_url, metacritic=metacritic, rating=rating, genres=genres,
+    return dict(coverImageId=cover_image_id, bgImageId=bg_image_id, metacritic=metacritic, rating=rating, genres=genres,
                 released=released, platforms=platforms, esrb=esrb,
                 description=description, developer=developer)
 

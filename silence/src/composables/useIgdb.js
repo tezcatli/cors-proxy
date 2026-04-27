@@ -6,7 +6,8 @@ export function useRawg() {
   const imgFailed  = ref(false)
   const imgLoading = ref(false)
 
-  const imgUrl = computed(() => data.value?.url ?? null)
+  const coverImageId = computed(() => data.value?.coverImageId ?? null)
+  const bgImageId    = computed(() => data.value?.bgImageId    ?? null)
 
   async function load(name, year = null) {
     data.value       = null
@@ -19,5 +20,5 @@ export function useRawg() {
     }
   }
 
-  return { data, imgUrl, imgFailed, imgLoading, load }
+  return { data, coverImageId, bgImageId, imgFailed, imgLoading, load }
 }

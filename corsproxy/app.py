@@ -1,13 +1,11 @@
 import time
 import logging
-from flask import Flask, request, abort, Response, jsonify
-from urllib.parse import urlparse
+from flask import Flask, request, Response, jsonify
 from config import Config
 from db import init_db
-from auth import auth_bp, _decode_jwt
+from auth import auth_bp
 from igdb import igdb_bp
 from rss import rss_bp
-import requests
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,40 +13,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-_UPSTREAM_CORS = frozenset([
-    "access-control-allow-origin",
-    "access-control-allow-credentials",
-    "access-control-allow-methods",
-    "access-control-allow-headers",
-    "access-control-expose-headers",
-    "access-control-max-age",
-])
-
-_HOP_BY_HOP = frozenset([
-    "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
-    "te", "trailers", "transfer-encoding", "upgrade",
-])
-
-
-def _authenticated(headers: dict) -> bool:
-    if Config.DEBUG:
-        return True
-    auth = headers.get("Authorization", "")
-    return auth.startswith("Bearer ") and _decode_jwt(auth[7:])
-
-
-def _allowed(url: str) -> bool:
-    if not Config.ALLOWED_ORIGINS:
-        return True
-    parsed = urlparse(url)
-    origin = f"{parsed.scheme}://{parsed.netloc}"
-    return any(origin.startswith(allowed) for allowed in Config.ALLOWED_ORIGINS)
-
-
-def _strip(headers: dict, extras: frozenset = frozenset()) -> dict:
-    blocked = _HOP_BY_HOP | extras
-    return {k: v for k, v in headers.items() if k.lower() not in blocked}
 
 
 def create_app():
@@ -112,46 +76,6 @@ def create_app():
     @_app.route("/")
     def hello():
         return "Guten tag das monde!!!"
-
-    @_app.route("/proxy", methods=["GET"])
-    def proxy():
-        target_url = request.args.get("url", "").strip()
-        if not target_url:
-            abort(400, "Missing required query parameter: url")
-        if not target_url.startswith(("http://", "https://")):
-            abort(400, "Parameter 'url' must start with http:// or https://")
-        if not _allowed(target_url):
-            abort(403, "Target URL is not in the allowed-origins list")
-        if not _authenticated(dict(request.headers)):
-            abort(403, "Not authenticated")
-        forward_headers = _strip(dict(request.headers), extras=frozenset(["host"]))
-        try:
-            upstream = requests.request(
-                method=request.method,
-                url=target_url,
-                headers=forward_headers,
-                params={k: v for k, v in request.args.items() if k != "url"},
-                data=request.get_data(),
-                timeout=Config.REQUEST_TIMEOUT,
-                allow_redirects=True,
-                stream=True,
-            )
-        except requests.exceptions.Timeout:
-            logger.warning("timeout proxying %s", target_url)
-            abort(504, "Upstream request timed out")
-        except requests.exceptions.ConnectionError as exc:
-            logger.warning("connection error proxying %s: %s", target_url, exc)
-            abort(502, "Failed to connect to upstream")
-        except requests.exceptions.RequestException as exc:
-            logger.error("unexpected error proxying %s: %s", target_url, exc)
-            abort(502, "Upstream request failed")
-        response_headers = _strip(dict(upstream.headers), extras=_UPSTREAM_CORS)
-        return Response(
-            upstream.raw.stream(8192, decode_content=False),
-            status=upstream.status_code,
-            headers=response_headers,
-            direct_passthrough=True,
-        )
 
     return _app
 

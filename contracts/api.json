@@ -120,7 +120,7 @@
       "success": {
         "status": 200,
         "fields": [
-          "url"
+          "coverImageId"
         ]
       },
       "not_found": {
@@ -150,41 +150,6 @@
           "error"
         ]
       }
-    }
-  },
-  "proxy": {
-    "success": {
-      "status": 200
-    },
-    "missing_url": {
-      "status": 400,
-      "fields": [
-        "error"
-      ]
-    },
-    "invalid_url": {
-      "status": 400,
-      "fields": [
-        "error"
-      ]
-    },
-    "unauthorized": {
-      "status": 403,
-      "fields": [
-        "error"
-      ]
-    },
-    "upstream_error": {
-      "status": 502,
-      "fields": [
-        "error"
-      ]
-    },
-    "timeout": {
-      "status": 504,
-      "fields": [
-        "error"
-      ]
     }
   },
   "rss": {

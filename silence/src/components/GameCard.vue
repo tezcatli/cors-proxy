@@ -2,14 +2,15 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getScoreClass, gameYear } from '../lib/utils.js'
-import { useRawg } from '../composables/useRawgImage.js'
+import { useRawg } from '../composables/useIgdb.js'
+import { igdbUrl } from '../lib/igdbCdn.js'
 import placeholderCover from '../assets/placeholder-cover.svg'
 
 const props  = defineProps({ game: Object })
 const router = useRouter()
 
-const cardRef                                    = ref(null)
-const { data: igdbData, imgUrl, imgFailed, imgLoading, load } = useRawg()
+const cardRef                                                         = ref(null)
+const { data: igdbData, coverImageId, imgFailed, imgLoading, load } = useRawg()
 
 const score      = computed(() => igdbData.value?.metacritic ?? null)
 const scoreClass = computed(() => score.value ? getScoreClass(score.value) : '')
@@ -49,7 +50,10 @@ function handleKey(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefau
     <img
       v-if="!imgLoading"
       class="w-full h-full object-cover block"
-      :src="imgUrl && !imgFailed ? imgUrl : placeholderCover"
+      :src="coverImageId && !imgFailed ? igdbUrl(coverImageId, 't_cover_big_2x') : placeholderCover"
+      :srcset="coverImageId && !imgFailed
+        ? `${igdbUrl(coverImageId,'t_cover_small')} 128h, ${igdbUrl(coverImageId,'t_cover_big')} 374h, ${igdbUrl(coverImageId,'t_cover_big_2x')} 748h`
+        : undefined"
       :alt="game.name"
       @error="imgFailed = true"
     />

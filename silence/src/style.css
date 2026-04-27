@@ -132,6 +132,22 @@ body {
 .slide-right-leave-active { animation: slideOutRight 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
 
+/* Mobile: single scrollable column */
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-cover-col {
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px 12px;
+  flex-shrink: 0;
+}
+
 .detail-cover-card {
   height: clamp(160px, 50vh, 340px);
   aspect-ratio: 45 / 64;
@@ -276,11 +292,64 @@ body.detail-open .audio-player.active {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-/* ─── Landscape ──────────────────────────────────────────────────────────── */
+/* ─── Landscape phone (short viewport) ───────────────────────────────────── */
 @media (max-height: 520px) {
   .detail-cover-card { height: clamp(100px, 40vh, 180px); }
   .igdb-badge        { font-size: 0.68rem; padding: 2px 6px; }
 }
+
+/* ─── Landscape desktop: two-column detail view ──────────────────────────── */
+@media (min-width: 900px) and (min-height: 500px) {
+  .detail-body {
+    overflow: hidden;
+    flex-direction: row;
+  }
+
+  .detail-cover-col {
+    flex-shrink: 0;
+    width: clamp(240px, 36vw, 500px);
+    padding: 28px;
+    align-items: center;
+  }
+
+  .detail-cover-col .detail-cover-card {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+  }
+
+  .detail-scroll-col {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .detail-scroll-inner { margin-block: auto; }
+
+  .detail-scores { display: flex; }
+}
+
+/* ─── Ratings blocks ─────────────────────────────────────────────────────── */
+.detail-scores { display: none; gap: 10px; margin-bottom: 12px; }
+
+.score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid;
+  min-width: 64px;
+}
+.score-block.score-high { background: rgba(76,175,80,0.18);  border-color: rgba(76,175,80,0.4);  color: #81c784; }
+.score-block.score-mid  { background: rgba(255,152,0,0.18);  border-color: rgba(255,152,0,0.4);  color: #ffb74d; }
+.score-block.score-low  { background: rgba(244,67,54,0.18);  border-color: rgba(244,67,54,0.4);  color: #e57373; }
+.score-block.igdb-rating { background: rgba(233,69,96,0.15); border-color: rgba(233,69,96,0.35); color: #ff6b81; }
+
+.score-number { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.score-label  { font-size: 0.62rem; opacity: 0.7; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* ─── Desktop (≥ 900px) ──────────────────────────────────────────────────── */
 @media (min-width: 900px) {

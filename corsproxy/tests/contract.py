@@ -5,7 +5,6 @@ _path = Path(__file__).resolve().parents[2] / 'contracts' / 'api.json'
 CONTRACT = json.loads(_path.read_text())
 AUTH  = CONTRACT['auth']
 IGDB  = CONTRACT['igdb']
-PROXY = CONTRACT['proxy']
 
 
 def assert_contract(response, entry):

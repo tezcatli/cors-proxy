@@ -2,13 +2,12 @@ import datetime
 import json
 from unittest.mock import patch, MagicMock
 
-import jwt
 import pytest
 import requests as real_requests
 
 import db
-from config import Config
 from contract import assert_contract, CONTRACT
+from conftest import auth_header
 from rss import (
     _correct, _extract_chapters, _extract_game_names,
     _find_timestamp, _is_non_game_chapter, _parse_feed, _parse_timestamp,
@@ -39,16 +38,6 @@ MINIMAL_RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
 
 # Fix the guillemet bytes in the constant (they were escaped above for clarity)
 MINIMAL_RSS = MINIMAL_RSS.replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-
-
-def auth_header(email='user@example.com'):
-    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-    token = jwt.encode(
-        {'sub': '1', 'email': email, 'iat': now,
-         'exp': now + datetime.timedelta(hours=1)},
-        Config.JWT_SECRET, algorithm='HS256',
-    )
-    return {'Authorization': f'Bearer {token}'}
 
 
 def mock_rss_response(content=MINIMAL_RSS, status=200):

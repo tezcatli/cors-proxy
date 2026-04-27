@@ -25,7 +25,8 @@ describe('normKey', () => {
 // ── ensureIgdbData ────────────────────────────────────────────────────────
 
 const SAMPLE_DATA = {
-  url: 'https://images.igdb.com/igdb/image/upload/t_cover_big_2x/abc123.jpg',
+  coverImageId: 'abc123',
+  bgImageId:    'bg456',
   metacritic: 85,
   developer: 'Test Studio',
   genres: ['Action'],

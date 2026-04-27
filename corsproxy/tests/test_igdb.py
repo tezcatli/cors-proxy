@@ -8,18 +8,7 @@ from config import Config
 import db
 import igdb as igdb_module
 from contract import assert_contract, IGDB
-
-
-# ── Helpers ────────────────────────────────────────────────────────────────
-
-def auth_header(email='user@example.com'):
-    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-    token = jwt.encode(
-        {'sub': '1', 'email': email, 'iat': now,
-         'exp': now + datetime.timedelta(hours=1)},
-        Config.JWT_SECRET, algorithm='HS256',
-    )
-    return {'Authorization': f'Bearer {token}'}
+from conftest import auth_header
 
 
 def mock_response(data):
@@ -87,7 +76,7 @@ def test_cache_miss_fetches_upstream(client):
         r = client.get('/igdb/game?name=test+game', headers=auth_header())
     assert_contract(r, IGDB['game']['success'])
     data = r.get_json()
-    assert data['url'] == 'https://images.igdb.com/igdb/image/upload/t_cover_big_2x/abc123.jpg'
+    assert data['coverImageId'] == 'abc123'
     assert data['metacritic'] == 85
     assert data['developer'] == 'Test Studio'
     assert data['esrb'] == 'T'

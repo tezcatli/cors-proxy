@@ -1,20 +1,23 @@
 <script setup>
-import { computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getScoreClass, formatEpisodeCount, gameYear } from '../lib/utils.js'
+import { igdbUrl } from '../lib/igdbCdn.js'
 import placeholderCover from '../assets/placeholder-cover.svg'
 import placeholderBg    from '../assets/placeholder-bg.svg'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
 import EpisodeCard from './EpisodeCard.vue'
-import { useRawg } from '../composables/useRawgImage.js'
+import { useRawg } from '../composables/useIgdb.js'
 
 const route       = useRoute()
 const router      = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const { data: igdb, imgUrl, imgFailed, load: loadRawg } = useRawg()
+const { data: igdb, coverImageId, bgImageId, imgFailed, imgLoading, load: loadRawg } = useRawg()
+const coverFailed = imgFailed
+const bgFailed    = ref(false)
 
 const game = computed(() => {
   const name = decodeURIComponent(route.params.slug)
@@ -86,62 +89,93 @@ const badges = computed(() => {
     <div class="absolute inset-0 overflow-hidden">
       <img
         class="w-full h-full object-cover object-center"
-        :src="imgUrl && !imgFailed ? imgUrl : placeholderBg"
+        :src="bgImageId && !bgFailed ? igdbUrl(bgImageId, 't_1080p') : placeholderBg"
+        :srcset="bgImageId && !bgFailed
+          ? `${igdbUrl(bgImageId,'t_720p')} 1280w, ${igdbUrl(bgImageId,'t_1080p')} 1920w, ${igdbUrl(bgImageId,'t_720p_2x')} 2560w, ${igdbUrl(bgImageId,'t_1080p_2x')} 3840w`
+          : undefined"
+        sizes="100vw"
         alt=""
         aria-hidden="true"
+        @error="bgFailed = true"
       />
       <div class="absolute inset-0 bg-black/55" />
     </div>
 
-    <!-- Content (scrollable over background) -->
-    <div class="relative h-full overflow-y-auto flex flex-col">
+    <!-- Content (scrollable on mobile, split on landscape desktop) -->
+    <div class="detail-content relative h-full flex flex-col">
 
-      <!-- Sticky back bar -->
+      <!-- Back bar -->
       <div class="sticky top-0 z-10 flex items-center px-3 h-11 bg-black/30 backdrop-blur-md border-b border-white/10 flex-shrink-0">
         <button class="btn btn-sm btn-ghost text-white/90 hover:text-white" @click="close">← Retour</button>
       </div>
 
-      <!-- Cover card (centered, h ≈ 33vh) -->
-      <div class="flex justify-center px-4 pt-5 pb-3 flex-shrink-0">
-        <div class="detail-cover-card">
-          <img
-            class="w-full h-full object-cover block"
-            :src="imgUrl && !imgFailed ? imgUrl : placeholderCover"
-            :alt="game.name"
-            @error="imgFailed = true"
-          />
+      <!-- Body -->
+      <div class="detail-body">
+
+        <!-- Cover column (left on landscape desktop, inline on mobile) -->
+        <div class="detail-cover-col">
+          <div class="detail-cover-card">
+            <img
+              class="w-full h-full object-cover block"
+              :src="coverImageId && !coverFailed ? igdbUrl(coverImageId, 't_cover_big') : placeholderCover"
+              :srcset="coverImageId && !coverFailed
+                ? `${igdbUrl(coverImageId,'t_cover_big')} 374w, ${igdbUrl(coverImageId,'t_cover_big_2x')} 748w`
+                : undefined"
+              :alt="game.name"
+              @error="coverFailed = true"
+            />
+          </div>
+        </div>
+
+        <!-- Scroll column (right on landscape desktop, below on mobile) -->
+        <div class="detail-scroll-col">
+        <div class="detail-scroll-inner">
+
+          <!-- Info panel -->
+          <div class="detail-glass mx-4 mb-3 mt-4">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <h2 class="text-[1.2rem] font-extrabold leading-tight sm:text-[1.45rem]">{{ game.name }}</h2>
+              <span class="text-[0.65rem] text-white/50 font-semibold uppercase tracking-wide flex-shrink-0 mt-1">{{ epCount }}</span>
+            </div>
+
+            <!-- Prominent scores (landscape desktop only) -->
+            <div v-if="igdb?.metacritic || igdb?.rating" class="detail-scores">
+              <div v-if="igdb?.metacritic" class="score-block" :class="getScoreClass(igdb.metacritic)">
+                <span class="score-number">{{ igdb.metacritic }}</span>
+                <span class="score-label">Metacritic</span>
+              </div>
+              <div v-if="igdb?.rating" class="score-block igdb-rating">
+                <span class="score-number">{{ igdb.rating }}</span>
+                <span class="score-label">IGDB</span>
+              </div>
+            </div>
+
+            <div v-if="badges.length || igdb?.developer" class="flex flex-wrap items-center gap-1.5 mb-2">
+              <span v-for="b in badges" :key="b.text" class="badge badge-sm igdb-badge" :class="b.cls">{{ b.text }}</span>
+              <span v-if="igdb?.developer" class="text-[0.7rem] text-white/40">{{ igdb.developer }}</span>
+            </div>
+            <p v-if="igdb?.description" class="text-[0.78rem] text-white/60 leading-relaxed line-clamp-4">{{ igdb.description }}</p>
+          </div>
+
+          <!-- Episodes -->
+          <div class="detail-lecteur mx-4 mb-4">
+            <div class="flex flex-col gap-1.5">
+              <EpisodeCard
+                v-for="ep in game.episodes"
+                :key="ep.title"
+                :episode="ep"
+                :game-name="game.name"
+                :is-playing="isEpPlaying(ep)"
+                :is-paused="playerStore.paused"
+                @play="playEp"
+                @toggle-pause="togglePause"
+              />
+            </div>
+          </div>
+
         </div>
       </div>
-
-      <!-- Info panel (glass) -->
-      <div class="detail-glass mx-4 mb-3">
-        <div class="flex items-start justify-between gap-3 mb-2">
-          <h2 class="text-[1.2rem] font-extrabold leading-tight sm:text-[1.45rem]">{{ game.name }}</h2>
-          <span class="text-[0.65rem] text-white/50 font-semibold uppercase tracking-wide flex-shrink-0 mt-1">{{ epCount }}</span>
-        </div>
-        <div v-if="badges.length || igdb?.developer" class="flex flex-wrap items-center gap-1.5 mb-2">
-          <span v-for="b in badges" :key="b.text" class="badge badge-sm igdb-badge" :class="b.cls">{{ b.text }}</span>
-          <span v-if="igdb?.developer" class="text-[0.7rem] text-white/40">{{ igdb.developer }}</span>
-        </div>
-        <p v-if="igdb?.description" class="text-[0.78rem] text-white/60 leading-relaxed line-clamp-4">{{ igdb.description }}</p>
-      </div>
-
-      <!-- Episodes -->
-      <div class="detail-lecteur mx-4 mb-4">
-        <div class="flex flex-col gap-1.5">
-          <EpisodeCard
-            v-for="ep in game.episodes"
-            :key="ep.title"
-            :episode="ep"
-            :game-name="game.name"
-            :is-playing="isEpPlaying(ep)"
-            :is-paused="playerStore.paused"
-            @play="playEp"
-            @toggle-pause="togglePause"
-          />
-        </div>
-      </div>
-
     </div>
   </div>
+</div>
 </template>
