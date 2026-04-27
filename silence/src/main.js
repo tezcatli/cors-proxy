@@ -5,9 +5,7 @@ import router from './router.js'
 import App from './App.vue'
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    for (const reg of regs) reg.unregister()
-  })
+  navigator.serviceWorker.register('/silence/sw.js', { scope: '/silence/' })
 }
 
 const app = createApp(App)

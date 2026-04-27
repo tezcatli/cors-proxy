@@ -30,8 +30,9 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      '/auth':  'http://corsproxy:5000',
-      '/proxy': 'http://corsproxy:5000',
+      '/auth': 'http://corsproxy:5000',
+      '/rss':  'http://corsproxy:5000',
+      '/igdb': 'http://corsproxy:5000',
     },
   },
 })
