@@ -29,8 +29,14 @@ SAMPLE = [{
     'genres': [{'name': 'Action'}],
     'platforms': [{'name': 'PC (Microsoft Windows)'}],
     'cover': {'image_id': 'abc123'},
+    'screenshots': [{'image_id': 'bg456'}, {'image_id': 'sc789'}],
     'age_ratings': [{'category': 1, 'rating': 10}],
-    'involved_companies': [{'developer': True, 'company': {'name': 'Test Studio'}}],
+    'involved_companies': [
+        {'developer': True,  'publisher': False, 'company': {'name': 'Test Studio'}},
+        {'developer': False, 'publisher': True,  'company': {'name': 'Test Publisher'}},
+    ],
+    'game_modes': [{'name': 'Single player'}],
+    'websites': [{'category': 13, 'url': 'https://store.steampowered.com/app/123'}],
 }]
 
 
@@ -79,6 +85,10 @@ def test_cache_miss_fetches_upstream(client):
     assert data['coverImageId'] == 'abc123'
     assert data['metacritic'] == 85
     assert data['developer'] == 'Test Studio'
+    assert data['publisher'] == 'Test Publisher'
+    assert data['modes'] == ['Single player']
+    assert data['steamUrl'] == 'https://store.steampowered.com/app/123'
+    assert data['screenshotIds'] == ['sc789']
     assert data['esrb'] == 'T'
     mock_post.assert_called_once()
 

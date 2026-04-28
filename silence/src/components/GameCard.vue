@@ -35,6 +35,7 @@ onUnmounted(() => observer?.disconnect())
 
 function open() { router.push('/game/' + encodeURIComponent(props.game.name)) }
 function handleKey(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }
+function prefetch() { loadImage() }
 </script>
 
 <template>
@@ -46,6 +47,8 @@ function handleKey(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefau
     :aria-label="game.name"
     @click="open"
     @keydown="handleKey"
+    @mouseenter="prefetch"
+    @touchstart.passive="prefetch"
   >
     <img
       v-if="!imgLoading"

@@ -110,8 +110,9 @@ def _rank(results, name):
 def _normalize(g):
     cover_image_id = g['cover']['image_id'] if g.get('cover') and g['cover'].get('image_id') else None
 
-    shots = g.get('screenshots') or []
-    bg_image_id = shots[0]['image_id'] if shots and shots[0].get('image_id') else None
+    shots          = g.get('screenshots') or []
+    screenshot_ids = [s['image_id'] for s in shots if s.get('image_id')]
+    bg_image_id    = screenshot_ids[0] if screenshot_ids else None
 
     metacritic = None
     if g.get('aggregated_rating') and g.get('aggregated_rating_count', 0) >= 3:
@@ -138,15 +139,40 @@ def _normalize(g):
     raw_desc    = (g.get('summary') or '').strip()
     description = raw_desc[:500] if raw_desc else None
 
-    developer = None
+    developer = publisher = None
     for ic in (g.get('involved_companies') or []):
-        if ic.get('developer') and ic.get('company'):
-            developer = ic['company'].get('name')
+        if not ic.get('company'):
+            continue
+        name = ic['company'].get('name')
+        if ic.get('developer') and not developer:
+            developer = name
+        if ic.get('publisher') and not publisher:
+            publisher = name
+
+    modes = [m['name'] for m in (g.get('game_modes') or [])][:3]
+
+    steam_url = None
+    for w in (g.get('websites') or []):
+        if w.get('category') == 13 and w.get('url'):
+            steam_url = w['url']
             break
 
-    return dict(coverImageId=cover_image_id, bgImageId=bg_image_id, metacritic=metacritic, rating=rating, genres=genres,
-                released=released, platforms=platforms, esrb=esrb,
-                description=description, developer=developer)
+    return dict(
+        coverImageId=cover_image_id,
+        bgImageId=bg_image_id,
+        screenshotIds=screenshot_ids[1:5],
+        metacritic=metacritic,
+        rating=rating,
+        genres=genres,
+        released=released,
+        platforms=platforms,
+        esrb=esrb,
+        description=description,
+        developer=developer,
+        publisher=publisher,
+        modes=modes,
+        steamUrl=steam_url,
+    )
 
 
 # ── Query helpers ─────────────────────────────────────────────────────────────
@@ -204,7 +230,8 @@ def game():
         'fields name, aggregated_rating, aggregated_rating_count, rating, '
         'first_release_date, summary, genres.name, platforms.name, '
         'cover.image_id, screenshots.image_id, age_ratings.category, age_ratings.rating, '
-        'involved_companies.developer, involved_companies.company.name; '
+        'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
+        'game_modes.name, websites.category, websites.url; '
     )
 
     try:
