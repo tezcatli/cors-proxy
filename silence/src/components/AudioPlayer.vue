@@ -1,10 +1,16 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 
+const router      = useRouter()
 const playerStore = usePlayerStore()
 const audioEl     = ref(null)
+
+function navigateToGame() {
+  router.push('/game/' + encodeURIComponent(playerStore.current.game))
+}
 
 watch(() => playerStore.current, cur => {
   if (!cur || !audioEl.value) return
@@ -67,7 +73,7 @@ function onPlay() {
 <template>
   <div class="audio-player" :class="{ active: playerStore.visible }">
     <template v-if="playerStore.current">
-      <div class="player-info">
+      <div class="player-info cursor-pointer" @click="navigateToGame">
         <span class="player-game">{{ playerStore.current.game }}</span>
         <span class="player-sep">·</span>
         <span class="player-episode">{{ playerStore.current.episode }}</span>
