@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
+import { igdbUrl } from '../lib/igdbCdn.js'
 
 const playerStore = usePlayerStore()
 const audioEl     = ref(null)
@@ -16,6 +17,7 @@ watch(() => playerStore.current, cur => {
   el.load()
   el.addEventListener('canplay', () => seekAndPlay(el, cur.ts), { once: true })
   el.play().catch(() => {})
+  setMediaSession(cur)
 })
 
 function seekAndPlay(el, ts) {
@@ -26,13 +28,36 @@ function seekAndPlay(el, ts) {
   el.play().catch(() => {})
 }
 
+function setMediaSession(cur) {
+  if (!('mediaSession' in navigator)) return
+  const artwork = cur.coverImageId ? [
+    { src: igdbUrl(cur.coverImageId, 't_cover_big'),    sizes: '264x374', type: 'image/jpeg' },
+    { src: igdbUrl(cur.coverImageId, 't_cover_big_2x'), sizes: '528x748', type: 'image/jpeg' },
+  ] : []
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title:  cur.episode,
+    artist: cur.game,
+    album:  'Silence on Joue',
+    artwork,
+  })
+  navigator.mediaSession.setActionHandler('play',  () => audioEl.value?.play())
+  navigator.mediaSession.setActionHandler('pause', () => audioEl.value?.pause())
+}
+
 function close() {
   if (audioEl.value) { audioEl.value.pause(); audioEl.value.src = '' }
+  if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
   playerStore.close()
 }
 
-function onPause() { playerStore.setPaused(true)  }
-function onPlay()  { playerStore.setPaused(false) }
+function onPause() {
+  playerStore.setPaused(true)
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'
+}
+function onPlay() {
+  playerStore.setPaused(false)
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'
+}
 </script>
 
 <template>

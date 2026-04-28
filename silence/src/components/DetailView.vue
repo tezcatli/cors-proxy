@@ -32,11 +32,12 @@ function isEpPlaying(ep) {
 
 function playEp(ep) {
   playerStore.play({
-    game:      game.value.name,
-    episode:   ep.title,
-    url:       ep.audioUrl,
-    ts:        ep.timestampSeconds || 0,
-    timestamp: ep.timestamp || null,
+    game:         game.value.name,
+    episode:      ep.title,
+    url:          ep.audioUrl,
+    ts:           ep.timestampSeconds || 0,
+    timestamp:    ep.timestamp || null,
+    coverImageId: coverImageId.value ?? null,
   })
 }
 
