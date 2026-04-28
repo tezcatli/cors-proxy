@@ -20,6 +20,10 @@ watch(() => playerStore.current, cur => {
   setMediaSession(cur)
 })
 
+watch(() => playerStore.current?.coverImageId, id => {
+  if (id && playerStore.current) setMediaSession(playerStore.current)
+})
+
 function seekAndPlay(el, ts) {
   if (ts > 0) {
     if (isFinite(el.duration)) el.currentTime = ts

@@ -6,8 +6,8 @@ export const usePlayerStore = defineStore('player', () => {
   const visible = ref(false)
   const paused  = ref(true)
 
-  function play({ game, episode, url, ts = 0, timestamp = null }) {
-    current.value = { game, episode, url, ts, timestamp }
+  function play({ game, episode, url, ts = 0, timestamp = null, coverImageId = null }) {
+    current.value = { game, episode, url, ts, timestamp, coverImageId }
     visible.value = true
     paused.value  = false
   }
@@ -20,5 +20,9 @@ export const usePlayerStore = defineStore('player', () => {
 
   function setPaused(v) { paused.value = v }
 
-  return { current, visible, paused, play, close, setPaused }
+  function setCoverImageId(id) {
+    if (current.value) current.value = { ...current.value, coverImageId: id }
+  }
+
+  return { current, visible, paused, play, close, setPaused, setCoverImageId }
 })

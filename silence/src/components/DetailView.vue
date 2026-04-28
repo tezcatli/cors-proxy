@@ -54,6 +54,10 @@ watch(game, g => {
   }
 }, { immediate: true })
 
+watch(coverImageId, id => {
+  if (id && playerStore.current?.game === game.value?.name) playerStore.setCoverImageId(id)
+})
+
 function retryIgdb() { if (game.value) loadRawg(game.value.name, gameYear(game.value.episodes)) }
 
 function close() { router.push('/') }
