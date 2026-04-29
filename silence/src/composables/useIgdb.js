@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { ensureIgdbData, hasCachedEntry, getCachedData } from '../lib/igdb.js'
+import { ensureIgdbData, hasCachedEntry, getCachedData, clearCacheEntry } from '../lib/igdb.js'
 
 export function useRawg() {
   const data       = ref(null)
@@ -31,5 +31,10 @@ export function useRawg() {
     }
   }
 
-  return { data, coverImageId, bgImageId, imgFailed, imgLoading, loadError, load }
+  async function refresh(name, year = null) {
+    clearCacheEntry(name)
+    await load(name, year)
+  }
+
+  return { data, coverImageId, bgImageId, imgFailed, imgLoading, loadError, load, refresh }
 }

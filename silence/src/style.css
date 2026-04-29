@@ -378,6 +378,7 @@ body.player-open .grid-area {
   min-width: 0;
   height: 40px;
   accent-color: #e94560;
+  color-scheme: dark;
 }
 
 /* ─── Scrollbar ───────────────────────────────────────────────────────────── */

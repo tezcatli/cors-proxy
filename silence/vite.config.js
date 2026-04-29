@@ -19,7 +19,7 @@ function stampServiceWorker() {
       const swSrc  = resolve(__dirname, 'sw.js')
       const swDest = resolve(options.dir, 'sw.js')
       const src = readFileSync(swSrc, 'utf8')
-      writeFileSync(swDest, src.replace('__CACHE_VERSION__', hash))
+      writeFileSync(swDest, src.replace(/__CACHE_VERSION__/g, hash))
     },
   }
 }

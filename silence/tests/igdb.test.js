@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { normKey } from '../src/lib/utils.js';
-import { ensureIgdbData, clearCache, getCachedMeta, getCachedData, hasCachedEntry, igdbCacheVersion } from '../src/lib/igdb.js';
+import { ensureIgdbData, clearCache, clearCacheEntry, getCachedMeta, getCachedData, hasCachedEntry, igdbCacheVersion } from '../src/lib/igdb.js';
 import { IGDB, mockResponse } from './contract.js';
 
 // ── normKey ───────────────────────────────────────────────────────────────
@@ -165,5 +165,24 @@ describe('hasCachedEntry', () => {
     apiFetch.mockRejectedValue(new Error('network error'));
     await expect(ensureIgdbData('Test Game')).rejects.toThrow();
     expect(hasCachedEntry('Test Game')).toBe(false);
+  });
+});
+
+describe('clearCacheEntry', () => {
+  it('removes only the target entry, leaving others intact', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    await ensureIgdbData('Game A');
+    await ensureIgdbData('Game B');
+    clearCacheEntry('Game A');
+    expect(hasCachedEntry('Game A')).toBe(false);
+    expect(hasCachedEntry('Game B')).toBe(true);
+  });
+
+  it('forces a network fetch on the next ensureIgdbData call', async () => {
+    apiFetch.mockResolvedValue(mockResponse(IGDB.game.success, SAMPLE_DATA));
+    await ensureIgdbData('Test Game');
+    clearCacheEntry('Test Game');
+    await ensureIgdbData('Test Game');
+    expect(apiFetch).toHaveBeenCalledTimes(2);
   });
 });

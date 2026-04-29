@@ -8,6 +8,8 @@ export const igdbCacheVersion = ref(0)
 
 export function clearCache() { _cache.clear(); _inFlight.clear() }
 
+export function clearCacheEntry(name) { _cache.delete(name.toLowerCase()) }
+
 export function hasCachedEntry(name) {
   return _cache.has(name.toLowerCase())
 }

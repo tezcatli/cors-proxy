@@ -15,7 +15,7 @@ const router      = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const { data: igdb, coverImageId, bgImageId, imgFailed, imgLoading, loadError, load: loadRawg } = useRawg()
+const { data: igdb, coverImageId, bgImageId, imgFailed, imgLoading, loadError, load: loadRawg, refresh: refreshRawg } = useRawg()
 const coverFailed = imgFailed
 const bgFailed    = ref(false)
 
@@ -58,7 +58,8 @@ watch(coverImageId, id => {
   if (id && playerStore.current?.game === game.value?.name) playerStore.setCoverImageId(id)
 })
 
-function retryIgdb() { if (game.value) loadRawg(game.value.name, gameYear(game.value.episodes)) }
+function retryIgdb()   { if (game.value) loadRawg(game.value.name, gameYear(game.value.episodes)) }
+function refreshIgdb() { if (game.value) refreshRawg(game.value.name, gameYear(game.value.episodes)) }
 
 function close() { router.push('/') }
 
@@ -177,7 +178,10 @@ const badges = computed(() => {
           <div class="detail-glass mx-4 mb-3 mt-4">
             <div class="flex items-start justify-between gap-3 mb-2">
               <h2 class="text-[1.2rem] font-extrabold leading-tight sm:text-[1.45rem]">{{ game.name }}</h2>
-              <span class="text-[0.65rem] text-white/50 font-semibold uppercase tracking-wide flex-shrink-0 mt-1">{{ epCount }}</span>
+              <div class="flex items-center gap-1 flex-shrink-0 mt-1">
+                <span class="text-[0.65rem] text-white/50 font-semibold uppercase tracking-wide">{{ epCount }}</span>
+                <button v-if="!imgLoading" class="btn btn-xs btn-ghost text-white/30 hover:text-white/70 px-1 min-h-0 h-6" @click="refreshIgdb" aria-label="Rafraîchir les données IGDB">↻</button>
+              </div>
             </div>
 
             <!-- IGDB fetch error -->
