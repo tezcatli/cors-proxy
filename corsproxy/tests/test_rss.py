@@ -9,7 +9,7 @@ import db
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
 from rss import (
-    _correct, _extract_chapters, _extract_game_names,
+    _correct, _extract_chapters, _extract_game_names, _extract_legacy_names,
     _find_timestamp, _is_non_game_chapter, _parse_feed, _parse_timestamp,
     _strip_html,
 )
@@ -91,6 +91,48 @@ def test_extract_game_names_empty():
 
 def test_extract_game_names_ignores_single_char():
     assert _extract_game_names('«A»') == []
+
+
+# ── _extract_legacy_names ─────────────────────────────────────────────────────
+
+@pytest.mark.parametrize('title,expected', [
+    ('Silence, on joue ! Gears of War 3, Resistance 3',
+     ['Gears of War 3', 'Resistance 3']),
+    ('Silence, on joue ! Battlefield 3, Uncharted 3, Dark Souls',
+     ['Battlefield 3', 'Uncharted 3', 'Dark Souls']),
+    ('Silence on joue ! World of Warcraft, Donkey Kong Country et Splatterhouse',
+     ['World of Warcraft', 'Donkey Kong Country', 'Splatterhouse']),
+    ('Silence on joue! Kinect, Fable III et James Bond',
+     ['Kinect', 'Fable III', 'James Bond']),
+    ('Silence on joue ! Skyrim, Shinobi',
+     ['Skyrim', 'Shinobi']),
+    ('Silence on joue! Batman Arkham City',
+     ['Batman Arkham City']),
+    ('Silence, on joue: Dreamcast, Gears of War 2...',
+     ['Dreamcast', 'Gears of War 2']),
+    ('La semaine des jeux vidéo ! The Legend of Zelda : Phantom Hourglass, PES 2008',
+     ['The Legend of Zelda : Phantom Hourglass', 'PES 2008']),
+])
+def test_extract_legacy_names(title, expected):
+    assert _extract_legacy_names(title) == expected
+
+@pytest.mark.parametrize('title', [
+    'Silence on joue! Spécial E3 2011',
+    'Silence on joue ! Grand entretien avec Juliette',
+    'Silence on joue ! Le bilan 2021',
+    'Silence on joue ! En public à Muséogames',
+    'Not a SOJ title at all',
+])
+def test_extract_legacy_names_skipped(title):
+    assert _extract_legacy_names(title) == []
+
+def test_extract_game_names_falls_back_to_legacy():
+    names = _extract_game_names('Silence, on joue ! Gears of War 3, Resistance 3')
+    assert names == ['Gears of War 3', 'Resistance 3']
+
+def test_extract_game_names_guillemets_take_priority():
+    names = _extract_game_names('Silence on joue ! «Skyrim», «Doom» et «L.A. Noire» débarquent sur la Switch')
+    assert names == ['Skyrim', 'Doom', 'L.A. Noire']
 
 
 # ── _extract_chapters ─────────────────────────────────────────────────────────

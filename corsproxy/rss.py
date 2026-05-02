@@ -107,12 +107,48 @@ def _is_non_game_chapter(title):
     return any(p.search(title) for p in _NON_GAME)
 
 
+# ── Legacy title format (pre-guillemet era) ───────────────────────────────────
+_SOJ_PREFIX_RE = re.compile(
+    r'^(?:'
+    r'La\s+semaine\s+des\s+jeux\s+vid[eé]o\s*[!:,]'
+    r'|Les\s+jeux\s+vid[eé]o\s+sur\s+Lib[eé]\s+Labo\s*:'
+    r'|Silence[,\s]+on\s+joue\s*[!:,]?'
+    r')\s*',
+    re.IGNORECASE,
+)
+
+_NON_GAME_REMAINDER_RE = re.compile(
+    r'^(?:sp[eé]cial|grand\s+entretien|le\s+bilan|en\s+public|'
+    r'avec\s+l[ea]\s|avec\s+les\s|un\s+peu\s+de|dix\s+ans|'
+    r'le\s+final|le\s+meilleur\s+de|le\s+plein|'
+    r'on\s+r[eé]pond|une\s+histoire|la\s+place)',
+    re.IGNORECASE,
+)
+
+
+def _extract_legacy_names(title):
+    m = _SOJ_PREFIX_RE.match(title)
+    if not m:
+        return []
+    remainder = title[m.end():]
+    if not remainder or _NON_GAME_REMAINDER_RE.match(remainder):
+        return []
+    parts = re.split(r',\s*|\s+et\s+', remainder)
+    names = []
+    for p in parts:
+        p = re.sub(r'[.!…]+$', '', p.strip()).strip()
+        if len(p) >= 2:
+            names.append(p)
+    return names
+
+
 # ── Game name extraction ──────────────────────────────────────────────────────
 def _extract_game_names(title):
     if not title:
         return []
-    return [m.group(1).strip() for m in re.finditer(r'«([^»]+)»', title)
-            if len(m.group(1).strip()) > 1]
+    names = [m.group(1).strip() for m in re.finditer(r'«([^»]+)»', title)
+             if len(m.group(1).strip()) > 1]
+    return names if names else _extract_legacy_names(title)
 
 
 # ── Timestamp matching ────────────────────────────────────────────────────────
