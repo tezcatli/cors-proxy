@@ -163,7 +163,7 @@ def _normalize(g):
     return dict(
         coverImageId=cover_image_id,
         bgImageId=bg_image_id,
-        screenshotIds=screenshot_ids[1:5],
+        screenshotIds=screenshot_ids,
         metacritic=metacritic,
         rating=rating,
         genres=genres,

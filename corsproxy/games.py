@@ -258,11 +258,16 @@ def _upsert_games(parsed_games):
 
             for ep in entry['episodes']:
                 conn.execute(
-                    '''INSERT OR IGNORE INTO episodes
-                       (game_id, title, audio_url, pub_date, timestamp, ts_seconds)
-                       VALUES (?, ?, ?, ?, ?, ?)''',
-                    (game_id, ep['title'], ep.get('audioUrl'), ep.get('pubDate'),
-                     ep.get('timestamp'), ep.get('timestampSeconds', 0))
+                    'INSERT OR IGNORE INTO episodes (title, audio_url, pub_date) VALUES (?, ?, ?)',
+                    (ep['title'], ep.get('audioUrl'), ep.get('pubDate'))
+                )
+                ep_row = conn.execute(
+                    'SELECT id FROM episodes WHERE title = ?', (ep['title'],)
+                ).fetchone()
+                conn.execute(
+                    '''INSERT OR IGNORE INTO episode_games (episode_id, game_id, timestamp, ts_seconds)
+                       VALUES (?, ?, ?, ?)''',
+                    (ep_row['id'], game_id, ep.get('timestamp'), ep.get('timestampSeconds', 0))
                 )
 
 
@@ -280,7 +285,11 @@ def _rss_is_stale():
 def _get_game_year_from_db(game_id):
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT pub_date FROM episodes WHERE game_id = ?', (game_id,)
+            '''SELECT e.pub_date
+               FROM episode_games eg
+               JOIN episodes e ON e.id = eg.episode_id
+               WHERE eg.game_id = ?''',
+            (game_id,)
         ).fetchall()
     years = []
     for row in rows:
@@ -309,9 +318,10 @@ def _apply_igdb_result(game_id, result):
             )
             conn.execute('DELETE FROM podcast_name_map WHERE game_id = ?', (game_id,))
             conn.execute(
-                'UPDATE episodes SET game_id = ? WHERE game_id = ?',
+                'UPDATE OR IGNORE episode_games SET game_id = ? WHERE game_id = ?',
                 (winner_id, game_id)
             )
+            conn.execute('DELETE FROM episode_games WHERE game_id = ?', (game_id,))
             conn.execute('DELETE FROM games WHERE id = ?', (game_id,))
         else:
             conn.execute(
@@ -388,7 +398,9 @@ def _catalog_response():
             'SELECT id, display_name, igdb_data FROM games ORDER BY lower(display_name)'
         ).fetchall()
         ep_rows = conn.execute(
-            'SELECT game_id, pub_date FROM episodes'
+            '''SELECT eg.game_id, e.pub_date
+               FROM episode_games eg
+               JOIN episodes e ON e.id = eg.episode_id'''
         ).fetchall()
 
     stats = {}
@@ -435,8 +447,11 @@ def _game_row_and_episodes(name):
         if not game_row:
             abort(404, 'Game not found')
         ep_rows = conn.execute(
-            '''SELECT title, audio_url, pub_date, timestamp, ts_seconds
-               FROM episodes WHERE game_id = ? ORDER BY rowid''',
+            '''SELECT e.title, e.audio_url, e.pub_date, eg.timestamp, eg.ts_seconds
+               FROM episode_games eg
+               JOIN episodes e ON e.id = eg.episode_id
+               WHERE eg.game_id = ?
+               ORDER BY eg.rowid''',
             (game_row['id'],)
         ).fetchall()
     episodes = [

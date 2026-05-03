@@ -81,14 +81,17 @@ def init_db():
                 rss_at       TEXT     NOT NULL
             );
             CREATE TABLE IF NOT EXISTS episodes (
-                id         INTEGER  PRIMARY KEY AUTOINCREMENT,
-                game_id    INTEGER  NOT NULL REFERENCES games(id) ON DELETE CASCADE,
-                title      TEXT     NOT NULL,
-                audio_url  TEXT,
-                pub_date   TEXT,
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                title     TEXT    NOT NULL UNIQUE,
+                audio_url TEXT,
+                pub_date  TEXT
+            );
+            CREATE TABLE IF NOT EXISTS episode_games (
+                episode_id INTEGER NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
+                game_id    INTEGER NOT NULL REFERENCES games(id)    ON DELETE CASCADE,
                 timestamp  TEXT,
-                ts_seconds INTEGER  NOT NULL DEFAULT 0,
-                UNIQUE(game_id, title)
+                ts_seconds INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (episode_id, game_id)
             );
             CREATE TABLE IF NOT EXISTS podcast_name_map (
                 norm_key TEXT    PRIMARY KEY,
