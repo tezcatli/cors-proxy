@@ -38,14 +38,17 @@ def init_db():
                 used_at    DATETIME
             );
 
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            );
             CREATE TABLE IF NOT EXISTS games (
                 id           INTEGER  PRIMARY KEY AUTOINCREMENT,
                 igdb_id      INTEGER  UNIQUE,
                 norm_key     TEXT     UNIQUE,
                 display_name TEXT     NOT NULL,
                 igdb_data    TEXT,
-                igdb_at      TEXT,
-                rss_at       TEXT     NOT NULL
+                igdb_at      TEXT
             );
             CREATE TABLE IF NOT EXISTS episodes (
                 id        INTEGER PRIMARY KEY AUTOINCREMENT,

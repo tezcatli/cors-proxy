@@ -9,8 +9,6 @@ from utils import norm_key as _norm_key
 
 IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'data'])
 
-TTL_DAYS   = 30
-TTL_SECONDS = TTL_DAYS * 86400
 _IGDB_BASE = 'https://api.igdb.com/v4'
 _TWITCH    = 'https://id.twitch.tv/oauth2/token'
 _ESRB      = {6: 'RP', 7: 'EC', 8: 'E', 9: 'E10+', 10: 'T', 11: 'M', 12: 'AO'}

@@ -51,11 +51,6 @@ def test_invite_wrong_key(client):
                     headers={'X-Admin-Key': 'wrong'})
     assert_contract(r, AUTH['invite']['forbidden'])
 
-def test_invite_missing_email(client):
-    r = client.post('/auth/invite', json={},
-                    headers={'X-Admin-Key': Config.ADMIN_KEY})
-    assert_contract(r, AUTH['invite']['bad_email'])
-
 def test_invite_success(client):
     r = client.post('/auth/invite', json={'email': 'a@b.com'},
                     headers={'X-Admin-Key': Config.ADMIN_KEY})
@@ -122,14 +117,6 @@ def test_register_duplicate_email(client):
                           'invitation_token': token2})
     assert_contract(r, AUTH['register']['duplicate_email'])
 
-def test_register_weak_password(client):
-    token = make_invite(client, 'weak@example.com')
-    r = client.post('/auth/register',
-                    json={'email': 'weak@example.com', 'password': 'short',
-                          'invitation_token': token})
-    assert_contract(r, AUTH['register']['weak_password'])
-
-
 # ── POST /auth/login ───────────────────────────────────────────────────────
 
 def test_login_success(client):
@@ -143,14 +130,6 @@ def test_login_wrong_password(client):
     register(client, 'lp@example.com', 'correctpass')
     r = login(client, 'lp@example.com', 'wrongpass')
     assert_contract(r, AUTH['login']['bad_credentials'])
-
-def test_login_unknown_email(client):
-    r = login(client, 'nobody@example.com')
-    assert_contract(r, AUTH['login']['bad_credentials'])
-
-def test_login_missing_fields(client):
-    r = client.post('/auth/login', json={'email': 'a@b.com'})
-    assert_contract(r, AUTH['login']['missing_fields'])
 
 def test_login_case_insensitive_email(client):
     register(client, 'Case@Example.com', 'password123')

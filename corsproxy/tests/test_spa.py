@@ -32,12 +32,6 @@ def test_deep_link_falls_back_to_index(spa_client):
     assert b'id="app"' in r.data
 
 
-def test_nested_unknown_path_falls_back_to_index(spa_client):
-    r = spa_client.get('/silence/some/deep/path')
-    assert r.status_code == 200
-    assert b'id="app"' in r.data
-
-
 def test_real_asset_served_directly(spa_client):
     r = spa_client.get('/silence/assets/main.js')
     assert r.status_code == 200

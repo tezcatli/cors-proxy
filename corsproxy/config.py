@@ -17,8 +17,9 @@ class Config:
     IGDB_CLIENT_ID:     str = os.getenv("IGDB_CLIENT_ID", "")
     IGDB_CLIENT_SECRET: str = os.getenv("IGDB_CLIENT_SECRET", "")
 
-    # RSS
-    RSS_TTL_MINUTES: int = int(os.getenv("RSS_TTL_MINUTES", "60"))
+    # RSS / IGDB refresh
+    RSS_TTL_HOURS:  int = int(os.getenv("RSS_TTL_HOURS",  "8"))
+    IGDB_TTL_HOURS: int = int(os.getenv("IGDB_TTL_HOURS", "720"))  # 30 days
 
     # Auth
     JWT_SECRET: str      = os.getenv("JWT_SECRET", "dev-insecure-change-me")

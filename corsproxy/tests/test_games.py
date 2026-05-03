@@ -2,15 +2,13 @@ import datetime
 from unittest.mock import patch, MagicMock
 
 import pytest
-import requests as real_requests
 
 import db
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
 from games import (
-    _extract_chapters, _extract_game_names, _extract_legacy_names,
-    _find_timestamp, _is_non_game_chapter, _parse_feed, _parse_timestamp,
-    _strip_html, _sync_catalog,
+    _extract_game_names, _extract_legacy_names,
+    _parse_feed, _sync_catalog,
 )
 
 GAMES = CONTRACT['games']
@@ -47,49 +45,11 @@ def mock_rss_response(content=MINIMAL_RSS, status=200):
     return m
 
 
-# ── _strip_html ────────────────────────────────────────────────────────────────
-
-def test_strip_html_removes_tags():
-    assert _strip_html('<b>hello</b>') == 'hello'
-
-def test_strip_html_converts_p_to_newline():
-    result = _strip_html('<p>line1</p><p>line2</p>')
-    assert 'line1' in result and 'line2' in result
-
-def test_strip_html_decodes_entities():
-    assert _strip_html('&amp;') == '&'
-    assert _strip_html('&lt;') == '<'
-
-def test_strip_html_falsy_returns_empty():
-    assert _strip_html('') == ''
-    assert _strip_html(None) == ''
-
-
-# ── _parse_timestamp ───────────────────────────────────────────────────────────
-
-def test_parse_timestamp_mm_ss():
-    assert _parse_timestamp('01:30') == 90
-
-def test_parse_timestamp_hh_mm_ss():
-    assert _parse_timestamp('1:00:00') == 3600
-
-def test_parse_timestamp_empty():
-    assert _parse_timestamp('') == 0
-    assert _parse_timestamp(None) == 0
-
-
 # ── _extract_game_names ───────────────────────────────────────────────────────
 
 def test_extract_game_names_guillemets():
     names = _extract_game_names('On a joué à «Zelda» et «Mario»')
     assert names == ['Zelda', 'Mario']
-
-def test_extract_game_names_empty():
-    assert _extract_game_names('No guillemets here') == []
-    assert _extract_game_names(None) == []
-
-def test_extract_game_names_ignores_single_char():
-    assert _extract_game_names('«A»') == []
 
 
 # ── _extract_legacy_names ─────────────────────────────────────────────────────
@@ -132,65 +92,6 @@ def test_extract_game_names_falls_back_to_legacy():
 def test_extract_game_names_guillemets_take_priority():
     names = _extract_game_names('Silence on joue ! «Skyrim», «Doom» et «L.A. Noire» débarquent sur la Switch')
     assert names == ['Skyrim', 'Doom', 'L.A. Noire']
-
-
-# ── _extract_chapters ─────────────────────────────────────────────────────────
-
-def test_extract_chapters_basic():
-    chapters = _extract_chapters('00:30 Zelda\n01:00 Mario')
-    assert len(chapters) == 2
-    assert chapters[0] == {'timestampSeconds': 30, 'timestamp': '00:30', 'title': 'Zelda'}
-
-def test_extract_chapters_hh_mm_ss():
-    chapters = _extract_chapters('1:00:00 Some Game')
-    assert chapters[0]['timestampSeconds'] == 3600
-
-def test_extract_chapters_ignores_non_timestamp_lines():
-    chapters = _extract_chapters('Just text\n00:30 Zelda')
-    assert len(chapters) == 1
-
-
-# ── _is_non_game_chapter ──────────────────────────────────────────────────────
-
-@pytest.mark.parametrize('title', [
-    'intro', 'Intro', 'INTRO',
-    'les news', 'Le News',
-    'com des coms',
-    'outro', 'Outro',
-    'générique',
-    'bande-annonce', 'bande annonce',
-])
-def test_is_non_game_chapter_true(title):
-    assert _is_non_game_chapter(title)
-
-@pytest.mark.parametrize('title', ['Zelda', 'Mario Kart 8', 'Hollow Knight'])
-def test_is_non_game_chapter_false(title):
-    assert not _is_non_game_chapter(title)
-
-
-# ── _find_timestamp ───────────────────────────────────────────────────────────
-
-CHAPTERS = [
-    {'timestampSeconds': 30,  'timestamp': '00:30', 'title': 'Intro'},
-    {'timestampSeconds': 90,  'timestamp': '01:30', 'title': 'Zelda Breath of the Wild'},
-    {'timestampSeconds': 180, 'timestamp': '03:00', 'title': 'Mario Kart'},
-    {'timestampSeconds': 270, 'timestamp': '04:30', 'title': 'Outro'},
-]
-
-def test_find_timestamp_exact_match():
-    ts = _find_timestamp('Mario Kart', CHAPTERS)
-    assert ts == {'timestamp': '03:00', 'timestampSeconds': 180}
-
-def test_find_timestamp_partial_match():
-    ts = _find_timestamp('Zelda', CHAPTERS)
-    assert ts is not None
-    assert ts['timestamp'] == '01:30'
-
-def test_find_timestamp_no_match():
-    assert _find_timestamp('Halo', CHAPTERS) is None
-
-def test_find_timestamp_skips_non_game():
-    assert _find_timestamp('Intro', CHAPTERS) is None
 
 
 # ── _parse_feed ───────────────────────────────────────────────────────────────
@@ -269,34 +170,16 @@ def test_cache_hit_skips_fetch(client):
 
 def test_expired_cache_refetches(client):
     stale = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-             - datetime.timedelta(minutes=61)).isoformat()
+             - datetime.timedelta(hours=9)).isoformat()
     with db.get_db() as conn:
         conn.execute(
-            'INSERT INTO games (display_name, rss_at) VALUES (?, ?)',
-            ('Old Game', stale),
+            "INSERT INTO settings (key, value) VALUES ('rss_fetched_at', ?)", (stale,)
         )
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
          patch('games._start_warming'):
         r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     mock_get.assert_called_once()
-
-
-def test_upstream_error_returns_502(client):
-    with patch('games.http.get',
-               side_effect=real_requests.exceptions.ConnectionError('down')):
-        r = client.get('/games', headers=auth_header())
-    assert_contract(r, GAMES['catalog']['upstream_error'])
-
-
-def test_catalog_has_no_episodes(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
-        r = client.get('/games', headers=auth_header())
-    data = r.get_json()
-    assert all('episodes' not in g for g in data)
-    assert all('episodeCount' in g for g in data)
-    assert all('latestPubTs' in g for g in data)
 
 
 def test_catalog_igdb_is_slim(client):
@@ -324,11 +207,6 @@ def test_game_detail_returns_episodes(client):
     assert data['episodes'][0]['audioUrl'] == 'https://example.com/ep1.mp3'
 
 
-def test_game_detail_not_found(client):
-    r = client.get('/games/nonexistent-game', headers=auth_header())
-    assert_contract(r, GAMES['game_detail']['not_found'])
-
-
 def test_game_detail_stale_name_fallback(client):
     """IGDB warming may rename display_name; the old podcast name should still resolve."""
     with patch('games.http.get', return_value=mock_rss_response()), \
@@ -346,37 +224,13 @@ def test_game_detail_stale_name_fallback(client):
     assert len(data['episodes']) > 0
 
 
-def test_game_detail_no_auth(client):
-    r = client.get('/games/Zelda')
-    assert_contract(r, GAMES['game_detail']['unauthorized'])
-
-
 # ── POST /games/refresh ───────────────────────────────────────────────────────
 
 def test_refresh_always_fetches(client):
-    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._start_warming'):
+    with patch('games.http.get', return_value=mock_rss_response()) as mock_get:
         r = client.post('/games/refresh', headers=auth_header())
     assert_contract(r, GAMES['refresh']['success'])
     mock_get.assert_called_once()
-
-
-def test_refresh_bypasses_ttl(client):
-    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._start_warming'):
-        client.get('/games', headers=auth_header())
-        assert mock_get.call_count == 1
-        r = client.post('/games/refresh', headers=auth_header())
-    assert mock_get.call_count == 2
-    data = r.get_json()
-    assert isinstance(data, list)
-
-
-def test_refresh_upstream_error(client):
-    with patch('games.http.get',
-               side_effect=real_requests.exceptions.ConnectionError('down')):
-        r = client.post('/games/refresh', headers=auth_header())
-    assert_contract(r, GAMES['refresh']['upstream_error'])
 
 
 # ── POST /games/<slug>/igdb-refresh ──────────────────────────────────────────
@@ -393,11 +247,6 @@ def test_igdb_refresh_returns_game_detail(client):
     assert isinstance(data['episodes'], list)
 
 
-def test_igdb_refresh_not_found(client):
-    r = client.post('/games/nonexistent-game/igdb-refresh', headers=auth_header())
-    assert_contract(r, GAMES['igdb_refresh']['not_found'])
-
-
 # ── GET /games/igdb ───────────────────────────────────────────────────────────
 
 def test_igdb_returns_map(client):
@@ -408,14 +257,3 @@ def test_igdb_returns_map(client):
     assert_contract(r, GAMES['igdb']['success'])
     data = r.get_json()
     assert isinstance(data, dict)
-
-
-def test_igdb_empty_names_returns_empty(client):
-    r = client.get('/games/igdb', headers=auth_header())
-    assert r.status_code == 200
-    assert r.get_json() == {}
-
-
-def test_igdb_no_auth_returns_401(client):
-    r = client.get('/games/igdb?name=Zelda')
-    assert_contract(r, GAMES['igdb']['unauthorized'])

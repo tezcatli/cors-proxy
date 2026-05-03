@@ -9,6 +9,7 @@ os.environ['IGDB_CLIENT_ID']     = 'test-igdb-client-id'
 os.environ['IGDB_CLIENT_SECRET'] = 'test-igdb-client-secret'
 os.environ['RESET_BASE_URL'] = 'http://testserver'
 os.environ['SMTP_HOST']      = ''
+os.environ['TESTING']        = 'true'
 
 import db as _db
 _db.DB_PATH = os.path.join(tempfile.mkdtemp(), 'test.db')
@@ -32,7 +33,7 @@ def auth_header(email='user@example.com'):
 
 @pytest.fixture(scope='session')
 def app():
-    application = create_app()
+    application = create_app(testing=True)
     application.config['TESTING'] = True
     return application
 
@@ -50,6 +51,7 @@ def clean_db():
             DELETE FROM episode_games;
             DELETE FROM episodes;
             DELETE FROM games;
+            DELETE FROM settings;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
             DELETE FROM users;

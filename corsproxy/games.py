@@ -5,7 +5,6 @@ import datetime
 from calendar import timegm
 from email.utils import parsedate
 import xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor
 
 import requests as http
 from flask import Blueprint, abort, jsonify, request
@@ -14,7 +13,7 @@ from auth import require_auth
 from config import Config
 from corrections import find_by_norm_key
 from db import get_db, utcnow
-from igdb import TTL_SECONDS as IGDB_TTL_SECONDS, fetch_by_id, fetch_by_name
+from igdb import fetch_by_id, fetch_by_name
 from utils import norm, norm_key
 import logging
 
@@ -238,7 +237,6 @@ def _parse_feed(xml_bytes):
 
 # ── Catalog upsert ────────────────────────────────────────────────────────────
 def _sync_catalog(parsed_episodes):
-    now = utcnow().isoformat()
     with get_db() as conn:
         for ep in parsed_episodes:
             conn.execute(
@@ -255,11 +253,10 @@ def _sync_catalog(parsed_episodes):
                 ).fetchone()
                 if row:
                     game_id = row['id']
-                    conn.execute('UPDATE games SET rss_at = ? WHERE id = ?', (now, game_id))
                 else:
                     game_id = conn.execute(
-                        'INSERT INTO games (norm_key, display_name, rss_at) VALUES (?, ?, ?)',
-                        (key, g['name'], now)
+                        'INSERT INTO games (norm_key, display_name) VALUES (?, ?)',
+                        (key, g['name'])
                     ).lastrowid
                 conn.execute(
                     '''INSERT OR IGNORE INTO episode_games (episode_id, game_id, timestamp, ts_seconds)
@@ -268,14 +265,24 @@ def _sync_catalog(parsed_episodes):
                 )
 
 
-# ── Staleness check ───────────────────────────────────────────────────────────
+# ── Staleness checks ──────────────────────────────────────────────────────────
 def _rss_is_stale():
     with get_db() as conn:
-        row = conn.execute('SELECT MAX(rss_at) AS last FROM games').fetchone()
-    if not row or not row['last']:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = 'rss_fetched_at'"
+        ).fetchone()
+    if not row or not row['value']:
         return True
-    age = (utcnow() - datetime.datetime.fromisoformat(row['last'])).total_seconds()
-    return age >= Config.RSS_TTL_MINUTES * 60
+    age = (utcnow() - datetime.datetime.fromisoformat(row['value'])).total_seconds()
+    return age >= Config.RSS_TTL_HOURS * 3600
+
+
+def _set_rss_fetched_at():
+    with get_db() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES ('rss_fetched_at', ?)",
+            (utcnow().isoformat(),)
+        )
 
 
 # ── IGDB warming ──────────────────────────────────────────────────────────────
@@ -338,35 +345,58 @@ def _warm_one(game_row):
     _apply_igdb_result(game_id, result)
 
 
-_warming_lock   = threading.Lock()
-_warming_active = False
+_warm_lock   = threading.Lock()
+_warm_thread = None
+_warm_stop   = None
 
 
-def _do_warm():
-    global _warming_active
+def _do_warm(stop: threading.Event):
     try:
         stale_threshold = (
-            utcnow() - datetime.timedelta(seconds=IGDB_TTL_SECONDS)
+            utcnow() - datetime.timedelta(hours=Config.IGDB_TTL_HOURS)
         ).isoformat()
         with get_db() as conn:
             games = conn.execute(
                 'SELECT id, norm_key, display_name, igdb_id FROM games WHERE igdb_data IS NULL OR igdb_at < ?',
                 (stale_threshold,)
             ).fetchall()
-        with ThreadPoolExecutor(max_workers=3) as ex:
-            list(ex.map(_warm_one, games))
+        for game in games:
+            if stop.is_set():
+                break
+            _warm_one(game)
     finally:
-        with _warming_lock:
-            _warming_active = False
+        global _warm_stop
+        with _warm_lock:
+            if _warm_stop is stop:
+                _warm_stop = None
 
 
 def _start_warming():
-    global _warming_active
-    with _warming_lock:
-        if _warming_active:
-            return
-        _warming_active = True
-    threading.Thread(target=_do_warm, daemon=True).start()
+    global _warm_thread, _warm_stop
+    with _warm_lock:
+        if _warm_stop:
+            _warm_stop.set()
+        stop = threading.Event()
+        _warm_stop   = stop
+        _warm_thread = threading.Thread(target=_do_warm, args=(stop,), daemon=True)
+        _warm_thread.start()
+
+
+# ── Startup warmup ────────────────────────────────────────────────────────────
+def _do_startup():
+    if _rss_is_stale():
+        try:
+            r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
+                         headers={'User-Agent': 'SilenceOnJoue/1.0'})
+            r.raise_for_status()
+            _sync_catalog(_parse_feed(r.content))
+            _set_rss_fetched_at()
+        except Exception as e:
+            logger.warning("Startup RSS fetch failed: %s", e)
+
+
+def startup_warmup():
+    threading.Thread(target=_do_startup, daemon=True).start()
 
 
 # ── Response builders ─────────────────────────────────────────────────────────
@@ -440,12 +470,13 @@ def catalog():
             r.raise_for_status()
             parsed = _parse_feed(r.content)
             _sync_catalog(parsed)
-            _start_warming()
+            _set_rss_fetched_at()
         except http.exceptions.RequestException as exc:
             with get_db() as conn:
                 count = conn.execute('SELECT COUNT(*) FROM games').fetchone()[0]
             if count == 0:
                 abort(502, f'RSS feed unavailable: {exc}')
+    _start_warming()
     return jsonify(_catalog_response())
 
 
@@ -475,7 +506,7 @@ def refresh():
         r.raise_for_status()
         parsed = _parse_feed(r.content)
         _sync_catalog(parsed)
-        _start_warming()
+        _set_rss_fetched_at()
     except http.exceptions.RequestException as exc:
         abort(502, f'RSS feed unavailable: {exc}')
     return jsonify(_catalog_response())

@@ -4,7 +4,7 @@ from flask import Flask, request, Response, jsonify
 from config import Config
 from db import init_db
 from auth import auth_bp
-from games import games_bp
+from games import games_bp, startup_warmup
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,7 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def create_app():
+def create_app(testing=False):
     if Config.DEBUG:
         _app = Flask(__name__, static_folder="static")
         logger.warning("Running in DEBUG mode. This is not recommended for production!")
@@ -44,6 +44,8 @@ def create_app():
     _app.register_blueprint(auth_bp)
     _app.register_blueprint(games_bp)
     init_db()
+    if not testing:
+        startup_warmup()
 
     def json_error(e):
         return jsonify(error=str(e.description)), e.code
@@ -65,7 +67,8 @@ def create_app():
     return _app
 
 
-app = create_app()
+import os as _os
+app = create_app(testing=_os.getenv('TESTING', 'false').lower() == 'true')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
