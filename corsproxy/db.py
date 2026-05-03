@@ -45,7 +45,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS games (
                 id           INTEGER  PRIMARY KEY AUTOINCREMENT,
                 igdb_id      INTEGER  UNIQUE,
-                norm_key     TEXT     UNIQUE,
+                slug         TEXT     UNIQUE,
                 display_name TEXT     NOT NULL,
                 igdb_data    TEXT,
                 igdb_at      TEXT

@@ -10,7 +10,7 @@ Each entry requires:
 Once IGDB resolves a game, its display_name is updated to the IGDB name.
 Corrections only control HOW to find the right IGDB entry, not what to call it.
 """
-from utils import norm_key
+from utils import make_slug
 
 CORRECTIONS = [
     {
@@ -120,14 +120,12 @@ CORRECTIONS = [
 ]
 
 
-_BY_NORM_KEY = {norm_key(c["podcast_name"]): c for c in CORRECTIONS}
+_BY_SLUG = {make_slug(c["podcast_name"]): c for c in CORRECTIONS}
 
 
 def find_by_podcast(podcast_name: str):
-    """Look up a correction by podcast-extracted game name."""
-    return _BY_NORM_KEY.get(norm_key(podcast_name))
+    return _BY_SLUG.get(make_slug(podcast_name))
 
 
-def find_by_norm_key(nk: str):
-    """Look up a correction by pre-computed norm_key (used during IGDB warming)."""
-    return _BY_NORM_KEY.get(nk)
+def find_by_slug(slug: str):
+    return _BY_SLUG.get(slug)

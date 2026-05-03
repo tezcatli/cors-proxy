@@ -1,6 +1,6 @@
 import pytest
-from corrections import find_by_podcast, find_by_norm_key
-from utils import norm_key
+from corrections import find_by_podcast, find_by_slug
+from utils import make_slug
 
 
 # ── find_by_podcast ────────────────────────────────────────────────────────────
@@ -33,17 +33,15 @@ def test_find_by_podcast_search_name_none_when_not_needed():
     assert c['search_name'] is None
 
 
-# ── find_by_norm_key ───────────────────────────────────────────────────────────
+# ── find_by_slug ───────────────────────────────────────────────────────────────
 
-def test_find_by_norm_key_match():
-    nk = norm_key('artic eggs')
-    c  = find_by_norm_key(nk)
+def test_find_by_slug_match():
+    c = find_by_slug(make_slug('artic eggs'))
     assert c is not None
     assert c['search_name'] == 'Arctic Eggs'
 
-def test_find_by_norm_key_no_match():
-    assert find_by_norm_key('completelyunknowngame') is None
+def test_find_by_slug_no_match():
+    assert find_by_slug('completely-unknown-game') is None
 
-def test_find_by_norm_key_same_as_find_by_podcast():
-    nk = norm_key('shogun shodown')
-    assert find_by_norm_key(nk) == find_by_podcast('shogun shodown')
+def test_find_by_slug_same_as_find_by_podcast():
+    assert find_by_slug(make_slug('shogun shodown')) == find_by_podcast('shogun shodown')

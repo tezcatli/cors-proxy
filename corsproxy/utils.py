@@ -10,3 +10,6 @@ def norm(s):
 
 def norm_key(s):
     return norm(s).replace(' ', '')
+
+def make_slug(s):
+    return norm(s).replace(' ', '-')

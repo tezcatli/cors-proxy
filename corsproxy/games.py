@@ -11,10 +11,10 @@ from flask import Blueprint, abort, jsonify, request
 
 from auth import require_auth
 from config import Config
-from corrections import find_by_norm_key
+from corrections import find_by_slug
 from db import get_db, utcnow
 from igdb import fetch_by_id, fetch_by_name
-from utils import norm, norm_key
+from utils import norm, make_slug
 import logging
 
 logger = logging.getLogger(__name__)
@@ -247,16 +247,16 @@ def _sync_catalog(parsed_episodes):
                 'SELECT id FROM episodes WHERE title = ?', (ep['title'],)
             ).fetchone()['id']
             for g in ep['games']:
-                key = norm_key(g['name'])
+                slug = make_slug(g['name'])
                 row = conn.execute(
-                    'SELECT id FROM games WHERE norm_key = ?', (key,)
+                    'SELECT id FROM games WHERE slug = ?', (slug,)
                 ).fetchone()
                 if row:
                     game_id = row['id']
                 else:
                     game_id = conn.execute(
-                        'INSERT INTO games (norm_key, display_name) VALUES (?, ?)',
-                        (key, g['name'])
+                        'INSERT INTO games (slug, display_name) VALUES (?, ?)',
+                        (slug, g['name'])
                     ).lastrowid
                 conn.execute(
                     '''INSERT OR IGNORE INTO episode_games (episode_id, game_id, timestamp, ts_seconds)
@@ -306,12 +306,18 @@ def _apply_igdb_result(game_id, result):
         if result is None:
             conn.execute('UPDATE games SET igdb_at = ? WHERE id = ?', (now, game_id))
             return
-        existing = conn.execute(
+        new_slug = make_slug(result.name)
+        winner = conn.execute(
             'SELECT id FROM games WHERE igdb_id = ? AND id != ?',
             (result.id, game_id)
         ).fetchone()
-        if existing:
-            winner_id = existing['id']
+        if not winner:
+            winner = conn.execute(
+                'SELECT id FROM games WHERE slug = ? AND id != ?',
+                (new_slug, game_id)
+            ).fetchone()
+        if winner:
+            winner_id = winner['id']
             conn.execute(
                 'UPDATE OR IGNORE episode_games SET game_id = ? WHERE game_id = ?',
                 (winner_id, game_id)
@@ -321,16 +327,16 @@ def _apply_igdb_result(game_id, result):
         else:
             conn.execute(
                 '''UPDATE games
-                   SET igdb_id = ?, display_name = ?, igdb_data = ?, igdb_at = ?
+                   SET igdb_id = ?, slug = ?, display_name = ?, igdb_data = ?, igdb_at = ?
                    WHERE id = ?''',
-                (result.id, result.name, json.dumps(result.data), now, game_id)
+                (result.id, new_slug, result.name, json.dumps(result.data), now, game_id)
             )
 
 
 def _warm_one(game_row):
     logger.info("Warming IGDB data for game_id=%d name=%r", game_row['id'], game_row['display_name'])
     game_id = game_row['id']
-    correction = find_by_norm_key(game_row['norm_key'])
+    correction = find_by_slug(game_row['slug'])
     try:
         if game_row['igdb_id']:
             result = fetch_by_id(game_row['igdb_id'])
@@ -357,7 +363,7 @@ def _do_warm(stop: threading.Event):
         ).isoformat()
         with get_db() as conn:
             games = conn.execute(
-                'SELECT id, norm_key, display_name, igdb_id FROM games WHERE igdb_data IS NULL OR igdb_at < ?',
+                'SELECT id, slug, display_name, igdb_id FROM games WHERE igdb_data IS NULL OR igdb_at < ?',
                 (stale_threshold,)
             ).fetchall()
         for game in games:
@@ -403,7 +409,7 @@ def startup_warmup():
 def _catalog_response():
     with get_db() as conn:
         rows = conn.execute(
-            '''SELECT g.display_name, g.igdb_data,
+            '''SELECT g.display_name, g.slug, g.igdb_data,
                       COUNT(eg.episode_id) AS episode_count,
                       MAX(e.pub_ts)        AS latest_pub_ts
                FROM games g
@@ -418,6 +424,7 @@ def _catalog_response():
         igdb_slim = {'metacritic': igdb_full.get('metacritic')} if igdb_full else None
         result.append({
             'name':         r['display_name'],
+            'slug':         r['slug'],
             'igdb':         igdb_slim,
             'episodeCount': r['episode_count'],
             'latestPubTs':  r['latest_pub_ts'] or 0,
@@ -425,18 +432,12 @@ def _catalog_response():
     return result
 
 
-def _game_row_and_episodes(name):
-    """Look up one game by display_name (case-insensitive). Returns (game_row, episodes) or aborts 404."""
+def _game_row_and_episodes(slug):
     with get_db() as conn:
         game_row = conn.execute(
-            'SELECT id, display_name, igdb_data FROM games WHERE lower(display_name) = lower(?)',
-            (name,)
+            'SELECT id, slug, display_name, igdb_data FROM games WHERE slug = ?',
+            (make_slug(slug),)
         ).fetchone()
-        if not game_row:
-            game_row = conn.execute(
-                'SELECT id, display_name, igdb_data FROM games WHERE norm_key = ?',
-                (norm_key(name),)
-            ).fetchone()
         if not game_row:
             abort(404, 'Game not found')
         ep_rows = conn.execute(
@@ -517,6 +518,7 @@ def game_detail(slug):
     game_row, episodes = _game_row_and_episodes(slug)
     return jsonify({
         'name':     game_row['display_name'],
+        'slug':     game_row['slug'],
         'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
         'episodes': episodes,
     })
@@ -526,14 +528,9 @@ def game_detail(slug):
 def game_igdb_refresh(slug):
     with get_db() as conn:
         row = conn.execute(
-            'SELECT id, norm_key, display_name, igdb_id FROM games WHERE lower(display_name) = lower(?)',
-            (slug,)
+            'SELECT id, slug, display_name, igdb_id FROM games WHERE slug = ?',
+            (make_slug(slug),)
         ).fetchone()
-        if not row:
-            row = conn.execute(
-                'SELECT id, norm_key, display_name, igdb_id FROM games WHERE norm_key = ?',
-                (norm_key(slug),)
-            ).fetchone()
     if not row:
         abort(404, 'Game not found')
     with get_db() as conn:
@@ -542,9 +539,14 @@ def game_igdb_refresh(slug):
             (row['id'],)
         )
     _warm_one(row)
-    game_row, episodes = _game_row_and_episodes(slug)
+    with get_db() as conn:
+        updated = conn.execute('SELECT slug FROM games WHERE id = ?', (row['id'],)).fetchone()
+    if not updated:
+        abort(404, 'Game not found')
+    game_row, episodes = _game_row_and_episodes(updated['slug'])
     return jsonify({
         'name':     game_row['display_name'],
+        'slug':     game_row['slug'],
         'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
         'episodes': episodes,
     })
