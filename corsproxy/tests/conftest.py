@@ -49,10 +49,7 @@ def clean_db():
         conn.executescript("""
             DELETE FROM episode_games;
             DELETE FROM episodes;
-            DELETE FROM podcast_name_map;
             DELETE FROM games;
-            DELETE FROM igdb_cache;
-            DELETE FROM games_cache;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
             DELETE FROM users;

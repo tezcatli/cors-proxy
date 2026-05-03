@@ -36,10 +36,10 @@ export function norm(s) {
 
 export const normKey = s => norm(s).replaceAll(' ', '')
 
-export function formatDate(str) {
-  if (!str) return '';
-  try { return new Date(str).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }); }
-  catch { return str; }
+export function formatDate(ts) {
+  if (!ts) return '';
+  try { return new Date(ts * 1000).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }); }
+  catch { return String(ts); }
 }
 
 export function timeAgo(iso) {
@@ -57,12 +57,6 @@ export function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-export const latestDate = g => Math.max(0, ...g.episodes.map(ep => ep.pubDate ? +new Date(ep.pubDate) : 0));
-
-export function gameYear(episodes) {
-  const years = episodes.map(ep => ep.pubDate ? new Date(ep.pubDate).getFullYear() : null).filter(Boolean)
-  return years.length ? Math.min(...years) : null
-}
 
 export function getScoreClass(score) {
   return score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';

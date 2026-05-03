@@ -1,4 +1,3 @@
-import json
 import sqlite3
 import os
 import datetime
@@ -16,30 +15,6 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
-
-
-SENTINEL = object()
-
-
-def cache_get(table, key, ttl_seconds):
-    with get_db() as conn:
-        row = conn.execute(
-            f'SELECT data, cached_at FROM {table} WHERE key = ?', (key,)
-        ).fetchone()
-    if not row:
-        return SENTINEL
-    age = utcnow() - datetime.datetime.fromisoformat(row['cached_at'])
-    if age.total_seconds() >= ttl_seconds:
-        return SENTINEL
-    return json.loads(row['data'])
-
-
-def cache_set(table, key, data):
-    with get_db() as conn:
-        conn.execute(
-            f'INSERT OR REPLACE INTO {table} (key, data, cached_at) VALUES (?, ?, ?)',
-            (key, json.dumps(data), utcnow().isoformat()),
-        )
 
 
 def init_db():
@@ -62,19 +37,11 @@ def init_db():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 used_at    DATETIME
             );
-            CREATE TABLE IF NOT EXISTS igdb_cache (
-                key        TEXT     PRIMARY KEY,
-                data       TEXT     NOT NULL,
-                cached_at  DATETIME NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS games_cache (
-                key        TEXT     PRIMARY KEY,
-                data       TEXT     NOT NULL,
-                cached_at  DATETIME NOT NULL
-            );
+
             CREATE TABLE IF NOT EXISTS games (
                 id           INTEGER  PRIMARY KEY AUTOINCREMENT,
                 igdb_id      INTEGER  UNIQUE,
+                norm_key     TEXT     UNIQUE,
                 display_name TEXT     NOT NULL,
                 igdb_data    TEXT,
                 igdb_at      TEXT,
@@ -84,7 +51,7 @@ def init_db():
                 id        INTEGER PRIMARY KEY AUTOINCREMENT,
                 title     TEXT    NOT NULL UNIQUE,
                 audio_url TEXT,
-                pub_date  TEXT
+                pub_ts    INTEGER
             );
             CREATE TABLE IF NOT EXISTS episode_games (
                 episode_id INTEGER NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
@@ -92,9 +59,5 @@ def init_db():
                 timestamp  TEXT,
                 ts_seconds INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (episode_id, game_id)
-            );
-            CREATE TABLE IF NOT EXISTS podcast_name_map (
-                norm_key TEXT    PRIMARY KEY,
-                game_id  INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE
             );
         """)

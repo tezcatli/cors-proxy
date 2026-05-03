@@ -4,16 +4,10 @@ import threading
 import datetime
 from collections import namedtuple
 import requests as http
-from flask import Blueprint
-from db import cache_get, cache_set, SENTINEL
 from config import Config
-from auth import require_auth
 from utils import norm_key as _norm_key
 
 IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'data'])
-
-igdb_bp = Blueprint('igdb', __name__, url_prefix='/igdb')
-igdb_bp.before_request(require_auth)
 
 TTL_DAYS   = 30
 TTL_SECONDS = TTL_DAYS * 86400

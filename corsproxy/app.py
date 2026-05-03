@@ -4,7 +4,6 @@ from flask import Flask, request, Response, jsonify
 from config import Config
 from db import init_db
 from auth import auth_bp
-from igdb import igdb_bp
 from games import games_bp
 
 logging.basicConfig(
@@ -43,7 +42,6 @@ def create_app():
     _app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
 
     _app.register_blueprint(auth_bp)
-    _app.register_blueprint(igdb_bp)
     _app.register_blueprint(games_bp)
     init_db()
 

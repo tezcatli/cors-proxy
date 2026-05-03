@@ -10,7 +10,7 @@ from conftest import auth_header
 from games import (
     _extract_chapters, _extract_game_names, _extract_legacy_names,
     _find_timestamp, _is_non_game_chapter, _parse_feed, _parse_timestamp,
-    _strip_html, _upsert_games,
+    _strip_html, _sync_catalog,
 )
 
 GAMES = CONTRACT['games']
@@ -196,14 +196,15 @@ def test_find_timestamp_skips_non_game():
 # ── _parse_feed ───────────────────────────────────────────────────────────────
 
 def test_parse_feed_returns_game_list():
-    games = _parse_feed(MINIMAL_RSS)
-    names = [g['name'] for g in games]
+    episodes = _parse_feed(MINIMAL_RSS)
+    names = {g['name'] for ep in episodes for g in ep['games']}
     assert 'Zelda' in names
     assert 'Mario Kart' in names
 
 def test_parse_feed_filters_non_game_episodes():
-    games = _parse_feed(MINIMAL_RSS)
-    assert len(games) == 2
+    episodes = _parse_feed(MINIMAL_RSS)
+    assert len(episodes) == 1
+    assert len(episodes[0]['games']) == 2
 
 def test_parse_feed_uses_raw_podcast_name():
     # _parse_feed no longer applies corrections — canonical name comes from IGDB
@@ -214,19 +215,23 @@ def test_parse_feed_uses_raw_podcast_name():
         <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate><description></description>
       </item></channel></rss>"""
     rss = rss.replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    games = _parse_feed(rss)
-    assert games[0]['name'].strip() == 'artic eggs'
+    episodes = _parse_feed(rss)
+    assert episodes[0]['games'][0]['name'].strip() == 'artic eggs'
 
 def test_parse_feed_sets_audio_url():
-    games = _parse_feed(MINIMAL_RSS)
-    zelda = next(g for g in games if g['name'] == 'Zelda')
-    assert zelda['episodes'][0]['audioUrl'] == 'https://example.com/ep1.mp3'
+    episodes = _parse_feed(MINIMAL_RSS)
+    assert episodes[0]['audioUrl'] == 'https://example.com/ep1.mp3'
+
+def test_parse_feed_parses_pub_ts():
+    episodes = _parse_feed(MINIMAL_RSS)
+    assert isinstance(episodes[0]['pubTs'], int)
+    assert episodes[0]['pubTs'] > 0
 
 def test_parse_feed_resolves_timestamps():
-    games = _parse_feed(MINIMAL_RSS)
-    zelda = next(g for g in games if g['name'] == 'Zelda')
-    assert zelda['episodes'][0]['timestamp'] == '00:30'
-    assert zelda['episodes'][0]['timestampSeconds'] == 30
+    episodes = _parse_feed(MINIMAL_RSS)
+    zelda = next(g for g in episodes[0]['games'] if g['name'] == 'Zelda')
+    assert zelda['timestamp'] == '00:30'
+    assert zelda['tsSeconds'] == 30
 
 
 # ── GET /games ────────────────────────────────────────────────────────────────
