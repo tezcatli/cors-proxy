@@ -1,30 +1,75 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getScoreClass, formatEpisodeCount, gameYear } from '../lib/utils.js'
+import { getScoreClass, formatEpisodeCount } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import placeholderCover from '../assets/placeholder-cover.svg'
 import placeholderBg    from '../assets/placeholder-bg.svg'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
+import { fetchGame, refreshGameIgdb } from '../lib/rss.js'
 import EpisodeCard from './EpisodeCard.vue'
-import { useRawg } from '../composables/useIgdb.js'
 
 const route       = useRoute()
 const router      = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const { data: igdb, coverImageId, bgImageId, imgFailed, imgLoading, loadError, load: loadRawg, refresh: refreshRawg } = useRawg()
-const coverFailed = imgFailed
-const bgFailed    = ref(false)
-
 const game = computed(() => {
   const name = decodeURIComponent(route.params.slug)
   return gamesStore.all.find(g => g.name === name) ?? null
 })
 
-const epCount = computed(() => formatEpisodeCount(game.value?.episodes?.length ?? 0))
+const igdb         = computed(() => game.value?.igdb ?? null)
+const coverImageId = computed(() => igdb.value?.coverImageId ?? null)
+const bgImageId    = computed(() => igdb.value?.bgImageId ?? null)
+const coverFailed  = ref(false)
+const bgFailed     = ref(false)
+
+const episodes         = ref([])
+const episodesLoading  = ref(false)
+const igdbRefreshing   = ref(false)
+
+async function _loadEpisodes(g) {
+  if (!g) { episodes.value = []; return }
+  console.debug(`Loading episodes for ${g.name}…`)
+  episodesLoading.value = true
+  try {
+    const detail = await fetchGame(g.name)
+    episodes.value = detail.episodes
+  } catch (_) {
+    episodes.value = []
+  } finally {
+    episodesLoading.value = false
+  }
+}
+
+watch(game, g => {
+  coverFailed.value = false
+  bgFailed.value    = false
+  _loadEpisodes(g)
+}, { immediate: true })
+
+async function refreshIgdb() {
+  if (!game.value) return
+  igdbRefreshing.value = true
+  try {
+    const result = await refreshGameIgdb(game.value.name)
+    const idx = gamesStore.all.findIndex(g => g.name === game.value.name)
+    if (idx !== -1) gamesStore.all[idx] = { ...gamesStore.all[idx], igdb: result.igdb }
+    episodes.value = result.episodes
+  } catch (_) {
+    // ignore
+  } finally {
+    igdbRefreshing.value = false
+  }
+}
+
+watch(coverImageId, id => {
+  if (id && playerStore.current?.game === game.value?.name) playerStore.setCoverImageId(id)
+})
+
+const epCount = computed(() => formatEpisodeCount(game.value?.episodeCount ?? episodes.value.length))
 
 function isEpPlaying(ep) {
   return !!playerStore.current && ep.audioUrl === playerStore.current.url
@@ -48,18 +93,11 @@ const selectedScreenshot = ref(null)
 
 watch(game, g => {
   if (g) {
-    descExpanded.value      = false
+    descExpanded.value       = false
     selectedScreenshot.value = null
-    loadRawg(g.name, gameYear(g.episodes))
   }
-}, { immediate: true })
-
-watch(coverImageId, id => {
-  if (id && playerStore.current?.game === game.value?.name) playerStore.setCoverImageId(id)
 })
 
-function retryIgdb()   { if (game.value) loadRawg(game.value.name, gameYear(game.value.episodes)) }
-function refreshIgdb() { if (game.value) refreshRawg(game.value.name, gameYear(game.value.episodes)) }
 
 function close() { router.push('/') }
 
@@ -178,23 +216,15 @@ const badges = computed(() => {
           <div class="detail-glass mx-4 mb-3 mt-4">
             <div class="flex items-start justify-between gap-3 mb-2">
               <h2 class="text-[1.2rem] font-extrabold leading-tight sm:text-[1.45rem]">{{ game.name }}</h2>
-              <div class="flex items-center gap-1 flex-shrink-0 mt-1">
+              <div class="flex items-center gap-1.5 flex-shrink-0 mt-1">
                 <span class="text-[0.65rem] text-white/50 font-semibold uppercase tracking-wide">{{ epCount }}</span>
-                <button v-if="!imgLoading" class="btn btn-xs btn-ghost text-white/30 hover:text-white/70 px-1 min-h-0 h-6" @click="refreshIgdb" aria-label="Rafraîchir les données IGDB">↻</button>
+                <button
+                  class="btn btn-xs btn-ghost text-white/30 hover:text-white/60 px-1 min-h-0 h-5 leading-none"
+                  :disabled="igdbRefreshing"
+                  :aria-label="igdbRefreshing ? 'Actualisation IGDB…' : 'Rafraîchir IGDB'"
+                  @click="refreshIgdb"
+                >{{ igdbRefreshing ? '…' : '↻' }}</button>
               </div>
-            </div>
-
-            <!-- IGDB fetch error -->
-            <p v-if="loadError" class="text-[0.72rem] text-white/40 mb-2">
-              Données IGDB indisponibles.
-              <button class="text-primary/70 hover:text-primary transition-colors" @click="retryIgdb">Réessayer</button>
-            </p>
-
-            <!-- IGDB loading skeleton -->
-            <div v-else-if="imgLoading" class="flex flex-col gap-2 mb-3">
-              <div class="skeleton h-3 w-24 rounded opacity-30"/>
-              <div class="skeleton h-3 w-36 rounded opacity-30"/>
-              <div class="skeleton h-3 w-28 rounded opacity-30"/>
             </div>
 
             <!-- Prominent scores (landscape desktop only) -->
@@ -243,9 +273,12 @@ const badges = computed(() => {
 
           <!-- Episodes -->
           <div class="detail-lecteur mx-4 mb-4">
-            <div class="flex flex-col gap-1.5">
+            <div v-if="episodesLoading" class="flex justify-center py-4">
+              <span class="loading loading-spinner loading-sm text-primary/50"></span>
+            </div>
+            <div v-else class="flex flex-col gap-1.5">
               <EpisodeCard
-                v-for="ep in game.episodes"
+                v-for="ep in episodes"
                 :key="ep.title"
                 :episode="ep"
                 :game-name="game.name"

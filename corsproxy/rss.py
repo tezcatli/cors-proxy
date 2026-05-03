@@ -1,39 +1,29 @@
+import json
 import re
+import threading
+import datetime
+from calendar import timegm
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
+from email.utils import parsedate
 
 import requests as http
 from flask import Blueprint, abort, jsonify, request
 
 from auth import require_auth
 from config import Config
-from db import cache_get, cache_set, SENTINEL
+from corrections import find_by_norm_key
+from db import get_db, utcnow
+from igdb import TTL_SECONDS as IGDB_TTL_SECONDS, fetch_by_id, fetch_by_name
 from utils import norm, norm_key
+import logging
+
+logger = logging.getLogger(__name__)
 
 rss_bp = Blueprint('rss', __name__, url_prefix='/rss')
 rss_bp.before_request(require_auth)
 
-RSS_URL    = 'https://feeds.acast.com/public/shows/silence-on-joue'
-_CACHE_KEY = 'feed'
-
-# ── Corrections (port of corrections.js) ─────────────────────────────────────
-_CORRECTIONS = {norm_key(k): v for k, v in [
-    ('artic eggs',                         'Arctic Eggs'),
-    ('make way',                           'Make Way'),
-    ("l'ordre des géants",                 'Indiana Jones and the Great Circle: The Order of Giants'),
-    ('indiana jones et le cercle ancien',  'Indiana Jones and the Great Circle'),
-    ('1348: Ex-Voto',                      '1348: Ex Voto'),
-    ('elden ring nightrein',               'elden ring nightreign'),
-    ('Vendran las aves',                   'Vendrán las aves'),
-    ('shogun shodown',                     'Shogun Showdown'),
-    ('Eté',                                'Été'),
-    ('beyond good and evil remastered',    'Beyond Good & Evil: 20th Anniversary Edition'),
-    ('Top Spin 2K25',                      'Top Spin 2K 25'),
-]}
-
-
-def _correct(name):
-    return _CORRECTIONS.get(norm_key(name), name)
-
+RSS_URL = 'https://feeds.acast.com/public/shows/silence-on-joue'
 
 # ── HTML stripping ────────────────────────────────────────────────────────────
 def _strip_html(html):
@@ -198,7 +188,7 @@ def _get_audio_url(item):
     return link if re.search(r'\.(mp3|m4a|ogg|aac)', link, re.IGNORECASE) else None
 
 
-# ── Feed parsing ──────────────────────────────────────────────────────────────
+# ── Feed parsing (pure XML → dicts, no DB) ────────────────────────────────────
 def _parse_feed(xml_bytes):
     root    = ET.fromstring(xml_bytes)
     channel = root.find('channel')
@@ -221,14 +211,14 @@ def _parse_feed(xml_bytes):
                      item.findtext('description') or '')
         chapters  = _extract_chapters(_strip_html(raw_desc))
 
-        for name in game_names:
-            name = _correct(re.sub(r'^[,\s]+', '', name).strip())
-            if len(name) < 2:
+        for raw_name in game_names:
+            raw_name = re.sub(r'^[,\s]+', '', raw_name).strip()
+            if len(raw_name) < 2:
                 continue
-            key = norm_key(name)
+            key = norm_key(raw_name)
             if key not in games_map:
-                games_map[key] = {'name': name, 'episodes': []}
-            ts = _find_timestamp(name, chapters)
+                games_map[key] = {'name': raw_name, 'episodes': []}
+            ts = _find_timestamp(raw_name, chapters)
             games_map[key]['episodes'].append({
                 'title':            title,
                 'audioUrl':         audio_url,
@@ -237,21 +227,296 @@ def _parse_feed(xml_bytes):
                 'timestampSeconds': ts['timestampSeconds'] if ts else 0,
             })
 
-    return sorted(games_map.values(), key=lambda g: g['name'].lower())
+    return list(games_map.values())
 
 
-# ── Endpoint ──────────────────────────────────────────────────────────────────
+# ── Catalog upsert ────────────────────────────────────────────────────────────
+def _upsert_games(parsed_games):
+    now = utcnow().isoformat()
+    with get_db() as conn:
+        for entry in parsed_games:
+            podcast_name = entry['name']
+            key = norm_key(podcast_name)
+
+            row = conn.execute(
+                'SELECT game_id FROM podcast_name_map WHERE norm_key = ?', (key,)
+            ).fetchone()
+
+            if row:
+                game_id = row['game_id']
+                conn.execute('UPDATE games SET rss_at = ? WHERE id = ?', (now, game_id))
+            else:
+                cursor = conn.execute(
+                    'INSERT INTO games (display_name, rss_at) VALUES (?, ?)',
+                    (podcast_name, now)
+                )
+                game_id = cursor.lastrowid
+                conn.execute(
+                    'INSERT INTO podcast_name_map (norm_key, game_id) VALUES (?, ?)',
+                    (key, game_id)
+                )
+
+            for ep in entry['episodes']:
+                conn.execute(
+                    '''INSERT OR IGNORE INTO episodes
+                       (game_id, title, audio_url, pub_date, timestamp, ts_seconds)
+                       VALUES (?, ?, ?, ?, ?, ?)''',
+                    (game_id, ep['title'], ep.get('audioUrl'), ep.get('pubDate'),
+                     ep.get('timestamp'), ep.get('timestampSeconds', 0))
+                )
+
+
+# ── Staleness check ───────────────────────────────────────────────────────────
+def _rss_is_stale():
+    with get_db() as conn:
+        row = conn.execute('SELECT MAX(rss_at) AS last FROM games').fetchone()
+    if not row or not row['last']:
+        return True
+    age = (utcnow() - datetime.datetime.fromisoformat(row['last'])).total_seconds()
+    return age >= Config.RSS_TTL_MINUTES * 60
+
+
+# ── IGDB warming ──────────────────────────────────────────────────────────────
+def _get_game_year_from_db(game_id):
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT pub_date FROM episodes WHERE game_id = ?', (game_id,)
+        ).fetchall()
+    years = []
+    for row in rows:
+        if row['pub_date']:
+            d = parsedate(row['pub_date'])
+            if d:
+                years.append(d[0])
+    return min(years) if years else None
+
+
+def _apply_igdb_result(game_id, result):
+    now = utcnow().isoformat()
+    with get_db() as conn:
+        if result is None:
+            conn.execute('UPDATE games SET igdb_at = ? WHERE id = ?', (now, game_id))
+            return
+        existing = conn.execute(
+            'SELECT id FROM games WHERE igdb_id = ? AND id != ?',
+            (result.id, game_id)
+        ).fetchone()
+        if existing:
+            winner_id = existing['id']
+            conn.execute(
+                'UPDATE OR IGNORE podcast_name_map SET game_id = ? WHERE game_id = ?',
+                (winner_id, game_id)
+            )
+            conn.execute('DELETE FROM podcast_name_map WHERE game_id = ?', (game_id,))
+            conn.execute(
+                'UPDATE episodes SET game_id = ? WHERE game_id = ?',
+                (winner_id, game_id)
+            )
+            conn.execute('DELETE FROM games WHERE id = ?', (game_id,))
+        else:
+            conn.execute(
+                '''UPDATE games
+                   SET igdb_id = ?, display_name = ?, igdb_data = ?, igdb_at = ?
+                   WHERE id = ?''',
+                (result.id, result.name, json.dumps(result.data), now, game_id)
+            )
+
+
+def _warm_one(game_row):
+    logger.info("Warming IGDB data for game_id=%d name=%r", game_row['id'], game_row['display_name'])
+    game_id = game_row['id']
+    with get_db() as conn:
+        pnm_rows = conn.execute(
+            'SELECT norm_key FROM podcast_name_map WHERE game_id = ?', (game_id,)
+        ).fetchall()
+    correction = None
+    for pnm_row in pnm_rows:
+        c = find_by_norm_key(pnm_row['norm_key'])
+        if c:
+            correction = c
+            break
+    try:
+        if game_row['igdb_id']:
+            result = fetch_by_id(game_row['igdb_id'])
+        elif correction and correction.get('igdb_id'):
+            result = fetch_by_id(correction['igdb_id'])
+        else:
+            search_name = (correction or {}).get('search_name') or game_row['display_name']
+            year        = _get_game_year_from_db(game_id)
+            result      = fetch_by_name(search_name, year)
+    except Exception:
+        return
+    _apply_igdb_result(game_id, result)
+
+
+_warming_lock   = threading.Lock()
+_warming_active = False
+
+
+def _do_warm():
+    global _warming_active
+    try:
+        stale_threshold = (
+            utcnow() - datetime.timedelta(seconds=IGDB_TTL_SECONDS)
+        ).isoformat()
+        with get_db() as conn:
+            games = conn.execute(
+                'SELECT id, display_name, igdb_id FROM games WHERE igdb_data IS NULL OR igdb_at < ?',
+                (stale_threshold,)
+            ).fetchall()
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            list(ex.map(_warm_one, games))
+    finally:
+        with _warming_lock:
+            _warming_active = False
+
+
+def _start_warming():
+    global _warming_active
+    with _warming_lock:
+        if _warming_active:
+            return
+        _warming_active = True
+    threading.Thread(target=_do_warm, daemon=True).start()
+
+
+# ── Response builders ─────────────────────────────────────────────────────────
+def _catalog_response():
+    """Return the games list (no episodes) as a JSON-serialisable list."""
+    with get_db() as conn:
+        games_rows = conn.execute(
+            'SELECT id, display_name, igdb_data FROM games ORDER BY lower(display_name)'
+        ).fetchall()
+        ep_rows = conn.execute(
+            'SELECT game_id, pub_date FROM episodes'
+        ).fetchall()
+
+    stats = {}
+    for r in ep_rows:
+        gid = r['game_id']
+        if gid not in stats:
+            stats[gid] = {'count': 0, 'latest_ts': 0}
+        stats[gid]['count'] += 1
+        if r['pub_date']:
+            d = parsedate(r['pub_date'])
+            if d:
+                ts = timegm(d)
+                if ts > stats[gid]['latest_ts']:
+                    stats[gid]['latest_ts'] = ts
+
+    return [
+        {
+            'name':         g['display_name'],
+            'igdb':         json.loads(g['igdb_data']) if g['igdb_data'] else None,
+            'episodeCount': stats[g['id']]['count'],
+            'latestPubTs':  stats[g['id']]['latest_ts'],
+        }
+        for g in games_rows
+        if g['id'] in stats
+    ]
+
+
+def _game_row_and_episodes(name):
+    """Look up one game by display_name (case-insensitive). Returns (game_row, episodes) or aborts 404."""
+    with get_db() as conn:
+        game_row = conn.execute(
+            'SELECT id, display_name, igdb_data FROM games WHERE lower(display_name) = lower(?)',
+            (name,)
+        ).fetchone()
+        if not game_row:
+            # Stale name: IGDB warming may have renamed the game; fall back to podcast_name_map
+            game_row = conn.execute(
+                'SELECT g.id, g.display_name, g.igdb_data FROM games g '
+                'JOIN podcast_name_map m ON m.game_id = g.id WHERE m.norm_key = ?',
+                (norm_key(name),)
+            ).fetchone()
+        if not game_row:
+            abort(404, 'Game not found')
+        ep_rows = conn.execute(
+            '''SELECT title, audio_url, pub_date, timestamp, ts_seconds
+               FROM episodes WHERE game_id = ? ORDER BY rowid''',
+            (game_row['id'],)
+        ).fetchall()
+    episodes = [
+        {
+            'title':            r['title'],
+            'audioUrl':         r['audio_url'],
+            'pubDate':          r['pub_date'],
+            'timestamp':        r['timestamp'],
+            'timestampSeconds': r['ts_seconds'],
+        }
+        for r in ep_rows
+    ]
+    return game_row, episodes
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
 @rss_bp.route('/games')
 def games():
-    cached = cache_get('games_cache', _CACHE_KEY, Config.RSS_TTL_MINUTES * 60)
-    if cached is not SENTINEL:
-        return jsonify(cached)
+    if _rss_is_stale():
+        try:
+            r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
+                         headers={'User-Agent': 'SilenceOnJoue/1.0'})
+            r.raise_for_status()
+            parsed = _parse_feed(r.content)
+            _upsert_games(parsed)
+            _start_warming()
+        except http.exceptions.RequestException as exc:
+            with get_db() as conn:
+                count = conn.execute('SELECT COUNT(*) FROM games').fetchone()[0]
+            if count == 0:
+                abort(502, f'RSS feed unavailable: {exc}')
+    return jsonify(_catalog_response())
+
+
+@rss_bp.route('/games/<string:slug>')
+def game_detail(slug):
+    game_row, episodes = _game_row_and_episodes(slug)
+    return jsonify({
+        'name':     game_row['display_name'],
+        'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
+        'episodes': episodes,
+    })
+
+
+@rss_bp.route('/refresh', methods=['POST'])
+def rss_refresh():
     try:
         r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
                      headers={'User-Agent': 'SilenceOnJoue/1.0'})
         r.raise_for_status()
+        parsed = _parse_feed(r.content)
+        _upsert_games(parsed)
+        _start_warming()
     except http.exceptions.RequestException as exc:
         abort(502, f'RSS feed unavailable: {exc}')
-    result = _parse_feed(r.content)
-    cache_set('games_cache', _CACHE_KEY, result)
-    return jsonify(result)
+    return jsonify(_catalog_response())
+
+
+@rss_bp.route('/games/<string:slug>/igdb-refresh', methods=['POST'])
+def game_igdb_refresh(slug):
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT id, display_name, igdb_id FROM games WHERE lower(display_name) = lower(?)',
+            (slug,)
+        ).fetchone()
+        if not row:
+            row = conn.execute(
+                'SELECT g.id, g.display_name, g.igdb_id FROM games g '
+                'JOIN podcast_name_map m ON m.game_id = g.id WHERE m.norm_key = ?',
+                (norm_key(slug),)
+            ).fetchone()
+    if not row:
+        abort(404, 'Game not found')
+    with get_db() as conn:
+        conn.execute(
+            'UPDATE games SET igdb_data = NULL, igdb_at = NULL WHERE id = ?',
+            (row['id'],)
+        )
+    _warm_one(row)
+    game_row, episodes = _game_row_and_episodes(slug)
+    return jsonify({
+        'name':     game_row['display_name'],
+        'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
+        'episodes': episodes,
+    })

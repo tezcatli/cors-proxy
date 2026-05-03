@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useGamesStore } from '../../src/stores/games.js'
 
-vi.mock('../../src/lib/rss.js', () => ({ parseFeed: vi.fn() }))
-import { parseFeed } from '../../src/lib/rss.js'
+vi.mock('../../src/lib/rss.js', () => ({ parseFeed: vi.fn(), refreshFeed: vi.fn() }))
+import { parseFeed, refreshFeed } from '../../src/lib/rss.js'
 
 const GAMES = [
-  { name: 'Zelda',        episodes: [{ pubDate: '2024-06-01T00:00:00Z' }] },
-  { name: 'Mario',        episodes: [{ pubDate: '2024-01-01T00:00:00Z' }] },
-  { name: 'Hollow Knight', episodes: [{ pubDate: '2024-03-01T00:00:00Z' }] },
+  { name: 'Zelda',         latestPubTs: 1717200000, episodeCount: 3, igdb: { metacritic: 90 } },
+  { name: 'Mario',         latestPubTs: 1704067200, episodeCount: 1, igdb: null },
+  { name: 'Hollow Knight', latestPubTs: 1709251200, episodeCount: 2, igdb: { metacritic: 85 } },
 ]
 
 beforeEach(() => {
@@ -95,12 +95,36 @@ describe('sorting', () => {
     expect(result[0].name).toBe('Mario')        // oldest first
   })
 
-  it('meta sort falls back to alpha when no scores cached', () => {
+  it('meta sort ranks by metacritic descending, nulls last', () => {
     const store = useGamesStore()
     store.all = GAMES
     store.setSort('meta')
     const result = store.filtered('')
-    expect(result.map(g => g.name)).toEqual(['Hollow Knight', 'Mario', 'Zelda'])
+    expect(result[0].name).toBe('Zelda')        // 90 — highest
+    expect(result[1].name).toBe('Hollow Knight') // 85
+    expect(result[2].name).toBe('Mario')         // null — last
+  })
+})
+
+// ── refresh ───────────────────────────────────────────────────────────────
+
+describe('refresh', () => {
+  it('populates all via refreshFeed on success', async () => {
+    refreshFeed.mockResolvedValue(GAMES)
+    const store = useGamesStore()
+    await store.refresh()
+    expect(store.all).toHaveLength(3)
+    expect(store.lastFetch).not.toBeNull()
+    expect(store.loading).toBe(false)
+    expect(store.error).toBeNull()
+  })
+
+  it('sets error on failure', async () => {
+    refreshFeed.mockRejectedValue(new Error('upstream error'))
+    const store = useGamesStore()
+    await store.refresh()
+    expect(store.error).toBe('upstream error')
+    expect(store.loading).toBe(false)
   })
 })
 

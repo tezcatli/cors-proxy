@@ -57,7 +57,7 @@ function handleLogout() {
   router.push('/login')
 }
 
-function handleRefresh() { gamesStore.load() }
+function handleRefresh() { gamesStore.refresh() }
 
 onMounted(() => {
   if (loggedIn.value) gamesStore.load()

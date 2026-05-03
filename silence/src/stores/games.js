@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { parseFeed } from '../lib/rss.js'
-import { getCachedMeta, igdbCacheVersion } from '../lib/igdb.js'
-import { latestDate } from '../lib/utils.js'
+import { parseFeed, refreshFeed } from '../lib/rss.js'
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
 
@@ -15,13 +13,13 @@ export const useGamesStore = defineStore('games', () => {
   const error     = ref(null)
 
   function _sort(games) {
-    void igdbCacheVersion.value
     const dir = sortAsc.value ? 1 : -1
     return [...games].sort((a, b) => {
       if (sortMode.value === 'date')
-        return dir * (latestDate(a) - latestDate(b))
+        return dir * ((a.latestPubTs ?? 0) - (b.latestPubTs ?? 0))
       if (sortMode.value === 'meta') {
-        const ma = getCachedMeta(a.name), mb = getCachedMeta(b.name)
+        const ma = a.igdb?.metacritic ?? null
+        const mb = b.igdb?.metacritic ?? null
         if (ma === null && mb === null)
           return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
         if (ma === null) return 1
@@ -52,6 +50,19 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
+  async function refresh() {
+    loading.value = true
+    error.value   = null
+    try {
+      all.value       = await refreshFeed()
+      lastFetch.value = new Date().toISOString()
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
+  }
+
   function setSort(mode) {
     if (mode === sortMode.value) {
       sortAsc.value = !sortAsc.value
@@ -61,5 +72,5 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
-  return { all, lastFetch, sortMode, sortAsc, loading, error, filtered, load, setSort }
+  return { all, lastFetch, sortMode, sortAsc, loading, error, filtered, load, refresh, setSort }
 })

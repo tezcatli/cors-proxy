@@ -2,12 +2,15 @@ import re
 import time
 import threading
 import datetime
+from collections import namedtuple
 import requests as http
 from flask import Blueprint, request, jsonify, abort
 from db import cache_get, cache_set, SENTINEL
 from config import Config
 from auth import _decode_jwt, require_auth
 from utils import norm_key as _norm_key
+
+IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'data'])
 
 igdb_bp = Blueprint('igdb', __name__, url_prefix='/igdb')
 igdb_bp.before_request(require_auth)
@@ -175,6 +178,15 @@ def _normalize(g):
     )
 
 
+# ── Shared fields string ──────────────────────────────────────────────────────
+_FIELDS = (
+    'fields name, aggregated_rating, aggregated_rating_count, rating, '
+    'first_release_date, summary, genres.name, platforms.name, '
+    'cover.image_id, screenshots.image_id, age_ratings.category, age_ratings.rating, '
+    'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
+    'game_modes.name, websites.category, websites.url; '
+)
+
 # ── Query helpers ─────────────────────────────────────────────────────────────
 def _year_window(year):
     lo = int(datetime.datetime(year - 1, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
@@ -202,6 +214,30 @@ def _fetch_pass(fields, safe, safe_base, year=None):
     return results
 
 
+# ── Public lookup functions (used by rss catalog warming) ────────────────────
+def fetch_by_id(igdb_id: int):
+    """Direct lookup by IGDB id. Returns IgdbResult or None. Raises RequestException on failure."""
+    results = _igdb(f'{_FIELDS}where id = {int(igdb_id)}; limit 1;')
+    if not results:
+        return None
+    g = results[0]
+    return IgdbResult(id=g['id'], name=g['name'], data=_normalize(g))
+
+
+def fetch_by_name(name: str, year: int = None):
+    """Name search. Returns IgdbResult or None. Raises RequestException on failure."""
+    safe      = name.replace('\\', '').replace('"', '')
+    base_name = re.sub(r'\s*[:\-–].+$', '', name).strip()
+    safe_base = base_name.replace('\\', '').replace('"', '') if base_name != name else None
+    results   = _fetch_pass(_FIELDS, safe, safe_base, year)
+    if not results and year:
+        results = _fetch_pass(_FIELDS, safe, safe_base)
+    if not results:
+        return None
+    g = _rank(results, name)[0]
+    return IgdbResult(id=g['id'], name=g['name'], data=_normalize(g))
+
+
 # ── Endpoint ──────────────────────────────────────────────────────────────────
 @igdb_bp.route('/game')
 def game():
@@ -216,36 +252,16 @@ def game():
     except ValueError:
         year = None
 
-    norm  = _norm_key(name)
-    key   = f'{norm}_{year}' if year else norm
+    norm_  = _norm_key(name)
+    key    = f'{norm_}_{year}' if year else norm_
     cached = cache_get('igdb_cache', key, TTL_SECONDS)
     if cached is not SENTINEL:
         return jsonify(cached)
 
-    safe      = name.replace('\\', '').replace('"', '')
-    base_name = re.sub(r'\s*[:\-–].+$', '', name).strip()
-    safe_base = base_name.replace('\\', '').replace('"', '') if base_name != name else None
-
-    fields = (
-        'fields name, aggregated_rating, aggregated_rating_count, rating, '
-        'first_release_date, summary, genres.name, platforms.name, '
-        'cover.image_id, screenshots.image_id, age_ratings.category, age_ratings.rating, '
-        'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
-        'game_modes.name, websites.category, websites.url; '
-    )
-
     try:
-        results = _fetch_pass(fields, safe, safe_base, year)
-        if not results and year:
-            results = _fetch_pass(fields, safe, safe_base)
-
-        if not results:
-            cache_set('igdb_cache', key, None)
-            return jsonify(None)
-
-        data = _normalize(_rank(results, name)[0])
+        result = fetch_by_name(name, year)
+        data   = result.data if result else None
         cache_set('igdb_cache', key, data)
         return jsonify(data)
-
     except http.exceptions.RequestException as exc:
         abort(502, f'IGDB API indisponible : {exc}')

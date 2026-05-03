@@ -72,4 +72,26 @@ def init_db():
                 data       TEXT     NOT NULL,
                 cached_at  DATETIME NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS games (
+                id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+                igdb_id      INTEGER  UNIQUE,
+                display_name TEXT     NOT NULL,
+                igdb_data    TEXT,
+                igdb_at      TEXT,
+                rss_at       TEXT     NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS episodes (
+                id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+                game_id    INTEGER  NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                title      TEXT     NOT NULL,
+                audio_url  TEXT,
+                pub_date   TEXT,
+                timestamp  TEXT,
+                ts_seconds INTEGER  NOT NULL DEFAULT 0,
+                UNIQUE(game_id, title)
+            );
+            CREATE TABLE IF NOT EXISTS podcast_name_map (
+                norm_key TEXT    PRIMARY KEY,
+                game_id  INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE
+            );
         """)

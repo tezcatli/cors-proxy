@@ -155,19 +155,58 @@
   "rss": {
     "games": {
       "success": {
-        "status": 200
+        "status": 200,
+        "item_fields": ["name", "igdb", "episodeCount", "latestPubTs"]
       },
       "unauthorized": {
         "status": 401,
-        "fields": [
-          "error"
-        ]
+        "fields": ["error"]
       },
       "upstream_error": {
         "status": 502,
-        "fields": [
-          "error"
-        ]
+        "fields": ["error"]
+      }
+    },
+    "game_detail": {
+      "success": {
+        "status": 200,
+        "fields": ["name", "igdb", "episodes"]
+      },
+      "not_found": {
+        "status": 404,
+        "fields": ["error"]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": ["error"]
+      }
+    },
+    "refresh": {
+      "success": {
+        "status": 200,
+        "item_fields": ["name", "igdb", "episodeCount", "latestPubTs"]
+      },
+      "upstream_error": {
+        "status": 502,
+        "fields": ["error"]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": ["error"]
+      }
+    },
+    "igdb_refresh": {
+      "success": {
+        "status": 200,
+        "fields": ["name", "igdb", "episodes"]
+      },
+      "not_found": {
+        "status": 404,
+        "fields": ["error"]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": ["error"]
       }
     }
   }

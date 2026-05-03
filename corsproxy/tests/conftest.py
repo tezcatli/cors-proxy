@@ -47,6 +47,9 @@ def clean_db():
     yield
     with _db.get_db() as conn:
         conn.executescript("""
+            DELETE FROM episodes;
+            DELETE FROM podcast_name_map;
+            DELETE FROM games;
             DELETE FROM igdb_cache;
             DELETE FROM games_cache;
             DELETE FROM reset_tokens;
