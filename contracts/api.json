@@ -115,45 +115,8 @@
       }
     }
   },
-  "igdb": {
-    "game": {
-      "success": {
-        "status": 200,
-        "fields": [
-          "coverImageId"
-        ]
-      },
-      "not_found": {
-        "status": 200
-      },
-      "unauthorized": {
-        "status": 401,
-        "fields": [
-          "error"
-        ]
-      },
-      "missing_name": {
-        "status": 400,
-        "fields": [
-          "error"
-        ]
-      },
-      "no_creds": {
-        "status": 503,
-        "fields": [
-          "error"
-        ]
-      },
-      "upstream_error": {
-        "status": 502,
-        "fields": [
-          "error"
-        ]
-      }
-    }
-  },
-  "rss": {
-    "games": {
+  "games": {
+    "catalog": {
       "success": {
         "status": 200,
         "item_fields": ["name", "igdb", "episodeCount", "latestPubTs"]
@@ -203,6 +166,15 @@
       "not_found": {
         "status": 404,
         "fields": ["error"]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": ["error"]
+      }
+    },
+    "igdb": {
+      "success": {
+        "status": 200
       },
       "unauthorized": {
         "status": 401,

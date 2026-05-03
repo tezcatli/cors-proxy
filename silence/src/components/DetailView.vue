@@ -7,7 +7,7 @@ import placeholderCover from '../assets/placeholder-cover.svg'
 import placeholderBg    from '../assets/placeholder-bg.svg'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
-import { fetchGame, refreshGameIgdb } from '../lib/rss.js'
+import { fetchGameDetail, refreshGameIgdb } from '../lib/games.js'
 import EpisodeCard from './EpisodeCard.vue'
 
 const route       = useRoute()
@@ -32,11 +32,14 @@ const igdbRefreshing   = ref(false)
 
 async function _loadEpisodes(g) {
   if (!g) { episodes.value = []; return }
-  console.debug(`Loading episodes for ${g.name}…`)
   episodesLoading.value = true
   try {
-    const detail = await fetchGame(g.name)
+    const detail = await fetchGameDetail(g.name)
     episodes.value = detail.episodes
+    if (detail.igdb) {
+      const idx = gamesStore.all.findIndex(x => x.name === g.name)
+      if (idx !== -1) gamesStore.all[idx].igdb = detail.igdb
+    }
   } catch (_) {
     episodes.value = []
   } finally {
@@ -56,7 +59,7 @@ async function refreshIgdb() {
   try {
     const result = await refreshGameIgdb(game.value.name)
     const idx = gamesStore.all.findIndex(g => g.name === game.value.name)
-    if (idx !== -1) gamesStore.all[idx] = { ...gamesStore.all[idx], igdb: result.igdb }
+    if (idx !== -1) gamesStore.all[idx].igdb = result.igdb
     episodes.value = result.episodes
   } catch (_) {
     // ignore

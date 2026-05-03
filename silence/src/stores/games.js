@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { parseFeed, refreshFeed } from '../lib/rss.js'
+import { fetchCatalog, refreshCatalog, fetchIgdb } from '../lib/games.js'
+
+let _igdbQueue = new Set()
+let _igdbTimer = null
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
 
@@ -41,7 +44,7 @@ export const useGamesStore = defineStore('games', () => {
     loading.value = true
     error.value   = null
     try {
-      all.value      = await parseFeed()
+      all.value      = await fetchCatalog()
       lastFetch.value = new Date().toISOString()
     } catch (err) {
       error.value = err.message
@@ -54,13 +57,33 @@ export const useGamesStore = defineStore('games', () => {
     loading.value = true
     error.value   = null
     try {
-      all.value       = await refreshFeed()
+      all.value       = await refreshCatalog()
       lastFetch.value = new Date().toISOString()
     } catch (err) {
       error.value = err.message
     } finally {
       loading.value = false
     }
+  }
+
+  async function _flushIgdbQueue() {
+    const names = [..._igdbQueue]
+    _igdbQueue.clear()
+    _igdbTimer = null
+    try {
+      const map = await fetchIgdb(names)
+      for (const [name, igdb] of Object.entries(map)) {
+        const idx = all.value.findIndex(g => g.name === name)
+        if (idx !== -1) all.value[idx].igdb = igdb
+      }
+    } catch (_) { /* silent — card stays with placeholder */ }
+  }
+
+  function queueIgdb(name) {
+    if (_igdbQueue.has(name)) return
+    _igdbQueue.add(name)
+    clearTimeout(_igdbTimer)
+    _igdbTimer = setTimeout(_flushIgdbQueue, 50)
   }
 
   function setSort(mode) {
@@ -72,5 +95,5 @@ export const useGamesStore = defineStore('games', () => {
     }
   }
 
-  return { all, lastFetch, sortMode, sortAsc, loading, error, filtered, load, refresh, setSort }
+  return { all, lastFetch, sortMode, sortAsc, loading, error, filtered, load, refresh, setSort, queueIgdb }
 })

@@ -67,7 +67,7 @@ python invite.py alice@example.com
 ```
 Browser → Nginx (443) → /silence/* → static files (built Vue SPA)
                       → /auth/*    → corsproxy:8000 (Flask)
-                      → /igdb/*    → corsproxy:8000 (Flask)
+                      → /games/*   → corsproxy:8000 (Flask)
                       → /proxy     → corsproxy:8000 (Flask) → upstream URL
 ```
 
@@ -77,19 +77,24 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
 
 - **`app.py`** — Flask app factory. The `/proxy?url=` endpoint strips upstream CORS headers and re-adds its own. Auth is skipped entirely when `DEBUG=true`.
 - **`auth.py`** — Blueprint at `/auth`: invite-token-based registration, login, password reset. All tokens (invite, reset, JWT) are random `secrets.token_urlsafe` strings stored in SQLite.
-- **`igdb.py`** — Blueprint at `/igdb/game`. Looks up game cover art + metadata from IGDB API (Twitch OAuth). Results cached 30 days in the `igdb_cache` SQLite table. Rate-limited to 4 req/s with a threading lock.
-- **`db.py`** — SQLite at `corsproxy/data/users.db`. Four tables: `users`, `invitations`, `reset_tokens`, `igdb_cache`. `get_db()` returns a context-manager connection with `row_factory = sqlite3.Row`.
+- **`games.py`** — Blueprint at `/games`. Fetches and parses the SOJ RSS feed; upserts games and episodes into SQLite; triggers background IGDB warming. Key endpoints: `GET /games` (slim catalog, igdb field contains only `{ metacritic }`), `GET /games/igdb?name=A&name=B` (full igdb for a list of game names, used by the grid's lazy loader), `GET /games/<slug>` (full igdb + episodes), `POST /games/refresh`, `POST /games/<slug>/igdb-refresh`.
+- **`igdb.py`** — Internal IGDB helpers only (no public HTTP route). Looks up game cover art + metadata from IGDB API (Twitch OAuth). Results cached 30 days in the `igdb_cache` SQLite table. Rate-limited to 4 req/s with a threading lock. Called by `games.py` during warming.
+- **`corrections.py`** — Static correction table mapping podcast game names to the right IGDB search term or ID. Consulted by `games.py` during IGDB warming when the raw podcast name would produce a wrong match.
+- **`db.py`** — SQLite at `corsproxy/data/users.db`. Eight tables: `users`, `invitations`, `reset_tokens`, `igdb_cache`, `games_cache`, `games`, `episodes`, `podcast_name_map`. `get_db()` returns a context-manager connection with `row_factory = sqlite3.Row`.
 - **`config.py`** — All config from env vars; `Config.DEBUG` gates auth bypass and static file serving.
 
 ### Frontend (`silence/`)
 
-- **`src/lib/rss.js`** — Fetches the SOJ RSS feed through `/proxy`, parses XML with `DOMParser`, extracts game names from episode titles (text between `«»`), matches chapter timestamps from episode descriptions.
-- **`src/lib/igdb.js`** — In-memory LRU cache (max 500 entries) for IGDB data fetched from `/igdb/game`. `ensureIgdbData()` fetches on miss; `getCachedMeta()` / `getCachedData()` are synchronous reads.
+- **`src/lib/games.js`** — Thin API client for the `/games/*` endpoints. Five functions: `fetchCatalog()`, `fetchGameDetail(name)`, `refreshCatalog()`, `refreshGameIgdb(name)`, `fetchIgdb(names)`. No XML parsing — all feed processing happens on the backend.
+- **`src/lib/igdbCdn.js`** — One-liner helper that builds IGDB image CDN URLs (`igdbUrl(imageId, template)`).
 - **`src/lib/auth.js`** — JWT stored in `localStorage` under key `soj-auth-token`. `apiFetch()` attaches `Authorization: Bearer` header to every request and throws on non-2xx.
-- **`src/lib/corrections.js`** — Manual name correction map for games whose podcast title doesn't match IGDB naming.
-- **`src/stores/games.js`** — Central Pinia store. Loads `all` games from RSS, exposes `filtered(query)` with sort (alpha / date / metacritic).
+- **`src/stores/games.js`** — Central Pinia store. Loads `all` games from the slim catalog (`fetchCatalog`), exposes `filtered(query)` with sort (alpha / date / metacritic). `queueIgdb(name)` debounces card-visible events (50 ms) into a single `fetchIgdb` call, patching store entries with full igdb as the user scrolls.
 - **`src/stores/player.js`** — Audio player state.
 - **`src/router.js`** — History-mode router at base `/silence/`. The `beforeEach` guard forwards `?reset=` and `?invite=` query params to `/login`, and redirects unauthenticated users to `/login`.
+
+### Lazy igdb loading
+
+The grid catalog ships only `igdb: { metacritic }` per game (enough for sorting and score badges). Each `GameCard` mounts an `IntersectionObserver`; when the card enters the viewport and full igdb isn't loaded yet (`coverImageId` absent), it calls `gamesStore.queueIgdb(name)`. The store batches names over a 50 ms window and fires one `GET /games/igdb?name=A&name=B`, then patches the relevant store entries. Opening a game detail also upgrades its store entry to full igdb (via the `GET /games/<slug>` response), so revisiting the same detail within a session skips the igdb fetch.
 
 ### Shared contract
 
@@ -101,4 +106,4 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
 
 ### Secrets
 
-`corsproxy_secrets.env` is git-ignored. Required keys: `JWT_SECRET`, `ADMIN_KEY`, `RAWG_KEY`, `RESET_BASE_URL`. SMTP keys are optional (links are logged to stdout when omitted). See `SETUP.md` for the full reference.
+`corsproxy_secrets.env` is git-ignored. Required keys: `JWT_SECRET`, `ADMIN_KEY`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `RESET_BASE_URL`. SMTP keys are optional (links are logged to stdout when omitted). See `SETUP.md` for the full reference.

@@ -5,7 +5,7 @@ from config import Config
 from db import init_db
 from auth import auth_bp
 from igdb import igdb_bp
-from rss import rss_bp
+from games import games_bp
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,7 +44,7 @@ def create_app():
 
     _app.register_blueprint(auth_bp)
     _app.register_blueprint(igdb_bp)
-    _app.register_blueprint(rss_bp)
+    _app.register_blueprint(games_bp)
     init_db()
 
     def json_error(e):
@@ -57,27 +57,12 @@ def create_app():
     def _mark_start():
         request._start = time.monotonic()
 
- #   @_app.after_request
-    # def _add_cors(response: Response) -> Response:
-    #     origin = request.headers.get("Origin", "*")
-    #     response.headers["Access-Control-Allow-Origin"] = origin
-    #     response.headers["Access-Control-Allow-Credentials"] = "true"
-    #     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    #     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-    #     response.headers["Access-Control-Max-Age"] = "86400"
-    #     response.headers["Vary"] = "Origin"
-    #     return response
-
     @_app.after_request
     def _log(response: Response) -> Response:
         ms = (time.monotonic() - getattr(request, "_start", time.monotonic())) * 1000
         logger.info("method=%s path=%s status=%d ms=%.1f",
                     request.method, request.path, response.status_code, ms)
         return response
-
-    @_app.route("/")
-    def hello():
-        return "Guten tag das monde!!!"
 
     return _app
 

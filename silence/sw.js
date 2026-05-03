@@ -42,7 +42,7 @@ self.addEventListener('fetch', e => {
           if (res.ok) caches.open(CACHE).then(c => c.put(request, res.clone()));
           return res;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match(request).then(r => r ?? fetch(request)))
     );
     return;
   }

@@ -7,13 +7,13 @@ import requests as real_requests
 import db
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
-from rss import (
+from games import (
     _extract_chapters, _extract_game_names, _extract_legacy_names,
     _find_timestamp, _is_non_game_chapter, _parse_feed, _parse_timestamp,
     _strip_html, _upsert_games,
 )
 
-RSS = CONTRACT['rss']
+GAMES = CONTRACT['games']
 
 MINIMAL_RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
@@ -206,7 +206,7 @@ def test_parse_feed_filters_non_game_episodes():
     assert len(games) == 2
 
 def test_parse_feed_uses_raw_podcast_name():
-    # parse_feed no longer applies corrections — canonical name comes from IGDB
+    # _parse_feed no longer applies corrections — canonical name comes from IGDB
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
       <item>
         <title>On a joue \xc2\xab artic eggs \xc2\xbb</title>
@@ -229,36 +229,36 @@ def test_parse_feed_resolves_timestamps():
     assert zelda['episodes'][0]['timestampSeconds'] == 30
 
 
-# ── HTTP endpoint ─────────────────────────────────────────────────────────────
+# ── GET /games ────────────────────────────────────────────────────────────────
 
 def test_no_auth_returns_401(client):
-    r = client.get('/rss/games')
-    assert_contract(r, RSS['games']['unauthorized'])
+    r = client.get('/games')
+    assert_contract(r, GAMES['catalog']['unauthorized'])
 
 
-def test_games_returns_list(client):
-    with patch('rss.http.get', return_value=mock_rss_response()), \
-         patch('rss._start_warming'):
-        r = client.get('/rss/games', headers=auth_header())
-    assert_contract(r, RSS['games']['success'])
+def test_catalog_returns_list(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        r = client.get('/games', headers=auth_header())
+    assert_contract(r, GAMES['catalog']['success'])
     data = r.get_json()
     assert isinstance(data, list)
     assert any(g['name'] == 'Zelda' for g in data)
 
 
-def test_games_response_has_igdb_field(client):
-    with patch('rss.http.get', return_value=mock_rss_response()), \
-         patch('rss._start_warming'):
-        r = client.get('/rss/games', headers=auth_header())
+def test_catalog_response_has_igdb_field(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        r = client.get('/games', headers=auth_header())
     data = r.get_json()
     assert all('igdb' in g for g in data)
 
 
 def test_cache_hit_skips_fetch(client):
-    with patch('rss.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('rss._start_warming'):
-        client.get('/rss/games', headers=auth_header())
-        client.get('/rss/games', headers=auth_header())
+    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('games._start_warming'):
+        client.get('/games', headers=auth_header())
+        client.get('/games', headers=auth_header())
     mock_get.assert_called_once()
 
 
@@ -270,38 +270,48 @@ def test_expired_cache_refetches(client):
             'INSERT INTO games (display_name, rss_at) VALUES (?, ?)',
             ('Old Game', stale),
         )
-    with patch('rss.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('rss._start_warming'):
-        r = client.get('/rss/games', headers=auth_header())
-    assert_contract(r, RSS['games']['success'])
+    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('games._start_warming'):
+        r = client.get('/games', headers=auth_header())
+    assert_contract(r, GAMES['catalog']['success'])
     mock_get.assert_called_once()
 
 
 def test_upstream_error_returns_502(client):
-    with patch('rss.http.get',
+    with patch('games.http.get',
                side_effect=real_requests.exceptions.ConnectionError('down')):
-        r = client.get('/rss/games', headers=auth_header())
-    assert_contract(r, RSS['games']['upstream_error'])
+        r = client.get('/games', headers=auth_header())
+    assert_contract(r, GAMES['catalog']['upstream_error'])
 
 
-def test_games_catalog_has_no_episodes(client):
-    with patch('rss.http.get', return_value=mock_rss_response()), \
-         patch('rss._start_warming'):
-        r = client.get('/rss/games', headers=auth_header())
+def test_catalog_has_no_episodes(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        r = client.get('/games', headers=auth_header())
     data = r.get_json()
     assert all('episodes' not in g for g in data)
     assert all('episodeCount' in g for g in data)
     assert all('latestPubTs' in g for g in data)
 
 
-# ── GET /rss/games/<slug> ─────────────────────────────────────────────────────
+def test_catalog_igdb_is_slim(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        r = client.get('/games', headers=auth_header())
+    data = r.get_json()
+    for game in data:
+        if game['igdb'] is not None:
+            assert set(game['igdb'].keys()) == {'metacritic'}
+
+
+# ── GET /games/<slug> ─────────────────────────────────────────────────────────
 
 def test_game_detail_returns_episodes(client):
-    with patch('rss.http.get', return_value=mock_rss_response()), \
-         patch('rss._start_warming'):
-        client.get('/rss/games', headers=auth_header())
-    r = client.get('/rss/games/Zelda', headers=auth_header())
-    assert_contract(r, RSS['game_detail']['success'])
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        client.get('/games', headers=auth_header())
+    r = client.get('/games/Zelda', headers=auth_header())
+    assert_contract(r, GAMES['game_detail']['success'])
     data = r.get_json()
     assert data['name'] == 'Zelda'
     assert isinstance(data['episodes'], list)
@@ -310,22 +320,20 @@ def test_game_detail_returns_episodes(client):
 
 
 def test_game_detail_not_found(client):
-    r = client.get('/rss/games/nonexistent-game', headers=auth_header())
-    assert_contract(r, RSS['game_detail']['not_found'])
+    r = client.get('/games/nonexistent-game', headers=auth_header())
+    assert_contract(r, GAMES['game_detail']['not_found'])
 
 
 def test_game_detail_stale_name_fallback(client):
     """IGDB warming may rename display_name; the old podcast name should still resolve."""
-    with patch('rss.http.get', return_value=mock_rss_response()), \
-         patch('rss._start_warming'):
-        client.get('/rss/games', headers=auth_header())
-    # Simulate IGDB warming renaming 'Zelda' → 'The Legend of Zelda'
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        client.get('/games', headers=auth_header())
     with db.get_db() as conn:
         conn.execute(
             "UPDATE games SET display_name = 'The Legend of Zelda' WHERE lower(display_name) = 'zelda'"
         )
-    # The old name 'Zelda' should still resolve via podcast_name_map
-    r = client.get('/rss/games/Zelda', headers=auth_header())
+    r = client.get('/games/Zelda', headers=auth_header())
     assert r.status_code == 200
     data = r.get_json()
     assert data['name'] == 'The Legend of Zelda'
@@ -334,54 +342,75 @@ def test_game_detail_stale_name_fallback(client):
 
 
 def test_game_detail_no_auth(client):
-    r = client.get('/rss/games/Zelda')
-    assert_contract(r, RSS['game_detail']['unauthorized'])
+    r = client.get('/games/Zelda')
+    assert_contract(r, GAMES['game_detail']['unauthorized'])
 
 
-# ── POST /rss/refresh ─────────────────────────────────────────────────────────
+# ── POST /games/refresh ───────────────────────────────────────────────────────
 
-def test_rss_refresh_always_fetches(client):
-    with patch('rss.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('rss._start_warming'):
-        r = client.post('/rss/refresh', headers=auth_header())
-    assert_contract(r, RSS['refresh']['success'])
+def test_refresh_always_fetches(client):
+    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('games._start_warming'):
+        r = client.post('/games/refresh', headers=auth_header())
+    assert_contract(r, GAMES['refresh']['success'])
     mock_get.assert_called_once()
 
 
-def test_rss_refresh_bypasses_ttl(client):
-    # Populate DB with fresh data (not stale)
-    with patch('rss.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('rss._start_warming'):
-        client.get('/rss/games', headers=auth_header())
+def test_refresh_bypasses_ttl(client):
+    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('games._start_warming'):
+        client.get('/games', headers=auth_header())
         assert mock_get.call_count == 1
-        # Force-refresh should still call http.get despite fresh cache
-        r = client.post('/rss/refresh', headers=auth_header())
+        r = client.post('/games/refresh', headers=auth_header())
     assert mock_get.call_count == 2
     data = r.get_json()
     assert isinstance(data, list)
 
 
-def test_rss_refresh_upstream_error(client):
-    with patch('rss.http.get',
+def test_refresh_upstream_error(client):
+    with patch('games.http.get',
                side_effect=real_requests.exceptions.ConnectionError('down')):
-        r = client.post('/rss/refresh', headers=auth_header())
-    assert_contract(r, RSS['refresh']['upstream_error'])
+        r = client.post('/games/refresh', headers=auth_header())
+    assert_contract(r, GAMES['refresh']['upstream_error'])
 
 
-# ── POST /rss/games/<slug>/igdb-refresh ──────────────────────────────────────
+# ── POST /games/<slug>/igdb-refresh ──────────────────────────────────────────
 
 def test_igdb_refresh_returns_game_detail(client):
-    with patch('rss.http.get', return_value=mock_rss_response()), \
-         patch('rss._start_warming'):
-        client.get('/rss/games', headers=auth_header())
-    with patch('rss._warm_one'):
-        r = client.post('/rss/games/Zelda/igdb-refresh', headers=auth_header())
-    assert_contract(r, RSS['igdb_refresh']['success'])
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        client.get('/games', headers=auth_header())
+    with patch('games._warm_one'):
+        r = client.post('/games/Zelda/igdb-refresh', headers=auth_header())
+    assert_contract(r, GAMES['igdb_refresh']['success'])
     data = r.get_json()
     assert data['name'] == 'Zelda'
     assert isinstance(data['episodes'], list)
 
 
 def test_igdb_refresh_not_found(client):
-    r = client.post('/rss/games/nonexistent-game/igdb-refresh', headers=auth_header())
-    assert_contract(r, RSS['igdb_refresh']['not_found'])
+    r = client.post('/games/nonexistent-game/igdb-refresh', headers=auth_header())
+    assert_contract(r, GAMES['igdb_refresh']['not_found'])
+
+
+# ── GET /games/igdb ───────────────────────────────────────────────────────────
+
+def test_igdb_returns_map(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._start_warming'):
+        client.get('/games', headers=auth_header())
+    r = client.get('/games/igdb?name=Zelda&name=Mario+Kart', headers=auth_header())
+    assert_contract(r, GAMES['igdb']['success'])
+    data = r.get_json()
+    assert isinstance(data, dict)
+
+
+def test_igdb_empty_names_returns_empty(client):
+    r = client.get('/games/igdb', headers=auth_header())
+    assert r.status_code == 200
+    assert r.get_json() == {}
+
+
+def test_igdb_no_auth_returns_401(client):
+    r = client.get('/games/igdb?name=Zelda')
+    assert_contract(r, GAMES['igdb']['unauthorized'])

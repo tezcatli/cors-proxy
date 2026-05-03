@@ -20,8 +20,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-rss_bp = Blueprint('rss', __name__, url_prefix='/rss')
-rss_bp.before_request(require_auth)
+games_bp = Blueprint('games', __name__, url_prefix='/games')
+games_bp.before_request(require_auth)
 
 RSS_URL = 'https://feeds.acast.com/public/shows/silence-on-joue'
 
@@ -85,7 +85,7 @@ _NON_GAME = [
     re.compile(r'^la?\s+minute\s+culturelle',      re.IGNORECASE),
     re.compile(r'^et\s+quand\s+vous\s+ne\s+jouez', re.IGNORECASE),
     re.compile(r'^bande.?annonce',                 re.IGNORECASE),
-    re.compile(r'^jeux?\s+de\s+soci',              re.IGNORECASE),
+    re.compile(r'^jeux?\s+de\s+soci',             re.IGNORECASE),
     re.compile(r'^la?\s+chronique',                re.IGNORECASE),
     re.compile(r'^outro$',                         re.IGNORECASE),
     re.compile(r'^g[eé]n[eé]rique',               re.IGNORECASE),
@@ -404,16 +404,19 @@ def _catalog_response():
                 if ts > stats[gid]['latest_ts']:
                     stats[gid]['latest_ts'] = ts
 
-    return [
-        {
+    result = []
+    for g in games_rows:
+        if g['id'] not in stats:
+            continue
+        igdb_full = json.loads(g['igdb_data']) if g['igdb_data'] else None
+        igdb_slim = {'metacritic': igdb_full.get('metacritic')} if igdb_full else None
+        result.append({
             'name':         g['display_name'],
-            'igdb':         json.loads(g['igdb_data']) if g['igdb_data'] else None,
+            'igdb':         igdb_slim,
             'episodeCount': stats[g['id']]['count'],
             'latestPubTs':  stats[g['id']]['latest_ts'],
-        }
-        for g in games_rows
-        if g['id'] in stats
-    ]
+        })
+    return result
 
 
 def _game_row_and_episodes(name):
@@ -424,7 +427,6 @@ def _game_row_and_episodes(name):
             (name,)
         ).fetchone()
         if not game_row:
-            # Stale name: IGDB warming may have renamed the game; fall back to podcast_name_map
             game_row = conn.execute(
                 'SELECT g.id, g.display_name, g.igdb_data FROM games g '
                 'JOIN podcast_name_map m ON m.game_id = g.id WHERE m.norm_key = ?',
@@ -451,8 +453,8 @@ def _game_row_and_episodes(name):
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
-@rss_bp.route('/games')
-def games():
+@games_bp.route('', strict_slashes=False)
+def catalog():
     if _rss_is_stale():
         try:
             r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
@@ -469,18 +471,26 @@ def games():
     return jsonify(_catalog_response())
 
 
-@rss_bp.route('/games/<string:slug>')
-def game_detail(slug):
-    game_row, episodes = _game_row_and_episodes(slug)
+@games_bp.route('/igdb')
+def games_igdb():
+    names = request.args.getlist('name')
+    if not names:
+        return jsonify({})
+    with get_db() as conn:
+        placeholders = ','.join('?' * len(names))
+        rows = conn.execute(
+            f'SELECT display_name, igdb_data FROM games WHERE display_name IN ({placeholders})',
+            names
+        ).fetchall()
     return jsonify({
-        'name':     game_row['display_name'],
-        'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
-        'episodes': episodes,
+        row['display_name']: json.loads(row['igdb_data'])
+        for row in rows
+        if row['igdb_data']
     })
 
 
-@rss_bp.route('/refresh', methods=['POST'])
-def rss_refresh():
+@games_bp.route('/refresh', methods=['POST'])
+def refresh():
     try:
         r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
                      headers={'User-Agent': 'SilenceOnJoue/1.0'})
@@ -493,7 +503,17 @@ def rss_refresh():
     return jsonify(_catalog_response())
 
 
-@rss_bp.route('/games/<string:slug>/igdb-refresh', methods=['POST'])
+@games_bp.route('/<string:slug>')
+def game_detail(slug):
+    game_row, episodes = _game_row_and_episodes(slug)
+    return jsonify({
+        'name':     game_row['display_name'],
+        'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
+        'episodes': episodes,
+    })
+
+
+@games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
 def game_igdb_refresh(slug):
     with get_db() as conn:
         row = conn.execute(

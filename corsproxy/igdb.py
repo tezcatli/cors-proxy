@@ -4,10 +4,10 @@ import threading
 import datetime
 from collections import namedtuple
 import requests as http
-from flask import Blueprint, request, jsonify, abort
+from flask import Blueprint
 from db import cache_get, cache_set, SENTINEL
 from config import Config
-from auth import _decode_jwt, require_auth
+from auth import require_auth
 from utils import norm_key as _norm_key
 
 IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'data'])
@@ -238,30 +238,3 @@ def fetch_by_name(name: str, year: int = None):
     return IgdbResult(id=g['id'], name=g['name'], data=_normalize(g))
 
 
-# ── Endpoint ──────────────────────────────────────────────────────────────────
-@igdb_bp.route('/game')
-def game():
-    name = request.args.get('name', '').strip()
-    if not name:
-        abort(400, 'Missing required query parameter: name')
-    if not Config.IGDB_CLIENT_ID or not Config.IGDB_CLIENT_SECRET:
-        abort(503, 'IGDB credentials not configured')
-
-    try:
-        year = int(request.args['year']) if 'year' in request.args else None
-    except ValueError:
-        year = None
-
-    norm_  = _norm_key(name)
-    key    = f'{norm_}_{year}' if year else norm_
-    cached = cache_get('igdb_cache', key, TTL_SECONDS)
-    if cached is not SENTINEL:
-        return jsonify(cached)
-
-    try:
-        result = fetch_by_name(name, year)
-        data   = result.data if result else None
-        cache_set('igdb_cache', key, data)
-        return jsonify(data)
-    except http.exceptions.RequestException as exc:
-        abort(502, f'IGDB API indisponible : {exc}')

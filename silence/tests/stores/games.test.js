@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useGamesStore } from '../../src/stores/games.js'
 
-vi.mock('../../src/lib/rss.js', () => ({ parseFeed: vi.fn(), refreshFeed: vi.fn() }))
-import { parseFeed, refreshFeed } from '../../src/lib/rss.js'
+vi.mock('../../src/lib/games.js', () => ({
+  fetchCatalog:  vi.fn(),
+  refreshCatalog: vi.fn(),
+  fetchIgdb:     vi.fn(),
+}))
+import { fetchCatalog, refreshCatalog, fetchIgdb } from '../../src/lib/games.js'
 
 const GAMES = [
   { name: 'Zelda',         latestPubTs: 1717200000, episodeCount: 3, igdb: { metacritic: 90 } },
@@ -109,8 +113,8 @@ describe('sorting', () => {
 // ── refresh ───────────────────────────────────────────────────────────────
 
 describe('refresh', () => {
-  it('populates all via refreshFeed on success', async () => {
-    refreshFeed.mockResolvedValue(GAMES)
+  it('populates all via refreshCatalog on success', async () => {
+    refreshCatalog.mockResolvedValue(GAMES)
     const store = useGamesStore()
     await store.refresh()
     expect(store.all).toHaveLength(3)
@@ -120,7 +124,7 @@ describe('refresh', () => {
   })
 
   it('sets error on failure', async () => {
-    refreshFeed.mockRejectedValue(new Error('upstream error'))
+    refreshCatalog.mockRejectedValue(new Error('upstream error'))
     const store = useGamesStore()
     await store.refresh()
     expect(store.error).toBe('upstream error')
@@ -132,7 +136,7 @@ describe('refresh', () => {
 
 describe('load', () => {
   it('populates all and sets lastFetch on success', async () => {
-    parseFeed.mockResolvedValue(GAMES)
+    fetchCatalog.mockResolvedValue(GAMES)
     const store = useGamesStore()
     await store.load()
     expect(store.all).toHaveLength(3)
@@ -142,7 +146,7 @@ describe('load', () => {
   })
 
   it('sets error on failure, keeps all empty', async () => {
-    parseFeed.mockRejectedValue(new Error('Network error'))
+    fetchCatalog.mockRejectedValue(new Error('Network error'))
     const store = useGamesStore()
     await store.load()
     expect(store.error).toBe('Network error')
@@ -152,12 +156,46 @@ describe('load', () => {
 
   it('sets loading=true while fetching', async () => {
     let resolve
-    parseFeed.mockReturnValue(new Promise(r => { resolve = r }))
+    fetchCatalog.mockReturnValue(new Promise(r => { resolve = r }))
     const store = useGamesStore()
     const promise = store.load()
     expect(store.loading).toBe(true)
     resolve(GAMES)
     await promise
     expect(store.loading).toBe(false)
+  })
+})
+
+// ── queueIgdb ─────────────────────────────────────────────────────────────
+
+describe('queueIgdb', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('patches store entry with full igdb after batch resolves', async () => {
+    fetchCatalog.mockResolvedValue(GAMES)
+    fetchIgdb.mockResolvedValue({
+      Zelda: { coverImageId: 'abc123', metacritic: 90 },
+    })
+    const store = useGamesStore()
+    await store.load()
+    store.queueIgdb('Zelda')
+    // flush the debounce timer
+    await vi.runAllTimersAsync()
+    const zelda = store.all.find(g => g.name === 'Zelda')
+    expect(zelda.igdb.coverImageId).toBe('abc123')
+  })
+
+  it('deduplicates names in the same batch', async () => {
+    fetchCatalog.mockResolvedValue(GAMES)
+    fetchIgdb.mockResolvedValue({})
+    const store = useGamesStore()
+    await store.load()
+    store.queueIgdb('Zelda')
+    store.queueIgdb('Zelda')
+    store.queueIgdb('Mario')
+    await vi.runAllTimersAsync()
+    const [calledNames] = fetchIgdb.mock.calls[0]
+    expect(calledNames.filter(n => n === 'Zelda')).toHaveLength(1)
   })
 })
