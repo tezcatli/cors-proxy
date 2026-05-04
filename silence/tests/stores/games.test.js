@@ -16,6 +16,7 @@ const GAMES = [
 ]
 
 beforeEach(() => {
+  localStorage.clear()
   setActivePinia(createPinia())
   vi.clearAllMocks()
 })

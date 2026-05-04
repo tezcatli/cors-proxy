@@ -132,8 +132,15 @@ CORRECTIONS = [
         "podcast_name": "star wars",
         "search_name":  "Star Wars: The Force Unleashed"
     },
-
-
+    {
+        "podcast_name": "hades 2",
+        "search_name":  "Hades II",
+        "hint_date": "20240510",
+    },
+    {
+        "podcast_name": "civilization 6",
+        "search_name":  "Sid Meier's Civilization VI"
+    }
 ]
 
 

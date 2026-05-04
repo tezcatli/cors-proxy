@@ -10,8 +10,8 @@ const DEFAULT_ASC = { alpha: true, date: false, meta: false }
 export const useGamesStore = defineStore('games', () => {
   const all       = ref([])
   const lastFetch = ref(null)
-  const sortMode  = ref('alpha')
-  const sortAsc   = ref(true)
+  const sortMode  = ref(localStorage.getItem('soj-sort-mode') || 'alpha')
+  const sortAsc   = ref(localStorage.getItem('soj-sort-asc') !== 'false')
   const loading   = ref(false)
   const error     = ref(null)
 
@@ -93,6 +93,8 @@ export const useGamesStore = defineStore('games', () => {
       sortMode.value = mode
       sortAsc.value  = DEFAULT_ASC[mode]
     }
+    localStorage.setItem('soj-sort-mode', sortMode.value)
+    localStorage.setItem('soj-sort-asc', String(sortAsc.value))
   }
 
   return { all, lastFetch, sortMode, sortAsc, loading, error, filtered, load, refresh, setSort, queueIgdb }
