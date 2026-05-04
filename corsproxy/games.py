@@ -340,9 +340,11 @@ def _do_resolve(stop: threading.Event):
                 _resolve_stop = None
 
 
-def _start_resolve():
+def _start_resolve(force=False):
     global _resolve_thread, _resolve_stop
     with _resolve_lock:
+        if not force and _resolve_thread and _resolve_thread.is_alive():
+            return
         if _resolve_stop:
             _resolve_stop.set()
         stop = threading.Event()
@@ -476,7 +478,7 @@ def games_igdb():
 def refresh():
     try:
         _fetch_rss()
-        _start_resolve()
+        _start_resolve(force=True)
     except http.exceptions.RequestException as exc:
         abort(502, f'RSS feed unavailable: {exc}')
     return jsonify(_catalog_response())

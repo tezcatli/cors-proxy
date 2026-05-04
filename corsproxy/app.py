@@ -45,7 +45,8 @@ def create_app(testing=False):
     _app.register_blueprint(games_bp)
     init_db()
     if not testing:
-        startup_warmup()
+        if not Config.DEBUG or _os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+            startup_warmup()
 
     def json_error(e):
         return jsonify(error=str(e.description)), e.code
