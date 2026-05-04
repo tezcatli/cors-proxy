@@ -7,7 +7,7 @@ import requests as http
 from config import Config
 from utils import norm_key as _norm_key
 
-IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'data'])
+IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'slug', 'data'])
 
 _IGDB_BASE = 'https://api.igdb.com/v4'
 _TWITCH    = 'https://id.twitch.tv/oauth2/token'
@@ -172,7 +172,7 @@ def _normalize(g):
 
 # ── Shared fields string ──────────────────────────────────────────────────────
 _FIELDS = (
-    'fields name, aggregated_rating, aggregated_rating_count, rating, '
+    'fields name, slug, aggregated_rating, aggregated_rating_count, rating, '
     'first_release_date, summary, genres.name, platforms.name, '
     'cover.image_id, screenshots.image_id, age_ratings.category, age_ratings.rating, '
     'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
@@ -213,7 +213,7 @@ def fetch_by_id(igdb_id: int):
     if not results:
         return None
     g = results[0]
-    return IgdbResult(id=g['id'], name=g['name'], data=_normalize(g))
+    return IgdbResult(id=g['id'], name=g['name'], slug=g.get('slug'), data=_normalize(g))
 
 
 def fetch_by_name(name: str, pub_ts: int = None):
@@ -226,7 +226,12 @@ def fetch_by_name(name: str, pub_ts: int = None):
         results = _fetch_pass(_FIELDS, safe, safe_base)
     if not results:
         return None
+    if pub_ts:
+        lo, hi    = _date_window(pub_ts)
+        in_window = [g for g in results if lo <= (g.get('first_release_date') or 0) <= hi]
+        if in_window:
+            results = in_window
     g = _rank(results, name)[0]
-    return IgdbResult(id=g['id'], name=g['name'], data=_normalize(g))
+    return IgdbResult(id=g['id'], name=g['name'], slug=g.get('slug'), data=_normalize(g))
 
 

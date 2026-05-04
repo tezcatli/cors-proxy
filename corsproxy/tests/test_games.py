@@ -3,12 +3,12 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-import db
+import games as games_module
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
 from games import (
     _extract_game_names, _extract_legacy_names,
-    _parse_feed, _sync_db,
+    _parse_feed,
 )
 
 GAMES = CONTRACT['games']
@@ -169,12 +169,8 @@ def test_cache_hit_skips_fetch(client):
 
 
 def test_expired_cache_refetches(client):
-    stale = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-             - datetime.timedelta(hours=9)).isoformat()
-    with db.get_db() as conn:
-        conn.execute(
-            "INSERT INTO settings (key, value) VALUES ('rss_fetched_at', ?)", (stale,)
-        )
+    games_module._rss_at = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+                            - datetime.timedelta(hours=9))
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
          patch('games._start_resolve'):
         r = client.get('/games', headers=auth_header())
@@ -207,23 +203,6 @@ def test_game_detail_returns_episodes(client):
     assert data['episodes'][0]['audioUrl'] == 'https://example.com/ep1.mp3'
 
 
-def test_game_detail_stale_name_fallback(client):
-    """IGDB warming may rename display_name; the old podcast name should still resolve."""
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_resolve'):
-        client.get('/games', headers=auth_header())
-    with db.get_db() as conn:
-        conn.execute(
-            "UPDATE games SET display_name = 'The Legend of Zelda' WHERE lower(display_name) = 'zelda'"
-        )
-    r = client.get('/games/Zelda', headers=auth_header())
-    assert r.status_code == 200
-    data = r.get_json()
-    assert data['name'] == 'The Legend of Zelda'
-    assert isinstance(data['episodes'], list)
-    assert len(data['episodes']) > 0
-
-
 # ── POST /games/refresh ───────────────────────────────────────────────────────
 
 def test_refresh_always_fetches(client):
@@ -236,9 +215,7 @@ def test_refresh_always_fetches(client):
 # ── POST /games/<slug>/igdb-refresh ──────────────────────────────────────────
 
 def test_igdb_refresh_returns_game_detail(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_resolve'):
-        client.get('/games', headers=auth_header())
+    games_module._rss_parsed = _parse_feed(MINIMAL_RSS)
     with patch('games._resolve_one'):
         r = client.post('/games/Zelda/igdb-refresh', headers=auth_header())
     assert_contract(r, GAMES['igdb_refresh']['success'])

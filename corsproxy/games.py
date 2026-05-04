@@ -214,7 +214,6 @@ def _parse_feed(xml_bytes):
 
         games = []
         for raw_name in game_names:
-#            logger.info("Extracted game name %r from title %r", raw_name, title)
             raw_name = re.sub(r'^[,\s]+', '', raw_name).strip()
             if len(raw_name) < 2:
                 continue
@@ -235,123 +234,83 @@ def _parse_feed(xml_bytes):
     return episodes
 
 
-# ── Catalog upsert ────────────────────────────────────────────────────────────
-def _sync_db(parsed_episodes):
-    with get_db() as conn:
-        for ep in parsed_episodes:
-            conn.execute(
-                'INSERT OR IGNORE INTO episodes (title, audio_url, pub_ts) VALUES (?, ?, ?)',
-                (ep['title'], ep.get('audioUrl'), ep.get('pubTs'))
-            )
-            ep_id = conn.execute(
-                'SELECT id FROM episodes WHERE title = ?', (ep['title'],)
-            ).fetchone()['id']
-            for g in ep['games']:
-                slug = make_slug(g['name'])
-                row = conn.execute(
-                    'SELECT id FROM games WHERE slug = ?', (slug,)
-                ).fetchone()
-                if row:
-                    game_id = row['id']
-                else:
-                    game_id = conn.execute(
-                        'INSERT INTO games (slug, display_name) VALUES (?, ?)',
-                        (slug, g['name'])
-                    ).lastrowid
-                conn.execute(
-                    '''INSERT OR IGNORE INTO episode_games (episode_id, game_id, timestamp, ts_seconds)
-                       VALUES (?, ?, ?, ?)''',
-                    (ep_id, game_id, g.get('timestamp'), g.get('tsSeconds', 0))
-                )
+# ── In-memory RSS state ───────────────────────────────────────────────────────
+_rss_lock   = threading.Lock()
+_rss_parsed = []
+_rss_at     = None
 
 
-# ── Staleness checks ──────────────────────────────────────────────────────────
 def _rss_is_stale():
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT value FROM settings WHERE key = 'rss_fetched_at'"
-        ).fetchone()
-    if not row or not row['value']:
-        return True
-    age = (utcnow() - datetime.datetime.fromisoformat(row['value'])).total_seconds()
-    return age >= Config.RSS_TTL_HOURS * 3600
+    return _rss_at is None or \
+           (utcnow() - _rss_at).total_seconds() >= Config.RSS_TTL_HOURS * 3600
 
 
-def _set_rss_fetched_at():
-    with get_db() as conn:
-        conn.execute(
-            "INSERT OR REPLACE INTO settings (key, value) VALUES ('rss_fetched_at', ?)",
-            (utcnow().isoformat(),)
-        )
+def _fetch_rss():
+    global _rss_parsed, _rss_at
+    r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
+                 headers={'User-Agent': 'SilenceOnJoue/1.0'})
+    r.raise_for_status()
+    with _rss_lock:
+        _rss_parsed = _parse_feed(r.content)
+        _rss_at = utcnow()
+
+def _games_from_rss():
+    with _rss_lock:
+        episodes = list(_rss_parsed)
+    games = {}
+    for ep in episodes:
+        date_str = (datetime.datetime.fromtimestamp(ep['pubTs'], datetime.timezone.utc)
+                    .strftime('%Y%m%d') if ep.get('pubTs') else 'nopubts')
+        for g in ep['games']:
+            ps = make_slug(g['name']) + '-' + date_str
+            if ps not in games:
+                games[ps] = {'name': g['name'], 'slug': ps,
+                             'episodes': [], 'latestPubTs': 0, 'episodeCount': 0}
+            games[ps]['episodes'].append({
+                'title':            ep['title'],
+                'audioUrl':         ep.get('audioUrl'),
+                'pubTs':            ep.get('pubTs'),
+                'timestamp':        g.get('timestamp'),
+                'timestampSeconds': g.get('tsSeconds', 0),
+            })
+            if ep.get('pubTs', 0) > games[ps]['latestPubTs']:
+                games[ps]['latestPubTs'] = ep['pubTs']
+            games[ps]['episodeCount'] += 1
+    return games
 
 
 # ── IGDB resolution ───────────────────────────────────────────────────────────
-def _apply_igdb_result(game_id, result, correction=None):
+def _resolve_one(slug, name, episode_pub_ts):
+    logger.info("Resolving IGDB data for slug=%r name=%r", slug, name)
+    correction = find_by_slug(make_slug(name), episode_pub_ts)
+    try:
+        if correction and correction.get('igdb_id'):
+            result = fetch_by_id(correction['igdb_id'])
+        else:
+            search_name = (correction or {}).get('search_name') or name
+            hint_date   = (correction or {}).get('hint_date')
+            pub_ts = (int(datetime.datetime.fromisoformat(hint_date)
+                          .replace(tzinfo=datetime.timezone.utc).timestamp())
+                      if hint_date else episode_pub_ts)
+            result = fetch_by_name(search_name, pub_ts)
+    except Exception as exc:
+        logger.warning("IGDB resolution failed for slug=%r name=%r: %s", slug, name, exc)
+        return
+    override = (correction or {}).get('display_name')
     now = utcnow().isoformat()
     with get_db() as conn:
         if result is None:
-            conn.execute('UPDATE games SET igdb_at = ? WHERE id = ?', (now, game_id))
-            return
-        display_name_override = (correction or {}).get('display_name')
-        final_name = display_name_override or result.name
-        new_slug   = make_slug(final_name)
-        winner = conn.execute(
-            'SELECT id FROM games WHERE igdb_id = ? AND id != ?',
-            (result.id, game_id)
-        ).fetchone()
-        if not winner:
-            winner = conn.execute(
-                'SELECT id FROM games WHERE slug = ? AND id != ?',
-                (new_slug, game_id)
-            ).fetchone()
-        if winner:
-            winner_id = winner['id']
             conn.execute(
-                'UPDATE OR IGNORE episode_games SET game_id = ? WHERE game_id = ?',
-                (winner_id, game_id)
+                'INSERT OR REPLACE INTO igdb_cache (slug, igdb_id, igdb_slug, name, igdb_data, cached_at) VALUES (?,?,?,?,?,?)',
+                (slug, None, None, None, None, now)
             )
-            conn.execute('DELETE FROM episode_games WHERE game_id = ?', (game_id,))
-            conn.execute('DELETE FROM games WHERE id = ?', (game_id,))
         else:
+            igdb_slug  = result.slug or make_slug(result.name)
+            final_name = override or result.name
             conn.execute(
-                '''UPDATE games
-                   SET igdb_id = ?, slug = ?, display_name = ?, igdb_data = ?, igdb_at = ?
-                   WHERE id = ?''',
-                (result.id, new_slug, final_name, json.dumps(result.data), now, game_id)
+                'INSERT OR REPLACE INTO igdb_cache (slug, igdb_id, igdb_slug, name, igdb_data, cached_at) VALUES (?,?,?,?,?,?)',
+                (slug, result.id, igdb_slug, final_name, json.dumps(result.data), now)
             )
-
-
-def _resolve_one(game_row):
-    logger.info("Resolving IGDB data for game_id=%d name=%r", game_row['id'], game_row['display_name'])
-    game_id = game_row['id']
-    with get_db() as conn:
-        row = conn.execute(
-            '''SELECT MIN(e.pub_ts) AS min_ts
-               FROM episode_games eg
-               JOIN episodes e ON e.id = eg.episode_id
-               WHERE eg.game_id = ?''',
-            (game_id,)
-        ).fetchone()
-    episode_pub_ts = row['min_ts'] if row and row['min_ts'] else None
-    correction = find_by_slug(game_row['slug'], episode_pub_ts)
-    try:
-        if game_row['igdb_id']:
-            result = fetch_by_id(game_row['igdb_id'])
-        elif correction and correction.get('igdb_id'):
-            result = fetch_by_id(correction['igdb_id'])
-        else:
-            search_name = (correction or {}).get('search_name') or game_row['display_name']
-            hint_date   = (correction or {}).get('hint_date')
-            if hint_date:
-                pub_ts = int(datetime.datetime.fromisoformat(hint_date)
-                             .replace(tzinfo=datetime.timezone.utc).timestamp())
-            else:
-                pub_ts = episode_pub_ts
-            result = fetch_by_name(search_name, pub_ts)
-    except Exception as exc:
-        logger.warning("IGDB resolution failed for game_id=%d name=%r: %s", game_id, game_row['display_name'], exc)
-        return
-    _apply_igdb_result(game_id, result, correction)
 
 
 _resolve_lock   = threading.Lock()
@@ -361,14 +320,19 @@ _resolve_stop   = None
 
 def _do_resolve(stop: threading.Event):
     try:
+        games = _games_from_rss()
+        if not games:
+            return
         with get_db() as conn:
-            games = conn.execute(
-                'SELECT id, slug, display_name, igdb_id FROM games WHERE igdb_data IS NULL'
-            ).fetchall()
-        for game in games:
+            skip = {r['slug'] for r in conn.execute(
+                'SELECT slug FROM igdb_cache WHERE igdb_slug IS NOT NULL OR igdb_data IS NULL'
+            ).fetchall()}
+        pending = [(ps, info) for ps, info in games.items() if ps not in skip]
+        for ps, info in pending:
             if stop.is_set():
                 break
-            _resolve_one(game)
+            pub_ts = info['episodes'][0].get('pubTs') if info['episodes'] else None
+            _resolve_one(ps, info['name'], pub_ts)
     finally:
         global _resolve_stop
         with _resolve_lock:
@@ -391,11 +355,7 @@ def _start_resolve():
 def _do_startup():
     if _rss_is_stale():
         try:
-            r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
-                         headers={'User-Agent': 'SilenceOnJoue/1.0'})
-            r.raise_for_status()
-            _sync_db(_parse_feed(r.content))
-            _set_rss_fetched_at()
+            _fetch_rss()
         except Exception as e:
             logger.warning("Startup RSS fetch failed: %s", e)
     _start_resolve()
@@ -407,58 +367,78 @@ def startup_warmup():
 
 # ── Response builders ─────────────────────────────────────────────────────────
 def _catalog_response():
+    rss_games = _games_from_rss()
+    if not rss_games:
+        return []
+    ph = ','.join('?' * len(rss_games))
     with get_db() as conn:
         rows = conn.execute(
-            '''SELECT g.display_name, g.slug, g.igdb_data,
-                      COUNT(eg.episode_id) AS episode_count,
-                      MAX(e.pub_ts)        AS latest_pub_ts
-               FROM games g
-               JOIN episode_games eg ON eg.game_id = g.id
-               JOIN episodes e       ON e.id = eg.episode_id
-               GROUP BY g.id
-               ORDER BY lower(g.display_name)'''
+            f'SELECT slug, igdb_id, igdb_slug, name, igdb_data FROM igdb_cache WHERE slug IN ({ph})',
+            list(rss_games.keys())
         ).fetchall()
-    result = []
-    for r in rows:
-        igdb_full = json.loads(r['igdb_data']) if r['igdb_data'] else None
-        igdb_slim = {'metacritic': igdb_full.get('metacritic')} if igdb_full else None
-        result.append({
-            'name':         r['display_name'],
-            'slug':         r['slug'],
-            'igdb':         igdb_slim,
-            'episodeCount': r['episode_count'],
-            'latestPubTs':  r['latest_pub_ts'] or 0,
-        })
-    return result
+    cache = {r['slug']: r for r in rows}
+
+    merged_igdb  = {}
+    merged_unres = {}
+
+    for ps, g in rss_games.items():
+        row = cache.get(ps)
+        ep  = g['episodes'][0] if g['episodes'] else {}
+        pts = ep.get('pubTs', 0) or 0
+
+        if row and row['igdb_slug']:
+            iid = row['igdb_id']
+            if iid not in merged_igdb:
+                igdb_full = json.loads(row['igdb_data'])
+                merged_igdb[iid] = {
+                    'slug':         row['igdb_slug'],
+                    'name':         row['name'],
+                    'igdb':         {'metacritic': igdb_full.get('metacritic')},
+                    'episodeCount': 0,
+                    'latestPubTs':  0,
+                }
+            merged_igdb[iid]['episodeCount'] += 1
+            if pts > merged_igdb[iid]['latestPubTs']:
+                merged_igdb[iid]['latestPubTs'] = pts
+        else:
+            base = make_slug(g['name'])
+            if base not in merged_unres:
+                merged_unres[base] = {
+                    'slug':         base,
+                    'name':         g['name'],
+                    'igdb':         None,
+                    'episodeCount': 0,
+                    'latestPubTs':  0,
+                }
+            merged_unres[base]['episodeCount'] += 1
+            if pts > merged_unres[base]['latestPubTs']:
+                merged_unres[base]['latestPubTs'] = pts
+
+    result = list(merged_igdb.values()) + list(merged_unres.values())
+    return sorted(result, key=lambda g: g['name'].lower())
 
 
 def _game_row_and_episodes(slug):
+    normalized = make_slug(slug)
+    rss_games = _games_from_rss()
     with get_db() as conn:
-        game_row = conn.execute(
-            'SELECT id, slug, display_name, igdb_data FROM games WHERE slug = ?',
-            (make_slug(slug),)
-        ).fetchone()
-        if not game_row:
-            abort(404, 'Game not found')
-        ep_rows = conn.execute(
-            '''SELECT e.title, e.audio_url, e.pub_ts, eg.timestamp, eg.ts_seconds
-               FROM episode_games eg
-               JOIN episodes e ON e.id = eg.episode_id
-               WHERE eg.game_id = ?
-               ORDER BY eg.rowid''',
-            (game_row['id'],)
+        rows = conn.execute(
+            'SELECT slug, name, igdb_data FROM igdb_cache WHERE igdb_slug = ?', (normalized,)
         ).fetchall()
-    episodes = [
-        {
-            'title':            r['title'],
-            'audioUrl':         r['audio_url'],
-            'pubTs':            r['pub_ts'],
-            'timestamp':        r['timestamp'],
-            'timestampSeconds': r['ts_seconds'],
-        }
-        for r in ep_rows
-    ]
-    return game_row, episodes
+    if rows:
+        episodes = []
+        for r in rows:
+            g = rss_games.get(r['slug'])
+            if g:
+                episodes.extend(g['episodes'])
+        return {'display_name': rows[0]['name'], 'slug': normalized,
+                'igdb_data': rows[0]['igdb_data']}, episodes
+    matches = [(ps, g) for ps, g in rss_games.items() if make_slug(g['name']) == normalized]
+    if matches:
+        all_episodes = [ep for _, g in matches for ep in g['episodes']]
+        return {'display_name': matches[0][1]['name'], 'slug': normalized,
+                'igdb_data': None}, all_episodes
+    abort(404, 'Game not found')
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -466,16 +446,9 @@ def _game_row_and_episodes(slug):
 def catalog():
     if _rss_is_stale():
         try:
-            r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
-                         headers={'User-Agent': 'SilenceOnJoue/1.0'})
-            r.raise_for_status()
-            parsed = _parse_feed(r.content)
-            _sync_db(parsed)
-            _set_rss_fetched_at()
+            _fetch_rss()
         except http.exceptions.RequestException as exc:
-            with get_db() as conn:
-                count = conn.execute('SELECT COUNT(*) FROM games').fetchone()[0]
-            if count == 0:
+            if not _rss_parsed:
                 abort(502, f'RSS feed unavailable: {exc}')
     _start_resolve()
     return jsonify(_catalog_response())
@@ -486,28 +459,23 @@ def games_igdb():
     slugs = request.args.getlist('slug')
     if not slugs:
         return jsonify({})
+    ph = ','.join('?' * len(slugs))
     with get_db() as conn:
-        placeholders = ','.join('?' * len(slugs))
         rows = conn.execute(
-            f'SELECT slug, igdb_data FROM games WHERE slug IN ({placeholders})',
+            f'SELECT igdb_slug, igdb_data FROM igdb_cache WHERE igdb_slug IN ({ph})',
             slugs
         ).fetchall()
-    return jsonify({
-        row['slug']: json.loads(row['igdb_data'])
-        for row in rows
-        if row['igdb_data']
-    })
+    seen = {}
+    for r in rows:
+        if r['igdb_slug'] not in seen:
+            seen[r['igdb_slug']] = json.loads(r['igdb_data'])
+    return jsonify(seen)
 
 
 @games_bp.route('/refresh', methods=['POST'])
 def refresh():
     try:
-        r = http.get(RSS_URL, timeout=Config.REQUEST_TIMEOUT,
-                     headers={'User-Agent': 'SilenceOnJoue/1.0'})
-        r.raise_for_status()
-        parsed = _parse_feed(r.content)
-        _sync_db(parsed)
-        _set_rss_fetched_at()
+        _fetch_rss()
         _start_resolve()
     except http.exceptions.RequestException as exc:
         abort(502, f'RSS feed unavailable: {exc}')
@@ -527,24 +495,34 @@ def game_detail(slug):
 
 @games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
 def game_igdb_refresh(slug):
+    normalized = make_slug(slug)
+    rss_games = _games_from_rss()
+    with get_db() as conn:
+        igdb_rows = conn.execute(
+            'SELECT slug FROM igdb_cache WHERE igdb_slug = ?', (normalized,)
+        ).fetchall()
+    if igdb_rows:
+        podcast_slugs = [r['slug'] for r in igdb_rows]
+        with get_db() as conn:
+            conn.execute('DELETE FROM igdb_cache WHERE igdb_slug = ?', (normalized,))
+    else:
+        podcast_slugs = [ps for ps, g in rss_games.items() if make_slug(g['name']) == normalized]
+        if not podcast_slugs:
+            abort(404, 'Game not found')
+        ph = ','.join('?' * len(podcast_slugs))
+        with get_db() as conn:
+            conn.execute(f'DELETE FROM igdb_cache WHERE slug IN ({ph})', podcast_slugs)
+    for ps in podcast_slugs:
+        g = rss_games.get(ps)
+        if g:
+            pub_ts = g['episodes'][0].get('pubTs') if g['episodes'] else None
+            _resolve_one(ps, g['name'], pub_ts)
     with get_db() as conn:
         row = conn.execute(
-            'SELECT id, slug, display_name, igdb_id FROM games WHERE slug = ?',
-            (make_slug(slug),)
+            'SELECT igdb_slug FROM igdb_cache WHERE slug = ?', (podcast_slugs[0],)
         ).fetchone()
-    if not row:
-        abort(404, 'Game not found')
-    with get_db() as conn:
-        conn.execute(
-            'UPDATE games SET igdb_data = NULL, igdb_at = NULL WHERE id = ?',
-            (row['id'],)
-        )
-    _resolve_one(row)
-    with get_db() as conn:
-        updated = conn.execute('SELECT slug FROM games WHERE id = ?', (row['id'],)).fetchone()
-    if not updated:
-        abort(404, 'Game not found')
-    game_row, episodes = _game_row_and_episodes(updated['slug'])
+    new_slug = (row['igdb_slug'] if row and row['igdb_slug'] else normalized)
+    game_row, episodes = _game_row_and_episodes(new_slug)
     return jsonify({
         'name':     game_row['display_name'],
         'slug':     game_row['slug'],

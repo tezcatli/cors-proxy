@@ -19,6 +19,7 @@ import jwt
 import pytest
 from app import create_app
 from config import Config
+import games as _games
 
 
 def auth_header(email='user@example.com'):
@@ -48,11 +49,10 @@ def clean_db():
     yield
     with _db.get_db() as conn:
         conn.executescript("""
-            DELETE FROM episode_games;
-            DELETE FROM episodes;
-            DELETE FROM games;
-            DELETE FROM settings;
+            DELETE FROM igdb_cache;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
             DELETE FROM users;
         """)
+    _games._rss_parsed = []
+    _games._rss_at = None

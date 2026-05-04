@@ -39,29 +39,17 @@ def init_db():
                 used_at    DATETIME
             );
 
-            CREATE TABLE IF NOT EXISTS settings (
-                key   TEXT PRIMARY KEY,
-                value TEXT
+            CREATE TABLE IF NOT EXISTS igdb_cache (
+                slug      TEXT PRIMARY KEY,
+                igdb_id   INTEGER,
+                igdb_slug TEXT,
+                name      TEXT,
+                igdb_data TEXT,
+                cached_at TEXT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS games (
-                id           INTEGER  PRIMARY KEY AUTOINCREMENT,
-                igdb_id      INTEGER  UNIQUE,
-                slug         TEXT     UNIQUE,
-                display_name TEXT     NOT NULL,
-                igdb_data    TEXT,
-                igdb_at      TEXT
-            );
-            CREATE TABLE IF NOT EXISTS episodes (
-                id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                title     TEXT    NOT NULL UNIQUE,
-                audio_url TEXT,
-                pub_ts    INTEGER
-            );
-            CREATE TABLE IF NOT EXISTS episode_games (
-                episode_id INTEGER NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
-                game_id    INTEGER NOT NULL REFERENCES games(id)    ON DELETE CASCADE,
-                timestamp  TEXT,
-                ts_seconds INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (episode_id, game_id)
-            );
+            CREATE INDEX IF NOT EXISTS igdb_cache_igdb_slug
+                ON igdb_cache(igdb_slug) WHERE igdb_slug IS NOT NULL;
         """)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
+        if 'igdb_slug' not in cols and cols:
+            conn.execute("ALTER TABLE igdb_cache ADD COLUMN igdb_slug TEXT")
