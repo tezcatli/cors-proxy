@@ -5,8 +5,8 @@ export async function fetchCatalog() {
   return r.json()
 }
 
-export async function fetchGameDetail(name) {
-  const r = await apiFetch(`/games/${encodeURIComponent(name)}`)
+export async function fetchGameDetail(slug) {
+  const r = await apiFetch(`/games/${encodeURIComponent(slug)}`)
   return r.json()
 }
 
@@ -15,13 +15,13 @@ export async function refreshCatalog() {
   return r.json()
 }
 
-export async function refreshGameIgdb(name) {
-  const r = await apiFetch(`/games/${encodeURIComponent(name)}/igdb-refresh`, { method: 'POST' })
+export async function refreshGameIgdb(slug) {
+  const r = await apiFetch(`/games/${encodeURIComponent(slug)}/igdb-refresh`, { method: 'POST' })
   return r.json()
 }
 
-export async function fetchIgdb(names) {
-  const params = new URLSearchParams(names.map(n => ['name', n]))
+export async function fetchIgdb(slugs) {
+  const params = new URLSearchParams(slugs.map(s => ['slug', s]))
   const r = await apiFetch(`/games/igdb?${params}`)
   return r.json()
 }

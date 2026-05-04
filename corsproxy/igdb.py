@@ -180,9 +180,9 @@ _FIELDS = (
 )
 
 # ── Query helpers ─────────────────────────────────────────────────────────────
-def _year_window(year):
-    lo = int(datetime.datetime(year - 1, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
-    hi = int(datetime.datetime(year + 1, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc).timestamp())
+def _date_window(pub_ts):
+    lo = pub_ts - 1 * 365 * 24 * 3600   # 2 years before episode
+    hi = pub_ts + 180 * 24 * 3600       # 6 months after episode
     return lo, hi
 
 
@@ -193,9 +193,9 @@ def _name_cond(safe, safe_base=None):
     return '(' + ' | '.join(parts) + ')'
 
 
-def _fetch_pass(fields, safe, safe_base, year=None):
-    if year:
-        lo, hi = _year_window(year)
+def _fetch_pass(fields, safe, safe_base, pub_ts=None):
+    if pub_ts:
+        lo, hi = _date_window(pub_ts)
         search_where = f'where first_release_date >= {lo} & first_release_date <= {hi}; '
         name_yc      = f' & first_release_date >= {lo} & first_release_date <= {hi}'
     else:
@@ -216,13 +216,13 @@ def fetch_by_id(igdb_id: int):
     return IgdbResult(id=g['id'], name=g['name'], data=_normalize(g))
 
 
-def fetch_by_name(name: str, year: int = None):
+def fetch_by_name(name: str, pub_ts: int = None):
     """Name search. Returns IgdbResult or None. Raises RequestException on failure."""
     safe      = name.replace('\\', '').replace('"', '')
     base_name = re.sub(r'\s*[:\-–].+$', '', name).strip()
     safe_base = base_name.replace('\\', '').replace('"', '') if base_name != name else None
-    results   = _fetch_pass(_FIELDS, safe, safe_base, year)
-    if not results and year:
+    results   = _fetch_pass(_FIELDS, safe, safe_base, pub_ts)
+    if not results and pub_ts:
         results = _fetch_pass(_FIELDS, safe, safe_base)
     if not results:
         return None

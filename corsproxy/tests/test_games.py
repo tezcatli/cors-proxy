@@ -8,7 +8,7 @@ from contract import assert_contract, CONTRACT
 from conftest import auth_header
 from games import (
     _extract_game_names, _extract_legacy_names,
-    _parse_feed, _sync_catalog,
+    _parse_feed, _sync_db,
 )
 
 GAMES = CONTRACT['games']
@@ -144,7 +144,7 @@ def test_no_auth_returns_401(client):
 
 def test_catalog_returns_list(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     data = r.get_json()
@@ -154,7 +154,7 @@ def test_catalog_returns_list(client):
 
 def test_catalog_response_has_igdb_field(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         r = client.get('/games', headers=auth_header())
     data = r.get_json()
     assert all('igdb' in g for g in data)
@@ -162,7 +162,7 @@ def test_catalog_response_has_igdb_field(client):
 
 def test_cache_hit_skips_fetch(client):
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         client.get('/games', headers=auth_header())
         client.get('/games', headers=auth_header())
     mock_get.assert_called_once()
@@ -176,7 +176,7 @@ def test_expired_cache_refetches(client):
             "INSERT INTO settings (key, value) VALUES ('rss_fetched_at', ?)", (stale,)
         )
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     mock_get.assert_called_once()
@@ -184,7 +184,7 @@ def test_expired_cache_refetches(client):
 
 def test_catalog_igdb_is_slim(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         r = client.get('/games', headers=auth_header())
     data = r.get_json()
     for game in data:
@@ -196,7 +196,7 @@ def test_catalog_igdb_is_slim(client):
 
 def test_game_detail_returns_episodes(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         client.get('/games', headers=auth_header())
     r = client.get('/games/Zelda', headers=auth_header())
     assert_contract(r, GAMES['game_detail']['success'])
@@ -210,7 +210,7 @@ def test_game_detail_returns_episodes(client):
 def test_game_detail_stale_name_fallback(client):
     """IGDB warming may rename display_name; the old podcast name should still resolve."""
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         client.get('/games', headers=auth_header())
     with db.get_db() as conn:
         conn.execute(
@@ -237,9 +237,9 @@ def test_refresh_always_fetches(client):
 
 def test_igdb_refresh_returns_game_detail(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         client.get('/games', headers=auth_header())
-    with patch('games._warm_one'):
+    with patch('games._resolve_one'):
         r = client.post('/games/Zelda/igdb-refresh', headers=auth_header())
     assert_contract(r, GAMES['igdb_refresh']['success'])
     data = r.get_json()
@@ -251,9 +251,9 @@ def test_igdb_refresh_returns_game_detail(client):
 
 def test_igdb_returns_map(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_warming'):
+         patch('games._start_resolve'):
         client.get('/games', headers=auth_header())
-    r = client.get('/games/igdb?name=Zelda&name=Mario+Kart', headers=auth_header())
+    r = client.get('/games/igdb?slug=zelda&slug=mario-kart', headers=auth_header())
     assert_contract(r, GAMES['igdb']['success'])
     data = r.get_json()
     assert isinstance(data, dict)

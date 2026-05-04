@@ -16,8 +16,8 @@ const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
 const game = computed(() => {
-  const name = decodeURIComponent(route.params.slug)
-  return gamesStore.all.find(g => g.name === name) ?? null
+  const slug = route.params.slug
+  return gamesStore.all.find(g => g.slug === slug) ?? null
 })
 
 const igdb         = computed(() => game.value?.igdb ?? null)
@@ -34,10 +34,10 @@ async function _loadEpisodes(g) {
   if (!g) { episodes.value = []; return }
   episodesLoading.value = true
   try {
-    const detail = await fetchGameDetail(g.name)
+    const detail = await fetchGameDetail(g.slug)
     episodes.value = detail.episodes
     if (detail.igdb) {
-      const idx = gamesStore.all.findIndex(x => x.name === g.name)
+      const idx = gamesStore.all.findIndex(x => x.slug === g.slug)
       if (idx !== -1) gamesStore.all[idx].igdb = detail.igdb
     }
   } catch (_) {
@@ -57,8 +57,8 @@ async function refreshIgdb() {
   if (!game.value) return
   igdbRefreshing.value = true
   try {
-    const result = await refreshGameIgdb(game.value.name)
-    const idx = gamesStore.all.findIndex(g => g.name === game.value.name)
+    const result = await refreshGameIgdb(game.value.slug)
+    const idx = gamesStore.all.findIndex(g => g.slug === result.slug)
     if (idx !== -1) gamesStore.all[idx].igdb = result.igdb
     episodes.value = result.episodes
   } catch (_) {
@@ -69,7 +69,7 @@ async function refreshIgdb() {
 }
 
 watch(coverImageId, id => {
-  if (id && playerStore.current?.game === game.value?.name) playerStore.setCoverImageId(id)
+  if (id && playerStore.current?.game === game.value?.slug) playerStore.setCoverImageId(id)
 })
 
 const epCount = computed(() => formatEpisodeCount(game.value?.episodeCount ?? episodes.value.length))
@@ -80,7 +80,7 @@ function isEpPlaying(ep) {
 
 function playEp(ep) {
   playerStore.play({
-    game:         game.value.name,
+    game:         game.value.slug,
     episode:      ep.title,
     url:          ep.audioUrl,
     ts:           ep.timestampSeconds || 0,

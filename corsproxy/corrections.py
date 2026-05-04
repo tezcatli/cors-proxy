@@ -7,9 +7,22 @@ Each entry requires:
   igdb_id       — direct IGDB numeric ID; bypasses name search when set
                   (None = do a name search using search_name or podcast_name)
 
-Once IGDB resolves a game, its display_name is updated to the IGDB name.
-Corrections only control HOW to find the right IGDB entry, not what to call it.
+Optional fields:
+  hint_date     — ISO date string (YYYY-MM-DD). Dual purpose:
+                  1. Selects this correction only when the episode's pub_ts falls on
+                     the same UTC calendar date (exact day match).
+                  2. Passed to IGDB as the date hint for the search window.
+                  Corrections without hint_date are undated fallbacks.
+  display_name  — Override the display_name stored in the DB after IGDB resolution,
+                  instead of using the IGDB result name.
+
+Multiple entries may share the same podcast_name (differentiated by hint_date).
+Dated corrections take priority over undated ones; undated ones are the fallback.
+
+Once IGDB resolves a game, its display_name is updated to the IGDB name unless
+a display_name override is set in the correction.
 """
+import datetime
 from utils import make_slug
 
 CORRECTIONS = [
@@ -115,17 +128,43 @@ CORRECTIONS = [
         "podcast_name": "Enterre-moi mon amour",
         "search_name":  "Bury me, my Love"
     },
+    {
+        "podcast_name": "star wars",
+        "search_name":  "Star Wars: The Force Unleashed"
+    },
 
-    
+
 ]
 
 
-_BY_SLUG = {make_slug(c["podcast_name"]): c for c in CORRECTIONS}
+_BY_SLUG: dict = {}
+for _c in CORRECTIONS:
+    _BY_SLUG.setdefault(make_slug(_c["podcast_name"]), []).append(_c)
 
 
-def find_by_podcast(podcast_name: str):
-    return _BY_SLUG.get(make_slug(podcast_name))
+def _hint_date_matches(c: dict, pub_ts) -> bool:
+    hd = c.get('hint_date')
+    if not hd or pub_ts is None:
+        return False
+    ep_date   = datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc).date()
+    hint_date = datetime.date.fromisoformat(hd)
+    return ep_date == hint_date
 
 
-def find_by_slug(slug: str):
-    return _BY_SLUG.get(slug)
+def _find(slug: str, pub_ts):
+    candidates = _BY_SLUG.get(slug, [])
+    for c in candidates:
+        if _hint_date_matches(c, pub_ts):
+            return c
+    for c in candidates:
+        if not c.get('hint_date'):
+            return c
+    return None
+
+
+def find_by_podcast(podcast_name: str, pub_ts=None):
+    return _find(make_slug(podcast_name), pub_ts)
+
+
+def find_by_slug(slug: str, pub_ts=None):
+    return _find(slug, pub_ts)

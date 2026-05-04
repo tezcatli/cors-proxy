@@ -67,21 +67,21 @@ export const useGamesStore = defineStore('games', () => {
   }
 
   async function _flushIgdbQueue() {
-    const names = [..._igdbQueue]
+    const slugs = [..._igdbQueue]
     _igdbQueue.clear()
     _igdbTimer = null
     try {
-      const map = await fetchIgdb(names)
-      for (const [name, igdb] of Object.entries(map)) {
-        const idx = all.value.findIndex(g => g.name === name)
+      const map = await fetchIgdb(slugs)
+      for (const [slug, igdb] of Object.entries(map)) {
+        const idx = all.value.findIndex(g => g.slug === slug)
         if (idx !== -1) all.value[idx].igdb = igdb
       }
     } catch (_) { /* silent — card stays with placeholder */ }
   }
 
-  function queueIgdb(name) {
-    if (_igdbQueue.has(name)) return
-    _igdbQueue.add(name)
+  function queueIgdb(slug) {
+    if (_igdbQueue.has(slug)) return
+    _igdbQueue.add(slug)
     clearTimeout(_igdbTimer)
     _igdbTimer = setTimeout(_flushIgdbQueue, 50)
   }

@@ -16,7 +16,7 @@ const coverImageId = computed(() => igdb.value?.coverImageId ?? null)
 const score        = computed(() => igdb.value?.metacritic ?? null)
 const scoreClass   = computed(() => score.value ? getScoreClass(score.value) : '')
 
-function open() { router.push('/game/' + encodeURIComponent(props.game.name)) }
+function open() { router.push('/game/' + encodeURIComponent(props.game.slug)) }
 function handleKey(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }
 
 let _observer = null
@@ -25,7 +25,7 @@ onMounted(() => {
   if (coverImageId.value) return   // already fully loaded
   _observer = new IntersectionObserver(([entry]) => {
     if (entry.isIntersecting) {
-      gamesStore.queueIgdb(props.game.name)
+      gamesStore.queueIgdb(props.game.slug)
       _observer.disconnect()
       _observer = null
     }

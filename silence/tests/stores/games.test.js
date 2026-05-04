@@ -10,9 +10,9 @@ vi.mock('../../src/lib/games.js', () => ({
 import { fetchCatalog, refreshCatalog, fetchIgdb } from '../../src/lib/games.js'
 
 const GAMES = [
-  { name: 'Zelda',         latestPubTs: 1717200000, episodeCount: 3, igdb: { metacritic: 90 } },
-  { name: 'Mario',         latestPubTs: 1704067200, episodeCount: 1, igdb: null },
-  { name: 'Hollow Knight', latestPubTs: 1709251200, episodeCount: 2, igdb: { metacritic: 85 } },
+  { name: 'Zelda',         slug: 'zelda',         latestPubTs: 1717200000, episodeCount: 3, igdb: { metacritic: 90 } },
+  { name: 'Mario',         slug: 'mario',         latestPubTs: 1704067200, episodeCount: 1, igdb: null },
+  { name: 'Hollow Knight', slug: 'hollow-knight', latestPubTs: 1709251200, episodeCount: 2, igdb: { metacritic: 85 } },
 ]
 
 beforeEach(() => {
@@ -175,27 +175,27 @@ describe('queueIgdb', () => {
   it('patches store entry with full igdb after batch resolves', async () => {
     fetchCatalog.mockResolvedValue(GAMES)
     fetchIgdb.mockResolvedValue({
-      Zelda: { coverImageId: 'abc123', metacritic: 90 },
+      zelda: { coverImageId: 'abc123', metacritic: 90 },
     })
     const store = useGamesStore()
     await store.load()
-    store.queueIgdb('Zelda')
+    store.queueIgdb('zelda')
     // flush the debounce timer
     await vi.runAllTimersAsync()
-    const zelda = store.all.find(g => g.name === 'Zelda')
+    const zelda = store.all.find(g => g.slug === 'zelda')
     expect(zelda.igdb.coverImageId).toBe('abc123')
   })
 
-  it('deduplicates names in the same batch', async () => {
+  it('deduplicates slugs in the same batch', async () => {
     fetchCatalog.mockResolvedValue(GAMES)
     fetchIgdb.mockResolvedValue({})
     const store = useGamesStore()
     await store.load()
-    store.queueIgdb('Zelda')
-    store.queueIgdb('Zelda')
-    store.queueIgdb('Mario')
+    store.queueIgdb('zelda')
+    store.queueIgdb('zelda')
+    store.queueIgdb('mario')
     await vi.runAllTimersAsync()
-    const [calledNames] = fetchIgdb.mock.calls[0]
-    expect(calledNames.filter(n => n === 'Zelda')).toHaveLength(1)
+    const [calledSlugs] = fetchIgdb.mock.calls[0]
+    expect(calledSlugs.filter(s => s === 'zelda')).toHaveLength(1)
   })
 })

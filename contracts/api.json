@@ -119,7 +119,7 @@
     "catalog": {
       "success": {
         "status": 200,
-        "item_fields": ["name", "igdb", "episodeCount", "latestPubTs"]
+        "item_fields": ["name", "slug", "igdb", "episodeCount", "latestPubTs"]
       },
       "unauthorized": {
         "status": 401,
@@ -133,7 +133,7 @@
     "game_detail": {
       "success": {
         "status": 200,
-        "fields": ["name", "igdb", "episodes"]
+        "fields": ["name", "slug", "igdb", "episodes"]
       },
       "not_found": {
         "status": 404,
@@ -147,7 +147,7 @@
     "refresh": {
       "success": {
         "status": 200,
-        "item_fields": ["name", "igdb", "episodeCount", "latestPubTs"]
+        "item_fields": ["name", "slug", "igdb", "episodeCount", "latestPubTs"]
       },
       "upstream_error": {
         "status": 502,
@@ -161,7 +161,7 @@
     "igdb_refresh": {
       "success": {
         "status": 200,
-        "fields": ["name", "igdb", "episodes"]
+        "fields": ["name", "slug", "igdb", "episodes"]
       },
       "not_found": {
         "status": 404,

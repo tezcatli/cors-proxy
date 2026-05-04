@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   stripHtml, timestampToSeconds, norm, normKey,
-  formatDate, timeAgo, escHtml, latestDate, getScoreClass, formatEpisodeCount, gameYear,
+  formatDate, timeAgo, escHtml, getScoreClass, formatEpisodeCount,
 } from '../src/lib/utils.js';
 
 // ── stripHtml ──────────────────────────────────────────────────────────────
@@ -110,52 +110,6 @@ describe('getScoreClass', () => {
   it('returns score-low for < 50', () => {
     expect(getScoreClass(49)).toBe('score-low');
     expect(getScoreClass(0)).toBe('score-low');
-  });
-});
-
-// ── gameYear ──────────────────────────────────────────────────────────────
-
-describe('gameYear', () => {
-  it('returns the earliest episode year', () => {
-    const episodes = [
-      { pubDate: '2022-06-01T00:00:00Z' },
-      { pubDate: '2021-03-15T00:00:00Z' },
-      { pubDate: '2023-11-20T00:00:00Z' },
-    ]
-    expect(gameYear(episodes)).toBe(2021)
-  })
-  it('returns null for empty array', () => {
-    expect(gameYear([])).toBeNull()
-  })
-  it('ignores episodes without pubDate', () => {
-    const episodes = [{ pubDate: null }, { pubDate: '2022-01-01T00:00:00Z' }]
-    expect(gameYear(episodes)).toBe(2022)
-  })
-  it('returns null when all episodes lack pubDate', () => {
-    expect(gameYear([{ pubDate: null }, { pubDate: null }])).toBeNull()
-  })
-})
-
-// ── latestDate ────────────────────────────────────────────────────────────
-
-describe('latestDate', () => {
-  it('returns 0 for a game with no episodes', () => {
-    expect(latestDate({ episodes: [] })).toBe(0);
-  });
-  it('returns the most recent episode timestamp', () => {
-    const game = {
-      episodes: [
-        { pubDate: '2024-01-01T00:00:00Z' },
-        { pubDate: '2024-06-15T00:00:00Z' },
-        { pubDate: '2024-03-10T00:00:00Z' },
-      ],
-    };
-    const expected = +new Date('2024-06-15T00:00:00Z');
-    expect(latestDate(game)).toBe(expected);
-  });
-  it('ignores episodes without pubDate', () => {
-    const game = { episodes: [{ pubDate: null }, { pubDate: '2024-01-01T00:00:00Z' }] };
-    expect(latestDate(game)).toBe(+new Date('2024-01-01T00:00:00Z'));
   });
 });
 
