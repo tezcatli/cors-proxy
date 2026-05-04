@@ -7,7 +7,7 @@ import requests as http
 from config import Config
 from utils import norm_key as _norm_key
 
-IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'slug', 'data'])
+IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'slug', 'parent_game_id', 'version_parent_id', 'category', 'data'])
 
 _IGDB_BASE = 'https://api.igdb.com/v4'
 _TWITCH    = 'https://id.twitch.tv/oauth2/token'
@@ -172,8 +172,8 @@ def _normalize(g):
 
 # ── Shared fields string ──────────────────────────────────────────────────────
 _FIELDS = (
-    'fields name, slug, aggregated_rating, aggregated_rating_count, rating, '
-    'first_release_date, summary, genres.name, platforms.name, '
+    'fields name, slug, category, parent_game, version_parent, aggregated_rating, aggregated_rating_count, rating, '
+    'first_release_date, summary, genres.name, platforms.name, game_type.id, '
     'cover.image_id, screenshots.image_id, age_ratings.category, age_ratings.rating, '
     'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
     'game_modes.name, websites.category, websites.url; '
@@ -213,7 +213,11 @@ def fetch_by_id(igdb_id: int):
     if not results:
         return None
     g = results[0]
-    return IgdbResult(id=g['id'], name=g['name'], slug=g.get('slug'), data=_normalize(g))
+    _cat = g.get('category') if g.get('category') is not None else (g.get('game_type') or {}).get('id', 0)
+    return IgdbResult(id=g['id'], name=g['name'], slug=g.get('slug'),
+                      parent_game_id=g.get('parent_game'),
+                      version_parent_id=g.get('version_parent'),
+                      category=_cat, data=_normalize(g))
 
 
 def fetch_by_name(name: str, pub_ts: int = None):
@@ -232,6 +236,10 @@ def fetch_by_name(name: str, pub_ts: int = None):
         if in_window:
             results = in_window
     g = _rank(results, name)[0]
-    return IgdbResult(id=g['id'], name=g['name'], slug=g.get('slug'), data=_normalize(g))
+    _cat = g.get('category') if g.get('category') is not None else (g.get('game_type') or {}).get('id', 0)
+    return IgdbResult(id=g['id'], name=g['name'], slug=g.get('slug'),
+                      parent_game_id=g.get('parent_game'),
+                      version_parent_id=g.get('version_parent'),
+                      category=_cat, data=_normalize(g))
 
 

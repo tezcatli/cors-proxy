@@ -296,6 +296,17 @@ def _resolve_one(slug, name, episode_pub_ts):
     except Exception as exc:
         logger.warning("IGDB resolution failed for slug=%r name=%r: %s", slug, name, exc)
         return
+    if result:
+        merge_id = result.version_parent_id or (
+            result.parent_game_id if result.category not in (8, 9) else None
+        )
+        if merge_id:
+            try:
+                parent = fetch_by_id(merge_id)
+                if parent:
+                    result = parent
+            except Exception as exc:
+                logger.warning("IGDB parent fetch failed for merge_id=%r: %s", merge_id, exc)
     override = (correction or {}).get('display_name')
     now = utcnow().isoformat()
     with get_db() as conn:
