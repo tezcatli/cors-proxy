@@ -3,7 +3,6 @@ import daisyui from 'daisyui'
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{vue,js}'],
-  corePlugins: { preflight: false },
   theme: {
     screens: { sm: '600px', md: '768px', lg: '900px', xl: '1200px' },
   },

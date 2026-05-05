@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { isLoggedIn, getUserEmail, logout } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
@@ -41,7 +41,13 @@ watch(searchQuery, q => {
   }, 350)
 })
 
-const displayedGames = computed(() => gamesStore.filtered(searchQuery.value.trim()))
+const hideUnresolved = ref(false)
+
+const displayedGames = computed(() => {
+  let games = gamesStore.filtered(searchQuery.value.trim())
+  if (hideUnresolved.value) games = games.filter(g => g.igdb !== null)
+  return games
+})
 
 // Body classes for layout context
 watch(() => playerStore.visible, v => {
@@ -59,8 +65,46 @@ function handleLogout() {
 
 function handleRefresh() { gamesStore.refresh() }
 
+// ── Pull-to-refresh ───────────────────────────────────────────────────────────
+const PULL_THRESHOLD = 80
+let   _startY   = 0
+let   _active   = false
+let   _gridEl   = null
+const pullY     = ref(0)
+const isPulling = ref(false)
+
+function onTouchStart(e) {
+  if (_gridEl && _gridEl.scrollTop > 0) return
+  _startY = e.touches[0].clientY
+  _active = true
+}
+
+function onTouchMove(e) {
+  if (!_active) return
+  const dy = e.touches[0].clientY - _startY
+  if (dy <= 0 || (_gridEl && _gridEl.scrollTop > 0)) { _active = false; return }
+  e.preventDefault()
+  pullY.value     = Math.min(dy, PULL_THRESHOLD * 1.5)
+  isPulling.value = true
+}
+
+function onTouchEnd() {
+  if (!_active) return
+  const triggered = pullY.value >= PULL_THRESHOLD
+  _active         = false
+  isPulling.value = false
+  pullY.value     = 0
+  if (triggered) handleRefresh()
+}
+
 onMounted(() => {
   if (loggedIn.value) gamesStore.load()
+  _gridEl = document.querySelector('.grid-area')
+  window.addEventListener('touchmove', onTouchMove, { passive: false })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('touchmove', onTouchMove)
 })
 </script>
 
@@ -74,9 +118,11 @@ onMounted(() => {
       :sort-asc="gamesStore.sortAsc"
       :loading="gamesStore.loading"
       :last-fetch="gamesStore.lastFetch"
+      :hide-unresolved="hideUnresolved"
       @update:searchQuery="searchQuery = $event"
       @set-sort="gamesStore.setSort"
       @refresh="handleRefresh"
+      @toggle-hide-unresolved="hideUnresolved = !hideUnresolved"
     >
       <template #account>
         <button
@@ -87,6 +133,20 @@ onMounted(() => {
         >👤</button>
       </template>
     </AppHeader>
+
+    <!-- Pull-to-refresh indicator -->
+    <div
+      class="flex justify-center items-center overflow-hidden"
+      :style="{
+        height: isPulling ? pullY + 'px' : '0px',
+        transition: isPulling ? 'none' : 'height 0.2s ease',
+      }"
+    >
+      <span
+        class="loading loading-spinner text-primary loading-sm"
+        :style="{ opacity: Math.min(pullY / PULL_THRESHOLD, 1) }"
+      />
+    </div>
 
     <GameGrid
       :games="displayedGames"

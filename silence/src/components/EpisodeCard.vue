@@ -8,7 +8,7 @@ const props = defineProps({
   isPlaying: Boolean,
   isPaused:  Boolean,
 })
-const emit = defineEmits(['play', 'togglePause'])
+const emit = defineEmits(['play', 'togglePause', 'view'])
 
 const hasAudio = computed(() => !!props.episode.audioUrl)
 
@@ -35,16 +35,20 @@ function handleKey(e) {
     :class="{ 'has-audio': hasAudio, playing: isPlaying }"
     :role="hasAudio ? 'button' : 'listitem'"
     :tabindex="hasAudio ? 0 : -1"
-    @click="handleClick"
     @keydown="handleKey"
   >
-    <div class="ep-icon">{{ icon }}</div>
-    <div class="flex-1 min-w-0">
+    <div class="ep-icon" @click="handleClick">{{ icon }}</div>
+    <div class="flex-1 min-w-0" @click="handleClick">
       <div class="[.playing_&]:text-secondary text-[0.85rem] font-semibold leading-[1.35] whitespace-nowrap overflow-hidden text-ellipsis mb-[3px] sm:text-[0.88rem]">{{ episode.title }}</div>
       <div class="text-[0.72rem] text-base-content/50 flex gap-2 flex-wrap">
         <span>{{ formatDate(episode.pubTs) }}</span>
         <span v-if="episode.timestamp" class="text-primary font-semibold">⏱ {{ episode.timestamp }}</span>
       </div>
     </div>
+    <button
+      class="btn btn-sm btn-ghost text-base-content/40 hover:text-base-content/80 px-2 self-center flex-shrink-0 text-[1.2rem]"
+      aria-label="Détails de l'épisode"
+      @click.stop="emit('view', episode)"
+    >›</button>
   </div>
 </template>

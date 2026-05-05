@@ -17,9 +17,9 @@ defineProps({
 
     <div v-else-if="error || games.length === 0" class="flex flex-col items-center gap-3 py-16 px-6 text-base-content/50">
       <span class="text-4xl">{{ error ? '⚠️' : '🔍' }}</span>
-      <p v-if="error">{{ error }}</p>
-      <p v-else-if="total === 0">Aucun jeu dans le catalogue. Essayez d'actualiser.</p>
-      <p v-else>Aucun jeu ne correspond à votre recherche.</p>
+      <p v-if="error" class="text-sm text-center">{{ error }}</p>
+      <p v-else-if="total === 0" class="text-sm text-center">Aucun jeu dans le catalogue. Essayez d'actualiser.</p>
+      <p v-else class="text-sm text-center">Aucun jeu ne correspond à votre recherche.</p>
     </div>
 
     <!--

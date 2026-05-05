@@ -6,6 +6,8 @@ corsproxy_secrets.env
 silence_secrets.env
 __pycache__
 corsproxy/data/users.db
+corsproxy/data/users.db-shm
+corsproxy/data/users.db-wal
 
 node_modules
 silence/dist/

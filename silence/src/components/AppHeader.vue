@@ -3,15 +3,16 @@ import { computed } from 'vue'
 import { timeAgo } from '../lib/utils.js'
 
 const props = defineProps({
-  gameCount:     Number,
-  filteredCount: Number,
-  searchQuery:   String,
-  sortMode:      String,
-  sortAsc:       Boolean,
-  loading:       Boolean,
-  lastFetch:     String,
+  gameCount:      Number,
+  filteredCount:  Number,
+  searchQuery:    String,
+  sortMode:       String,
+  sortAsc:        Boolean,
+  loading:        Boolean,
+  lastFetch:      String,
+  hideUnresolved: Boolean,
 })
-const emit = defineEmits(['update:searchQuery', 'setSort', 'refresh'])
+const emit = defineEmits(['update:searchQuery', 'setSort', 'refresh', 'toggle-hide-unresolved'])
 
 const subtitle = computed(() => {
   const parts = []
@@ -85,6 +86,13 @@ const sortOptions = [
             <span v-if="sortMode === opt.mode">{{ sortAsc ? '↑' : '↓' }}</span>
           </button>
         </div>
+        <button
+          class="btn btn-sm"
+          :class="hideUnresolved ? 'btn-primary' : 'btn-ghost'"
+          :aria-label="hideUnresolved ? 'Afficher tous les jeux' : 'Masquer les jeux non resolues'"
+          :title="hideUnresolved ? 'Afficher tous les jeux' : 'Masquer les jeux sans non resolues'"
+          @click="emit('toggle-hide-unresolved')"
+        >Réoslues</button>
         <span v-if="searchQuery" class="text-[0.8rem] text-base-content/50 pl-0.5">
           {{ filteredCount }} / {{ gameCount }}
         </span>

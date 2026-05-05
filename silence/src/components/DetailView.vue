@@ -86,7 +86,12 @@ function playEp(ep) {
     ts:           ep.timestampSeconds || 0,
     timestamp:    ep.timestamp || null,
     coverImageId: coverImageId.value ?? null,
+    pubTs:        ep.pubTs,
   })
+}
+
+function viewEp(ep) {
+  router.push(`/game/${game.value.slug}/episode/${ep.pubTs}`)
 }
 
 function togglePause() { playerStore.setPaused(!playerStore.paused) }
@@ -289,6 +294,7 @@ const badges = computed(() => {
                 :is-paused="playerStore.paused"
                 @play="playEp"
                 @toggle-pause="togglePause"
+                @view="viewEp"
               />
             </div>
           </div>

@@ -1,17 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isLoggedIn } from './lib/auth.js'
-import DetailView from './components/DetailView.vue'
-import LoginPage  from './pages/LoginPage.vue'
+import DetailView  from './components/DetailView.vue'
+import EpisodeView from './components/EpisodeView.vue'
+import LoginPage   from './pages/LoginPage.vue'
 
 const Empty = { render: () => null }
 
 const router = createRouter({
   history: createWebHistory('/silence/'),
   routes: [
-    { path: '/',             component: Empty },
-    { path: '/game/:slug',   component: DetailView },
-    { path: '/login',        component: LoginPage },
-    { path: '/:pathMatch(.*)*', redirect: '/' },
+    { path: '/',                                  component: Empty },
+    { path: '/game/:slug',                        component: DetailView },
+    { path: '/game/:slug/episode/:pubTs',         component: EpisodeView },
+    { path: '/login',                             component: LoginPage },
+    { path: '/:pathMatch(.*)*',                   redirect: '/' },
   ],
 })
 

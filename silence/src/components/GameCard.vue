@@ -57,6 +57,12 @@ onUnmounted(() => {
         : undefined"
       :alt="game.name"
     />
+    <div
+      v-if="!coverImageId"
+      class="absolute inset-0 flex items-center justify-center px-2 text-center"
+    >
+      <span class="text-[0.72rem] text-white font-semibold leading-snug line-clamp-4 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">{{ game.name }}</span>
+    </div>
     <div v-if="score" class="card-score visible" :class="scoreClass">{{ score }}</div>
   </div>
 </template>

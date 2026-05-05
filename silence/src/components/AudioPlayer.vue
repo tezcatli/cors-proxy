@@ -8,8 +8,11 @@ const router      = useRouter()
 const playerStore = usePlayerStore()
 const audioEl     = ref(null)
 
-function navigateToGame() {
-  router.push('/game/' + encodeURIComponent(playerStore.current.game))
+function navigateToEpisode() {
+  const cur = playerStore.current
+  if (!cur) return
+  if (cur.pubTs) router.push(`/game/${encodeURIComponent(cur.game)}/episode/${cur.pubTs}`)
+  else           router.push('/game/' + encodeURIComponent(cur.game))
 }
 
 watch(() => playerStore.current, cur => {
@@ -73,7 +76,7 @@ function onPlay() {
 <template>
   <div class="audio-player" :class="{ active: playerStore.visible }">
     <template v-if="playerStore.current">
-      <div class="player-info cursor-pointer" @click="navigateToGame">
+      <div class="player-info cursor-pointer" @click="navigateToEpisode">
         <span class="player-game">{{ playerStore.current.game }}</span>
         <span class="player-sep">·</span>
         <span class="player-episode">{{ playerStore.current.episode }}</span>

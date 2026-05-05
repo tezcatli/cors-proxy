@@ -167,6 +167,7 @@ def _find_timestamp(game_name, chapters):
 # ── XML helpers ───────────────────────────────────────────────────────────────
 _NS_CONTENT = 'http://purl.org/rss/1.0/modules/content/'
 _NS_MEDIA   = 'http://search.yahoo.com/mrss/'
+_NS_ITUNES  = 'http://www.itunes.com/dtds/podcast-1.0.dtd'
 
 _SKIP_RE = [
     re.compile(r'^quel(le)?\s',                                re.IGNORECASE),
@@ -212,6 +213,12 @@ def _parse_feed(xml_bytes):
                      item.findtext('description') or '')
         chapters  = _extract_chapters(_strip_html(raw_desc))
 
+        img_el    = item.find(f'{{{_NS_ITUNES}}}image')
+        image_url = img_el.get('href') if img_el is not None else None
+        if not image_url:
+            thumb = item.find(f'{{{_NS_MEDIA}}}thumbnail')
+            image_url = thumb.get('url') if thumb is not None else None
+
         games = []
         for raw_name in game_names:
             raw_name = re.sub(r'^[,\s]+', '', raw_name).strip()
@@ -225,10 +232,13 @@ def _parse_feed(xml_bytes):
             })
         if games:
             episodes.append({
-                'title':    title,
-                'audioUrl': audio_url,
-                'pubTs':    pub_ts,
-                'games':    games,
+                'title':       title,
+                'audioUrl':    audio_url,
+                'pubTs':       pub_ts,
+                'imageUrl':    image_url,
+                'description': raw_desc or None,
+                'chapters':    chapters,
+                'games':       games,
             })
 
     return episodes
@@ -272,6 +282,9 @@ def _games_from_rss():
                 'pubTs':            ep.get('pubTs'),
                 'timestamp':        g.get('timestamp'),
                 'timestampSeconds': g.get('tsSeconds', 0),
+                'imageUrl':         ep.get('imageUrl'),
+                'description':      ep.get('description'),
+                'chapters':         ep.get('chapters', []),
             })
             if ep.get('pubTs', 0) > games[ps]['latestPubTs']:
                 games[ps]['latestPubTs'] = ep['pubTs']
