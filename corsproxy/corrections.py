@@ -31,17 +31,14 @@ CORRECTIONS = [
         "search_name":  "Arctic Eggs",
     },
     {
-        "podcast_name": "make way",
-        "search_name":  None,
-        "igdb_id":      None,
-    },
-    {
         "podcast_name": "l'ordre des géants",
         "search_name":  "Indiana Jones and the Great Circle: The Order of Giants",
+        "display_name": "Indiana Jones et le Cercle Ancien: L'Ordre des Géants",
     },
     {
         "podcast_name": "indiana jones et le cercle ancien",
         "search_name":  "Indiana Jones and the Great Circle",
+        "display_name": "Indiana Jones et le Cercle Ancien",
     },
     {
         "podcast_name": "1348: ex-voto",
@@ -79,6 +76,7 @@ CORRECTIONS = [
     {
         "podcast_name": "Les Chevalier de Baphomet",
         "search_name":  "Broken Sword: The Shadow of the Templars",
+        "display_name": "Les Chevalier de Baphomet",
     },
     {
         "podcast_name": "Process of Elimination: Deluxe Edition",
@@ -102,7 +100,8 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "Kirby et le monde oublié",
-        "search_name":  "Kirby and the Forgotten World"
+        "search_name":  "Kirby and the Forgotten World",
+        "display_name": "Kirby et le monde oublié",
     },
     {
         "podcast_name": "Farming Simulator 2022",
@@ -110,11 +109,13 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "Pokémon Perle & Diamant",
-        "search_name":  "Pokémon Pearl Version"
+        "search_name":  "Pokémon Pearl Version",
+        "display_name": "Pokémon Perle & Diamant",
     },
     {
         "podcast_name": "Les gardiens de la galaxie",
-        "search_name":  "Marvel's Guardians of the Galaxy"
+        "search_name":  "Marvel's Guardians of the Galaxy",
+        "display_name": "Les gardiens de la galaxie",
     },
     {
         "podcast_name": "NBA 2K21 next-gen",
@@ -122,15 +123,18 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "Pokémon Epée et Bouclier",
-        "search_name":  "Pokémon Sword & Pokémon Shield Double Pack"
+        "search_name":  "Pokémon Sword & Pokémon Shield Double Pack",
+        "display_name": "Pokémon Epée et Bouclier"
     },
     {
         "podcast_name": "Enterre-moi mon amour",
-        "search_name":  "Bury me, my Love"
+        "search_name":  "Bury me, my Love",
+        "display_name": "Enterre-moi mon amour",
     },
     {
         "podcast_name": "star wars",
-        "search_name":  "Star Wars: The Force Unleashed"
+        "search_name":  "Star Wars: The Force Unleashed",
+        "display_name": "Star Wars: Le Reveil de la Force",
     },
     {
         "podcast_name": "hades 2",
@@ -148,10 +152,12 @@ CORRECTIONS = [
     {
         "podcast_name": "Mario + Lapins Crétins : Sparks of Hope",
         "search_name":  "Mario + Rabbids Sparks of Hope",
+        "display_name": "Mario + Lapins Crétins : Sparks of Hope",
     },
     {
         "podcast_name": "Mario et les Lapins Crétins",
         "search_name":  "Mario + Rabbids Kingdom Battle",
+        "display_name": "Mario et les Lapins Crétins",
     },
     {
         "podcast_name": "Mario et Luigi",
@@ -165,10 +171,12 @@ CORRECTIONS = [
     {
         "podcast_name": "Pokémon Ecarlate et Violet",
         "search_name":  "Pokémon Scarlet and Pokémon Violet Double Pack ",
+        "display_name": "Pokémon Ecarlate et Violet",
     },
     {
         "podcast_name": "Les tortues ninja",
         "search_name":  "Teenage Mutant Ninja Turtles: Shredder's Revenge",
+        "display_name": "Les Tortues Ninja : La revenche de Shredder",
         "hint_date": "20220624",
     },
     {
@@ -186,10 +194,12 @@ CORRECTIONS = [
     {
         "podcast_name": "rhythm Paradise megamix",
         "search_name":  "Rhythm Heaven Megamix",
+        "display_name": "Rhythm Paradise Megamix",
     },
     {
         "podcast_name": "rhythm Paradise",
         "search_name":  "Rhythm Heaven",
+        "display_name": "Rhythm Paradise",
     },
     {
         "podcast_name": "forza motosport",
@@ -199,10 +209,11 @@ CORRECTIONS = [
     {
         "podcast_name": "Pokémon X & Y",
         "search_name":  "Pokémon X",
+        "display_name": "Pokémon X & Y",
     },
     {
         "podcast_name": "Bayonetta est-elle sexy?",
-        "search_name":  "Bayonetta",
+        "search_name":  "Bayonetta",    
     },
     {
         "podcast_name": "la rentrée avec Batman",
@@ -256,18 +267,21 @@ CORRECTIONS = [
     {
         "podcast_name": "Soldats inconnus",
         "search_name":  "Valiant Hearts: The Great War",
+        "display_name": "Soldats inconnus : Mémoires de la Grande Guerre",
     },
     {
         "podcast_name": "la chance du locataire",
         "search_name":  "Luck be a Landlord",
+        "display_name": "La chance du locataire",
     },
     {
         "podcast_name": "La fin des Samouraïs",
         "search_name":  "Total War: Shogun 2 - Fall of the Samurai",
     },
     {
-        "podcast_name": "makeway",
-        "igdb_id":  "258230",
+        "podcast_name": "make way",
+        "search_name":  None,
+        "igdb_id":      258230,
     },
 ]
 

@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'slug', 'data'])
+IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'slug', 'data', 'is_child'])
 
 _IGDB_BASE = 'https://api.igdb.com/v4'
 _TWITCH    = 'https://id.twitch.tv/oauth2/token'
@@ -192,8 +192,9 @@ def _pick_canonical(g):
 
 
 def _make_result(g):
-    g = _pick_canonical(g)
-    return IgdbResult(id=g['id'], name=g['name'], slug=g.get('slug'), data=_normalize(g))
+    canonical = _pick_canonical(g)
+    return IgdbResult(id=canonical['id'], name=canonical['name'], slug=canonical.get('slug'),
+                      data=_normalize(canonical), is_child=(canonical is not g))
 
 
 # ── Shared fields string ──────────────────────────────────────────────────────

@@ -296,7 +296,6 @@ def _resolve_one(slug, name, episode_pub_ts):
     except Exception as exc:
         logger.warning("IGDB resolution failed for slug=%r name=%r: %s", slug, name, exc)
         return
-    override = (correction or {}).get('display_name')
     now = utcnow().isoformat()
     with get_db() as conn:
         if result is None:
@@ -305,11 +304,11 @@ def _resolve_one(slug, name, episode_pub_ts):
                 (slug, None, None, None, None, now)
             )
         else:
-            igdb_slug  = result.slug or make_slug(result.name)
-            final_name = override or result.name
+            igdb_slug = result.slug or make_slug(result.name)
             conn.execute(
-                'INSERT OR REPLACE INTO igdb_cache (slug, igdb_id, igdb_slug, name, igdb_data, cached_at) VALUES (?,?,?,?,?,?)',
-                (slug, result.id, igdb_slug, final_name, json.dumps(result.data), now)
+                'INSERT OR REPLACE INTO igdb_cache '
+                '(slug, igdb_id, igdb_slug, name, igdb_data, is_child, cached_at) VALUES (?,?,?,?,?,?,?)',
+                (slug, result.id, igdb_slug, result.name, json.dumps(result.data), int(result.is_child), now)
             )
 
 
@@ -375,7 +374,7 @@ def _catalog_response():
     ph = ','.join('?' * len(rss_games))
     with get_db() as conn:
         rows = conn.execute(
-            f'SELECT slug, igdb_id, igdb_slug, name, igdb_data FROM igdb_cache WHERE slug IN ({ph})',
+            f'SELECT slug, igdb_id, igdb_slug, name, igdb_data, is_child FROM igdb_cache WHERE slug IN ({ph})',
             list(rss_games.keys())
         ).fetchall()
     cache = {r['slug']: r for r in rows}
@@ -392,13 +391,25 @@ def _catalog_response():
             iid = row['igdb_id']
             if iid not in merged_igdb:
                 igdb_full = json.loads(row['igdb_data'])
+                is_child  = bool(row['is_child'])
+                if not is_child:
+                    corr    = find_by_slug(make_slug(g['name']), ep.get('pubTs'))
+                    display = (corr or {}).get('display_name') or row['name']
+                else:
+                    display = row['name']
                 merged_igdb[iid] = {
                     'slug':         row['igdb_slug'],
-                    'name':         row['name'],
+                    'name':         display,
+                    '_from_child':  is_child,
                     'igdb':         {'metacritic': igdb_full.get('metacritic')},
                     'episodeCount': 0,
                     'latestPubTs':  0,
                 }
+            elif merged_igdb[iid].get('_from_child') and not bool(row['is_child']):
+                corr    = find_by_slug(make_slug(g['name']), ep.get('pubTs'))
+                display = (corr or {}).get('display_name') or row['name']
+                merged_igdb[iid]['name']        = display
+                merged_igdb[iid]['_from_child'] = False
             merged_igdb[iid]['episodeCount'] += 1
             if pts > merged_igdb[iid]['latestPubTs']:
                 merged_igdb[iid]['latestPubTs'] = pts
@@ -416,6 +427,8 @@ def _catalog_response():
             if pts > merged_unres[base]['latestPubTs']:
                 merged_unres[base]['latestPubTs'] = pts
 
+    for entry in merged_igdb.values():
+        entry.pop('_from_child', None)
     result = list(merged_igdb.values()) + list(merged_unres.values())
     return sorted(result, key=lambda g: g['name'].lower())
 
@@ -424,7 +437,7 @@ def _game_row_and_episodes(slug):
     rss_games = _games_from_rss()
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT slug, name, igdb_data FROM igdb_cache WHERE igdb_slug = ?', (slug,)
+            'SELECT slug, name, igdb_data, is_child FROM igdb_cache WHERE igdb_slug = ?', (slug,)
         ).fetchall()
     if rows:
         episodes = []
@@ -432,8 +445,13 @@ def _game_row_and_episodes(slug):
             g = rss_games.get(r['slug'])
             if g:
                 episodes.extend(g['episodes'])
-        return {'display_name': rows[0]['name'], 'slug': slug,
-                'igdb_data': rows[0]['igdb_data']}, episodes
+        non_child = [r for r in rows if not r['is_child']]
+        name_row  = non_child[0] if non_child else rows[0]
+        name_g    = rss_games.get(name_row['slug'])
+        name_pts  = name_g['episodes'][0].get('pubTs') if name_g and name_g['episodes'] else None
+        corr      = find_by_slug(make_slug(name_g['name']), name_pts) if name_g else None
+        display   = (corr or {}).get('display_name') or name_row['name']
+        return {'display_name': display, 'slug': slug, 'igdb_data': rows[0]['igdb_data']}, episodes
     normalized = make_slug(slug)
     matches = [(ps, g) for ps, g in rss_games.items() if make_slug(g['name']) == normalized]
     if matches:

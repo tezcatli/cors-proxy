@@ -45,6 +45,7 @@ def init_db():
                 igdb_slug TEXT,
                 name      TEXT,
                 igdb_data TEXT,
+                is_child  INTEGER DEFAULT 0,
                 cached_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS igdb_cache_igdb_slug
@@ -53,3 +54,5 @@ def init_db():
         cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
         if 'igdb_slug' not in cols and cols:
             conn.execute("ALTER TABLE igdb_cache ADD COLUMN igdb_slug TEXT")
+        if 'is_child' not in cols and cols:
+            conn.execute("ALTER TABLE igdb_cache ADD COLUMN is_child INTEGER DEFAULT 0")
