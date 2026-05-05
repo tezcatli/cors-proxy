@@ -5,8 +5,13 @@ import router from './router.js'
 import App from './App.vue'
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations()
-    .then(regs => regs.forEach(r => r.unregister()))
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/silence/sw.js', { scope: '/silence/' })
+      .catch(err => console.warn('SW registration failed:', err))
+  })
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload()
+  })
 }
 
 const app = createApp(App)

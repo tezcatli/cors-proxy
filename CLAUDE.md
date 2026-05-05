@@ -77,24 +77,29 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
 
 - **`app.py`** — Flask app factory. The `/proxy?url=` endpoint strips upstream CORS headers and re-adds its own. Auth is skipped entirely when `DEBUG=true`.
 - **`auth.py`** — Blueprint at `/auth`: invite-token-based registration, login, password reset. All tokens (invite, reset, JWT) are random `secrets.token_urlsafe` strings stored in SQLite.
-- **`games.py`** — Blueprint at `/games`. RSS feed (~700 episodes) is fetched on demand and kept **in memory** with a TTL (`_rss_parsed`, `_rss_at`); never persisted to DB. A background thread resolves each podcast game name against IGDB and writes results to `igdb_cache`. Key endpoints: `GET /games` (slim catalog, igdb field contains only `{ metacritic }`), `GET /games/igdb?slug=A&slug=B` (full igdb for a list of slugs, used by the grid's lazy loader), `GET /games/<slug>` (full igdb + episodes), `POST /games/refresh`, `POST /games/<slug>/igdb-refresh`.
-- **`igdb.py`** — Internal IGDB helpers only (no public HTTP route). Looks up game cover art + metadata from IGDB API (Twitch OAuth). Rate-limited to 4 req/s with a threading lock. Called by `games.py` during background resolution.
-- **`corrections.py`** — Static correction table mapping podcast game names to the right IGDB search term or ID. Each entry may include `hint_date` (ISO date, exact episode pub_ts match) and `display_name` (override). Multiple entries per name are allowed, differentiated by `hint_date`; undated entries are fallbacks. Consulted by `games.py` during IGDB resolution.
-- **`db.py`** — SQLite at `corsproxy/data/users.db`. WAL mode enabled. Four tables: `users`, `invitations`, `reset_tokens`, `igdb_cache`. `igdb_cache` is keyed by `make_slug(podcast_name)` and stores resolved IGDB data (id, name, JSON blob) persistently across restarts. `get_db()` returns a context-manager connection with `row_factory = sqlite3.Row`.
+- **`games.py`** — Blueprint at `/games`. RSS feed (~700 episodes) is fetched on demand and kept **in memory** with a TTL; never persisted to DB. A background thread resolves each podcast game name against IGDB and writes results to `igdb_cache`. Key endpoints: `GET /games` (slim catalog, `igdb` field contains only `{ metacritic }`), `GET /games/igdb?slug=A&slug=B` (full igdb for a list of slugs), `GET /games/<slug>` (full igdb + episodes), `POST /games/refresh`, `POST /games/<slug>/igdb-refresh`.
+- **`igdb.py`** — Internal IGDB helpers only (no public HTTP route). Looks up game metadata from IGDB API (Twitch OAuth) via a persistent `requests.Session`. Rate-limited to 4 req/s. `_pick_canonical` resolves DLCs/versions to their parent game using inline nested fields in the query (no extra API call). `IgdbResult` includes an `is_child` flag set when the result was redirected to a parent.
+- **`corrections.py`** — Static table mapping podcast game names to the right IGDB search term or ID. Each entry may include `hint_date` (exact episode pub_ts day match), `display_name` (display override), and `igdb_id` (bypass name search). Multiple entries per name are differentiated by `hint_date`; undated entries are fallbacks. `display_name` is applied at response time in `games.py`, not stored in the DB.
+- **`db.py`** — SQLite at `corsproxy/data/users.db`. WAL mode. Four tables: `users`, `invitations`, `reset_tokens`, `igdb_cache`. `igdb_cache` is keyed by **podcast_slug** (`make_slug(podcast_name) + '-' + YYYYMMDD`), one row per (game name, episode date) pair. Columns: `igdb_id`, `igdb_slug` (IGDB's own slug, used for URL routing and merging), `name` (canonical IGDB name), `igdb_data` (JSON blob), `is_child` (1 if resolved to a parent game). Multiple podcast_slugs sharing the same `igdb_id` are merged into one catalog entry.
 - **`config.py`** — All config from env vars; `Config.DEBUG` gates auth bypass and static file serving.
 
 ### Frontend (`silence/`)
 
-- **`src/lib/games.js`** — Thin API client for the `/games/*` endpoints. Five functions: `fetchCatalog()`, `fetchGameDetail(slug)`, `refreshCatalog()`, `refreshGameIgdb(slug)`, `fetchIgdb(slugs)`. All use `slug` as the identifier. No XML parsing — all feed processing happens on the backend.
+- **`src/lib/games.js`** — Thin API client for the `/games/*` endpoints. Five functions: `fetchCatalog()`, `fetchGameDetail(slug)`, `refreshCatalog()`, `refreshGameIgdb(slug)`, `fetchIgdb(slugs)`. All use `igdb_slug` as the identifier. No XML parsing — all feed processing happens on the backend.
 - **`src/lib/igdbCdn.js`** — One-liner helper that builds IGDB image CDN URLs (`igdbUrl(imageId, template)`).
 - **`src/lib/auth.js`** — JWT stored in `localStorage` under key `soj-auth-token`. `apiFetch()` attaches `Authorization: Bearer` header to every request and throws on non-2xx.
-- **`src/stores/games.js`** — Central Pinia store. Loads `all` games from the slim catalog (`fetchCatalog`), exposes `filtered(query)` with sort (alpha / date / metacritic). `queueIgdb(slug)` debounces card-visible events (50 ms) into a single `fetchIgdb` call, patching store entries with full igdb as the user scrolls.
+- **`src/stores/games.js`** — Central Pinia store. Loads `all` games from the slim catalog, exposes `filtered(query)` with sort (alpha / date / metacritic). `queueIgdb(slug)` debounces card-visible events (50 ms) into a single `fetchIgdb` call, patching store entries with full igdb as the user scrolls.
 - **`src/stores/player.js`** — Audio player state.
 - **`src/router.js`** — History-mode router at base `/silence/`. The `beforeEach` guard forwards `?reset=` and `?invite=` query params to `/login`, and redirects unauthenticated users to `/login`.
 
-### Lazy igdb loading
+### Slug model
 
-The grid catalog ships only `igdb: { metacritic }` per game (enough for sorting and score badges). Each `GameCard` mounts an `IntersectionObserver`; when the card enters the viewport and full igdb isn't loaded yet (`coverImageId` absent), it calls `gamesStore.queueIgdb(slug)`. The store batches slugs over a 50 ms window and fires one `GET /games/igdb?slug=A&slug=B`, then patches the relevant store entries. Opening a game detail also upgrades its store entry to full igdb (via the `GET /games/<slug>` response), so revisiting the same detail within a session skips the igdb fetch.
+Two different slug types coexist:
+
+- **podcast_slug** — `make_slug(podcast_name) + '-' + YYYYMMDD`. Primary key of `igdb_cache`. One row per (game name, episode date) pair extracted from the RSS feed.
+- **igdb_slug** — IGDB's own URL slug (e.g. `indiana-jones-and-the-great-circle`). Stored in `igdb_cache.igdb_slug`. Used for URL routing (`/games/<igdb_slug>`) and merging: multiple podcast_slugs sharing the same `igdb_slug` become one catalog entry.
+
+`make_slug` normalizes any run of non-alphanumeric chars to a single dash. IGDB slugs can contain `--` (e.g. `resident-evil-2--1`) which `make_slug` would destroy, so igdb_slug lookups always use the raw IGDB value, not `make_slug(slug)`.
 
 ### Shared contract
 

@@ -462,7 +462,6 @@ body.player-open .grid-area {
   #audioEl        { flex: 1; min-width: 180px; max-width: 500px; width: auto; }
   .player-game    { max-width: 220px; }
   .player-episode { max-width: 340px; }
-  .detail-lecteur { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
 
 
