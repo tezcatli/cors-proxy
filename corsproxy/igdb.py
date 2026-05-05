@@ -237,15 +237,16 @@ def _name_cond(safe, safe_base=None):
 
 
 def _fetch_pass(fields, safe, safe_base, pub_ts=None):
+    filter = 'game_type != 5'
     if pub_ts:
         lo, hi = _date_window(pub_ts)
-        search_where = f'where first_release_date >= {lo} & first_release_date <= {hi}; '
-        name_yc      = f' & first_release_date >= {lo} & first_release_date <= {hi}'
+#        search_where = f'where first_release_date >= {lo} & first_release_date <= {hi}; '
+        name_yc      = f'& first_release_date >= {lo} & first_release_date <= {hi}'
     else:
         search_where = name_yc = ''
-    results = _igdb(f'{fields}search "{safe}"; {search_where}limit 10;')
+    results = _igdb(f'{fields}search "{safe}"; where {filter} {name_yc};limit 10;')
     if not results:
-        results = _igdb(f'{fields}where {_name_cond(safe, safe_base)}{name_yc}; limit 10;')
+        results = _igdb(f'{fields}where {filter} & {_name_cond(safe, safe_base)}{name_yc}; limit 10;')
     return results
 
 

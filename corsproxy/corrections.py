@@ -93,7 +93,7 @@ CORRECTIONS = [
         "search_name":  "LittleBigPlanet",
     },
     {
-        "podcast_name": "Little Big Planet 2",
+        "podcast_name": "LittleBigPlanet2",
         "search_name":  "LittleBigPlanet 2",
     },
     {
@@ -140,9 +140,143 @@ CORRECTIONS = [
     {
         "podcast_name": "civilization 6",
         "search_name":  "Sid Meier's Civilization VI"
-    }
+    },
+    {
+        "podcast_name": "Heroes of the Storm",
+        "igdb_id":      7313,
+    },
+    {
+        "podcast_name": "Mario + Lapins Crétins : Sparks of Hope",
+        "search_name":  "Mario + Rabbids Sparks of Hope",
+    },
+    {
+        "podcast_name": "Mario et les Lapins Crétins",
+        "search_name":  "Mario + Rabbids Kingdom Battle",
+    },
+    {
+        "podcast_name": "Mario et Luigi",
+        "hint_date": "20151217",
+        "search_name":  "Mario & Luigi: Paper Jam",
+    },
+    {
+        "podcast_name": "MGS 4",
+        "search_name":  "Metal Gear Solid 4: Guns of the Patriots ",
+    },
+    {
+        "podcast_name": "Pokémon Ecarlate et Violet",
+        "search_name":  "Pokémon Scarlet and Pokémon Violet Double Pack ",
+    },
+    {
+        "podcast_name": "Les tortues ninja",
+        "search_name":  "Teenage Mutant Ninja Turtles: Shredder's Revenge",
+        "hint_date": "20220624",
+    },
+    {
+        "podcast_name": "xcom2",
+        "search_name":  "xcom 2",
+    },
+    {
+        "podcast_name": "l'ombre de Mordor",
+        "search_name":  "Middle-earth: Shadow of Mordor",
+    },
+    {
+        "podcast_name": "l'orange box",
+        "search_name":  "The Orange Box",
+    },
+    {
+        "podcast_name": "rhythm Paradise megamix",
+        "search_name":  "Rhythm Heaven Megamix",
+    },
+    {
+        "podcast_name": "rhythm Paradise",
+        "search_name":  "Rhythm Heaven",
+    },
+    {
+        "podcast_name": "forza motosport",
+        "search_name":  "Forza Motorsport 4",
+        "hint_date": "20111020",
+    },
+    {
+        "podcast_name": "Pokémon X & Y",
+        "search_name":  "Pokémon X",
+    },
+    {
+        "podcast_name": "Bayonetta est-elle sexy?",
+        "search_name":  "Bayonetta",
+    },
+    {
+        "podcast_name": "la rentrée avec Batman",
+        "search_name":  "Batman: Arkham Asylum",
+    },  
+    {
+        "podcast_name": "Street Fighter IV sur iPhone",
+        "search_name":  "Street Fighter IV",
+    }, 
+    {
+        "podcast_name": "PixelJunk Shooter2",
+        "search_name":  "PixelJunk Shooter 2",
+    },
+    {
+        "podcast_name": "la légende de Pac-man",
+        "igdb_id":  "2750",
+    },
+    {
+        "podcast_name": "Danganrompa",
+        "hint_date": "20140327",
+        "igdb_id":  "9708",
+    },
+    {
+        "podcast_name": "elec head",
+        "search_name":  "elechead",
+    },
+    {
+        "podcast_name": "Fortnite Battle Royale",
+        "igdb_id":  "1905",
+    },
+    {
+        "podcast_name": "Broken Age acte 2",
+        "igdb_id":  "3087"
+    },
+    {
+        "podcast_name": "Might & Magic sur DS",
+        "search_name":  "Might & Magic: Clash of Heroes",
+    },
+    {
+        "podcast_name": "Lego City 3DS",
+        "search_name":  "LEGO City Undercover",
+    },
+    {
+        "podcast_name": "L'histoire de Tomb Raider",
+        "igdb_id":  "912",
+    },
+    {
+        "podcast_name": "La ferme des animaux",
+        "search_name":  "Orwell's Animal Farm",
+    },
+    {
+        "podcast_name": "Soldats inconnus",
+        "search_name":  "Valiant Hearts: The Great War",
+    },
+    {
+        "podcast_name": "la chance du locataire",
+        "search_name":  "Luck be a Landlord",
+    },
+    {
+        "podcast_name": "La fin des Samouraïs",
+        "search_name":  "Total War: Shogun 2 - Fall of the Samurai",
+    },
+    {
+        "podcast_name": "makeway",
+        "igdb_id":  "258230",
+    },
 ]
 
+"""
+    {
+        "podcast_name": "",
+        "search_name":  "",
+    },
+"""
 
 _BY_SLUG: dict = {}
 for _c in CORRECTIONS:
