@@ -432,11 +432,10 @@ def _catalog_response():
 
 
 def _game_row_and_episodes(slug):
-    normalized = make_slug(slug)
     rss_games = _games_from_rss()
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT slug, name, igdb_data FROM igdb_cache WHERE igdb_slug = ?', (normalized,)
+            'SELECT slug, name, igdb_data FROM igdb_cache WHERE igdb_slug = ?', (slug,)
         ).fetchall()
     if rows:
         episodes = []
@@ -444,8 +443,9 @@ def _game_row_and_episodes(slug):
             g = rss_games.get(r['slug'])
             if g:
                 episodes.extend(g['episodes'])
-        return {'display_name': rows[0]['name'], 'slug': normalized,
+        return {'display_name': rows[0]['name'], 'slug': slug,
                 'igdb_data': rows[0]['igdb_data']}, episodes
+    normalized = make_slug(slug)
     matches = [(ps, g) for ps, g in rss_games.items() if make_slug(g['name']) == normalized]
     if matches:
         all_episodes = [ep for _, g in matches for ep in g['episodes']]
@@ -508,17 +508,17 @@ def game_detail(slug):
 
 @games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
 def game_igdb_refresh(slug):
-    normalized = make_slug(slug)
     rss_games = _games_from_rss()
     with get_db() as conn:
         igdb_rows = conn.execute(
-            'SELECT slug FROM igdb_cache WHERE igdb_slug = ?', (normalized,)
+            'SELECT slug FROM igdb_cache WHERE igdb_slug = ?', (slug,)
         ).fetchall()
     if igdb_rows:
         podcast_slugs = [r['slug'] for r in igdb_rows]
         with get_db() as conn:
-            conn.execute('DELETE FROM igdb_cache WHERE igdb_slug = ?', (normalized,))
+            conn.execute('DELETE FROM igdb_cache WHERE igdb_slug = ?', (slug,))
     else:
+        normalized = make_slug(slug)
         podcast_slugs = [ps for ps, g in rss_games.items() if make_slug(g['name']) == normalized]
         if not podcast_slugs:
             abort(404, 'Game not found')
@@ -534,7 +534,7 @@ def game_igdb_refresh(slug):
         row = conn.execute(
             'SELECT igdb_slug FROM igdb_cache WHERE slug = ?', (podcast_slugs[0],)
         ).fetchone()
-    new_slug = (row['igdb_slug'] if row and row['igdb_slug'] else normalized)
+    new_slug = (row['igdb_slug'] if row and row['igdb_slug'] else make_slug(slug))
     game_row, episodes = _game_row_and_episodes(new_slug)
     return jsonify({
         'name':     game_row['display_name'],
