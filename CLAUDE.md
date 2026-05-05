@@ -107,7 +107,7 @@ Two different slug types coexist:
 
 ### Service worker
 
-`silence/sw.js` exists but is intentionally **disabled**: `main.js` unregisters all service workers on every load. Do not re-enable it without addressing cache invalidation on deploy.
+`silence/sw.js` is registered by `main.js` at `/silence/sw.js` with scope `/silence/`. Cache invalidation on deploy is handled by the build-hash keyed cache name (the Vite `stampServiceWorker` plugin in `vite.config.js` replaces `__CACHE_VERSION__` with a hash of output bundles). The SW uses `skipWaiting()` + `clients.claim()` so the new version takes over immediately; `main.js` listens for `controllerchange` and reloads open tabs.
 
 ### Secrets
 
