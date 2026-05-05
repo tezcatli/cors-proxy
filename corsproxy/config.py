@@ -33,3 +33,5 @@ class Config:
     SMTP_USER: str      = os.getenv("SMTP_USER", "")
     SMTP_PASS: str      = os.getenv("SMTP_PASS", "")
     SMTP_FROM: str      = os.getenv("SMTP_FROM", "noreply@example.com")
+
+    LOGGER_LEVEL: str = os.getenv("LOGGER_LEVEL", "INFO").upper()

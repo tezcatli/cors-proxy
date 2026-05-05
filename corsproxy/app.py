@@ -7,7 +7,7 @@ from auth import auth_bp
 from games import games_bp, startup_warmup
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=Config.LOGGER_LEVEL,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
