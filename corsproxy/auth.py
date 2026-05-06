@@ -68,6 +68,7 @@ def register():
     password = data["password"]
     invite   = data["invitation_token"]
     _validate_password(password)
+    pw_hash = _hash(password)
     with get_db() as conn:
         inv = conn.execute(
             "SELECT email, used_at FROM invitations WHERE token = ?", (invite,)
@@ -82,7 +83,7 @@ def register():
             abort(409, "Cette adresse e-mail est déjà utilisée")
         cur = conn.execute(
             "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-            (email, _hash(password)),
+            (email, pw_hash),
         )
         user_id = cur.lastrowid
         conn.execute(
@@ -144,6 +145,7 @@ def reset_request():
     data = request.get_json(silent=True) or {}
     _require_fields(data, "email")
     email = data["email"].strip().lower()
+    reset_url = None
     with get_db() as conn:
         user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         if user:
@@ -153,7 +155,9 @@ def reset_request():
                 "INSERT OR REPLACE INTO reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
                 (token, user["id"], expires),
             )
-            send_reset_email(email, f"{Config.RESET_BASE_URL}/silence/?reset={token}")
+            reset_url = f"{Config.RESET_BASE_URL}/silence/?reset={token}"
+    if reset_url:
+        send_reset_email(email, reset_url)
     return "", 204
 
 
@@ -162,7 +166,8 @@ def reset_confirm():
     data = request.get_json(silent=True) or {}
     _require_fields(data, "token", "new_password")
     _validate_password(data["new_password"])
-    now = utcnow().isoformat()
+    pw_hash = _hash(data["new_password"])
+    now     = utcnow().isoformat()
     with get_db() as conn:
         row = conn.execute(
             "SELECT user_id, expires_at FROM reset_tokens WHERE token = ?",
@@ -175,7 +180,7 @@ def reset_confirm():
             abort(410, "Ce lien a expiré")
         conn.execute(
             "UPDATE users SET password_hash = ? WHERE id = ?",
-            (_hash(data["new_password"]), row["user_id"]),
+            (pw_hash, row["user_id"]),
         )
         conn.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
     return "", 204

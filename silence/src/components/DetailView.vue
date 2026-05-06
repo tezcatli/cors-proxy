@@ -144,19 +144,6 @@ function nextScreenshot() {
   selectedScreenshot.value = ids[(i + 1) % ids.length]
 }
 
-const badges = computed(() => {
-  if (!igdb.value) return []
-  const { metacritic, rating, released, esrb, genres, platforms, modes } = igdb.value
-  const list = []
-  if (metacritic) list.push({ text: `Metacritic ${metacritic}`, cls: getScoreClass(metacritic) })
-  if (rating)     list.push({ text: `★ ${rating}/5`, cls: 'igdb-rating' })
-  if (released)   list.push({ text: released })
-  if (esrb)       list.push({ text: esrb })
-  if (genres?.length)    list.push({ text: genres.join(' · ') })
-  if (platforms?.length) list.push({ text: platforms.join(' · ') })
-  if (modes?.length)     list.push({ text: modes.join(' · ') })
-  return list
-})
 </script>
 
 <template>
@@ -221,11 +208,11 @@ const badges = computed(() => {
         <div class="detail-scroll-inner">
 
           <!-- Info panel -->
-          <div class="detail-glass mx-4 mb-3 mt-4">
-            <div class="flex items-start justify-between gap-3 mb-2">
+          <div class="panel mx-4 mb-3 mt-4 p-4">
+            <div class="flex items-start justify-between gap-3 mb-3">
               <h2 class="text-[1.2rem] font-extrabold leading-tight sm:text-[1.45rem]">{{ game.name }}</h2>
               <div class="flex items-center gap-1.5 flex-shrink-0 mt-1">
-                <span class="text-[0.65rem] text-white/50 font-semibold uppercase tracking-wide">{{ epCount }}</span>
+                <span class="badge badge-sm text-white/50">{{ epCount }}</span>
                 <button
                   class="btn btn-xs btn-ghost text-white/30 hover:text-white/60 px-1 min-h-0 h-5 leading-none"
                   :disabled="igdbRefreshing"
@@ -235,8 +222,8 @@ const badges = computed(() => {
               </div>
             </div>
 
-            <!-- Prominent scores (landscape desktop only) -->
-            <div v-if="igdb?.metacritic || igdb?.rating" class="detail-scores">
+            <!-- Scores (always visible) -->
+            <div v-if="igdb?.metacritic || igdb?.rating" class="flex gap-2 mb-3">
               <div v-if="igdb?.metacritic" class="score-block" :class="getScoreClass(igdb.metacritic)">
                 <span class="score-number">{{ igdb.metacritic }}</span>
                 <span class="score-label">Metacritic</span>
@@ -247,16 +234,24 @@ const badges = computed(() => {
               </div>
             </div>
 
-            <div v-if="badges.length || igdb?.developer" class="flex flex-wrap items-center gap-1.5 mb-2">
-              <span v-for="b in badges" :key="b.text" class="badge badge-sm igdb-badge" :class="b.cls">{{ b.text }}</span>
-              <span v-if="igdb?.developer" class="text-[0.7rem] text-white/40">
+            <!-- Year · genres · platforms -->
+            <p v-if="igdb?.released || igdb?.genres?.length || igdb?.platforms?.length" class="text-[0.78rem] text-white/55 mb-1.5">
+              <template v-if="igdb?.released">{{ igdb.released }}</template><template v-if="igdb?.released && (igdb?.genres?.length || igdb?.platforms?.length)"> · </template><template v-if="igdb?.genres?.length">{{ igdb.genres.join(', ') }}</template><template v-if="igdb?.genres?.length && igdb?.platforms?.length"> · </template><template v-if="igdb?.platforms?.length">{{ igdb.platforms.join(', ') }}</template>
+            </p>
+
+            <!-- Developer · publisher · ESRB · Steam -->
+            <div v-if="igdb?.developer || igdb?.esrb || igdb?.steamUrl" class="flex items-center flex-wrap gap-2 mb-3 text-[0.72rem]">
+              <span v-if="igdb?.developer" class="text-white/45">
                 {{ igdb.developer }}<template v-if="igdb.publisher && igdb.publisher !== igdb.developer"> · {{ igdb.publisher }}</template>
               </span>
+              <span v-if="igdb?.esrb" class="badge badge-sm text-white/40">{{ igdb.esrb }}</span>
               <a v-if="igdb?.steamUrl" :href="igdb.steamUrl" target="_blank" rel="noopener noreferrer"
-                 class="text-[0.68rem] text-white/30 hover:text-primary ml-auto flex-shrink-0 transition-colors">Steam ↗</a>
+                 class="text-primary/80 hover:text-primary ml-auto flex-shrink-0 transition-colors">Steam ↗</a>
             </div>
-            <div v-if="igdb?.description">
-              <p class="text-[0.78rem] text-white/60 leading-relaxed" :class="{ 'line-clamp-4': !descExpanded }">{{ igdb.description }}</p>
+
+            <!-- Description -->
+            <div v-if="igdb?.description" class="border-t border-white/10 pt-3">
+              <p class="text-[0.82rem] text-white/80 leading-relaxed" :class="{ 'line-clamp-4': !descExpanded }">{{ igdb.description }}</p>
               <button v-if="igdb.description.length > 280" class="btn btn-xs btn-ghost text-white/50 hover:text-white/90 mt-1 px-0" @click="descExpanded = !descExpanded">
                 {{ descExpanded ? 'Voir moins' : 'Voir plus' }}
               </button>
@@ -280,7 +275,7 @@ const badges = computed(() => {
           </div>
 
           <!-- Episodes -->
-          <div class="detail-lecteur mx-4 mb-4">
+          <div class="panel mx-4 mb-4 p-3 mb-[calc(100px+env(safe-area-inset-bottom,0px))]">
             <div v-if="episodesLoading" class="flex justify-center py-4">
               <span class="loading loading-spinner loading-sm text-primary/50"></span>
             </div>

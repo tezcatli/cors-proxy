@@ -42,7 +42,7 @@ onUnmounted(() => {
 <template>
   <div
     ref="el"
-    class="relative aspect-[45/64] bg-[#1a2a50] rounded-lg overflow-hidden cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] transition duration-[180ms] ease-[ease] hover:brightness-110 hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)] active:scale-[0.97] focus:outline focus:outline-2 focus:outline-[#e94560] focus:outline-offset-2"
+    class="relative aspect-[45/64] bg-neutral rounded-lg overflow-hidden cursor-pointer select-none [touch-action:manipulation] [-webkit-tap-highlight-color:transparent] transition duration-[180ms] ease-[ease] hover:brightness-110 hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)] active:scale-[0.97] focus:outline focus:outline-2 focus:outline-primary focus:outline-offset-2"
     tabindex="0"
     role="button"
     :aria-label="game.name"

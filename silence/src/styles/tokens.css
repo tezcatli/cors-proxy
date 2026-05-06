@@ -1,0 +1,34 @@
+:root {
+  /* Raw RGB channels for rgba() compositing */
+  --rgb-base:    15, 15, 26;
+  --rgb-neutral: 26, 42, 80;
+  --rgb-primary: 233, 69, 96;
+  --rgb-muted:   136, 136, 170;
+
+  /* Score palette channels */
+  --rgb-high: 76, 175, 80;
+  --rgb-mid:  255, 152, 0;
+  --rgb-low:  244, 67, 54;
+
+  /* Score text colors */
+  --col-high-text:   #81c784;
+  --col-mid-text:    #ffb74d;
+  --col-low-text:    #e57373;
+  --col-rating-text: #ff6b81;
+
+  /* Glass panel */
+  --glass-bg:     rgba(0, 0, 0, 0.6);
+  --glass-blur:   12px;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-radius: 12px;
+
+  /* Z-index layers */
+  --z-player:   300;
+  --z-detail:   150;
+  --z-episode:  200;
+  --z-lightbox: 400;
+
+  /* Animation */
+  --dur-slide: 0.30s;
+  --ease-std:  cubic-bezier(0.4, 0, 0.2, 1);
+}

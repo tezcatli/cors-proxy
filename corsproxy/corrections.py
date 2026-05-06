@@ -139,7 +139,7 @@ CORRECTIONS = [
     {
         "podcast_name": "hades 2",
         "search_name":  "Hades II",
-        "hint_date": "20240510",
+        "hint_date": "2024-05-10",
     },
     {
         "podcast_name": "civilization 6",
@@ -161,23 +161,23 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "Mario et Luigi",
-        "hint_date": "20151217",
+        "hint_date": "2015-12-17",
         "search_name":  "Mario & Luigi: Paper Jam",
     },
     {
         "podcast_name": "MGS 4",
-        "search_name":  "Metal Gear Solid 4: Guns of the Patriots ",
+        "search_name":  "Metal Gear Solid 4: Guns of the Patriots",
     },
     {
         "podcast_name": "Pokémon Ecarlate et Violet",
-        "search_name":  "Pokémon Scarlet and Pokémon Violet Double Pack ",
+        "search_name":  "Pokémon Scarlet and Pokémon Violet Double Pack",
         "display_name": "Pokémon Ecarlate et Violet",
     },
     {
         "podcast_name": "Les tortues ninja",
         "search_name":  "Teenage Mutant Ninja Turtles: Shredder's Revenge",
         "display_name": "Les Tortues Ninja : La revenche de Shredder",
-        "hint_date": "20220624",
+        "hint_date": "2022-06-24",
     },
     {
         "podcast_name": "xcom2",
@@ -204,7 +204,7 @@ CORRECTIONS = [
     {
         "podcast_name": "forza motosport",
         "search_name":  "Forza Motorsport 4",
-        "hint_date": "20111020",
+        "hint_date": "2011-10-20",
     },
     {
         "podcast_name": "Pokémon X & Y",
@@ -233,7 +233,7 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "Danganrompa",
-        "hint_date": "20140327",
+        "hint_date": "2014-03-27",
         "igdb_id":  "9708",
     },
     {
@@ -285,25 +285,23 @@ CORRECTIONS = [
     },
 ]
 
-"""
-    {
-        "podcast_name": "",
-        "search_name":  "",
-    },
-"""
-
 _BY_SLUG: dict = {}
 for _c in CORRECTIONS:
-    _BY_SLUG.setdefault(make_slug(_c["podcast_name"]), []).append(_c)
+    hd    = _c.get('hint_date')
+    entry = {**_c, '_date': datetime.date.fromisoformat(hd) if hd else None}
+    _BY_SLUG.setdefault(make_slug(_c['podcast_name']), []).append(entry)
 
 
 def _hint_date_matches(c: dict, pub_ts) -> bool:
-    hd = c.get('hint_date')
-    if not hd or pub_ts is None:
+    parsed = c.get('_date')
+    if parsed is None:
+        hd = c.get('hint_date')
+        if not hd:
+            return False
+        parsed = datetime.date.fromisoformat(hd)
+    if pub_ts is None:
         return False
-    ep_date   = datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc).date()
-    hint_date = datetime.date.fromisoformat(hd)
-    return ep_date == hint_date
+    return datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc).date() == parsed
 
 
 def _find(slug: str, pub_ts):

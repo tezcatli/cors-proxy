@@ -9,8 +9,9 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/silence/sw.js', { scope: '/silence/' })
       .catch(err => console.warn('SW registration failed:', err))
   })
+  const prevController = navigator.serviceWorker.controller
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload()
+    if (prevController) window.location.reload()
   })
 }
 

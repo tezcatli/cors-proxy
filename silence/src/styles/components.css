@@ -1,0 +1,366 @@
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+.app-header {
+  background: rgba(var(--rgb-base), 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+
+/* ─── Input (shared base for search and login form) ───────────────────────── */
+.app-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: 3rem;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: inherit;
+  background: oklch(var(--b1));
+  border: 1px solid oklch(var(--bc)/.2);
+  border-radius: var(--rounded-btn, .5rem);
+  appearance: none;
+  outline: none;
+}
+.app-input:focus       { box-shadow: 0 0 0 3px rgba(var(--rgb-primary), 0.15); }
+.app-input::placeholder { color: oklch(var(--bc)/.4); }
+
+/* Search gets extra padding for the icon overlays */
+#searchInput {
+  min-height: 48px;
+  padding: 12px 40px 12px 38px;
+}
+#searchInput::-webkit-search-cancel-button { display: none; }
+
+.btn-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  background: rgb(var(--rgb-neutral));
+  border: none;
+  border-radius: 50%;
+  color: rgb(var(--rgb-muted));
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.btn-clear:hover { background: rgb(var(--rgb-primary)); color: #fff; }
+
+/* ─── Glass panel ─────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+}
+
+/* ─── Score colors (shared by .card-score, .igdb-badge, .score-block) ─────── */
+.score-high  { background: rgba(var(--rgb-high), 0.18); border-color: rgba(var(--rgb-high), 0.4); color: var(--col-high-text); }
+.score-mid   { background: rgba(var(--rgb-mid),  0.18); border-color: rgba(var(--rgb-mid),  0.4); color: var(--col-mid-text);  }
+.score-low   { background: rgba(var(--rgb-low),  0.18); border-color: rgba(var(--rgb-low),  0.4); color: var(--col-low-text);  }
+.igdb-rating { background: rgba(var(--rgb-primary), 0.15); border-color: rgba(var(--rgb-primary), 0.35); color: var(--col-rating-text); }
+
+/* ─── Game card score badge ───────────────────────────────────────────────── */
+.card-score {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: none;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  line-height: 1.6;
+}
+.card-score.visible        { display: block; }
+/* Card badges use high opacity — override the shared 0.18 values */
+.card-score.score-high { background: rgba(var(--rgb-high), 0.85); }
+.card-score.score-mid  { background: rgba(var(--rgb-mid),  0.85); }
+.card-score.score-low  { background: rgba(var(--rgb-low),  0.85); }
+
+/* ─── IGDB badge (alongside DaisyUI badge badge-sm) ──────────────────────── */
+.igdb-badge { font-weight: 700; white-space: nowrap; }
+
+/* ─── Detail view layout ──────────────────────────────────────────────────── */
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-cover-col {
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px 12px;
+  flex-shrink: 0;
+}
+
+.detail-cover-card {
+  height: clamp(160px, 50vh, 340px);
+  aspect-ratio: 45 / 64;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+/* ─── Score blocks ────────────────────────────────────────────────────────── */
+.score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid;
+  min-width: 64px;
+}
+
+.score-number { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.score-label  { font-size: 0.62rem; opacity: 0.7; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ─── Screenshot strip ───────────────────────────────────────────────────── */
+.screenshot-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.screenshot-scroll::-webkit-scrollbar { display: none; }
+
+.screenshot-thumb {
+  height: clamp(80px, 9vw, 160px);
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.screenshot-thumb:hover       { opacity: 0.85; }
+.screenshot-thumb:first-child { margin-left: auto; }
+.screenshot-thumb:last-child  { margin-right: auto; }
+
+/* ─── Screenshot lightbox ─────────────────────────────────────────────────── */
+.screenshot-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-lightbox);
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lightbox-img {
+  max-width: calc(100% - 100px);
+  max-height: calc(100dvh - 80px);
+  border-radius: 8px;
+  object-fit: contain;
+  display: block;
+}
+
+.lightbox-btn {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.lightbox-btn:hover { background: rgba(255, 255, 255, 0.25); }
+
+.lightbox-close { top: 16px; right: 16px; width: 36px; height: 36px; font-size: 0.9rem; }
+
+.lightbox-prev, .lightbox-next {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.lightbox-prev { left: 12px; }
+.lightbox-next { right: 12px; }
+
+.lightbox-dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.lightbox-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lightbox-dot.active { background: rgb(var(--rgb-primary)); }
+
+/* ─── Episode cards ───────────────────────────────────────────────────────── */
+.episode-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.18s ease, border-color 0.18s ease;
+  min-height: 52px;
+  background: rgba(255, 255, 255, 0.15);
+}
+.episode-card.has-audio:hover  { background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.12); }
+.episode-card.has-audio:active { background: rgba(var(--rgb-primary), 0.1); }
+.episode-card.playing          { background: rgba(var(--rgb-primary), 0.12); border-color: rgba(var(--rgb-primary), 0.3); }
+
+.ep-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  background: rgba(var(--rgb-primary), 0.15);
+  color: rgb(var(--rgb-primary));
+  border: 1px solid rgba(var(--rgb-primary), 0.25);
+  transition: background 0.18s ease;
+}
+.episode-card.playing .ep-icon         { background: rgb(var(--rgb-primary)); color: #fff; border-color: rgb(var(--rgb-primary)); }
+.episode-card:not(.has-audio) .ep-icon { background: rgba(255, 255, 255, 0.05); color: rgb(var(--rgb-muted)); border-color: rgba(255, 255, 255, 0.08); }
+
+/* ─── Audio player ────────────────────────────────────────────────────────── */
+audio::-webkit-media-controls-panel { background: rgb(var(--rgb-neutral)); }
+
+.audio-player { display: none; }
+
+.audio-player.active {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-player);
+  background: rgba(var(--rgb-base), 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(var(--rgb-primary), 0.7);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.6);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "info close" "audio audio";
+  gap: 8px 12px;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  animation: slideUpPlayer 0.2s ease;
+}
+
+body.player-open .grid-area {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+.player-info {
+  grid-area: info;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+.player-game    { font-weight: 700; color: rgb(var(--rgb-primary)); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; flex-shrink: 0; }
+.player-sep     { color: rgba(255, 255, 255, 0.25); font-size: 0.9rem; flex-shrink: 0; }
+.player-episode { font-size: 0.8rem; color: rgba(255, 255, 255, 0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.player-ts      { font-size: 0.75rem; color: rgb(var(--rgb-muted)); white-space: nowrap; flex-shrink: 0; }
+
+#audioEl {
+  grid-area: audio;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  accent-color: rgb(var(--rgb-primary));
+  color-scheme: dark;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-height: 520px) {
+  .detail-cover-card { height: clamp(100px, 40vh, 180px); }
+  .igdb-badge        { font-size: 0.68rem; padding: 2px 6px; }
+}
+
+@media (min-width: 900px) and (min-height: 500px) {
+  .detail-body {
+    overflow: hidden;
+    flex-direction: row;
+  }
+
+  .detail-cover-col {
+    flex-shrink: 0;
+    width: clamp(240px, 36vw, 500px);
+    padding: 28px;
+    align-items: center;
+  }
+
+  .detail-cover-col .detail-cover-card {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+  }
+
+  .detail-scroll-col {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .detail-scroll-inner { margin-block: auto; }
+}
+
+@media (min-width: 900px) {
+  .detail-cover-card { height: clamp(200px, 33vh, 380px); }
+
+  .audio-player.active {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 24px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .player-info    { flex: 1; min-width: 0; }
+  #audioEl        { flex: 1; min-width: 180px; max-width: 500px; width: auto; }
+  .player-game    { max-width: 220px; }
+  .player-episode { max-width: 340px; }
+}

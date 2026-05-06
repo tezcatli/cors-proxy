@@ -1,0 +1,14 @@
+/* ─── Spin ───────────────────────────────────────────────────────────────── */
+.icon-spin { display: inline-block; transition: transform 0.5s linear; }
+.icon-spin.spinning { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Detail view slide ──────────────────────────────────────────────────── */
+@keyframes slideInRight  { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slideOutRight { from { transform: translateX(0); }    to { transform: translateX(100%); } }
+
+.slide-right-enter-active { animation: slideInRight  var(--dur-slide) var(--ease-std); }
+.slide-right-leave-active { animation: slideOutRight 0.25s           var(--ease-std) forwards; }
+
+/* ─── Audio player slide-up ─────────────────────────────────────────────── */
+@keyframes slideUpPlayer { from { transform: translateY(100%); } to { transform: translateY(0); } }

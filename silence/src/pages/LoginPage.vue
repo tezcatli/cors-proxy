@@ -88,14 +88,14 @@ onMounted(() => {
           <form @submit.prevent="submitLogin" class="flex flex-col gap-3">
             <div class="flex flex-col gap-1">
               <label class="text-sm font-medium text-base-content/70">E-mail</label>
-              <input v-model="loginEmail" class="login-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
+              <input v-model="loginEmail" class="app-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
             </div>
             <div class="flex flex-col gap-1">
               <div class="flex items-center justify-between">
                 <label class="text-sm font-medium text-base-content/70">Mot de passe</label>
                 <a href="#" class="text-xs text-base-content/50 link link-hover" @click.prevent="setView('reset-request')">Oublié ?</a>
               </div>
-              <input v-model="loginPassword" class="login-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
+              <input v-model="loginPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
             </div>
             <SubmitBtn :busy="busy" label="Se connecter" />
           </form>
@@ -107,15 +107,15 @@ onMounted(() => {
           <form @submit.prevent="submitRegister" class="flex flex-col gap-3">
             <div class="flex flex-col gap-1">
               <label class="text-sm font-medium text-base-content/70">E-mail</label>
-              <input v-model="regEmail" class="login-input" type="email" placeholder="vous@exemple.com" :readonly="regEmailReadOnly" autocomplete="email" required />
+              <input v-model="regEmail" class="app-input" type="email" placeholder="vous@exemple.com" :readonly="regEmailReadOnly" autocomplete="email" required />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-sm font-medium text-base-content/70">Mot de passe</label>
-              <input v-model="regPassword" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+              <input v-model="regPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-sm font-medium text-base-content/70">Confirmer</label>
-              <input v-model="regPassword2" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+              <input v-model="regPassword2" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
             <SubmitBtn :busy="busy" label="Créer le compte" />
           </form>
@@ -130,7 +130,7 @@ onMounted(() => {
           <form @submit.prevent="submitResetRequest" class="flex flex-col gap-3">
             <div class="flex flex-col gap-1">
               <label class="text-sm font-medium text-base-content/70">E-mail</label>
-              <input v-model="resetEmail" class="login-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
+              <input v-model="resetEmail" class="app-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
             </div>
             <SubmitBtn :busy="busy" label="Envoyer le lien" />
           </form>
@@ -145,11 +145,11 @@ onMounted(() => {
           <form @submit.prevent="submitReset" class="flex flex-col gap-3">
             <div class="flex flex-col gap-1">
               <label class="text-sm font-medium text-base-content/70">Nouveau mot de passe</label>
-              <input v-model="newPassword" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+              <input v-model="newPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-sm font-medium text-base-content/70">Confirmer</label>
-              <input v-model="newPassword2" class="login-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
+              <input v-model="newPassword2" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
             <SubmitBtn :busy="busy" label="Enregistrer" />
           </form>

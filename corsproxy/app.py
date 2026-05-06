@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 from flask import Flask, request, Response, jsonify
@@ -16,14 +17,11 @@ logger = logging.getLogger(__name__)
 
 def create_app(testing=False):
     if Config.DEBUG:
-        _app = Flask(__name__, static_folder="static")
-        logger.warning("Running in DEBUG mode. This is not recommended for production!")
-    else:
-        _app = Flask(__name__)
-
-    if Config.DEBUG:
         import pathlib
         from flask import send_from_directory, redirect
+
+        _app = Flask(__name__, static_folder="static")
+        logger.warning("Running in DEBUG mode. This is not recommended for production!")
 
         @_app.route("/silence")
         def silence_redirect():
@@ -38,6 +36,8 @@ def create_app(testing=False):
             resp = send_from_directory(_app.static_folder, filename)
             resp.headers["Cache-Control"] = "no-store"
             return resp
+    else:
+        _app = Flask(__name__)
 
     _app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
 
@@ -45,7 +45,7 @@ def create_app(testing=False):
     _app.register_blueprint(games_bp)
     init_db()
     if not testing:
-        if not Config.DEBUG or _os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        if not Config.DEBUG or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
             startup_warmup()
 
     def json_error(e):
@@ -68,8 +68,7 @@ def create_app(testing=False):
     return _app
 
 
-import os as _os
-app = create_app(testing=_os.getenv('TESTING', 'false').lower() == 'true')
+app = create_app(testing=os.getenv('TESTING', 'false').lower() == 'true')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")

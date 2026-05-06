@@ -51,7 +51,8 @@ class _Throttle:
 
     def acquire(self):
         with self._lock:
-            wait = self._interval - (time.monotonic() - self._last)
+            now  = time.monotonic()
+            wait = self._interval - (now - self._last)
             if wait > 0:
                 time.sleep(wait)
             self._last = time.monotonic()
@@ -77,7 +78,7 @@ def _platform(name):
 def _igdb(query):
     _throttle.acquire()
     token = _get_token()
-    logger.debug(f'IGDB query: {query.strip()}')
+    logger.debug('IGDB query: %s', query.strip())
     r = _session.post(
         f'{_IGDB_BASE}/games',
         headers={
@@ -92,10 +93,17 @@ def _igdb(query):
     return r.json()
 
 
+# ── Subtitle stripping ────────────────────────────────────────────────────────
+_SUBTITLE_RE = re.compile(r'\s*[:\-–].+$')
+
+def _base_name(name):
+    return _SUBTITLE_RE.sub('', name).strip()
+
+
 # ── Ranking ───────────────────────────────────────────────────────────────────
 def _rank(results, name):
     q    = _norm_key(name)
-    base = _norm_key(re.sub(r'\s*[:\-–].+$', '', name).strip())
+    base = _norm_key(_base_name(name))
 
     def _score(g):
         n = _norm_key(g.get('name', ''))
@@ -110,7 +118,7 @@ def _rank(results, name):
 
 # ── Normalize IGDB result → frontend shape ────────────────────────────────────
 def _normalize(g):
-    cover_image_id = g['cover']['image_id'] if g.get('cover') and g['cover'].get('image_id') else None
+    cover_image_id = (g.get('cover') or {}).get('image_id')
 
     shots          = g.get('screenshots') or []
     screenshot_ids = [s['image_id'] for s in shots if s.get('image_id')]
@@ -225,7 +233,7 @@ _FIELDS = (
 
 # ── Query helpers ─────────────────────────────────────────────────────────────
 def _date_window(pub_ts):
-    lo = pub_ts - 1 * 365 * 24 * 3600   # 2 years before episode
+    lo = pub_ts - 365 * 24 * 3600        # 1 year before episode
     hi = pub_ts + 180 * 24 * 3600       # 6 months after episode
     return lo, hi
 
@@ -238,16 +246,15 @@ def _name_cond(safe, safe_base=None):
 
 
 def _fetch_pass(fields, safe, safe_base, pub_ts=None):
-    filter = 'game_type != 5'
+    type_filter = 'game_type != 5'
     if pub_ts:
-        lo, hi = _date_window(pub_ts)
-#        search_where = f'where first_release_date >= {lo} & first_release_date <= {hi}; '
-        name_yc      = f'& first_release_date >= {lo} & first_release_date <= {hi}'
+        lo, hi    = _date_window(pub_ts)
+        date_cond = f'& first_release_date >= {lo} & first_release_date <= {hi}'
     else:
-        search_where = name_yc = ''
-    results = _igdb(f'{fields}search "{safe}"; where {filter} {name_yc};limit 10;')
+        date_cond = ''
+    results = _igdb(f'{fields}search "{safe}"; where {type_filter} {date_cond};limit 10;')
     if not results:
-        results = _igdb(f'{fields}where {filter} & {_name_cond(safe, safe_base)}{name_yc}; limit 10;')
+        results = _igdb(f'{fields}where {type_filter} & {_name_cond(safe, safe_base)}{date_cond}; limit 10;')
     return results
 
 
@@ -263,7 +270,7 @@ def fetch_by_id(igdb_id: int):
 def fetch_by_name(name: str, pub_ts: int = None):
     """Name search. Returns IgdbResult or None. Raises RequestException on failure."""
     safe      = name.replace('\\', '').replace('"', '')
-    base_name = re.sub(r'\s*[:\-–].+$', '', name).strip()
+    base_name = _base_name(name)
     safe_base = base_name.replace('\\', '').replace('"', '') if base_name != name else None
     results   = _fetch_pass(_FIELDS, safe, safe_base, pub_ts)
     if not results and pub_ts:

@@ -55,11 +55,12 @@ const sortOptions = [
     </div>
 
     <!-- Row 2: search + sort -->
-    <div class="max-w-[1400px] mx-auto px-3 pb-2.5 flex flex-col gap-2 bg-base-100 flex-shrink-0 sm:flex-row sm:items-center sm:pb-3 sm:px-5 lg:px-7 lg:gap-3">
+    <div class="max-w-[1400px] mx-auto px-3 pb-2.5 flex flex-col gap-2 flex-shrink-0 sm:flex-row sm:items-center sm:pb-3 sm:px-5 lg:px-7 lg:gap-3">
       <div class="relative w-full sm:flex-1 sm:max-w-[440px] lg:max-w-[520px]">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[0.9rem] pointer-events-none z-[1]">🔍</span>
         <input
           id="searchInput"
+          class="app-input"
           type="search"
           placeholder="Rechercher un jeu…"
           :value="searchQuery"
@@ -92,7 +93,7 @@ const sortOptions = [
           :aria-label="hideUnresolved ? 'Afficher tous les jeux' : 'Masquer les jeux non resolues'"
           :title="hideUnresolved ? 'Afficher tous les jeux' : 'Masquer les jeux sans non resolues'"
           @click="emit('toggle-hide-unresolved')"
-        >Réoslues</button>
+        >Résolues</button>
         <span v-if="searchQuery" class="text-[0.8rem] text-base-content/50 pl-0.5">
           {{ filteredCount }} / {{ gameCount }}
         </span>
