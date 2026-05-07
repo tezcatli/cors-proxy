@@ -68,9 +68,11 @@ async function refreshIgdb() {
   }
 }
 
+/*
 watch(coverImageId, id => {
   if (id && playerStore.current?.game === game.value?.slug) playerStore.setCoverImageId(id)
 })
+  */
 
 const epCount = computed(() => formatEpisodeCount(game.value?.episodeCount ?? episodes.value.length))
 
@@ -149,8 +151,9 @@ function nextScreenshot() {
 </script>
 
 <template>
-  <!-- Loading / not found -->
-  <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[150] bg-base-100 flex flex-col">
+  <div>
+    <!-- Loading / not found -->
+    <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[150] bg-base-100 flex flex-col">
     <div class="flex items-center px-4 py-3 border-b border-base-content/10">
       <button class="btn btn-sm btn-ghost" @click="close">← Retour</button>
     </div>
@@ -160,8 +163,8 @@ function nextScreenshot() {
     </div>
   </div>
 
-  <!-- Main view -->
-  <div v-else class="fixed inset-0 z-[150]">
+    <!-- Main view -->
+    <div v-else class="fixed inset-0 z-[150]">
 
     <!-- Background -->
     <div class="absolute inset-0 overflow-hidden">
@@ -300,10 +303,10 @@ function nextScreenshot() {
       </div>
     </div>
   </div>
-</div>
+  </div>
 
-  <!-- Screenshot lightbox -->
-  <Teleport to="body">
+    <!-- Screenshot lightbox -->
+    <Teleport to="body">
     <div v-if="selectedScreenshot" class="screenshot-lightbox" @click.self="closeScreenshot">
       <button class="lightbox-btn lightbox-close" @click="closeScreenshot" aria-label="Fermer">✕</button>
       <button v-if="igdb.screenshotIds.length > 1" class="lightbox-btn lightbox-prev" @click="prevScreenshot" aria-label="Précédent">‹</button>
@@ -325,5 +328,6 @@ function nextScreenshot() {
         />
       </div>
     </div>
-  </Teleport>
+    </Teleport>
+  </div>
 </template>

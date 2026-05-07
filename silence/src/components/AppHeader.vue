@@ -29,8 +29,7 @@ const sortOptions = [
 </script>
 
 <template>
-  <header class="app-header">
-
+  <div class="app-header">
     <!-- Row 1: branding + actions -->
     <div class="flex items-center justify-between gap-3 px-4 py-3 max-w-[1400px] mx-auto">
       <div class="flex items-center gap-2.5 leading-none">
@@ -79,7 +78,7 @@ const sortOptions = [
           <button
             v-for="opt in sortOptions"
             :key="opt.mode"
-            class="join-item btn btn-sm"
+            class="join-item btn btn-sm btn-glass"
             :class="sortMode === opt.mode ? 'btn-primary' : 'btn-ghost'"
             @click="emit('setSort', opt.mode)"
           >
@@ -100,5 +99,5 @@ const sortOptions = [
       </div>
     </div>
 
-  </header>
+  </div>
 </template>

@@ -63,7 +63,7 @@ function playFrom(ts, timestamp) {
     url:          episode.value.audioUrl,
     ts:           ts,
     timestamp:    timestamp || null,
-    coverImageId: playerStore.current?.coverImageId ?? null,
+    coverImageId: episode.value.coverImageId || null,
     pubTs:        episode.value.pubTs,
     chapters:     episode.value.chapters ?? [],
   })

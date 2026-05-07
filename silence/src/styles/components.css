@@ -1,10 +1,27 @@
 /* ─── Header ──────────────────────────────────────────────────────────────── */
 .app-header {
-  background: rgba(var(--rgb-base), 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   flex-shrink: 0;
+  border-radius: var(--glass-radius);
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  z-index: 100;
+  margin : 5px 20px 20px 20px;
+}
+
+
+
+.grid-area { /* the element was .grid-area */
+  padding-top: 150px;
+}
+
+#mainView { /* the element was div#mainView */
+  position: relative;
 }
 
 /* ─── Input (shared base for search and login form) ───────────────────────── */
@@ -32,6 +49,12 @@
   padding: 12px 40px 12px 38px;
 }
 #searchInput::-webkit-search-cancel-button { display: none; }
+
+.btn-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--glass-radius);
+}
 
 .btn-clear {
   position: absolute;
@@ -320,8 +343,7 @@
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(var(--rgb-primary), 0.40);
-  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.6);
+  
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas: "info close" "audio audio";
@@ -334,10 +356,7 @@
   border-radius: var(--glass-radius) ;
   margin-left: 20px;
   margin-right: 20px;
-  margin-bottom: 20px;
-
-
-
+  margin-bottom: 5px;
 }
 
 body.player-open .grid-area {
