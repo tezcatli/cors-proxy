@@ -317,7 +317,7 @@
   left: 0;
   right: 0;
   z-index: var(--z-player);
-  background: var(--player-bg);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(var(--rgb-primary), 0.40);
@@ -377,7 +377,7 @@ body.player-open .grid-area {
 
 /* ─── Plyr theme ─────────────────────────────────────────────────────────── */
 .audio-player .plyr {
-  --plyr-color-main:               rgb(var(--rgb-primary));
+  --plyr-color-main:               rgb(var(--glass-primary));
   --plyr-audio-controls-background: transparent;
   --plyr-audio-control-color:      rgba(255, 255, 255, 0.65);
   --plyr-audio-control-color-hover: #fff;
@@ -397,7 +397,24 @@ body.player-open .grid-area {
   top: 0;
   transform: translateX(-50%);
   border-radius: 0;
+  z-index: 10;
 }
+
+
+.audio-player .plyr--video .plyr__progress input[type="range"] {
+    position: relative;
+    z-index: 0 !important;  /* above markers */
+}
+
+.audio-player .plyr__progress input[type="range"]::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #3607e1;
+    z-index: 1000  !important;
+    position: relative;
+}
+
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-height: 520px) {
