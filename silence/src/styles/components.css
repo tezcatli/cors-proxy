@@ -391,9 +391,12 @@ body.player-open .grid-area {
   color-scheme: dark;
 }
 
-/* Direct override — the CSS variable alone is unreliable for manually-injected spans */
 .audio-player .plyr__progress__marker {
-  background-color: var(--player-bg);
+  background-color:  var(--player-bg);
+  height: 100%;
+  top: 0;
+  transform: translateX(-50%);
+  border-radius: 0;
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */

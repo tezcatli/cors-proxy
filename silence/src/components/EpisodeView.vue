@@ -168,7 +168,7 @@ watch(() => episode.value?.chapters, (chs) => {
         </div>
 
         <!-- Chapters -->
-        <div v-if="episode.chapters?.length" class="panel p-3">
+        <div v-if="episode.chapters?.length" class="panel p-3" style="margin-bottom: 50px;">
           <div class="flex flex-col gap-1.5">
             <button
               v-for="(ch, i) in episode.chapters"

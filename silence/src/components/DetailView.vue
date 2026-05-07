@@ -277,7 +277,7 @@ function nextScreenshot() {
           </div>
 
           <!-- Episodes -->
-          <div class="panel mx-4 mb-4 p-3 mb-[calc(100px+env(safe-area-inset-bottom,0px))]">
+          <div class="panel mx-4 mb-4 p-3 mb-[calc(150px+env(safe-area-inset-bottom,0px))]">
             <div v-if="episodesLoading" class="flex justify-center py-4">
               <span class="loading loading-spinner loading-sm text-primary/50"></span>
             </div>
