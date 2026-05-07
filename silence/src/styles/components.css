@@ -317,7 +317,7 @@
   left: 0;
   right: 0;
   z-index: var(--z-player);
-  background: rgba(var(--rgb-base), 0.82);
+  background: var(--player-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(var(--rgb-primary), 0.40);
@@ -385,10 +385,15 @@ body.player-open .grid-area {
   --plyr-range-thumb-background:   rgb(var(--rgb-primary));
   --plyr-range-thumb-height:       12px;
   --plyr-range-track-height:       4px;
-  --plyr-marker-background:        rgba(255, 255, 255, 0.45);
+  --plyr-marker-background:        rgb(var(--rgb-primary));
   --plyr-font-size-base:           0.82rem;
   --plyr-font-size-time:           0.78rem;
   color-scheme: dark;
+}
+
+/* Direct override — the CSS variable alone is unreliable for manually-injected spans */
+.audio-player .plyr__progress__marker {
+  background-color: var(--player-bg);
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */

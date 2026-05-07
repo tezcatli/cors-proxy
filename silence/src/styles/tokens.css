@@ -31,4 +31,7 @@
   /* Animation */
   --dur-slide: 0.30s;
   --ease-std:  cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* media player */
+  --player-bg: rgba(var(--rgb-base), 0.82);
 }
