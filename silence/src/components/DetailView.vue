@@ -80,13 +80,15 @@ function isEpPlaying(ep) {
 
 function playEp(ep) {
   playerStore.play({
-    game:         game.value.slug,
+    game:         game.value.name,
+    slug:         game.value.slug,
     episode:      ep.title,
     url:          ep.audioUrl,
     ts:           ep.timestampSeconds || 0,
     timestamp:    ep.timestamp || null,
     coverImageId: coverImageId.value ?? null,
     pubTs:        ep.pubTs,
+    chapters:     ep.chapters ?? [],
   })
 }
 

@@ -30,6 +30,12 @@ const searchQuery = ref(route.query.q || '')
 // URL → input (back/forward)
 watch(() => route.query.q, q => { if (route.path === '/') searchQuery.value = q || '' })
 
+// Auto-load catalog when navigating to / after login (onMounted only fires once)
+watch(() => route.path, path => {
+  if (path === '/' && loggedIn.value && !gamesStore.all.length && !gamesStore.loading)
+    gamesStore.load()
+})
+
 // Input → URL (debounced, only while on the grid)
 let searchTimer
 watch(searchQuery, q => {

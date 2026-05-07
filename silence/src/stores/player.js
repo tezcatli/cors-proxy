@@ -1,28 +1,44 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export const usePlayerStore = defineStore('player', () => {
-  const current = ref(null)   // { game, episode, url, ts, timestamp }
-  const visible = ref(false)
-  const paused  = ref(true)
+  const current     = ref(null)
+  const visible     = ref(false)
+  const paused      = ref(true)
+  const currentTime = ref(0)
+  const playVersion = ref(0)   // incremented on every play() call, not on metadata updates
 
-  function play({ game, episode, url, ts = 0, timestamp = null, coverImageId = null, pubTs = null }) {
-    current.value = { game, episode, url, ts, timestamp, coverImageId, pubTs }
+  function play({ game, slug, episode, url, ts = 0, timestamp = null, coverImageId = null, pubTs = null, chapters = null }) {
+    playVersion.value++
+    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, coverImageId, pubTs, chapters: chapters ?? [] }
     visible.value = true
     paused.value  = false
   }
 
   function close() {
-    current.value = null
-    visible.value = false
-    paused.value  = true
+    current.value     = null
+    visible.value     = false
+    paused.value      = true
+    currentTime.value = 0
   }
 
-  function setPaused(v) { paused.value = v }
+  function setPaused(v)      { paused.value = v }
+  function setCurrentTime(t) { currentTime.value = t }
+
+  const currentChapter = computed(() => {
+    const chs = current.value?.chapters
+    if (!chs?.length) return null
+    let active = null
+    for (const ch of chs) {
+      if (ch.timestampSeconds <= currentTime.value) active = ch
+      else break
+    }
+    return active
+  })
 
   function setCoverImageId(id) {
     if (current.value) current.value = { ...current.value, coverImageId: id }
   }
 
-  return { current, visible, paused, play, close, setPaused, setCoverImageId }
+  return { current, visible, paused, currentTime, playVersion, currentChapter, play, close, setPaused, setCurrentTime, setCoverImageId }
 })

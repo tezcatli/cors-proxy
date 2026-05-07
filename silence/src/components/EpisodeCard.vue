@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { formatDate } from '../lib/utils.js'
 
 const props = defineProps({
@@ -9,6 +9,14 @@ const props = defineProps({
   isPaused:  Boolean,
 })
 const emit = defineEmits(['play', 'togglePause', 'view'])
+
+const titleEl     = ref(null)
+const needsScroll = ref(false)
+
+onMounted(async () => {
+  await nextTick()
+  if (titleEl.value) needsScroll.value = titleEl.value.scrollWidth > titleEl.value.clientWidth
+})
 
 const hasAudio = computed(() => !!props.episode.audioUrl)
 
@@ -39,7 +47,10 @@ function handleKey(e) {
   >
     <div class="ep-icon" @click="handleClick">{{ icon }}</div>
     <div class="flex-1 min-w-0" @click="handleClick">
-      <div class="[.playing_&]:text-secondary text-[0.85rem] font-semibold leading-[1.35] whitespace-nowrap overflow-hidden text-ellipsis mb-[3px] sm:text-[0.88rem]">{{ episode.title }}</div>
+      <div ref="titleEl" class="ep-title-scroll [.playing_&]:text-secondary" :class="{ 'ep-title-scroll--on': needsScroll }">
+        <span class="ep-title-inner">{{ episode.title }}</span>
+        <span v-if="needsScroll" class="ep-title-inner" aria-hidden="true">{{ episode.title }}</span>
+      </div>
       <div class="text-[0.72rem] text-base-content/50 flex gap-2 flex-wrap">
         <span>{{ formatDate(episode.pubTs) }}</span>
         <span v-if="episode.timestamp" class="text-primary font-semibold">⏱ {{ episode.timestamp }}</span>

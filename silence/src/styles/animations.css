@@ -12,3 +12,15 @@
 
 /* ─── Audio player slide-up ─────────────────────────────────────────────── */
 @keyframes slideUpPlayer { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* ─── Player info marquee ────────────────────────────────────────────────── */
+@keyframes player-marquee {
+  0%, 12%  { transform: translateX(0); }
+  88%, 100% { transform: translateX(-100%); }
+}
+
+/* ─── Player info vertical ticker ────────────────────────────────────────── */
+.player-tick-enter-active { transition: transform 0.35s ease, opacity 0.35s ease; }
+.player-tick-leave-active { transition: transform 0.35s ease, opacity 0.35s ease; position: absolute; inset-inline: 0; }
+.player-tick-enter-from   { transform: translateY(100%); opacity: 0; }
+.player-tick-leave-to     { transform: translateY(-100%); opacity: 0; }

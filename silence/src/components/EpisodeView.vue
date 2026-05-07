@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
@@ -52,16 +52,20 @@ const isPlaying = computed(() =>
   !!playerStore.current && playerStore.current.url === episode.value?.audioUrl
 )
 
+const activeChapter = computed(() => isPlaying.value ? playerStore.currentChapter : null)
+
 function playFrom(ts, timestamp) {
   if (!episode.value?.audioUrl) return
   playerStore.play({
-    game: slug,
-    episode: episode.value.title,
-    url: episode.value.audioUrl,
-    ts: ts,
-    timestamp: timestamp || null,
+    game:         gameName.value,
+    slug:         slug,
+    episode:      episode.value.title,
+    url:          episode.value.audioUrl,
+    ts:           ts,
+    timestamp:    timestamp || null,
     coverImageId: playerStore.current?.coverImageId ?? null,
-    pubTs: episode.value.pubTs,
+    pubTs:        episode.value.pubTs,
+    chapters:     episode.value.chapters ?? [],
   })
 }
 
@@ -79,18 +83,28 @@ const playIcon = computed(() => {
   return playerStore.paused ? '▶' : '⏸'
 })
 
-function isGameChapter(ch) {
-  return episode.value?.timestamp && ch.timestamp === episode.value.timestamp
-}
-
 const cleanDescription = computed(() => {
   const raw = episode.value?.description
   const chs = episode.value?.chapters
   if (!raw) return null
   if (!chs?.length) return raw
   const idx = raw.indexOf(chs[0].timestamp)
-  return idx > 0 ? raw.slice(0, idx).trimEnd() : raw
+  if (idx <= 0) return raw
+  // Also strip any "Chapitres :" header that precedes the timestamp list
+  return raw.slice(0, idx).replace(/(<[^>]*>|\s)*\bchapitres\b\s*:?\s*$/i, '').trimEnd() || null
 })
+
+// Chapter title marquee — plain array for DOM refs, reactive for scroll flags
+const chapterTitleEls = []
+const chapterScrolls  = ref([])
+
+watch(() => episode.value?.chapters, (chs) => {
+  if (!chs?.length) { chapterScrolls.value = []; return }
+  chapterScrolls.value = chs.map((_, i) => {
+    const el = chapterTitleEls[i]
+    return !!el && el.scrollWidth > el.clientWidth
+  })
+}, { flush: 'post' })
 </script>
 
 <template>
@@ -155,15 +169,21 @@ const cleanDescription = computed(() => {
 
         <!-- Chapters -->
         <div v-if="episode.chapters?.length" class="panel p-3">
-          <div class="flex flex-col gap-1">
-            <button v-for="ch in episode.chapters" :key="ch.timestamp"
-              class="flex items-center gap-2.5 w-full px-2.5 py-2.5 rounded-xl border border-transparent bg-white/15 text-left text-white/65 transition-[background,border-color,color] duration-200 hover:bg-white/[0.09] hover:border-white/10 hover:text-white/85 backdrop-blur-md"
-              :class="isGameChapter(ch) ? '!bg-primary/10 !border-primary/30 !text-primary' : ''"
-              @click="playFrom(ch.timestampSeconds, ch.timestamp)">
-              <span
-                class="size-6 flex-shrink-0 rounded-full flex items-center justify-center text-[0.6rem] bg-white/[0.06] border border-white/10">▶</span>
-              <span class="font-mono text-[0.7rem] w-12 text-right flex-shrink-0 opacity-50">{{ ch.timestamp }}</span>
-              <span class="text-[0.82rem] leading-snug flex-1">{{ ch.title }}</span>
+          <div class="flex flex-col gap-1.5">
+            <button
+              v-for="(ch, i) in episode.chapters"
+              :key="ch.timestamp"
+              type="button"
+              class="episode-card has-audio w-full text-left"
+              :class="{ playing: activeChapter?.timestamp === ch.timestamp }"
+              @click="playFrom(ch.timestampSeconds, ch.timestamp)"
+            >
+              <div class="ep-icon">{{ activeChapter?.timestamp === ch.timestamp && !playerStore.paused ? '⏸' : '▶' }}</div>
+              <span class="font-mono text-[0.7rem] w-10 text-right flex-shrink-0 text-base-content/40">{{ ch.timestamp }}</span>
+              <span :ref="el => { chapterTitleEls[i] = el }" class="ep-ch-scroll" :class="{ 'ep-ch-scroll--on': chapterScrolls[i] }">
+                <span class="ep-ch-inner">{{ ch.title }}</span>
+                <span v-if="chapterScrolls[i]" class="ep-ch-inner" aria-hidden="true">{{ ch.title }}</span>
+              </span>
             </button>
           </div>
         </div>

@@ -17,7 +17,7 @@
   --col-rating-text: #ff6b81;
 
   /* Glass panel */
-  --glass-bg:     rgba(0, 0, 0, 0.6);
+  --glass-bg:     rgba(0, 0, 0, 0.4);
   --glass-blur:   12px;
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-radius: 12px;

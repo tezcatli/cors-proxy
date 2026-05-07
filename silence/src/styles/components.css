@@ -261,9 +261,54 @@
 .episode-card.playing .ep-icon         { background: rgb(var(--rgb-primary)); color: #fff; border-color: rgb(var(--rgb-primary)); }
 .episode-card:not(.has-audio) .ep-icon { background: rgba(255, 255, 255, 0.05); color: rgb(var(--rgb-muted)); border-color: rgba(255, 255, 255, 0.08); }
 
-/* ─── Audio player ────────────────────────────────────────────────────────── */
-audio::-webkit-media-controls-panel { background: rgb(var(--rgb-neutral)); }
+/* ─── Episode card title marquee ─────────────────────────────────────────── */
+.ep-title-scroll {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+  margin-bottom: 3px;
+}
 
+.ep-title-inner {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  padding-right: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  .ep-title-inner { font-size: 0.88rem; }
+}
+
+.ep-title-scroll--on .ep-title-inner {
+  animation: player-marquee 22s linear infinite;
+}
+
+/* ─── EpisodeView chapter title marquee ──────────────────────────────────── */
+.ep-ch-scroll {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ep-ch-inner {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  padding-right: 2.5rem;
+}
+
+.ep-ch-scroll--on .ep-ch-inner {
+  animation: player-marquee 22s linear infinite;
+}
+
+/* ─── Audio player ────────────────────────────────────────────────────────── */
 .audio-player { display: none; }
 
 .audio-player.active {
@@ -272,17 +317,18 @@ audio::-webkit-media-controls-panel { background: rgb(var(--rgb-neutral)); }
   left: 0;
   right: 0;
   z-index: var(--z-player);
-  background: rgba(var(--rgb-base), 0.97);
+  background: rgba(var(--rgb-base), 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(var(--rgb-primary), 0.7);
+  border-top: 1px solid rgba(var(--rgb-primary), 0.40);
   box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.6);
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas: "info close" "audio audio";
-  gap: 8px 12px;
-  padding: 12px 16px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   animation: slideUpPlayer 0.2s ease;
 }
 
@@ -290,25 +336,58 @@ body.player-open .grid-area {
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
+/* ─── Player info + marquee ──────────────────────────────────────────────── */
 .player-info {
   grid-area: info;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  flex-wrap: nowrap;
 }
-.player-game    { font-weight: 700; color: rgb(var(--rgb-primary)); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; flex-shrink: 0; }
-.player-sep     { color: rgba(255, 255, 255, 0.25); font-size: 0.9rem; flex-shrink: 0; }
-.player-episode { font-size: 0.8rem; color: rgba(255, 255, 255, 0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-.player-ts      { font-size: 0.75rem; color: rgb(var(--rgb-muted)); white-space: nowrap; flex-shrink: 0; }
 
-#audioEl {
-  grid-area: audio;
+.player-marquee {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  align-items: center;
   width: 100%;
+}
+
+.player-marquee-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-right: 3rem;
+}
+
+.player-marquee--on .player-marquee-inner {
+  animation: player-marquee 18s linear infinite;
+}
+
+.player-episode { font-size: 0.85rem; color: rgba(255, 255, 255, 0.90); }
+.player-chapter { font-size: 0.85rem; font-weight: 700; color: rgb(var(--rgb-primary)); }
+
+/* ─── Plyr wrapper (grid-area anchor) ───────────────────────────────────── */
+.player-plyr-wrap {
+  grid-area: audio;
   min-width: 0;
-  height: 40px;
-  accent-color: rgb(var(--rgb-primary));
+}
+
+/* ─── Plyr theme ─────────────────────────────────────────────────────────── */
+.audio-player .plyr {
+  --plyr-color-main:               rgb(var(--rgb-primary));
+  --plyr-audio-controls-background: transparent;
+  --plyr-audio-control-color:      rgba(255, 255, 255, 0.65);
+  --plyr-audio-control-color-hover: #fff;
+  --plyr-range-fill-background:    rgb(var(--rgb-primary));
+  --plyr-range-thumb-background:   rgb(var(--rgb-primary));
+  --plyr-range-thumb-height:       12px;
+  --plyr-range-track-height:       4px;
+  --plyr-marker-background:        rgba(255, 255, 255, 0.45);
+  --plyr-font-size-base:           0.82rem;
+  --plyr-font-size-time:           0.78rem;
   color-scheme: dark;
 }
 
@@ -352,15 +431,11 @@ body.player-open .grid-area {
   .detail-cover-card { height: clamp(200px, 33vh, 380px); }
 
   .audio-player.active {
-    display: flex;
-    flex-direction: row;
+    grid-template-columns: 1fr minmax(200px, 440px) auto;
+    grid-template-areas: "info audio close";
     align-items: center;
-    gap: 16px;
+    column-gap: 16px;
     padding: 10px 24px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
-  .player-info    { flex: 1; min-width: 0; }
-  #audioEl        { flex: 1; min-width: 180px; max-width: 500px; width: auto; }
-  .player-game    { max-width: 220px; }
-  .player-episode { max-width: 340px; }
 }
