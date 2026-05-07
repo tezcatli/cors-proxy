@@ -88,10 +88,14 @@ const cleanDescription = computed(() => {
   const chs = episode.value?.chapters
   if (!raw) return null
   if (!chs?.length) return raw
-  const idx = raw.indexOf(chs[0].timestamp)
-  if (idx <= 0) return raw
-  // Also strip any "Chapitres :" header that precedes the timestamp list
-  return raw.slice(0, idx).replace(/(<[^>]*>|\s)*\bchapitres\b\s*:?\s*$/i, '').trimEnd() || null
+  let tmp = raw.replace(/<p>Chapitres[\s\S]*?<\/p>/i, '')
+  
+  for (const ch of chs) {
+    let reg = new RegExp(`<p>${ch.timestamp}[\\s\\S]*?</p>`, "i")
+    tmp = tmp.replace(reg, '');
+  }
+
+  return tmp.trimEnd() || null
 })
 
 // Chapter title marquee — plain array for DOM refs, reactive for scroll flags

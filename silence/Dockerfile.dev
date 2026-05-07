@@ -4,4 +4,4 @@ FROM node:22-alpine
 COPY package.json package-lock.json* /
 RUN cd / && npm install
 WORKDIR /silence
-CMD ["node", "/node_modules/.bin/vite", "build", "--watch", "--mode", "development"]
+CMD ["node", "/node_modules/.bin/vite", "dev", "--host", "0.0.0.0"]

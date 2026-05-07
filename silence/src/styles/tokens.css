@@ -4,6 +4,7 @@
   --rgb-neutral: 26, 42, 80;
   --rgb-primary: 233, 69, 96;
   --rgb-muted:   136, 136, 170;
+  --rgb-light:   #bbb9b9;
 
   /* Score palette channels */
   --rgb-high: 76, 175, 80;
@@ -22,6 +23,7 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-radius: 12px;
 
+
   /* Z-index layers */
   --z-player:   300;
   --z-detail:   150;
@@ -34,4 +36,5 @@
 
   /* media player */
   --player-bg: rgba(var(--rgb-base), 0.82);
+  --player-control: var(--rgb-light)
 }

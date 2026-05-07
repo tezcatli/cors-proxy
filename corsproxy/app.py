@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import requests
 from flask import Flask, request, Response, jsonify
 from config import Config
 from db import init_db
@@ -31,6 +32,18 @@ def create_app(testing=False):
         @_app.route("/silence/", defaults={"path": ""})
         @_app.route("/silence/<path:path>")
         def silence_spa(path):
+            if Config.DEBUG and os.environ.get("VITE_DEV_SERVER", "false").lower() == "true":
+                vite_url = f"http://silence:5173/silence/{path}" if path else "http://silence:5173/silence/"
+                try:
+                    vite_resp = requests.get(vite_url, params=request.args, timeout=5)
+                    excluded = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+                    headers = [(k, v) for k, v in vite_resp.headers.items() if k.lower() not in excluded]
+                    response = Response(vite_resp.content, status=vite_resp.status_code, headers=headers)
+                    response.headers["Cache-Control"] = "no-store"
+                    return response
+                except requests.RequestException:
+                    pass
+
             full = pathlib.Path(_app.static_folder) / path
             filename = path if full.is_file() else "index.html"
             resp = send_from_directory(_app.static_folder, filename)

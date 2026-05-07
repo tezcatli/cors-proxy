@@ -8,6 +8,7 @@ services:
     environment:
       DEBUG: "true"
       LOGGER_LEVEL: "DEBUG"
+      VITE_DEV_SERVER: "true"
     env_file:
       - path: ./corsproxy_secrets.env
         required: true
@@ -24,5 +25,7 @@ services:
     build:
       context: ./silence
       dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
     volumes:
       - ./silence:/silence

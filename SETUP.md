@@ -76,7 +76,8 @@ docker compose -f docker-compose.dev.yml up --build
 ```
 
 The frontend is served at **http://localhost:5000/silence** and the API at
-**http://localhost:5000**.
+**http://localhost:5000**. In dev, frontend asset requests are proxied to Vite's
+hot-reload server on port `5173`.
 
 **3. Invite the first user:**
 ```bash

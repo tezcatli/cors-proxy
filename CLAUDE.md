@@ -25,7 +25,7 @@ docker compose -f docker-compose.dev.yml up --build
 # Frontend: http://localhost:5000/silence  API: http://localhost:5000
 ```
 
-In dev, Flask (`DEBUG=true`) serves the built frontend from `silence/dist/` at `/silence/`. The Vite dev container watches `silence/` and writes to `dist/` via a volume mount — so `vite build --watch` runs inside the container, not the host.
+In dev, Flask (`DEBUG=true`) proxies `/silence/` asset requests to the Vite dev server at `http://silence:5173`, while still serving API routes itself. This ensures CSS and JS changes are served immediately from Vite rather than from stale built output.
 
 ### Testing
 

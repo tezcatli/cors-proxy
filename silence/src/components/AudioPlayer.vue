@@ -194,7 +194,7 @@ function close() {
       <!-- Info: episode title / current chapter alternating marquee -->
       <div class="player-info" @click="navigateToEpisode">
         <Transition name="player-tick">
-          <div :key="tickKey" class="player-marquee" ref="marqueeEl" :class="{ 'player-marquee--on': needsScroll }">
+          <div :key="tickKey" class="player-marquee" ref="marqueeEl" :class="{ 'player-marquee--on': needsScroll }" style="line-height: 1.0;padding:0;margin:0;">
             <div class="player-marquee-inner" :class="isShowingChapter ? 'player-chapter' : 'player-episode'">{{ currentLabel }}</div>
             <div v-if="needsScroll" class="player-marquee-inner" :class="isShowingChapter ? 'player-chapter' : 'player-episode'" aria-hidden="true">{{ currentLabel }}</div>
           </div>
@@ -203,8 +203,8 @@ function close() {
 
       <!-- Close -->
       <button
-        class="btn btn-circle btn-ghost !size-9 !min-h-9 text-[1.1rem] [grid-area:close] self-center"
-        aria-label="Fermer le lecteur"
+        class="btn btn-circle btn-ghost !size-5 !min-h-5 text-[1.0rem] [grid-area:close] self-center"
+        aria-label="Fermer le lecteur" style="line-height: 1.0;padding:0;margin:0;"
         @click="close"
       >✕</button>
 
