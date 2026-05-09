@@ -8,9 +8,10 @@ export const usePlayerStore = defineStore('player', () => {
   const currentTime = ref(0)
   const playVersion = ref(0)   // incremented on every play() call, not on metadata updates
 
-  function play({ game, slug, episode, url, ts = 0, timestamp = null, coverImageId = null, pubTs = null, chapters = null }) {
+  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, chapters = null }) {
     playVersion.value++
-    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, coverImageId, pubTs, chapters: chapters ?? [] }
+    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, chapters: chapters ?? [] }
+    console.log('Playing:', current.value)
     visible.value = true
     paused.value  = false
   }
@@ -36,9 +37,9 @@ export const usePlayerStore = defineStore('player', () => {
     return active
   })
 
-  function setCoverImageId(id) {
-    if (current.value) current.value = { ...current.value, coverImageId: id }
+  function setEpisodeImageUrl(url) {
+    if (current.value) current.value = { ...current.value, episodeImageUrl: url }
   }
 
-  return { current, visible, paused, currentTime, playVersion, currentChapter, play, close, setPaused, setCurrentTime, setCoverImageId }
+  return { current, visible, paused, currentTime, playVersion, currentChapter, play, close, setPaused, setCurrentTime, setEpisodeImageUrl }
 })

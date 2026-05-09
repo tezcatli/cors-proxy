@@ -25,3 +25,13 @@ export async function fetchIgdb(slugs) {
   const r = await apiFetch(`/games/igdb?${params}`)
   return r.json()
 }
+
+export async function fetchEpisodes() {
+  const r = await apiFetch('/games/episodes')
+  return r.json()
+}
+
+export async function fetchEpisodeDetail(pubTs) {
+  const r = await apiFetch(`/games/episode?pubTs=${encodeURIComponent(pubTs)}`)
+  return r.json()
+} 

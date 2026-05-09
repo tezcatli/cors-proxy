@@ -3,7 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
-import { fetchGameDetail } from '../lib/games.js'
+import { fetchEpisodeDetail, fetchGameDetail } from '../lib/games.js'
 import { formatDate } from '../lib/utils.js'
 
 const route = useRoute()
@@ -21,17 +21,19 @@ const error = ref(null)
 
 onMounted(async () => {
   document.body.style.overflow = 'hidden'
-  const storeGame = gamesStore.all.find(g => g.slug === slug)
-  gameName.value = storeGame?.name ?? slug
+ 
   try {
-    const detail = await fetchGameDetail(slug)
-    gameName.value = detail.name || gameName.value
-    episode.value = detail.episodes.find(ep => ep.pubTs === pubTs) ?? null
+    if (slug != null) {
+      gameName.value = await fetchGameDetail(slug)  
+    }
+    episode.value = await fetchEpisodeDetail(pubTs)
   } catch (e) {
+    console.error('Error fetching episode details:', e)
     error.value = e.message
   } finally {
     loading.value = false
-  }
+  } 
+  console.log('Episode view mounted with slug:', slug, 'pubTs:', pubTs)
 })
 
 function back() {
@@ -63,19 +65,19 @@ function playFrom(ts, timestamp) {
     url:          episode.value.audioUrl,
     ts:           ts,
     timestamp:    timestamp || null,
-    coverImageId: episode.value.coverImageId || null,
+    episodeImageUrl:     episode.value.imageUrl,
     pubTs:        episode.value.pubTs,
     chapters:     episode.value.chapters ?? [],
   })
 }
 
 function togglePlay() {
-  if (!episode.value?.audioUrl) return
+  if (!episode?.audioUrl) return
   if (isPlaying.value) {
     playerStore.setPaused(!playerStore.paused)
     return
   }
-  playFrom(episode.value.timestampSeconds || 0, episode.value.timestamp)
+  playFrom(episode.timestampSeconds || 0, episode.timestamp)
 }
 
 const playIcon = computed(() => {
@@ -85,7 +87,7 @@ const playIcon = computed(() => {
 
 const cleanDescription = computed(() => {
   const raw = episode.value?.description
-  const chs = episode.value?.chapters
+  const chs = episode.chapters
   if (!raw) return null
   if (!chs?.length) return raw
   let tmp = raw.replace(/<p>Chapitres[\s\S]*?<\/p>/i, '')
@@ -95,14 +97,14 @@ const cleanDescription = computed(() => {
     tmp = tmp.replace(reg, '');
   }
 
-  return tmp.trimEnd() || null
+  return tmp
 })
 
 // Chapter title marquee — plain array for DOM refs, reactive for scroll flags
 const chapterTitleEls = []
 const chapterScrolls  = ref([])
 
-watch(() => episode.value?.chapters, (chs) => {
+watch(() => episode?.chapters, (chs) => {
   if (!chs?.length) { chapterScrolls.value = []; return }
   chapterScrolls.value = chs.map((_, i) => {
     const el = chapterTitleEls[i]
@@ -160,8 +162,8 @@ watch(() => episode.value?.chapters, (chs) => {
           <!-- Description -->
 
           <div v-if="cleanDescription" class="ep-desc text-[0.82rem] text-base-content/80 leading-relaxed mb-5"
-            v-html="cleanDescription" />
-
+            v-html="cleanDescription">
+          </div>
           <!-- Play button -->
           <button v-if="episode.audioUrl && !episode.chapters?.length" class="btn btn-sm btn-primary mb-5 gap-2"
             @click="togglePlay">

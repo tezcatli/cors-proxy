@@ -45,6 +45,7 @@ export const useGamesStore = defineStore('games', () => {
     error.value   = null
     try {
       all.value      = await fetchCatalog()
+      console.log('Catalog loaded:', all.value)
       lastFetch.value = new Date().toISOString()
     } catch (err) {
       error.value = err.message

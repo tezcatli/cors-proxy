@@ -267,6 +267,7 @@ def _fetch_rss():
         _rss_at = utcnow()
 
 def _games_from_rss():
+    logger.info("Extracting games from RSS feed")
     with _rss_lock:
         episodes = list(_rss_parsed)
     games = {}
@@ -278,6 +279,8 @@ def _games_from_rss():
             if ps not in games:
                 games[ps] = {'name': g['name'], 'slug': ps,
                              'episodes': [], 'latestPubTs': 0, 'episodeCount': 0}
+            else:
+                logger.info("Duplicate game slug %r for episode %r, skipping", ps, ep['title'])
             games[ps]['episodes'].append({
                 'title':            ep['title'],
                 'audioUrl':         ep.get('audioUrl'),
@@ -490,6 +493,21 @@ def _game_detail_response(game_row, episodes):
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@games_bp.route('/episodes')
+def games_episodes():
+    global _rss_parsed
+    return jsonify(_rss_parsed)
+
+@games_bp.route('/episode') 
+def games_episode():
+    pubTs = request.args.getlist('pubTs')
+    if not pubTs:
+        abort(400, 'pubTs parameter is required')
+    global _rss_parsed
+    episode = next((ep for ep in _rss_parsed if str(ep.get('pubTs')) in pubTs), None)
+    return jsonify(episode) if episode else abort(404, 'Episode not found')
+
 @games_bp.route('', strict_slashes=False)
 def catalog():
     if _rss_is_stale():

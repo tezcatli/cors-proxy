@@ -102,19 +102,30 @@ function setMSState(state) {
 }
 
 function setMediaSession(cur) {
-  if (!('mediaSession' in navigator)) return
-  const artwork = cur.coverImageId ? [
-    { src: igdbUrl(cur.coverImageId, 't_cover_big'),    sizes: '264x374', type: 'image/jpeg' },
-    { src: igdbUrl(cur.coverImageId, 't_cover_big_2x'), sizes: '528x748', type: 'image/jpeg' },
-  ] : []
-  navigator.mediaSession.metadata = new MediaMetadata({
+  if (!('mediaSession' in navigator)) {
+    console.log('MediaSession not supported in this browser')
+    return
+  }
+
+  const metadata = new MediaMetadata({
     title:  cur.episode,
-    artist: cur.game,
     album:  'Silence on Joue',
-    artwork,
+    //artist: cur.game,
+    artwork: cur.coverImageId ? [
+      { src: igdbUrl(cur.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }
+    ] : [cur.episodeImageUrl ? { src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' } : null].filter(Boolean),
   })
-  navigator.mediaSession.setActionHandler('play',  () => plyrInstance?.play())
-  navigator.mediaSession.setActionHandler('pause', () => plyrInstance?.pause())
+
+  navigator.mediaSession.metadata = metadata
+  
+  navigator.mediaSession.setActionHandler('play',  () => {
+    console.log('MediaSession play handler called')
+    plyrInstance?.play()
+  })
+  navigator.mediaSession.setActionHandler('pause', () => {
+    console.log('MediaSession pause handler called')
+    plyrInstance?.pause()
+  })
 }
 
 // ── Play commands (fired on every playerStore.play() call) ───────────────────
@@ -153,9 +164,12 @@ watch(() => playerStore.playVersion, () => {
           : ['play', 'progress', 'current-time', 'duration', 'mute', 'volume'],
         resetOnEnd: false,
       })
-      plyrInstance.on('timeupdate', () => playerStore.setCurrentTime(plyrInstance.currentTime ?? 0))
-      plyrInstance.on('pause', () => { playerStore.setPaused(true);  setMSState('paused')  })
-      plyrInstance.on('play',  () => { playerStore.setPaused(false); setMSState('playing') })
+      plyrInstance.on('play',  () => {
+        playerStore.setPaused(false)
+        setMSState('playing')
+        // Set MediaSession after audio starts playing
+        if (playerStore.current) setMediaSession(playerStore.current)
+      })
     }
 
     updatePlyrMarkers(cur.chapters)  // inject chapter ticks now that duration is known
@@ -179,7 +193,10 @@ watch(() => playerStore.visible, visible => {
 
 // ── Cover image lazy-loaded after initial play ───────────────────────────────
 watch(() => playerStore.current?.coverImageId, id => {
-  if (id && playerStore.current) setMediaSession(playerStore.current)
+  if (id && playerStore.current) {
+    console.log('Cover image loaded, updating MediaSession')
+    setMediaSession(playerStore.current)
+  }
 })
 
 function close() {

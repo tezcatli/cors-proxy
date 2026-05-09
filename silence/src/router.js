@@ -11,7 +11,8 @@ const router = createRouter({
   routes: [
     { path: '/',                                  component: Empty },
     { path: '/game/:slug',                        component: DetailView },
-    { path: '/game/:slug/episode/:pubTs',         component: EpisodeView },
+    { path: '/episode/:pubTs',         component: EpisodeView },
+    { path: '/episode/:pubTs/game/:slug',         component: EpisodeView },
     { path: '/login',                             component: LoginPage },
     { path: '/:pathMatch(.*)*',                   redirect: '/' },
   ],

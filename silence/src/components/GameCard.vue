@@ -53,7 +53,7 @@ onUnmounted(() => {
       class="w-full h-full object-cover block"
       :src="coverImageId ? igdbUrl(coverImageId, 't_cover_big_2x') : placeholderCover"
       :srcset="coverImageId
-        ? `${igdbUrl(coverImageId,'t_cover_small')} 128h, ${igdbUrl(coverImageId,'t_cover_big')} 374h, ${igdbUrl(coverImageId,'t_cover_big_2x')} 748h`
+        ? `${igdbUrl(coverImageId,'t_cover_small')} 90w 128h, ${igdbUrl(coverImageId,'t_cover_big')} 264w 374h, ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w 748h`
         : undefined"
       :alt="game.name"
     />

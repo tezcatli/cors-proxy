@@ -68,11 +68,9 @@ async function refreshIgdb() {
   }
 }
 
-/*
 watch(coverImageId, id => {
-  if (id && playerStore.current?.game === game.value?.slug) playerStore.setCoverImageId(id)
+  if (id && playerStore.current?.slug === game.value?.slug) playerStore.setEpisodeImageUrl(igdbUrl(id, 't_cover_big'))()
 })
-  */
 
 const epCount = computed(() => formatEpisodeCount(game.value?.episodeCount ?? episodes.value.length))
 
@@ -95,7 +93,7 @@ function playEp(ep) {
 }
 
 function viewEp(ep) {
-  router.push(`/game/${game.value.slug}/episode/${ep.pubTs}`)
+  router.push(`/episode/${ep.pubTs}/game/${game.value.slug}`)
 }
 
 function togglePause() { playerStore.setPaused(!playerStore.paused) }
@@ -172,7 +170,7 @@ function nextScreenshot() {
         class="w-full h-full object-cover object-center"
         :src="bgImageId && !bgFailed ? igdbUrl(bgImageId, 't_1080p') : placeholderBg"
         :srcset="bgImageId && !bgFailed
-          ? `${igdbUrl(bgImageId,'t_720p')} 1280w, ${igdbUrl(bgImageId,'t_1080p')} 1920w, ${igdbUrl(bgImageId,'t_720p_2x')} 2560w, ${igdbUrl(bgImageId,'t_1080p_2x')} 3840w`
+          ? `${igdbUrl(bgImageId,'t_720p')} 1280w 720h, ${igdbUrl(bgImageId,'t_1080p')} 1920w 1080h, ${igdbUrl(bgImageId,'t_720p_2x')} 2560w 1440h, ${igdbUrl(bgImageId,'t_1080p_2x')} 3840w 2160h`
           : undefined"
         sizes="100vw"
         alt=""
@@ -200,7 +198,7 @@ function nextScreenshot() {
               class="w-full h-full object-cover block"
               :src="coverImageId && !coverFailed ? igdbUrl(coverImageId, 't_cover_big') : placeholderCover"
               :srcset="coverImageId && !coverFailed
-                ? `${igdbUrl(coverImageId,'t_cover_big')} 374w, ${igdbUrl(coverImageId,'t_cover_big_2x')} 748w`
+                ? `${igdbUrl(coverImageId,'t_cover_big')} 264w 374h , ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w 748h`
                 : undefined"
               :alt="game.name"
               @error="coverFailed = true"
@@ -314,7 +312,7 @@ function nextScreenshot() {
       <img
         class="lightbox-img"
         :src="igdbUrl(selectedScreenshot, 't_screenshot_huge')"
-        :srcset="`${igdbUrl(selectedScreenshot, 't_screenshot_huge')} 1280w, ${igdbUrl(selectedScreenshot, 't_1080p')} 1920w`"
+        :srcset="`${igdbUrl(selectedScreenshot, 't_screenshot_huge')} 1280w 720h, ${igdbUrl(selectedScreenshot, 't_1080p')} 1920w 1080h`"
         sizes="100vw"
         alt=""
       />
