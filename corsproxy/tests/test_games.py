@@ -6,10 +6,7 @@ import pytest
 import games as games_module
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
-from games import (
-    _extract_game_names, _extract_legacy_names,
-    _parse_feed,
-)
+from rss import extract_game_names as _extract_game_names, extract_legacy_names as _extract_legacy_names, parse_feed as _parse_feed
 
 GAMES = CONTRACT['games']
 
@@ -98,17 +95,17 @@ def test_extract_game_names_guillemets_take_priority():
 
 def test_parse_feed_returns_game_list():
     episodes = _parse_feed(MINIMAL_RSS)
-    names = {g['name'] for ep in episodes for g in ep['games']}
+    names = {g.name for ep in episodes for g in ep.games}
     assert 'Zelda' in names
     assert 'Mario Kart' in names
 
 def test_parse_feed_filters_non_game_episodes():
     episodes = _parse_feed(MINIMAL_RSS)
     assert len(episodes) == 1
-    assert len(episodes[0]['games']) == 2
+    assert len(episodes[0].games) == 2
 
 def test_parse_feed_uses_raw_podcast_name():
-    # _parse_feed no longer applies corrections — canonical name comes from IGDB
+    # parse_feed no longer applies corrections — canonical name comes from IGDB
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
       <item>
         <title>On a joue \xc2\xab artic eggs \xc2\xbb</title>
@@ -117,22 +114,22 @@ def test_parse_feed_uses_raw_podcast_name():
       </item></channel></rss>"""
     rss = rss.replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
     episodes = _parse_feed(rss)
-    assert episodes[0]['games'][0]['name'].strip() == 'artic eggs'
+    assert episodes[0].games[0].name.strip() == 'artic eggs'
 
 def test_parse_feed_sets_audio_url():
     episodes = _parse_feed(MINIMAL_RSS)
-    assert episodes[0]['audioUrl'] == 'https://example.com/ep1.mp3'
+    assert episodes[0].audio_url == 'https://example.com/ep1.mp3'
 
 def test_parse_feed_parses_pub_ts():
     episodes = _parse_feed(MINIMAL_RSS)
-    assert isinstance(episodes[0]['pubTs'], int)
-    assert episodes[0]['pubTs'] > 0
+    assert isinstance(episodes[0].pub_ts, int)
+    assert episodes[0].pub_ts > 0
 
 def test_parse_feed_resolves_timestamps():
     episodes = _parse_feed(MINIMAL_RSS)
-    zelda = next(g for g in episodes[0]['games'] if g['name'] == 'Zelda')
-    assert zelda['timestamp'] == '00:30'
-    assert zelda['tsSeconds'] == 30
+    zelda = next(g for g in episodes[0].games if g.name == 'Zelda')
+    assert zelda.timestamp == '00:30'
+    assert zelda.timestamp_seconds == 30
 
 
 # ── GET /games ────────────────────────────────────────────────────────────────
@@ -144,7 +141,7 @@ def test_no_auth_returns_401(client):
 
 def test_catalog_returns_list(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_resolve'):
+         patch('games._schedule_resolve'):
         r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     data = r.get_json()
@@ -154,7 +151,7 @@ def test_catalog_returns_list(client):
 
 def test_catalog_response_has_igdb_field(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_resolve'):
+         patch('games._schedule_resolve'):
         r = client.get('/games', headers=auth_header())
     data = r.get_json()
     assert all('igdb' in g for g in data)
@@ -162,25 +159,59 @@ def test_catalog_response_has_igdb_field(client):
 
 def test_cache_hit_skips_fetch(client):
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._start_resolve'):
+         patch('games._schedule_resolve'):
         client.get('/games', headers=auth_header())
         client.get('/games', headers=auth_header())
     mock_get.assert_called_once()
 
 
 def test_expired_cache_refetches(client):
-    games_module._rss_at = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-                            - datetime.timedelta(hours=9))
+    games_module._cached_at = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+                               - datetime.timedelta(hours=9))
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._start_resolve'):
+         patch('games._schedule_resolve'):
         r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     mock_get.assert_called_once()
 
 
+def test_catalog_deduplicates_by_igdb_slug(client):
+    rss_two_names = b"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <item>
+    <title>On a joue a \xc2\xabZelda\xc2\xbb</title>
+    <enclosure url="https://example.com/ep1.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate>
+    <description>00:30 Zelda</description>
+  </item>
+  <item>
+    <title>On a joue a \xc2\xabZelda BotW\xc2\xbb</title>
+    <enclosure url="https://example.com/ep2.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate>
+    <description>00:30 Zelda BotW</description>
+  </item>
+</channel></rss>"""
+    rss_two_names = rss_two_names.replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+
+    from models import IgdbEntry
+    igdb_cache = {
+        'zelda-20240115':      IgdbEntry('zelda-20240115',      1, 'zelda', 'Zelda', None, False, '2099-01-01'),
+        'zelda-botw-20240122': IgdbEntry('zelda-botw-20240122', 1, 'zelda', 'Zelda', None, False, '2099-01-01'),
+    }
+    with patch('games.http.get', return_value=mock_rss_response(rss_two_names)), \
+         patch('games._schedule_resolve'), \
+         patch.object(games_module, '_igdb_cache', igdb_cache):
+        r = client.get('/games', headers=auth_header())
+
+    data = r.get_json()
+    zelda_entries = [g for g in data if g['slug'] == 'zelda']
+    assert len(zelda_entries) == 1
+    assert zelda_entries[0]['episodeCount'] == 2
+
+
 def test_catalog_igdb_is_slim(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_resolve'):
+         patch('games._schedule_resolve'):
         r = client.get('/games', headers=auth_header())
     data = r.get_json()
     for game in data:
@@ -192,7 +223,7 @@ def test_catalog_igdb_is_slim(client):
 
 def test_game_detail_returns_episodes(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_resolve'):
+         patch('games._schedule_resolve'):
         client.get('/games', headers=auth_header())
     r = client.get('/games/Zelda', headers=auth_header())
     assert_contract(r, GAMES['game_detail']['success'])
@@ -215,7 +246,11 @@ def test_refresh_always_fetches(client):
 # ── POST /games/<slug>/igdb-refresh ──────────────────────────────────────────
 
 def test_igdb_refresh_returns_game_detail(client):
-    games_module._rss_parsed = _parse_feed(MINIMAL_RSS)
+    episodes = _parse_feed(MINIMAL_RSS)
+    episode_index, game_index = games_module._build_indexes(episodes)
+    games_module._cached_episodes = episodes
+    games_module._episode_index   = episode_index
+    games_module._game_index      = game_index
     with patch('games._resolve_one'):
         r = client.post('/games/Zelda/igdb-refresh', headers=auth_header())
     assert_contract(r, GAMES['igdb_refresh']['success'])
@@ -228,7 +263,7 @@ def test_igdb_refresh_returns_game_detail(client):
 
 def test_igdb_returns_map(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._start_resolve'):
+         patch('games._schedule_resolve'):
         client.get('/games', headers=auth_header())
     r = client.get('/games/igdb?slug=zelda&slug=mario-kart', headers=auth_header())
     assert_contract(r, GAMES['igdb']['success'])

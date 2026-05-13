@@ -9,11 +9,12 @@ const Empty = { render: () => null }
 const router = createRouter({
   history: createWebHistory('/silence/'),
   routes: [
-    { path: '/',                                  component: Empty },
-    { path: '/game/:slug',                        component: DetailView },
-    { path: '/episode/:pubTs',         component: EpisodeView },
-    { path: '/episode/:pubTs/game/:slug',         component: EpisodeView },
-    { path: '/login',                             component: LoginPage },
+    { path: '/',                                  component: Empty,       meta: { depth: 0 } },
+    { path: '/episodes',                          component: Empty,       meta: { depth: 0 } },
+    { path: '/game/:slug',                        component: DetailView,  meta: { depth: 1 } },
+    { path: '/episode/:episodeSlug',              component: EpisodeView, meta: { depth: 1 } },
+    { path: '/episode/:episodeSlug/game/:slug',   component: EpisodeView, meta: { depth: 2 } },
+    { path: '/login',                             component: LoginPage,   meta: { depth: 1 } },
     { path: '/:pathMatch(.*)*',                   redirect: '/' },
   ],
 })

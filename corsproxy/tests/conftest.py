@@ -54,5 +54,8 @@ def clean_db():
             DELETE FROM invitations;
             DELETE FROM users;
         """)
-    _games._rss_parsed = []
-    _games._rss_at = None
+    _games._cached_episodes = []
+    _games._episode_index   = {}
+    _games._game_index      = {}
+    _games._igdb_cache      = {}
+    _games._cached_at       = None

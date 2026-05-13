@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
@@ -88,13 +88,64 @@ watch(marqueeEl, el => {
   }
 })
 watch(currentLabel, checkScroll)
-onUnmounted(() => { destroyPlyr(); resizeObs?.disconnect(); stopFlip() })
+
+watch(() => playerStore.paused, paused => {
+  if (!plyrInstance || !playerStore.current) return
+  if (paused && !plyrInstance.paused) try { plyrInstance.pause() } catch (_) {}
+  else if (!paused && plyrInstance.paused) try { plyrInstance.play()  } catch (_) {}
+})
+
+watch(() => playerStore.currentChapter, chapter => {
+  if (!('mediaSession' in navigator)) return
+  const meta = navigator.mediaSession.metadata
+  if (!meta || !playerStore.current) return
+  const cur = playerStore.current
+  const coverArt = id => [{ src: igdbUrl(id, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
+  if (chapter) {
+    meta.title   = chapter.title
+    meta.artwork = chapter.coverImageId
+      ? coverArt(chapter.coverImageId)
+      : cur.episodeImageUrl ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+  } else {
+    meta.title   = cur.episode
+    meta.artwork = cur.coverImageId
+      ? coverArt(cur.coverImageId)
+      : cur.episodeImageUrl ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+  }
+})
+
+function onTimeUpdate() {
+  playerStore.setCurrentTime(audioEl.value?.currentTime ?? 0)
+  const el = audioEl.value
+  if ('mediaSession' in navigator && el && isFinite(el.duration) && el.duration > 0) {
+    try {
+      navigator.mediaSession.setPositionState({
+        duration:     el.duration,
+        playbackRate: el.playbackRate,
+        position:     el.currentTime,
+      })
+    } catch (_) {}
+  }
+}
+
+onMounted(() => {
+  audioEl.value?.addEventListener('timeupdate', onTimeUpdate)
+})
+
+onUnmounted(() => {
+  audioEl.value?.removeEventListener('timeupdate', onTimeUpdate)
+  destroyPlyr()
+  resizeObs?.disconnect()
+  stopFlip()
+})
 
 function navigateToEpisode() {
   const cur = playerStore.current
   if (!cur) return
-  if (cur.pubTs) router.push(`/game/${encodeURIComponent(cur.slug)}/episode/${cur.pubTs}`)
-  else           router.push('/game/' + encodeURIComponent(cur.slug))
+  if (cur.episodeSlug)
+    router.push(`/episode/${encodeURIComponent(cur.episodeSlug)}/game/${encodeURIComponent(cur.slug)}`)
+  else
+    router.push('/game/' + encodeURIComponent(cur.slug))
 }
 
 function setMSState(state) {
@@ -116,16 +167,58 @@ function setMediaSession(cur) {
     ] : [cur.episodeImageUrl ? { src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' } : null].filter(Boolean),
   })
 
+  try {
+    if (cur.chapters?.length) {
+      const episodeArt = cur.episodeImageUrl
+        ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }]
+        : []
+      metadata.chapterInformation = cur.chapters.map(ch => ({
+        title:     ch.title,
+        startTime: ch.timestampSeconds,
+        artwork:   ch.coverImageId
+          ? [{ src: igdbUrl(ch.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
+          : episodeArt,
+      }))
+    }
+  } catch (_) {}
+
   navigator.mediaSession.metadata = metadata
-  
-  navigator.mediaSession.setActionHandler('play',  () => {
-    console.log('MediaSession play handler called')
-    plyrInstance?.play()
+
+  navigator.mediaSession.setActionHandler('play',  () => { plyrInstance?.play() })
+  navigator.mediaSession.setActionHandler('pause', () => { plyrInstance?.pause() })
+  navigator.mediaSession.setActionHandler('seekto', details => {
+    if (details.seekTime != null && audioEl.value) audioEl.value.currentTime = details.seekTime
   })
-  navigator.mediaSession.setActionHandler('pause', () => {
-    console.log('MediaSession pause handler called')
-    plyrInstance?.pause()
-  })
+
+  if (cur.chapters?.length) {
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      const chapters = playerStore.current?.chapters
+      const t = audioEl.value?.currentTime ?? 0
+      if (!chapters?.length) { if (audioEl.value) audioEl.value.currentTime = 0; return }
+      let idx = -1
+      for (let i = 0; i < chapters.length; i++) {
+        if (chapters[i].timestampSeconds <= t) idx = i
+        else break
+      }
+      if (idx >= 0 && t - chapters[idx].timestampSeconds > 3) {
+        audioEl.value.currentTime = chapters[idx].timestampSeconds
+      } else if (idx > 0) {
+        audioEl.value.currentTime = chapters[idx - 1].timestampSeconds
+      } else {
+        audioEl.value.currentTime = 0
+      }
+    })
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      const chapters = playerStore.current?.chapters
+      const t = audioEl.value?.currentTime ?? 0
+      if (!chapters?.length) return
+      const next = chapters.find(ch => ch.timestampSeconds > t)
+      if (next && audioEl.value) audioEl.value.currentTime = next.timestampSeconds
+    })
+  } else {
+    navigator.mediaSession.setActionHandler('previoustrack', null)
+    navigator.mediaSession.setActionHandler('nexttrack', null)
+  }
 }
 
 // ── Play commands (fired on every playerStore.play() call) ───────────────────
@@ -167,8 +260,15 @@ watch(() => playerStore.playVersion, () => {
       plyrInstance.on('play',  () => {
         playerStore.setPaused(false)
         setMSState('playing')
-        // Set MediaSession after audio starts playing
         if (playerStore.current) setMediaSession(playerStore.current)
+      })
+      plyrInstance.on('pause', () => {
+        playerStore.setPaused(true)
+        setMSState('paused')
+      })
+      plyrInstance.on('ended', () => {
+        playerStore.setPaused(true)
+        setMSState('none')
       })
     }
 

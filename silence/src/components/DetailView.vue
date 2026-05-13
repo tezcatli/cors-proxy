@@ -69,7 +69,7 @@ async function refreshIgdb() {
 }
 
 watch(coverImageId, id => {
-  if (id && playerStore.current?.slug === game.value?.slug) playerStore.setEpisodeImageUrl(igdbUrl(id, 't_cover_big'))()
+  if (id && playerStore.current?.slug === game.value?.slug) playerStore.setEpisodeImageUrl(igdbUrl(id, 't_cover_big'))
 })
 
 const epCount = computed(() => formatEpisodeCount(game.value?.episodeCount ?? episodes.value.length))
@@ -80,20 +80,22 @@ function isEpPlaying(ep) {
 
 function playEp(ep) {
   playerStore.play({
-    game:         game.value.name,
-    slug:         game.value.slug,
-    episode:      ep.title,
-    url:          ep.audioUrl,
-    ts:           ep.timestampSeconds || 0,
-    timestamp:    ep.timestamp || null,
-    coverImageId: coverImageId.value ?? null,
-    pubTs:        ep.pubTs,
-    chapters:     ep.chapters ?? [],
+    game:            game.value.name,
+    slug:            game.value.slug,
+    episode:         ep.title,
+    url:             ep.audioUrl,
+    ts:              ep.timestampSeconds || 0,
+    timestamp:       ep.timestamp || null,
+    episodeImageUrl: ep.imageUrl ?? null,
+    pubTs:           ep.pubTs,
+    episodeSlug:     ep.slug,
+    coverImageId:    coverImageId.value,
+    chapters:        ep.chapters ?? [],
   })
 }
 
 function viewEp(ep) {
-  router.push(`/episode/${ep.pubTs}/game/${game.value.slug}`)
+  router.push(`/episode/${ep.slug}/game/${game.value.slug}`)
 }
 
 function togglePause() { playerStore.setPaused(!playerStore.paused) }
@@ -109,7 +111,10 @@ watch(game, g => {
 })
 
 
-function close() { router.push('/') }
+function close() {
+  if (router.options.history.state?.back) router.back()
+  else router.push('/')
+}
 
 function onKeydown(e) {
   if (selectedScreenshot.value) {
@@ -149,7 +154,7 @@ function nextScreenshot() {
 </script>
 
 <template>
-  <div>
+  <div class="fixed inset-0 z-[150]">
     <!-- Loading / not found -->
     <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[150] bg-base-100 flex flex-col">
     <div class="flex items-center px-4 py-3 border-b border-base-content/10">

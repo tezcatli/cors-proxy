@@ -6,6 +6,7 @@ import { useGamesStore } from './stores/games.js'
 import { usePlayerStore } from './stores/player.js'
 import AppHeader    from './components/AppHeader.vue'
 import GameGrid     from './components/GameGrid.vue'
+import EpisodesFeed from './components/EpisodesFeed.vue'
 import AudioPlayer  from './components/AudioPlayer.vue'
 import AccountModal from './components/AccountModal.vue'
 
@@ -18,25 +19,75 @@ const playerStore = usePlayerStore()
 const loggedIn  = computed(() => isLoggedIn())
 const userEmail = computed(() => getUserEmail())
 
+let _prevPos   = router.options.history.state?.position ?? 0
+let _prevDepth = route.meta?.depth ?? 0
+const navDir = ref('slide-push')
+watch(() => route.path, (newPath, oldPath) => {
+  const newPos   = router.options.history.state?.position ?? 0
+  const newDepth = route.meta?.depth ?? 0
+  if (newPath === '/login' || oldPath === '/login') {
+    navDir.value = 'none'
+  } else if (newDepth === 0 && _prevDepth === 0) {
+    navDir.value = 'none'
+  } else if (newPos < _prevPos) {
+    navDir.value = 'slide-pop'
+  } else {
+    navDir.value = 'slide-push'
+  }
+  _prevPos   = newPos
+  _prevDepth = newDepth
+}, { flush: 'sync' })
+
 const showAccountModal = ref(false)
 
 function handleShowAccount() {
   showAccountModal.value = true
 }
 
-// ── Search (Phase 4) ──────────────────────────────────────────────────────
-const searchQuery = ref(route.query.q || '')
+// ── Base route (only / or /episodes) ─────────────────────────────────────────
+// Overlay routes (/game/:slug, /episode/:slug, /login) must NOT update this,
+// so the background view stays visible during the slide-in transition.
+const BASE_ROUTES = new Set(['/', '/episodes'])
+const baseRoute   = ref(BASE_ROUTES.has(route.path) ? route.path : '/')
 
-// URL → input (back/forward)
+watch(() => route.path, path => {
+  if (BASE_ROUTES.has(path)) baseRoute.value = path
+})
+
+// ── Search ────────────────────────────────────────────────────────────────────
+const searchQuery         = ref(route.query.q || '')
+const episodesSearchQuery = ref('')
+const feedRef             = ref(null)
+
+const isEpisodes = computed(() => baseRoute.value === '/episodes')
+
+const activeSearchQuery = computed(() =>
+  isEpisodes.value ? episodesSearchQuery.value : searchQuery.value
+)
+
+function handleSearchUpdate(q) {
+  if (isEpisodes.value) episodesSearchQuery.value = q
+  else searchQuery.value = q
+}
+
+// Reset active search when switching tabs
+watch(() => route.path, (newPath, oldPath) => {
+  if (newPath !== oldPath) {
+    if (newPath === '/episodes') episodesSearchQuery.value = ''
+    else if (newPath === '/') searchQuery.value = ''
+  }
+})
+
+// URL → input (back/forward on games view)
 watch(() => route.query.q, q => { if (route.path === '/') searchQuery.value = q || '' })
 
-// Auto-load catalog when navigating to / after login (onMounted only fires once)
+// Auto-load catalog when navigating to / after login
 watch(() => route.path, path => {
   if (path === '/' && loggedIn.value && !gamesStore.all.length && !gamesStore.loading)
     gamesStore.load()
 })
 
-// Input → URL (debounced, only while on the grid)
+// Input → URL (debounced, games view only)
 let searchTimer
 watch(searchQuery, q => {
   clearTimeout(searchTimer)
@@ -54,6 +105,11 @@ const displayedGames = computed(() => {
   if (hideUnresolved.value) games = games.filter(g => g.igdb !== null)
   return games
 })
+
+watch(
+  [() => gamesStore.sortMode, () => gamesStore.sortAsc, hideUnresolved],
+  () => { if (_gridEl) _gridEl.scrollTop = 0 }
+)
 
 // Body classes for layout context
 watch(() => playerStore.visible, v => {
@@ -119,13 +175,15 @@ onBeforeUnmount(() => {
     <AppHeader
       :game-count="gamesStore.all.length"
       :filtered-count="displayedGames.length"
-      :search-query="searchQuery"
+      :search-query="activeSearchQuery"
       :sort-mode="gamesStore.sortMode"
       :sort-asc="gamesStore.sortAsc"
       :loading="gamesStore.loading"
       :last-fetch="gamesStore.lastFetch"
       :hide-unresolved="hideUnresolved"
-      @update:searchQuery="searchQuery = $event"
+      :episode-count="feedRef?.episodeCount"
+      :is-episodes="isEpisodes"
+      @update:searchQuery="handleSearchUpdate"
       @set-sort="gamesStore.setSort"
       @refresh="handleRefresh"
       @toggle-hide-unresolved="hideUnresolved = !hideUnresolved"
@@ -155,26 +213,33 @@ onBeforeUnmount(() => {
     </div>
 
     <GameGrid
+      v-show="baseRoute === '/'"
       :games="displayedGames"
       :loading="gamesStore.loading"
       :error="gamesStore.error"
       :total="gamesStore.all.length"
     />
 
-    <!-- Detail view and login page slide/fade in over the grid -->
-    <RouterView v-slot="{ Component }">
-      <Transition name="slide-right">
-        <component :is="Component" v-if="Component" :key="route.path" />
-      </Transition>
-    </RouterView>
+    <EpisodesFeed
+      v-show="baseRoute === '/episodes'"
+      ref="feedRef"
+      :search-query="episodesSearchQuery"
+    />
 
     <AudioPlayer />
-
-    <AccountModal
-      v-if="showAccountModal"
-      :user-email="userEmail"
-      @close="showAccountModal = false"
-      @logout="handleLogout"
-    />
   </div>
+
+  <!-- Outside #mainView so overflow:hidden doesn't clip slide transitions -->
+  <RouterView v-slot="{ Component }">
+    <Transition :name="navDir">
+      <component :is="Component" v-if="Component" :key="route.path" />
+    </Transition>
+  </RouterView>
+
+  <AccountModal
+    v-if="showAccountModal"
+    :user-email="userEmail"
+    @close="showAccountModal = false"
+    @logout="handleLogout"
+  />
 </template>

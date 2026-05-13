@@ -8,9 +8,9 @@ export const usePlayerStore = defineStore('player', () => {
   const currentTime = ref(0)
   const playVersion = ref(0)   // incremented on every play() call, not on metadata updates
 
-  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, chapters = null }) {
+  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, coverImageId = null, chapters = null }) {
     playVersion.value++
-    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, chapters: chapters ?? [] }
+    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, coverImageId, chapters: chapters ?? [] }
     console.log('Playing:', current.value)
     visible.value = true
     paused.value  = false

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
 import { fetchEpisodeDetail, fetchGameDetail } from '../lib/games.js'
@@ -11,8 +11,8 @@ const router = useRouter()
 const playerStore = usePlayerStore()
 const gamesStore = useGamesStore()
 
-const slug = route.params.slug
-const pubTs = Number(route.params.pubTs)
+const slug        = route.params.slug         // game slug (may be undefined)
+const episodeSlug = route.params.episodeSlug
 
 const episode = ref(null)
 const gameName = ref('')
@@ -24,20 +24,23 @@ onMounted(async () => {
  
   try {
     if (slug != null) {
-      gameName.value = await fetchGameDetail(slug)  
+      const detail = await fetchGameDetail(slug)
+      gameName.value = detail.name
     }
-    episode.value = await fetchEpisodeDetail(pubTs)
+    episode.value = await fetchEpisodeDetail(episodeSlug)
   } catch (e) {
     console.error('Error fetching episode details:', e)
     error.value = e.message
   } finally {
     loading.value = false
   } 
-  console.log('Episode view mounted with slug:', slug, 'pubTs:', pubTs)
+  console.log('Episode view mounted with episodeSlug:', episodeSlug, 'gameSlug:', slug)
 })
 
 function back() {
-  router.push('/game/' + slug)
+  if (router.options.history.state?.back) router.back()
+  else if (slug) router.push('/game/' + slug)
+  else router.push('/episodes')
 }
 
 function onKeydown(e) {
@@ -50,6 +53,10 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
 })
 
+const gameCoverImageId = computed(() =>
+  slug ? (gamesStore.all.find(g => g.slug === slug)?.igdb?.coverImageId ?? null) : null
+)
+
 const isPlaying = computed(() =>
   !!playerStore.current && playerStore.current.url === episode.value?.audioUrl
 )
@@ -59,20 +66,22 @@ const activeChapter = computed(() => isPlaying.value ? playerStore.currentChapte
 function playFrom(ts, timestamp) {
   if (!episode.value?.audioUrl) return
   playerStore.play({
-    game:         gameName.value,
-    slug:         slug,
-    episode:      episode.value.title,
-    url:          episode.value.audioUrl,
-    ts:           ts,
-    timestamp:    timestamp || null,
-    episodeImageUrl:     episode.value.imageUrl,
-    pubTs:        episode.value.pubTs,
-    chapters:     episode.value.chapters ?? [],
+    game:            gameName.value,
+    slug:            slug,
+    episode:         episode.value.title,
+    url:             episode.value.audioUrl,
+    ts:              ts,
+    timestamp:       timestamp || null,
+    episodeImageUrl: episode.value.imageUrl,
+    pubTs:           episode.value.pubTs,
+    episodeSlug:     episode.value.slug,
+    coverImageId:    gameCoverImageId.value,
+    chapters:        episode.value.chapters ?? [],
   })
 }
 
 function togglePlay() {
-  if (!episode?.audioUrl) return
+  if (!episode.value?.audioUrl) return
   if (isPlaying.value) {
     playerStore.setPaused(!playerStore.paused)
     return
@@ -114,10 +123,11 @@ watch(() => episode?.chapters, (chs) => {
 </script>
 
 <template>
+  <div class="fixed inset-0 z-[200]">
   <!-- Loading / error -->
   <div v-if="loading || error || (!loading && !episode)" class="fixed inset-0 z-[200] bg-base-100 flex flex-col">
     <div class="flex items-center px-4 py-3 border-b border-base-content/10">
-      <button class="btn btn-sm btn-ghost" @click="back">← {{ gameName || 'Retour' }}</button>
+      <button class="btn btn-sm btn-ghost" @click="back">← {{ slug ? (gameName || 'Retour') : 'Épisodes' }}</button>
     </div>
     <div class="flex flex-1 items-center justify-center">
       <span v-if="loading" class="loading loading-spinner loading-lg text-primary" />
@@ -139,7 +149,7 @@ watch(() => episode?.chapters, (chs) => {
     <!-- Back bar -->
     <div
       class="relative flex items-center px-3 h-11 bg-black/30 backdrop-blur-md border-b border-white/10 flex-shrink-0">
-      <button class="btn btn-sm btn-ghost text-white/90 hover:text-white" @click="back">← {{ gameName }}</button>
+      <button class="btn btn-sm btn-ghost text-white/90 hover:text-white" @click="back">← {{ slug ? gameName : 'Épisodes' }}</button>
     </div>
 
     <!-- Scrollable content -->
@@ -190,12 +200,19 @@ watch(() => episode?.chapters, (chs) => {
                 <span class="ep-ch-inner">{{ ch.title }}</span>
                 <span v-if="chapterScrolls[i]" class="ep-ch-inner" aria-hidden="true">{{ ch.title }}</span>
               </span>
+              <RouterLink
+                v-if="ch.slug"
+                :to="`/game/${ch.slug}`"
+                class="flex-shrink-0 text-[0.65rem] text-primary/60 hover:text-primary ml-1 leading-none"
+                @click.stop
+              >↗</RouterLink>
             </button>
           </div>
         </div>
 
       </div>
     </div>
+  </div>
   </div>
 </template>
 

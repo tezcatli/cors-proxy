@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { timeAgo } from '../lib/utils.js'
 
 const props = defineProps({
@@ -11,15 +12,24 @@ const props = defineProps({
   loading:        Boolean,
   lastFetch:      String,
   hideUnresolved: Boolean,
+  episodeCount:   Number,
+  isEpisodes:     Boolean,
 })
 const emit = defineEmits(['update:searchQuery', 'setSort', 'refresh', 'toggle-hide-unresolved'])
 
 const subtitle = computed(() => {
+  if (props.isEpisodes) {
+    return props.episodeCount != null ? `${props.episodeCount} épisodes` : 'Tous les épisodes'
+  }
   const parts = []
   if (props.gameCount)  parts.push(`${props.gameCount} jeux`)
   if (props.lastFetch)  parts.push(`mis à jour ${timeAgo(props.lastFetch)}`)
   return parts.length ? parts.join(' · ') : 'Catalogue des jeux'
 })
+
+const searchPlaceholder = computed(() =>
+  props.isEpisodes ? 'Rechercher un épisode…' : 'Rechercher un jeu…'
+)
 
 const sortOptions = [
   { mode: 'alpha', label: 'A–Z' },
@@ -42,6 +52,7 @@ const sortOptions = [
 
       <div class="flex items-center gap-2 flex-shrink-0">
         <button
+          v-if="!isEpisodes"
           class="btn btn-circle btn-ghost !size-9 !min-h-9 text-[1.1rem]"
           :disabled="loading"
           :aria-label="loading ? 'Chargement…' : 'Actualiser'"
@@ -53,7 +64,21 @@ const sortOptions = [
       </div>
     </div>
 
-    <!-- Row 2: search + sort -->
+    <!-- Row 2: navigation tabs -->
+    <div class="flex gap-0 px-3 pb-1 max-w-[1400px] mx-auto">
+      <RouterLink
+        to="/"
+        class="btn btn-xs btn-ghost font-semibold"
+        :class="!isEpisodes ? 'btn-primary' : 'text-base-content/50'"
+      >Jeux</RouterLink>
+      <RouterLink
+        to="/episodes"
+        class="btn btn-xs btn-ghost font-semibold"
+        :class="isEpisodes ? 'btn-primary' : 'text-base-content/50'"
+      >Épisodes</RouterLink>
+    </div>
+
+    <!-- Row 3: search + sort -->
     <div class="max-w-[1400px] mx-auto px-3 pb-2.5 flex flex-col gap-2 flex-shrink-0 sm:flex-row sm:items-center sm:pb-3 sm:px-5 lg:px-7 lg:gap-3">
       <div class="relative w-full sm:flex-1 sm:max-w-[440px] lg:max-w-[520px]">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[0.9rem] pointer-events-none z-[1]">🔍</span>
@@ -61,7 +86,7 @@ const sortOptions = [
           id="searchInput"
           class="app-input"
           type="search"
-          placeholder="Rechercher un jeu…"
+          :placeholder="searchPlaceholder"
           :value="searchQuery"
           @input="emit('update:searchQuery', $event.target.value)"
         />
@@ -73,7 +98,7 @@ const sortOptions = [
         >✕</button>
       </div>
 
-      <div class="flex gap-1.5 items-center sm:flex-none">
+      <div v-if="!isEpisodes" class="flex gap-1.5 items-center sm:flex-none">
         <div class="join">
           <button
             v-for="opt in sortOptions"

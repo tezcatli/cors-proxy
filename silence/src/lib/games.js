@@ -31,7 +31,7 @@ export async function fetchEpisodes() {
   return r.json()
 }
 
-export async function fetchEpisodeDetail(pubTs) {
-  const r = await apiFetch(`/games/episode?pubTs=${encodeURIComponent(pubTs)}`)
+export async function fetchEpisodeDetail(episodeSlug) {
+  const r = await apiFetch(`/games/episode?slug=${encodeURIComponent(episodeSlug)}`)
   return r.json()
 } 
