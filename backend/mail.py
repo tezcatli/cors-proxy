@@ -25,8 +25,11 @@ def send_invite_email(to_email: str, invite_url: str):
         f"{invite_url}\n\n"
         "Si vous n'attendiez pas cette invitation, ignorez cet e-mail."
     )
-    if Config.DEBUG or not Config.SMTP_HOST:
-        logger.info("INVITE LINK for %s → %s", to_email, invite_url)
+    if not Config.SMTP_HOST:
+        if Config.DEBUG:
+            logger.info("INVITE LINK for %s → %s", to_email, invite_url)
+        else:
+            logger.info("INVITE LINK for %s → %s?invite=<redacted>", to_email, invite_url.split("?")[0])
         return
     _send(to_email, "Invitation — Silence on Joue", body)
 
@@ -39,7 +42,10 @@ def send_reset_email(to_email: str, reset_url: str):
         "Ce lien expire dans 1 heure.\n\n"
         "Si vous n'avez pas demandé cette réinitialisation, ignorez cet e-mail."
     )
-    if Config.DEBUG or not Config.SMTP_HOST:
-        logger.info("PASSWORD RESET LINK for %s → %s", to_email, reset_url)
+    if not Config.SMTP_HOST:
+        if Config.DEBUG:
+            logger.info("PASSWORD RESET LINK for %s → %s", to_email, reset_url)
+        else:
+            logger.info("PASSWORD RESET LINK for %s → %s?reset=<redacted>", to_email, reset_url.split("?")[0])
         return
     _send(to_email, "Réinitialisation de mot de passe — Silence on Joue", body)

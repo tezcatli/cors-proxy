@@ -1,7 +1,7 @@
 services:
-  corsproxy:
+  backend:
     build:
-      context: ./corsproxy
+      context: ./backend
       dockerfile: Dockerfile.dev
     ports:
       - "5000:5000"
@@ -10,7 +10,7 @@ services:
       LOGGER_LEVEL: "DEBUG"
       VITE_DEV_SERVER: "true"
     env_file:
-      - path: ./corsproxy_secrets.env
+      - path: ./backend_secrets.env
         required: true
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000 || exit 1"]
@@ -18,14 +18,14 @@ services:
       timeout: 10s
       retries: 3
     volumes:
-      - ./corsproxy:/corsproxy
-      - ./silence/dist:/corsproxy/static
+      - ./backend:/backend
+      - ./frontend/dist:/backend/static
 
-  silence:
+  frontend:
     build:
-      context: ./silence
+      context: ./frontend
       dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
     volumes:
-      - ./silence:/silence
+      - ./frontend:/frontend

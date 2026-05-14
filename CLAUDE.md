@@ -25,26 +25,26 @@ docker compose -f docker-compose.dev.yml up --build
 # Frontend: http://localhost:5000/silence  API: http://localhost:5000
 ```
 
-In dev, Flask (`DEBUG=true`) proxies `/silence/` asset requests to the Vite dev server at `http://silence:5173`, while still serving API routes itself. This ensures CSS and JS changes are served immediately from Vite rather than from stale built output.
+In dev, Flask (`DEBUG=true`) proxies `/silence/` asset requests to the Vite dev server at `http://frontend:5173`, while still serving API routes itself. This ensures CSS and JS changes are served immediately from Vite rather than from stale built output.
 
 ### Testing
 
 ```bash
 ./test-backend.sh          # pytest inside Docker
 ./test-frontend.sh         # vitest unit tests inside Docker
-./test-integration.sh      # vitest integration tests (spins up corsproxy-server)
+./test-integration.sh      # vitest integration tests (spins up backend-server)
 ```
 
 Run a single backend test:
 ```bash
-docker compose -f docker-compose.test.yml run --rm corsproxy-test pytest tests/test_auth.py::test_login_success
+docker compose -f docker-compose.test.yml run --rm backend-test pytest tests/test_auth.py::test_login_success
 ```
 
 Run frontend unit tests locally (no Docker):
 ```bash
-cd silence && npm test
+cd frontend && npm test
 # single file:
-cd silence && npx vitest run tests/auth.test.js
+cd frontend && npx vitest run tests/auth.test.js
 ```
 
 ### Production
@@ -65,15 +65,14 @@ python invite.py alice@example.com
 ### Request flow
 
 ```
-Browser → Nginx (443) → /silence/* → static files (built Vue SPA)
-                      → /auth/*    → corsproxy:8000 (Flask)
-                      → /games/*   → corsproxy:8000 (Flask)
-                      → /proxy     → corsproxy:8000 (Flask) → upstream URL
+Browser → Nginx (443) → /silence/*       → static files (built Vue SPA)
+                      → /silence/auth/*  → backend:8000 (Flask)
+                      → /silence/games/* → backend:8000 (Flask)
 ```
 
 In dev, Flask handles everything directly on port 5000 (no Nginx).
 
-### Backend (`corsproxy/`)
+### Backend (`backend/`)
 
 - **`app.py`** — Flask app factory. The `/proxy?url=` endpoint strips upstream CORS headers and re-adds its own. Auth is skipped entirely when `DEBUG=true`.
 - **`auth.py`** — Blueprint at `/auth`: invite-token-based registration, login, password reset. All tokens (invite, reset, JWT) are random `secrets.token_urlsafe` strings stored in SQLite.
@@ -82,10 +81,10 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
 - **`games.py`** — Blueprint at `/games`. Four in-memory structures rebuilt at startup; **no DB reads per request**. A background thread resolves game names against IGDB and writes to `igdb_cache`. Key endpoints: `GET /games` (slim catalog, `igdb` field contains only `{ metacritic }`), `GET /games/igdb?slug=A&slug=B` (full igdb for a list of slugs), `GET /games/<slug>` (full igdb + episodes), `GET /games/episode?slug=<episode-slug>` (single episode with IGDB-resolved chapter annotations), `POST /games/refresh`, `POST /games/<slug>/igdb-refresh`.
 - **`igdb.py`** — Internal IGDB helpers only (no public HTTP route). Looks up game metadata from IGDB API (Twitch OAuth) via a persistent `requests.Session`. Rate-limited to 4 req/s. `_resolve_canonical` resolves DLCs/versions to their parent game using inline nested fields in the query (no extra API call). `IgdbResult` includes an `is_child` flag set when the result was redirected to a parent.
 - **`corrections.py`** — Static table mapping podcast game names to the right IGDB search term or ID. Each entry may include `hint_date` (exact episode pub_ts day match), `display_name` (display override), and `igdb_id` (bypass name search). Multiple entries per name are differentiated by `hint_date`; undated entries are fallbacks. `display_name` is applied at response time in `games.py`, not stored in the DB.
-- **`db.py`** — SQLite at `corsproxy/data/users.db`. WAL mode. Four tables: `users`, `invitations`, `reset_tokens`, `igdb_cache`. `igdb_cache` is keyed by **podcast_slug** (`make_slug(podcast_name) + '-' + YYYYMMDD`), one row per (game name, episode date) pair. Columns: `igdb_id`, `igdb_slug` (IGDB's own slug, used for URL routing), `name` (canonical IGDB name), `igdb_data` (JSON blob), `is_child` (1 if resolved to a parent game). Loaded into memory at startup; only written when new IGDB resolutions arrive.
+- **`db.py`** — SQLite at `backend/data/users.db`. WAL mode. Four tables: `users`, `invitations`, `reset_tokens`, `igdb_cache`. `igdb_cache` is keyed by **podcast_slug** (`make_slug(podcast_name) + '-' + YYYYMMDD`), one row per (game name, episode date) pair. Columns: `igdb_id`, `igdb_slug` (IGDB's own slug, used for URL routing), `name` (canonical IGDB name), `igdb_data` (JSON blob), `is_child` (1 if resolved to a parent game). Loaded into memory at startup; only written when new IGDB resolutions arrive.
 - **`config.py`** — All config from env vars; `Config.DEBUG` gates auth bypass and static file serving.
 
-### Frontend (`silence/`)
+### Frontend (`frontend/`)
 
 - **`src/lib/games.js`** — Thin API client for the `/games/*` endpoints. Five functions: `fetchCatalog()`, `fetchGameDetail(slug)`, `refreshCatalog()`, `refreshGameIgdb(slug)`, `fetchIgdb(slugs)`. All use `igdb_slug` as the identifier. No XML parsing — all feed processing happens on the backend.
 - **`src/lib/igdbCdn.js`** — One-liner helper that builds IGDB image CDN URLs (`igdbUrl(imageId, template)`).
@@ -124,8 +123,8 @@ Three slug types coexist:
 
 ### Service worker
 
-`silence/sw.js` is registered by `main.js` at `/silence/sw.js` with scope `/silence/`. Cache invalidation on deploy is handled by the build-hash keyed cache name (the Vite `stampServiceWorker` plugin in `vite.config.js` replaces `__CACHE_VERSION__` with a hash of output bundles). The SW uses `skipWaiting()` + `clients.claim()` so the new version takes over immediately; `main.js` listens for `controllerchange` and reloads open tabs.
+`frontend/sw.js` is registered by `main.js` at `/silence/sw.js` with scope `/silence/`. Cache invalidation on deploy is handled by the build-hash keyed cache name (the Vite `stampServiceWorker` plugin in `vite.config.js` replaces `__CACHE_VERSION__` with a hash of output bundles). The SW uses `skipWaiting()` + `clients.claim()` so the new version takes over immediately; `main.js` listens for `controllerchange` and reloads open tabs.
 
 ### Secrets
 
-`corsproxy_secrets.env` is git-ignored. Required keys: `JWT_SECRET`, `ADMIN_KEY`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `RESET_BASE_URL`. SMTP keys are optional (links are logged to stdout when omitted). See `SETUP.md` for the full reference.
+`backend_secrets.env` is git-ignored. Required keys: `JWT_SECRET`, `ADMIN_KEY`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `RESET_BASE_URL`. SMTP keys are optional (links are logged to stdout when omitted). See `SETUP.md` for the full reference.

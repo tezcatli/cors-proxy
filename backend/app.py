@@ -7,6 +7,7 @@ from config import Config
 from db import init_db
 from auth import auth_bp
 from games import games_bp, startup_warmup
+from limiter import limiter
 
 logging.basicConfig(
     level=Config.LOGGER_LEVEL,
@@ -17,12 +18,21 @@ logger = logging.getLogger(__name__)
 
 
 def create_app(testing=False):
+    if not testing and not Config.DEBUG:
+        if Config.JWT_SECRET == "dev-insecure-change-me":
+            raise RuntimeError(
+                "JWT_SECRET is set to the insecure default. "
+                "Set the JWT_SECRET environment variable before starting in production."
+            )
+        if not Config.ADMIN_KEY:
+            logger.warning("ADMIN_KEY is not set — POST /silence/auth/invite will always return 403")
+
     if Config.DEBUG:
         import pathlib
         from flask import send_from_directory, redirect
 
         _app = Flask(__name__, static_folder="static")
-        logger.warning("Running in DEBUG mode. This is not recommended for production!")
+        logger.warning("DEBUG mode is ON — authentication is DISABLED for all /games routes")
 
         @_app.route("/silence")
         def silence_redirect():
@@ -33,7 +43,7 @@ def create_app(testing=False):
         @_app.route("/silence/<path:path>")
         def silence_spa(path):
             if Config.DEBUG and os.environ.get("VITE_DEV_SERVER", "false").lower() == "true":
-                vite_url = f"http://silence:5173/silence/{path}" if path else "http://silence:5173/silence/"
+                vite_url = f"http://frontend:5173/silence/{path}" if path else "http://frontend:5173/silence/"
                 try:
                     vite_resp = requests.get(vite_url, params=request.args, timeout=5)
                     excluded = {"content-encoding", "content-length", "transfer-encoding", "connection"}
@@ -53,7 +63,9 @@ def create_app(testing=False):
         _app = Flask(__name__)
 
     _app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
+    _app.config['RATELIMIT_ENABLED'] = not testing
 
+    limiter.init_app(_app)
     _app.register_blueprint(auth_bp)
     _app.register_blueprint(games_bp)
     init_db()

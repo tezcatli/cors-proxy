@@ -45,7 +45,7 @@ export async function apiFetch(path, opts = {}) {
 }
 
 async function post(path, body) {
-  const res = await apiFetch('/auth' + path, {
+  const res = await apiFetch('/silence/auth' + path, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),

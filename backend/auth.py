@@ -5,13 +5,14 @@ import jwt
 from flask import Blueprint, request, jsonify, abort
 from db import get_db, utcnow
 from config import Config
+from limiter import limiter
 import logging
 
 
 logger = logging.getLogger(__name__)
 
 
-auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+auth_bp = Blueprint("auth", __name__, url_prefix="/silence/auth")
 
 
 def _hash(password: str) -> str:
@@ -126,6 +127,7 @@ def invite_info(token):
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("10 per minute")
 def login():
     data = request.get_json(silent=True) or {}
     _require_fields(data, "email", "password")
@@ -140,6 +142,7 @@ def login():
 
 
 @auth_bp.route("/reset-request", methods=["POST"])
+@limiter.limit("3 per minute")
 def reset_request():
     from mail import send_reset_email
     data = request.get_json(silent=True) or {}
@@ -162,6 +165,7 @@ def reset_request():
 
 
 @auth_bp.route("/reset-confirm", methods=["POST"])
+@limiter.limit("5 per minute")
 def reset_confirm():
     data = request.get_json(silent=True) or {}
     _require_fields(data, "token", "new_password")
@@ -170,17 +174,13 @@ def reset_confirm():
     now     = utcnow().isoformat()
     with get_db() as conn:
         row = conn.execute(
-            "SELECT user_id, expires_at FROM reset_tokens WHERE token = ?",
-            (data["token"],),
+            "DELETE FROM reset_tokens WHERE token = ? AND expires_at >= ? RETURNING user_id",
+            (data["token"], now),
         ).fetchone()
         if not row:
-            abort(400, "Lien invalide ou déjà utilisé")
-        if row["expires_at"] < now:
-            conn.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
-            abort(410, "Ce lien a expiré")
+            abort(400, "Lien invalide, expiré ou déjà utilisé")
         conn.execute(
             "UPDATE users SET password_hash = ? WHERE id = ?",
             (pw_hash, row["user_id"]),
         )
-        conn.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
     return "", 204

@@ -1,7 +1,11 @@
 FROM python:3.14-alpine
-WORKDIR /corsproxy
+WORKDIR /backend
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
+RUN adduser -D -u 1001 appuser \
+    && mkdir -p /backend/data \
+    && chown -R appuser /backend/data
+USER appuser
 EXPOSE 8000
 CMD ["gunicorn", "-b", "0.0.0.0:8000", "--worker-class", "gthread", "--workers", "1", "--threads", "4", "app:app"]

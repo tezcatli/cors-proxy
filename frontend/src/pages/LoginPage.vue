@@ -66,7 +66,7 @@ onMounted(() => {
     regEmail.value         = ''
     regEmailReadOnly.value = true
     setView('register')
-    run(() => apiFetch(`/auth/invite-info/${encodeURIComponent(it)}`).then(r => r.json()).then(data => { regEmail.value = data.email }))
+    run(() => apiFetch(`/silence/auth/invite-info/${encodeURIComponent(it)}`).then(r => r.json()).then(data => { regEmail.value = data.email }))
   }
 })
 </script>

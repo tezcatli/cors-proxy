@@ -9,7 +9,7 @@ describe('fetchCatalog', () => {
     const games = [{ name: 'Zelda', episodes: [] }];
     apiFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(games) });
     const result = await fetchCatalog();
-    expect(apiFetch).toHaveBeenCalledWith('/games');
+    expect(apiFetch).toHaveBeenCalledWith('/silence/games');
     expect(result).toEqual(games);
   });
 });

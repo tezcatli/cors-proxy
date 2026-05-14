@@ -1,5 +1,6 @@
 FROM python:3.14-alpine
-WORKDIR /corsproxy
+WORKDIR /backend
 COPY requirements.txt requirements.test.txt ./
 RUN pip install -r requirements.test.txt
-CMD ["flask", "run", "--host=0.0.0.0", "--reload"]
+COPY . .
+CMD ["python", "-m", "pytest", "tests/", "-v"]

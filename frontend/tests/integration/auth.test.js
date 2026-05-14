@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-const BASE      = process.env.BACKEND_URL || 'http://corsproxy-test:5000'
+const BASE      = process.env.BACKEND_URL || 'http://backend-test:5000'
 const ADMIN_KEY = process.env.ADMIN_KEY   || 'test-admin-key'
 
 let counter = 0
@@ -9,7 +9,7 @@ function uniqueEmail() {
 }
 
 async function invite(email) {
-  const r = await fetch(`${BASE}/auth/invite`, {
+  const r = await fetch(`${BASE}/silence/auth/invite`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
     body:    JSON.stringify({ email }),
@@ -20,7 +20,7 @@ async function invite(email) {
 }
 
 async function register(email, password, inviteToken) {
-  return fetch(`${BASE}/auth/register`, {
+  return fetch(`${BASE}/silence/auth/register`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ email, password, invitation_token: inviteToken }),
@@ -28,7 +28,7 @@ async function register(email, password, inviteToken) {
 }
 
 async function login(email, password) {
-  return fetch(`${BASE}/auth/login`, {
+  return fetch(`${BASE}/silence/auth/login`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ email, password }),

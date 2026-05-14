@@ -7,27 +7,27 @@ x-test-env: &test-env
   SMTP_HOST: ""
 
 services:
-  corsproxy-test:
+  backend-test:
     build:
-      context: ./corsproxy
+      context: ./backend
       dockerfile: Dockerfile.test
     environment:
       <<: *test-env
       DEBUG: "false"
     volumes:
-      - ./corsproxy:/corsproxy
+      - ./backend:/backend
       - ./contracts:/contracts
 
-  corsproxy-server:
+  backend-server:
     build:
-      context: ./corsproxy
+      context: ./backend
       dockerfile: Dockerfile.dev
     environment:
       <<: *test-env
       FLASK_APP: app.py
       DEBUG: "true"
     volumes:
-      - ./corsproxy:/corsproxy
+      - ./backend:/backend
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
       interval: 2s
@@ -37,14 +37,14 @@ services:
 
   frontend-test:
     build:
-      context: ./silence
+      context: ./frontend
       dockerfile: Dockerfile.test
     depends_on:
-      corsproxy-server:
+      backend-server:
         condition: service_healthy
     environment:
-      BACKEND_URL: http://corsproxy-server:5000
+      BACKEND_URL: http://backend-server:5000
       ADMIN_KEY: test-admin-key
     volumes:
-      - ./silence:/silence
+      - ./frontend:/frontend
       - ./contracts:/contracts

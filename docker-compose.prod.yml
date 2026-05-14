@@ -1,21 +1,19 @@
 
 services:
-  corsproxy:
+  backend:
     build:
-      context: ./corsproxy
+      context: ./backend
       dockerfile: Dockerfile.prod
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     environment:
       FLASK_ENV: production
     env_file:
-      - path: ./corsproxy_secrets.env
+      - path: ./backend_secrets.env
         required: true
 #    depends_on:
 #      - redis
     volumes:
-      - corsproxy_data:/corsproxy/data
+      - backend_data:/backend/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost|| exit 1"]
       interval: 30s
@@ -30,26 +28,23 @@ services:
       - "80:80"
     restart: unless-stopped
     depends_on:
-      corsproxy:
+      backend:
         condition: service_started
-      silence:
+      frontend:
         condition: service_completed_successfully
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - silence:/var/www/silence:ro
+      - frontend:/var/www/silence:ro
     environment:
       - FLASK_ENV=production
-  silence:
+  frontend:
     build:
-      context: ./silence
+      context: ./frontend
       dockerfile: Dockerfile.prod
     volumes:
-      - silence:/silence
+      - frontend:/frontend
 
 volumes:
-  silence:
-  corsproxy_data:
+  frontend:
+  backend_data:
 
-networks:
-  app-network:
-    driver: bridge

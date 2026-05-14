@@ -12,11 +12,11 @@
 
 ```
 cors-proxy/
-├── corsproxy/          # Flask backend (CORS proxy + auth API)
-├── silence/            # Frontend PWA (static files)
+├── backend/            # Flask backend (CORS proxy + auth API)
+├── frontend/           # Frontend PWA (static files)
 ├── nginx/              # Reverse proxy (prod only)
-├── corsproxy_secrets.env   # Backend secrets (git-ignored)
-├── silence_secrets.env     # Frontend build secrets (git-ignored)
+├── backend_secrets.env     # Backend secrets (git-ignored)
+├── frontend_secrets.env    # Frontend build secrets (git-ignored)
 ├── docker-compose.dev.yml
 ├── docker-compose.prod.yml
 └── invite.py           # CLI tool for sending invitations
@@ -28,7 +28,7 @@ cors-proxy/
 
 Both env files must be created manually — they are not committed.
 
-### `corsproxy_secrets.env`
+### `backend_secrets.env`
 
 ```env
 # Shared proxy secret (legacy, can be any random string)
@@ -85,7 +85,7 @@ ADMIN_KEY=<your key> RESET_BASE_URL=http://localhost:5000 \
   python invite.py alice@example.com
 ```
 
-The invite URL is also printed in the `corsproxy` container logs:
+The invite URL is also printed in the `backend` container logs:
 ```
 INVITE LINK for alice@example.com → http://localhost:5000/silence/?invite=…&email=…
 ```
@@ -113,14 +113,14 @@ docker compose -f docker-compose.prod.yml up --build -d
 Services:
 | Service     | Role                                      | Port  |
 |-------------|-------------------------------------------|-------|
-| `corsproxy` | Flask/Gunicorn — API + proxy              | 8000 (internal) |
+| `backend`   | Flask/Gunicorn — API + proxy              | 8000 (internal) |
 | `nginx`     | TLS termination, static files, routing    | 80, 443 |
-| `silence`   | One-shot build container (copies assets)  | — |
+| `frontend`  | One-shot build container (copies assets)  | — |
 
-SQLite data is stored in the named Docker volume `corsproxy_data` (mounted at
-`/corsproxy/data` inside the container). Back it up before destructive operations:
+SQLite data is stored in the named Docker volume `backend_data` (mounted at
+`/backend/data` inside the container). Back it up before destructive operations:
 ```bash
-docker run --rm -v cors-proxy_corsproxy_data:/data -v $(pwd):/out \
+docker run --rm -v cors-proxy_backend_data:/data -v $(pwd):/out \
   busybox cp /data/users.db /out/users.db.bak
 ```
 

@@ -1,13 +1,13 @@
 
-silence/config.js
-silence/secrets.js
+frontend/config.js
+frontend/secrets.js
 
-corsproxy_secrets.env
-silence_secrets.env
+backend_secrets.env
+frontend_secrets.env
 __pycache__
-corsproxy/data/users.db
-corsproxy/data/users.db-shm
-corsproxy/data/users.db-wal
+backend/data/users.db
+backend/data/users.db-shm
+backend/data/users.db-wal
 
 node_modules
-silence/dist/
+frontend/dist/

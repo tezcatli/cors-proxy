@@ -1,7 +1,7 @@
 FROM node:22-alpine
-# Install node_modules at /node_modules (outside the bind-mounted /silence),
+# Install node_modules at /node_modules (outside the bind-mounted /frontend),
 # so the host mount never hides them and no anonymous volume is needed.
 COPY package.json package-lock.json* /
 RUN cd / && npm install
-WORKDIR /silence
+WORKDIR /frontend
 CMD ["node", "/node_modules/.bin/vite", "dev", "--host", "0.0.0.0"]

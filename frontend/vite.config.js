@@ -30,8 +30,8 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      '/auth':  'http://corsproxy:5000',
-      '/games': 'http://corsproxy:5000',
+      '/silence/auth':  'http://backend:5000',
+      '/silence/games': 'http://backend:5000',
     },
   },
 })
