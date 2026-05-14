@@ -16,8 +16,25 @@ const marqueeEl   = ref(null)
 const needsScroll = ref(false)
 
 // Plain variable — Plyr's proxy breaks Vue reactivity if stored in a ref
-let plyrInstance    = null
+let plyrInstance     = null
 let currentLoadedUrl = null   // the URL currently in the <audio> element
+let playPromise      = null   // tracks in-flight play() Promise to prevent AbortError
+
+function safePlay() {
+  playPromise = plyrInstance?.play() ?? null
+  playPromise
+    ?.catch(err => { if (err.name !== 'AbortError') console.error(err) })
+    .finally(() => { playPromise = null })
+}
+
+function safePause() {
+  if (playPromise) {
+    // pause() called while play() is pending — defer so the browser isn't interrupted
+    playPromise.then(() => { try { plyrInstance?.pause() } catch (_) {} }).catch(() => {})
+  } else {
+    try { plyrInstance?.pause() } catch (_) {}
+  }
+}
 
 function destroyPlyr() {
   if (plyrInstance) {
@@ -30,6 +47,16 @@ function destroyPlyr() {
 }
 
 // Plyr is kept alive across source changes — update markers manually in its progress bar.
+function fixTimeDisplayWidth() {
+  const durationEl = plyrWrapEl.value?.querySelector('.plyr__time--duration')
+  const currentEl  = plyrWrapEl.value?.querySelector('.plyr__time--current')
+  if (!durationEl || !currentEl) return
+  const orig = currentEl.textContent
+  currentEl.textContent = durationEl.textContent   // temporarily show max-width text
+  currentEl.style.minWidth = currentEl.offsetWidth + 'px'
+  currentEl.textContent = orig
+}
+
 function updatePlyrMarkers(chapters) {
   const progress = plyrWrapEl.value?.querySelector('.plyr__progress')
   if (!progress) return
@@ -91,49 +118,45 @@ watch(currentLabel, checkScroll)
 
 watch(() => playerStore.paused, paused => {
   if (!plyrInstance || !playerStore.current) return
-  if (paused && !plyrInstance.paused) try { plyrInstance.pause() } catch (_) {}
-  else if (!paused && plyrInstance.paused) try { plyrInstance.play()  } catch (_) {}
+  if (paused && !plyrInstance.paused) safePause()
+  else if (!paused && plyrInstance.paused) safePlay()
 })
 
-watch(() => playerStore.currentChapter, chapter => {
-  if (!('mediaSession' in navigator)) return
-  const meta = navigator.mediaSession.metadata
-  if (!meta || !playerStore.current) return
-  const cur = playerStore.current
-  const coverArt = id => [{ src: igdbUrl(id, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
-  if (chapter) {
-    meta.title   = chapter.title
-    meta.artwork = chapter.coverImageId
-      ? coverArt(chapter.coverImageId)
-      : cur.episodeImageUrl ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }] : []
-  } else {
-    meta.title   = cur.episode
-    meta.artwork = cur.coverImageId
-      ? coverArt(cur.coverImageId)
-      : cur.episodeImageUrl ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }] : []
-  }
+watch(() => playerStore.currentChapter, () => {
+  if (!('mediaSession' in navigator) || !navigator.mediaSession.metadata) return
+  syncMediaSessionMeta()
 })
+
+function updatePositionState() {
+  const el = audioEl.value
+  if (!('mediaSession' in navigator) || !el || !isFinite(el.duration) || el.duration <= 0) return
+  try {
+    navigator.mediaSession.setPositionState({
+      duration:     el.duration,
+      playbackRate: el.playbackRate,
+      position:     el.currentTime,
+    })
+  } catch (_) {}
+}
 
 function onTimeUpdate() {
   playerStore.setCurrentTime(audioEl.value?.currentTime ?? 0)
-  const el = audioEl.value
-  if ('mediaSession' in navigator && el && isFinite(el.duration) && el.duration > 0) {
-    try {
-      navigator.mediaSession.setPositionState({
-        duration:     el.duration,
-        playbackRate: el.playbackRate,
-        position:     el.currentTime,
-      })
-    } catch (_) {}
-  }
+  updatePositionState()
+}
+
+function onSeeked() {
+  playerStore.setCurrentTime(audioEl.value?.currentTime ?? 0)
+  updatePositionState()
 }
 
 onMounted(() => {
   audioEl.value?.addEventListener('timeupdate', onTimeUpdate)
+  audioEl.value?.addEventListener('seeked', onSeeked)
 })
 
 onUnmounted(() => {
   audioEl.value?.removeEventListener('timeupdate', onTimeUpdate)
+  audioEl.value?.removeEventListener('seeked', onSeeked)
   destroyPlyr()
   resizeObs?.disconnect()
   stopFlip()
@@ -152,26 +175,42 @@ function setMSState(state) {
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = state
 }
 
-function setMediaSession(cur) {
-  if (!('mediaSession' in navigator)) {
-    console.log('MediaSession not supported in this browser')
-    return
+function syncMediaSessionMeta() {
+  if (!('mediaSession' in navigator)) return
+  const meta = navigator.mediaSession.metadata
+  if (!meta || !playerStore.current) return
+  const cur     = playerStore.current
+  const chapter = playerStore.currentChapter
+  if (chapter) {
+    meta.title   = chapter.title
+    meta.artist  = cur.episode
+    meta.artwork = chapter.coverImageId
+      ? [{ src: igdbUrl(chapter.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
+      : cur.episodeImageUrl ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+  } else {
+    meta.title   = cur.episode
+    meta.artist  = ''
+    meta.artwork = cur.episodeImageUrl
+      ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }]
+      : []
   }
+}
+
+function initMediaSession(cur) {
+  if (!('mediaSession' in navigator)) return
+
+  const episodeArt = cur.episodeImageUrl
+    ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }]
+    : []
 
   const metadata = new MediaMetadata({
-    title:  cur.episode,
-    album:  'Silence on Joue',
-    //artist: cur.game,
-    artwork: cur.coverImageId ? [
-      { src: igdbUrl(cur.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }
-    ] : [cur.episodeImageUrl ? { src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' } : null].filter(Boolean),
+    title:   cur.episode,
+    album:   'Silence on Joue',
+    artwork: episodeArt,
   })
 
   try {
     if (cur.chapters?.length) {
-      const episodeArt = cur.episodeImageUrl
-        ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }]
-        : []
       metadata.chapterInformation = cur.chapters.map(ch => ({
         title:     ch.title,
         startTime: ch.timestampSeconds,
@@ -184,10 +223,16 @@ function setMediaSession(cur) {
 
   navigator.mediaSession.metadata = metadata
 
-  navigator.mediaSession.setActionHandler('play',  () => { plyrInstance?.play() })
-  navigator.mediaSession.setActionHandler('pause', () => { plyrInstance?.pause() })
+  navigator.mediaSession.setActionHandler('play',  () => safePlay())
+  navigator.mediaSession.setActionHandler('pause', () => safePause())
   navigator.mediaSession.setActionHandler('seekto', details => {
-    if (details.seekTime != null && audioEl.value) audioEl.value.currentTime = details.seekTime
+    if (details.seekTime == null || !audioEl.value) return
+    if (details.fastSeek && 'fastSeek' in audioEl.value) {
+      audioEl.value.fastSeek(details.seekTime)
+    } else {
+      audioEl.value.currentTime = details.seekTime
+    }
+    updatePositionState()
   })
 
   if (cur.chapters?.length) {
@@ -219,6 +264,8 @@ function setMediaSession(cur) {
     navigator.mediaSession.setActionHandler('previoustrack', null)
     navigator.mediaSession.setActionHandler('nexttrack', null)
   }
+
+  syncMediaSessionMeta()
 }
 
 // ── Play commands (fired on every playerStore.play() call) ───────────────────
@@ -229,11 +276,12 @@ watch(() => playerStore.playVersion, () => {
   // Set immediately so chapter highlighting in EpisodeView is correct before audio seeks
   playerStore.setCurrentTime(cur.ts ?? 0)
   cur.chapters?.length ? startFlip() : stopFlip()
+  initMediaSession(cur)
 
   // Same audio already loaded — just seek
   if (plyrInstance && currentLoadedUrl === cur.url) {
     audioEl.value.currentTime = cur.ts ?? 0
-    plyrInstance.play()
+    safePlay()
     return
   }
 
@@ -260,7 +308,7 @@ watch(() => playerStore.playVersion, () => {
       plyrInstance.on('play',  () => {
         playerStore.setPaused(false)
         setMSState('playing')
-        if (playerStore.current) setMediaSession(playerStore.current)
+        if (playerStore.current) initMediaSession(playerStore.current)
       })
       plyrInstance.on('pause', () => {
         playerStore.setPaused(true)
@@ -273,11 +321,10 @@ watch(() => playerStore.playVersion, () => {
     }
 
     updatePlyrMarkers(cur.chapters)  // inject chapter ticks now that duration is known
+    fixTimeDisplayWidth()
     if (ts > 0) audioEl.value.currentTime = ts
-    plyrInstance.play()
+    safePlay()
   }, { once: true })
-
-  setMediaSession(cur)
 })
 
 // ── Player closed ────────────────────────────────────────────────────────────
@@ -285,18 +332,15 @@ watch(() => playerStore.visible, visible => {
   if (!visible) {
     // Pause without destroying — recreating Plyr on every reopen causes UI regression
     // (custom controls lost, no chapter markers). Destroy happens only on unmount.
-    try { plyrInstance?.pause() } catch (_) {}
+    safePause()
     stopFlip()
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
   }
 })
 
-// ── Cover image lazy-loaded after initial play ───────────────────────────────
-watch(() => playerStore.current?.coverImageId, id => {
-  if (id && playerStore.current) {
-    console.log('Cover image loaded, updating MediaSession')
-    setMediaSession(playerStore.current)
-  }
+// ── Episode image lazy-loaded after initial play ─────────────────────────────
+watch(() => playerStore.current?.episodeImageUrl, url => {
+  if (url && playerStore.current) initMediaSession(playerStore.current)
 })
 
 function close() {

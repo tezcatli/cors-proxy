@@ -261,7 +261,17 @@ def startup_warmup() -> None:
 # ── Response serialisation ────────────────────────────────────────────────────
 
 def _serialise_appearance(appearance: GameAppearance) -> dict:
-    ep = appearance.episode
+    ep       = appearance.episode
+    resolved = _build_resolved(ep)
+    chapters = []
+    for c in ep.chapters:
+        ch: dict = {'timestamp': c.timestamp, 'timestampSeconds': c.timestamp_seconds, 'title': c.title}
+        if c.timestamp in resolved:
+            _, igdb_slug, cover_image_id = resolved[c.timestamp]
+            ch['slug'] = igdb_slug
+            if cover_image_id:
+                ch['coverImageId'] = cover_image_id
+        chapters.append(ch)
     return {
         'title':            ep.title,
         'slug':             ep.slug,
@@ -269,8 +279,7 @@ def _serialise_appearance(appearance: GameAppearance) -> dict:
         'pubTs':            ep.pub_ts,
         'imageUrl':         ep.image_url,
         'description':      ep.description,
-        'chapters':         [{'timestamp': c.timestamp, 'timestampSeconds': c.timestamp_seconds,
-                              'title': c.title} for c in ep.chapters],
+        'chapters':         chapters,
         'timestamp':        appearance.mention.timestamp,
         'timestampSeconds': appearance.mention.timestamp_seconds,
     }
