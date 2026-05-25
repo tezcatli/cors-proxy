@@ -33,7 +33,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: |
-          npm ci --include=optional
+          npm install
           npx vite build
 
       - name: Install SSH key
