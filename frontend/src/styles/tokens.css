@@ -1,40 +1,95 @@
 :root {
-  /* Raw RGB channels for rgba() compositing */
-  --rgb-base:    15, 15, 26;
-  --rgb-neutral: 26, 42, 80;
-  --rgb-primary: 233, 69, 96;
-  --rgb-muted:   136, 136, 170;
-  --rgb-light:   #bbb9b9;
+  /* ─── Surface ramp (deeper near-black for hero artwork to pop) ────────── */
+  --rgb-base:     8,   8,  15;   /* #08080f — abyss */
+  --rgb-surface: 15,  15,  28;   /* #0f0f1c — main surface */
+  --rgb-raised:  26,  26,  46;   /* #1a1a2e — raised cards */
+  --rgb-line:    255, 255, 255;  /* used at low alpha for hairline borders */
 
-  /* Score palette channels */
-  --rgb-high: 76, 175, 80;
-  --rgb-mid:  255, 152, 0;
-  --rgb-low:  244, 67, 54;
+  --rgb-neutral: 26,  42,  80;
+  --rgb-primary: 233,  69,  96;  /* #e94560 retained for CTAs */
+  --rgb-muted:   148, 148, 168;
+  --rgb-light:   232, 232, 240;
 
-  /* Score text colors */
-  --col-high-text:   #81c784;
-  --col-mid-text:    #ffb74d;
-  --col-low-text:    #e57373;
-  --col-rating-text: #ff6b81;
+  /* ─── Score palette ───────────────────────────────────────────────────── */
+  --rgb-high: 74,  222, 128;     /* tailwind green-400 family */
+  --rgb-mid:  251, 191,  36;     /* tailwind amber-400 */
+  --rgb-low:  239,  68,  68;     /* tailwind red-500 */
 
-  /* Glass panel */
-  --glass-bg:     rgba(0, 0, 0, 0.4);
-  --glass-blur:   12px;
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-radius: 12px;
+  --col-high-text:   #4ade80;
+  --col-mid-text:    #fbbf24;
+  --col-low-text:    #f87171;
+  --col-rating-text: #ff8aa0;
 
+  /* ─── Glass / surface tokens ──────────────────────────────────────────── */
+  --glass-bg:      rgba(10, 10, 20, 0.55);
+  --glass-blur:    18px;
+  --glass-border:  rgba(var(--rgb-line), 0.08);
+  --glass-radius:  20px;
 
-  /* Z-index layers */
+  --panel-bg:        rgba(var(--rgb-raised), 0.45);
+
+  /* Unified border ramp — every panel/control uses one of these three */
+  --border-subtle: rgba(var(--rgb-line), 0.07);   /* default hairline */
+  --border-strong: rgba(var(--rgb-line), 0.14);   /* hover / raised */
+  --border-accent: color-mix(in srgb, var(--game-accent) 38%, transparent);  /* active / focus */
+  --panel-border:  var(--border-subtle);          /* legacy alias */
+
+  /* ─── Per-view artwork-driven accents (set inline by useArtworkAccent) ── */
+  --game-accent:     rgb(var(--rgb-primary));
+  --game-accent-fg:  #ffffff;
+  --game-backdrop:   rgb(var(--rgb-surface));
+
+  /* ─── Elevation ──────────────────────────────────────────────────────── */
+  --elev-1: 0 1px  2px rgba(0,0,0,0.30);
+  --elev-2: 0 6px  16px -4px rgba(0,0,0,0.45);
+  --elev-3: 0 14px 32px -8px rgba(0,0,0,0.55);
+  --elev-4: 0 28px 60px -12px rgba(0,0,0,0.65);
+  --elev-glow: 0 8px 30px -8px var(--game-accent);
+
+  /* ─── Radii ──────────────────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-pill: 999px;
+
+  /* ─── Z-index layers ─────────────────────────────────────────────────── */
   --z-player:   300;
   --z-detail:   150;
   --z-episode:  200;
   --z-lightbox: 400;
 
-  /* Animation */
-  --dur-slide: 0.30s;
-  --ease-std:  cubic-bezier(0.4, 0, 0.2, 1);
+  /* ─── Motion ─────────────────────────────────────────────────────────── */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-soft:  cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-std:      var(--ease-out-soft);
 
-  /* media player */
-  --player-bg: rgba(var(--rgb-base), 0.82);
-  --player-control: var(--rgb-light)
+  --dur-fast: 160ms;
+  --dur-med:  280ms;
+  --dur-slow: 480ms;
+  --dur-hero: 640ms;
+  --dur-slide: var(--dur-med);  /* legacy alias */
+
+  /* ─── Player ─────────────────────────────────────────────────────────── */
+  --player-bg:      rgba(var(--rgb-base), 0.78);
+  --player-control: rgb(var(--rgb-light));
+}
+
+/* ─── Reduced motion: kill non-essential animation, keep opacity fades ─── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-med:  0ms;
+    --dur-slow: 0ms;
+    --dur-hero: 0ms;
+    --dur-slide: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

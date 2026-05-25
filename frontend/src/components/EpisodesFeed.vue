@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { fetchEpisodes } from '../lib/games.js'
 import EpisodeFeedCard from './EpisodeFeedCard.vue'
+import { Mic } from 'lucide-vue-next'
 
 const props = defineProps({
   searchQuery: String,
@@ -65,24 +66,36 @@ function togglePause() { playerStore.setPaused(!playerStore.paused) }
 
 <template>
   <div class="grid-area overflow-y-auto">
-    <!-- Loading -->
-    <div v-if="loading" class="flex justify-center items-center py-16">
-      <span class="loading loading-spinner loading-lg text-primary" />
+    <!-- Loading skeletons -->
+    <div v-if="loading" class="max-w-[900px] mx-auto px-3 pt-3 flex flex-col gap-2">
+      <div
+        v-for="i in 10"
+        :key="i"
+        class="skeleton-shimmer h-[68px] rounded-xl"
+        aria-hidden="true"
+      />
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="flex justify-center items-center py-16 text-base-content/50">
+    <div v-else-if="error" class="flex justify-center items-center py-20 text-base-content/50 text-sm">
       Erreur : {{ error }}
     </div>
 
-    <!-- Empty search -->
-    <div v-else-if="!filteredEpisodes.length" class="flex justify-center items-center py-16 text-base-content/40">
-      Aucun épisode trouvé.
+    <!-- Empty -->
+    <div
+      v-else-if="!filteredEpisodes.length"
+      class="flex flex-col items-center gap-2 py-20 text-base-content/45"
+    >
+      <Mic :size="40" :stroke-width="1.5" class="opacity-70" />
+      <p class="text-sm">Aucun épisode trouvé.</p>
     </div>
 
     <!-- Feed list -->
-    <div v-else class="max-w-[900px] mx-auto px-3 pt-2 pb-[calc(120px+env(safe-area-inset-bottom,0px))]">
-      <div class="flex flex-col gap-1">
+    <div
+      v-else
+      class="max-w-[900px] mx-auto px-3 pt-3 pb-[calc(120px+env(safe-area-inset-bottom,0px))]"
+    >
+      <div class="flex flex-col gap-2">
         <EpisodeFeedCard
           v-for="ep in filteredEpisodes"
           :key="ep.slug"

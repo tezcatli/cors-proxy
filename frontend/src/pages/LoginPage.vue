@@ -72,28 +72,41 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[200] bg-base-100 flex items-center justify-center p-4">
+  <div class="fixed inset-0 z-[200] bg-base-100 flex items-center justify-center p-4 overflow-hidden">
+    <!-- Animated gradient backdrop -->
+    <div
+      class="hero-drift absolute inset-0 -z-10 pointer-events-none"
+      style="background-image:
+        radial-gradient(80% 60% at 15% 0%,   rgba(139,92,246,0.30), transparent 60%),
+        radial-gradient(70% 50% at 90% 100%, rgba(233,69,96,0.28),  transparent 60%),
+        radial-gradient(60% 50% at 50% 50%,  rgba(34,211,238,0.10), transparent 60%);"
+    />
+    <div class="hero-drift absolute inset-0 -z-10 opacity-40 pointer-events-none"
+         style="background-image:
+           radial-gradient(40% 30% at 30% 80%, rgba(255,138,160,0.20), transparent 60%);" />
+
     <div class="w-full max-w-sm">
 
-      <div class="text-center mb-6">
-        <div class="text-4xl mb-1">🎮</div>
-        <h1 class="text-xl font-bold">Silence on Joue</h1>
+      <div class="text-center mb-7">
+        <div class="text-5xl mb-2 drop-shadow-[0_4px_16px_rgba(233,69,96,0.5)]">🎮</div>
+        <h1 class="text-2xl font-extrabold tracking-[-0.02em]">Silence on Joue</h1>
+        <p class="text-xs text-white/45 mt-1 font-medium">Catalogue des jeux du podcast</p>
       </div>
 
-      <div class="rounded-2xl bg-base-200 shadow-xl p-8">
+      <div class="panel p-7 shadow-e4">
 
         <div v-if="view === 'login'">
-          <h2 class="text-xl font-bold mb-4">Connexion</h2>
+          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Connexion</h2>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
           <form @submit.prevent="submitLogin" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-base-content/70">E-mail</label>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">E-mail</label>
               <input v-model="loginEmail" class="app-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
             </div>
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1.5">
               <div class="flex items-center justify-between">
-                <label class="text-sm font-medium text-base-content/70">Mot de passe</label>
-                <a href="#" class="text-xs text-base-content/50 link link-hover" @click.prevent="setView('reset-request')">Oublié ?</a>
+                <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Mot de passe</label>
+                <a href="#" class="text-xs text-white/55 hover:text-white transition-colors" @click.prevent="setView('reset-request')">Oublié ?</a>
               </div>
               <input v-model="loginPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
             </div>
@@ -102,64 +115,63 @@ onMounted(() => {
         </div>
 
         <div v-else-if="view === 'register'">
-          <h2 class="text-xl font-bold mb-4">Créer un compte</h2>
+          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Créer un compte</h2>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
           <form @submit.prevent="submitRegister" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-base-content/70">E-mail</label>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">E-mail</label>
               <input v-model="regEmail" class="app-input" type="email" placeholder="vous@exemple.com" :readonly="regEmailReadOnly" autocomplete="email" required />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-base-content/70">Mot de passe</label>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Mot de passe</label>
               <input v-model="regPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-base-content/70">Confirmer</label>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Confirmer</label>
               <input v-model="regPassword2" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
             <SubmitBtn :busy="busy" label="Créer le compte" />
           </form>
           <p class="text-center text-sm mt-4">
-            <a href="#" class="link link-primary" @click.prevent="setView('login')">Déjà un compte ?</a>
+            <a href="#" class="text-white/70 hover:text-white font-medium transition-colors" @click.prevent="setView('login')">Déjà un compte ?</a>
           </p>
         </div>
 
         <div v-else-if="view === 'reset-request'">
-          <h2 class="text-xl font-bold mb-4">Mot de passe oublié</h2>
+          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Mot de passe oublié</h2>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
           <form @submit.prevent="submitResetRequest" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-base-content/70">E-mail</label>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">E-mail</label>
               <input v-model="resetEmail" class="app-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
             </div>
             <SubmitBtn :busy="busy" label="Envoyer le lien" />
           </form>
           <p class="text-center text-sm mt-4">
-            <a href="#" class="link link-primary" @click.prevent="setView('login')">Retour à la connexion</a>
+            <a href="#" class="text-white/70 hover:text-white font-medium transition-colors" @click.prevent="setView('login')">Retour à la connexion</a>
           </p>
         </div>
 
         <div v-else-if="view === 'reset'">
-          <h2 class="text-xl font-bold mb-4">Nouveau mot de passe</h2>
+          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Nouveau mot de passe</h2>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
           <form @submit.prevent="submitReset" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-base-content/70">Nouveau mot de passe</label>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Nouveau mot de passe</label>
               <input v-model="newPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium text-base-content/70">Confirmer</label>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Confirmer</label>
               <input v-model="newPassword2" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
             </div>
             <SubmitBtn :busy="busy" label="Enregistrer" />
           </form>
           <p class="text-center text-sm mt-4">
-            <a href="#" class="link link-primary" @click.prevent="setView('login')">Retour à la connexion</a>
+            <a href="#" class="text-white/70 hover:text-white font-medium transition-colors" @click.prevent="setView('login')">Retour à la connexion</a>
           </p>
         </div>
 
       </div>
-
     </div>
   </div>
 </template>

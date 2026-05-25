@@ -1,5 +1,6 @@
 import json
 import datetime
+import pathlib
 import threading
 
 import requests as http
@@ -38,6 +39,58 @@ _cached_at:       datetime.datetime | None = None
 # Keyed by date-qualified podcast_slug (make_slug(name) + '-' + YYYYMMDD).
 # Loaded from DB at startup; written when a new IGDB resolution completes.
 _igdb_cache: dict[str, IgdbEntry] = {}
+
+
+# ── AI chapter injection ──────────────────────────────────────────────────────
+
+def _seconds_to_ts(secs: float) -> str:
+    s = int(secs)
+    h, rem = divmod(s, 3600)
+    m, s = divmod(rem, 60)
+    return f'{h}:{m:02d}:{s:02d}' if h else f'{m}:{s:02d}'
+
+
+def _load_ai_chapter_index() -> dict[str, list]:
+    path = pathlib.Path(__file__).parent / 'chapters.json'
+    if not path.exists():
+        logger.warning('chapters.json not found at %s', path)
+        return {}
+    with path.open(encoding='utf-8') as f:
+        data = json.load(f)
+    index = {}
+    for ep in data.get('episodes', []):
+        slug = make_slug(ep.get('title', ''))
+        if slug:
+            index[slug] = ep.get('chapters', [])
+    return index
+
+
+def _inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
+    from rss import find_chapter_for_game
+    from models import Chapter as Ch
+    injected = 0
+    for episode in episodes:
+        if episode.chapters or episode.slug not in ai_index:
+            continue
+        raw_chapters = ai_index[episode.slug]
+        chapters = [
+            Ch(
+                timestamp=_seconds_to_ts(c['start_s']),
+                timestamp_seconds=int(c['start_s']),
+                title=c['title'],
+                game_name=c.get('game_name'),
+            )
+            for c in raw_chapters
+        ]
+        episode.chapters = chapters
+        for mention in episode.games:
+            matched = find_chapter_for_game(mention.name, chapters)
+            if matched:
+                mention.timestamp = matched.timestamp
+                mention.timestamp_seconds = matched.timestamp_seconds
+        injected += 1
+    if injected:
+        logger.info('Injected AI chapters into %d episodes', injected)
 
 
 # ── RSS state helpers ─────────────────────────────────────────────────────────
@@ -95,6 +148,8 @@ def _refresh_feed() -> None:
                     headers={'User-Agent': 'SilenceOnJoue/1.0'})
     resp.raise_for_status()
     episodes                        = parse_feed(resp.content)
+    ai_index                        = _load_ai_chapter_index()
+    _inject_ai_chapters(episodes, ai_index)
     episode_index, game_index       = _build_indexes(episodes)
     with _state_lock:
         _cached_episodes = episodes

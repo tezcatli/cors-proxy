@@ -9,6 +9,7 @@ import GameGrid     from './components/GameGrid.vue'
 import EpisodesFeed from './components/EpisodesFeed.vue'
 import AudioPlayer  from './components/AudioPlayer.vue'
 import AccountModal from './components/AccountModal.vue'
+import { User } from 'lucide-vue-next'
 
 const route  = useRoute()
 const router = useRouter()
@@ -21,18 +22,20 @@ const userEmail = computed(() => getUserEmail())
 
 let _prevPos   = router.options.history.state?.position ?? 0
 let _prevDepth = route.meta?.depth ?? 0
-const navDir = ref('slide-push')
+const navDir = ref('nav-fade')
 watch(() => route.path, (newPath, oldPath) => {
   const newPos   = router.options.history.state?.position ?? 0
   const newDepth = route.meta?.depth ?? 0
   if (newPath === '/login' || oldPath === '/login') {
-    navDir.value = 'none'
+    navDir.value = 'nav-fade'
   } else if (newDepth === 0 && _prevDepth === 0) {
-    navDir.value = 'none'
+    navDir.value = 'nav-fade'
   } else if (newPos < _prevPos) {
-    navDir.value = 'slide-pop'
+    navDir.value = 'nav-back'
+  } else if (newDepth > _prevDepth) {
+    navDir.value = 'nav-overlay'
   } else {
-    navDir.value = 'slide-push'
+    navDir.value = 'nav-forward'
   }
   _prevPos   = newPos
   _prevDepth = newDepth
@@ -190,11 +193,11 @@ onBeforeUnmount(() => {
     >
       <template #account>
         <button
-          class="btn btn-circle btn-ghost !size-9 !min-h-9 text-[1.1rem]"
+          class="btn btn-circle btn-ghost !size-9 !min-h-9"
           :class="loggedIn ? 'text-primary' : 'text-base-content/50'"
           :aria-label="loggedIn ? 'Mon compte' : 'Connexion'"
           @click="handleShowAccount"
-        >👤</button>
+        ><User :size="18" :stroke-width="2.25" /></button>
       </template>
     </AppHeader>
 

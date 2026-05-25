@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
+import { Play, Pause, VolumeX, ChevronRight } from 'lucide-vue-next'
 import { formatDate } from '../lib/utils.js'
 
 const props = defineProps({
@@ -11,15 +12,11 @@ const emit = defineEmits(['play', 'togglePause', 'view'])
 
 const hasAudio = computed(() => !!props.episode.audioUrl)
 
-const icon = computed(() => {
-  if (!hasAudio.value) return '🔇'
-  if (props.isPlaying)  return props.isPaused ? '▶' : '⏸'
-  return '▶'
+const iconComp = computed(() => {
+  if (!hasAudio.value) return VolumeX
+  if (props.isPlaying) return props.isPaused ? Play : Pause
+  return Play
 })
-
-const gameNames = computed(() =>
-  props.episode.games?.map(g => g.name).join(' · ') || ''
-)
 
 function handlePlay() {
   if (!hasAudio.value) return
@@ -55,37 +52,38 @@ onUnmounted(() => resizeObs?.disconnect())
     class="episode-card"
     :class="{ 'has-audio': hasAudio, playing: isPlaying }"
   >
-    <div class="ep-icon" @click="handlePlay">{{ icon }}</div>
+    <div class="ep-icon" @click="handlePlay">
+      <component :is="iconComp" :size="14" :fill="hasAudio ? 'currentColor' : 'none'" :stroke-width="hasAudio ? 0 : 2" />
+    </div>
 
     <img
       v-if="episode.imageUrl"
       :src="episode.imageUrl"
       :alt="episode.title"
-      class="w-9 h-9 rounded object-cover flex-shrink-0 self-center"
+      class="w-10 h-10 rounded-lg object-cover flex-shrink-0 self-center shadow-e1"
       loading="lazy"
       @click="handlePlay"
     />
-    <div v-else class="w-9 h-9 flex-shrink-0" />
+    <div v-else class="w-10 h-10 flex-shrink-0 rounded-lg bg-white/5" />
 
     <div class="flex-1 min-w-0" @click="handlePlay">
       <div
         ref="marqueeEl"
-        class="ep-title-scroll [.playing_&]:text-secondary"
+        class="ep-title-scroll"
         :class="{ 'ep-title-scroll--on': needsScroll }"
       >
         <span class="ep-title-inner">{{ episode.title }}</span>
         <span v-if="needsScroll" class="ep-title-inner" aria-hidden="true">{{ episode.title }}</span>
       </div>
-      <div class="text-[0.7rem] text-base-content/50 flex gap-1.5 flex-wrap mt-0.5">
+      <div class="text-[0.7rem] text-white/45 flex gap-1.5 flex-wrap mt-0.5 font-medium">
         <span>{{ formatDate(episode.pubTs) }}</span>
-
       </div>
     </div>
 
     <button
-      class="btn btn-sm btn-ghost text-base-content/40 hover:text-base-content/80 px-2 self-center flex-shrink-0 text-[1.2rem]"
+      class="btn btn-sm btn-ghost text-white/40 hover:text-white/85 px-2 self-center flex-shrink-0 !min-h-0 h-8"
       aria-label="Détails de l'épisode"
       @click.stop="emit('view', episode)"
-    >›</button>
+    ><ChevronRight :size="18" :stroke-width="2" /></button>
   </div>
 </template>

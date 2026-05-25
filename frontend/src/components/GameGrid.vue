@@ -1,5 +1,7 @@
 <script setup>
 import GameCard from './GameCard.vue'
+import SkeletonTile from './SkeletonTile.vue'
+import { AlertTriangle, SearchX } from 'lucide-vue-next'
 
 defineProps({
   games:   Array,
@@ -11,23 +13,30 @@ defineProps({
 
 <template>
   <div class="grid-area">
-    <div v-if="loading" class="flex justify-center py-16">
-      <span class="loading loading-spinner loading-lg text-primary"></span>
+    <!-- Loading: skeleton shimmer grid -->
+    <div
+      v-if="loading"
+      class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-4 sm:gap-3 sm:px-5 sm:pt-4 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:px-7 lg:pt-5"
+    >
+      <SkeletonTile v-for="i in 18" :key="i" />
     </div>
 
-    <div v-else-if="error || games.length === 0" class="flex flex-col items-center gap-3 py-16 px-6 text-base-content/50">
-      <span class="text-4xl">{{ error ? '⚠️' : '🔍' }}</span>
-      <p v-if="error" class="text-sm text-center">{{ error }}</p>
+    <!-- Empty / error -->
+    <div
+      v-else-if="error || games.length === 0"
+      class="flex flex-col items-center gap-3 py-20 px-6 text-base-content/50"
+    >
+      <component :is="error ? AlertTriangle : SearchX" :size="48" :stroke-width="1.5" class="opacity-70" />
+      <p v-if="error" class="text-sm text-center max-w-sm">{{ error }}</p>
       <p v-else-if="total === 0" class="text-sm text-center">Aucun jeu dans le catalogue. Essayez d'actualiser.</p>
       <p v-else class="text-sm text-center">Aucun jeu ne correspond à votre recherche.</p>
     </div>
 
-    <!--
-    <div v-else class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-4 sm:gap-2.5 sm:px-5 sm:pt-4 sm:pb-7 lg:grid-cols-[repeat(auto-fill,minmax(110px,1fr))] lg:gap-3 lg:px-7 lg:pt-5 lg:pb-10">
-      <GameCard v-for="game in games" :key="game.name" :game="game" />
-    </div>
-    -->
-    <div v-else class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-4 sm:gap-2.5 sm:px-5 sm:pt-4 sm:pb-7 lg:grid-cols-[repeat(auto-fill,minmax(110px,1fr))] lg:gap-3 lg:px-7 lg:pt-5 lg:pb-10">
+    <!-- Grid -->
+    <div
+      v-else
+      class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6 max-w-[1400px] mx-auto sm:grid-cols-4 sm:gap-3 sm:px-5 sm:pt-4 sm:pb-8 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:px-7 lg:pt-5 lg:pb-10"
+    >
       <GameCard v-for="game in games" :key="game.slug" :game="game" />
     </div>
   </div>

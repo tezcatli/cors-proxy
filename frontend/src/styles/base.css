@@ -1,9 +1,26 @@
-html { font-size: 16px; scroll-behavior: smooth; }
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 body {
-  background: rgb(var(--rgb-base));
-  color: #e8e8f0;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background:
+    radial-gradient(1100px 760px at 15% -8%,  rgba(139,  92, 246, 0.22), transparent 60%),
+    radial-gradient( 950px 680px at 92%  6%,  rgba(233,  69,  96, 0.20), transparent 60%),
+    radial-gradient( 800px 600px at 50% 110%, rgba( 34, 211, 238, 0.12), transparent 65%),
+    rgb(var(--rgb-base));
+  background-attachment: fixed;
+  background-size: 100% 100%, 100% 100%, 100% 100%, auto;
+  color: rgb(var(--rgb-light));
+  font-family: 'Inter Variable', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  letter-spacing: -0.005em;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -25,8 +42,30 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar       { width: 6px; height: 6px; }
+/* ─── Scrollbar — thin, tints with current --game-accent on hover ────── */
+::-webkit-scrollbar       { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color var(--dur-fast) var(--ease-out-soft);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--game-accent);
+  background-clip: content-box;
+}
+
+/* ─── Selection ──────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(var(--rgb-primary), 0.35);
+  color: #fff;
+}
+
+/* ─── Focus ring (consistent across the app) ─────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--game-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

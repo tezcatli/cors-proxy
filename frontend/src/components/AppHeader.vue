@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
+import { Search, RotateCw, X, ArrowUp, ArrowDown, SlidersHorizontal, Check, Gamepad2 } from 'lucide-vue-next'
 import { timeAgo } from '../lib/utils.js'
 
 const props = defineProps({
@@ -17,74 +18,73 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:searchQuery', 'setSort', 'refresh', 'toggle-hide-unresolved'])
 
-const subtitle = computed(() => {
-  if (props.isEpisodes) {
-    return props.episodeCount != null ? `${props.episodeCount} épisodes` : 'Tous les épisodes'
-  }
-  const parts = []
-  if (props.gameCount)  parts.push(`${props.gameCount} jeux`)
-  if (props.lastFetch)  parts.push(`mis à jour ${timeAgo(props.lastFetch)}`)
-  return parts.length ? parts.join(' · ') : 'Catalogue des jeux'
-})
-
 const searchPlaceholder = computed(() =>
   props.isEpisodes ? 'Rechercher un épisode…' : 'Rechercher un jeu…'
 )
 
 const sortOptions = [
-  { mode: 'alpha', label: 'A–Z' },
-  { mode: 'date',  label: 'Date' },
-  { mode: 'meta',  label: 'Meta' },
+  { mode: 'alpha', label: 'A–Z',          hint: 'Alphabétique' },
+  { mode: 'date',  label: 'Date',         hint: 'Date de l\'épisode' },
+  { mode: 'meta',  label: 'Metacritic',   hint: 'Note Metacritic' },
 ]
+
+const lastFetchLabel = computed(() => props.lastFetch ? timeAgo(props.lastFetch) : null)
+const filtersActive  = computed(() => props.hideUnresolved || props.sortMode !== 'alpha' || !props.sortAsc)
+
+// ── Filters popover ─────────────────────────────────────────────────
+const popoverOpen = ref(false)
+const popoverRoot = ref(null)
+function togglePopover() { popoverOpen.value = !popoverOpen.value }
+function closePopover()  { popoverOpen.value = false }
+// Outside-click handler runs in CAPTURE phase so we can swallow the click
+// before it reaches whatever's under the cursor (e.g. a game tile in the grid).
+function onDocClick(e) {
+  if (!popoverOpen.value) return
+  if (popoverRoot.value && popoverRoot.value.contains(e.target)) return
+  closePopover()
+  e.stopPropagation()
+  e.preventDefault()
+}
+function onEsc(e) { if (e.key === 'Escape') closePopover() }
+onMounted(() => {
+  document.addEventListener('click', onDocClick, true)
+  document.addEventListener('keydown', onEsc)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick, true)
+  document.removeEventListener('keydown', onEsc)
+})
+
+// ── Mobile search overlay ───────────────────────────────────────────
+const searchOpen = ref(false)
+function openSearch()  { searchOpen.value = true }
+function closeSearch() { searchOpen.value = false }
 </script>
 
 <template>
-  <div class="app-header">
-    <!-- Row 1: branding + actions -->
-    <div class="flex items-center justify-between gap-3 px-4 py-3 max-w-[1400px] mx-auto">
-      <div class="flex items-center gap-2.5 leading-none">
-        <span class="text-[1.6rem] lg:text-[1.8rem]">🎮</span>
-        <div>
-          <div class="text-[1.1rem] font-bold tracking-[-0.2px] leading-[1.2] lg:text-[1.25rem]">Silence on Joue</div>
-          <div class="text-[0.7rem] text-base-content/50 mt-px">{{ subtitle }}</div>
-        </div>
-      </div>
+  <header class="command-bar">
+    <div class="command-bar__inner">
+      <!-- Brand pill -->
+      
 
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <button
-          v-if="!isEpisodes"
-          class="btn btn-circle btn-ghost !size-9 !min-h-9 text-[1.1rem]"
-          :disabled="loading"
-          :aria-label="loading ? 'Chargement…' : 'Actualiser'"
-          @click="emit('refresh')"
-        >
-          <span class="icon-spin" :class="{ spinning: loading }">↻</span>
-        </button>
-        <slot name="account" />
-      </div>
-    </div>
+      <!-- Tab pills with counts -->
+      <nav class="tab-group" role="tablist">
+        <RouterLink to="/" class="tab-pill" :class="{ 'is-active': !isEpisodes }" role="tab" :aria-selected="!isEpisodes">
+          <span>Jeux</span>
+          <!-- <span v-if="gameCount" class="tab-pill__count">{{ gameCount }}</span>  --><!-- Count is a bit redundant here, and noisy on mobile -->
+        </RouterLink>
+        <RouterLink to="/episodes" class="tab-pill" :class="{ 'is-active': isEpisodes }" role="tab" :aria-selected="isEpisodes">
+          <span>Épisodes</span>
+          <!-- <span v-if="episodeCount" class="tab-pill__count">{{ episodeCount }}</span> -->
+        </RouterLink>
+      </nav>
 
-    <!-- Row 2: navigation tabs -->
-    <div class="flex gap-0 px-3 pb-1 max-w-[1400px] mx-auto">
-      <RouterLink
-        to="/"
-        class="btn btn-xs btn-ghost font-semibold"
-        :class="!isEpisodes ? 'btn-primary' : 'text-base-content/50'"
-      >Jeux</RouterLink>
-      <RouterLink
-        to="/episodes"
-        class="btn btn-xs btn-ghost font-semibold"
-        :class="isEpisodes ? 'btn-primary' : 'text-base-content/50'"
-      >Épisodes</RouterLink>
-    </div>
-
-    <!-- Row 3: search + sort -->
-    <div class="max-w-[1400px] mx-auto px-3 pb-2.5 flex flex-col gap-2 flex-shrink-0 sm:flex-row sm:items-center sm:pb-3 sm:px-5 lg:px-7 lg:gap-3">
-      <div class="relative w-full sm:flex-1 sm:max-w-[440px] lg:max-w-[520px]">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[0.9rem] pointer-events-none z-[1]">🔍</span>
+      <!-- Search (always visible on tablet+, behind icon on mobile) -->
+      <div class="search-wrap">
+        <Search :size="16" class="search-wrap__icon" />
         <input
           id="searchInput"
-          class="app-input"
+          class="search-input"
           type="search"
           :placeholder="searchPlaceholder"
           :value="searchQuery"
@@ -92,37 +92,115 @@ const sortOptions = [
         />
         <button
           v-if="searchQuery"
-          class="btn-clear"
-          aria-label="Effacer"
+          class="search-wrap__clear"
+          aria-label="Effacer la recherche"
           @click="emit('update:searchQuery', '')"
-        >✕</button>
+        ><X :size="12" :stroke-width="2.5" /></button>
       </div>
 
-      <div v-if="!isEpisodes" class="flex gap-1.5 items-center sm:flex-none">
-        <div class="join">
-          <button
-            v-for="opt in sortOptions"
-            :key="opt.mode"
-            class="join-item btn btn-sm btn-glass"
-            :class="sortMode === opt.mode ? 'btn-primary' : 'btn-ghost'"
-            @click="emit('setSort', opt.mode)"
-          >
-            {{ opt.label }}
-            <span v-if="sortMode === opt.mode">{{ sortAsc ? '↑' : '↓' }}</span>
-          </button>
-        </div>
+      <!-- Mobile search trigger -->
+      <button
+        class="icon-action mobile-only"
+        :class="{ 'is-active': !!searchQuery }"
+        aria-label="Rechercher"
+        @click="openSearch"
+      >
+        <Search :size="17" :stroke-width="2.25" />
+        <span v-if="searchQuery" class="icon-action__dot"></span>
+      </button>
+
+      <!-- Sort/filter popover (Jeux only) -->
+      <div v-if="!isEpisodes" ref="popoverRoot" class="popover-wrap">
         <button
-          class="btn btn-sm"
-          :class="hideUnresolved ? 'btn-primary' : 'btn-ghost'"
-          :aria-label="hideUnresolved ? 'Afficher tous les jeux' : 'Masquer les jeux non resolues'"
-          :title="hideUnresolved ? 'Afficher tous les jeux' : 'Masquer les jeux sans non resolues'"
-          @click="emit('toggle-hide-unresolved')"
-        >Résolues</button>
-        <span v-if="searchQuery" class="text-[0.8rem] text-base-content/50 pl-0.5">
-          {{ filteredCount }} / {{ gameCount }}
-        </span>
+          class="icon-action"
+          :class="{ 'is-active': popoverOpen || filtersActive }"
+          aria-label="Trier et filtrer"
+          :aria-expanded="popoverOpen"
+          @click="togglePopover"
+        >
+          <SlidersHorizontal :size="17" :stroke-width="2.25" />
+          <span v-if="filtersActive" class="icon-action__dot"></span>
+        </button>
+
+        <Transition name="popover">
+          <div v-if="popoverOpen" class="popover" role="dialog" aria-label="Trier et filtrer">
+            <div class="popover__title">Trier par</div>
+            <div class="flex flex-col gap-1 mb-3">
+              <button
+                v-for="opt in sortOptions"
+                :key="opt.mode"
+                class="popover__row"
+                :class="{ 'is-active': sortMode === opt.mode }"
+                @click="emit('setSort', opt.mode)"
+              >
+                <span class="popover__row-label">
+                  <Check v-if="sortMode === opt.mode" :size="14" :stroke-width="2.5" class="popover__check" />
+                  {{ opt.label }}
+                </span>
+                <component
+                  v-if="sortMode === opt.mode"
+                  :is="sortAsc ? ArrowUp : ArrowDown"
+                  :size="13"
+                  :stroke-width="2.5"
+                  class="popover__dir"
+                />
+              </button>
+            </div>
+
+            <div class="popover__divider"></div>
+
+            <div class="popover__title">Filtres</div>
+            <button
+              class="popover__row"
+              :class="{ 'is-active': hideUnresolved }"
+              @click="emit('toggle-hide-unresolved')"
+            >
+              <span class="popover__row-label">
+                <span class="popover__toggle" :class="{ 'is-on': hideUnresolved }">
+                  <span class="popover__toggle-knob" />
+                </span>
+                Jeux résolus uniquement
+              </span>
+            </button>
+          </div>
+        </Transition>
       </div>
+
+      <!-- Refresh (Jeux only) -->
+      <button
+        v-if="!isEpisodes"
+        class="icon-action"
+        :disabled="loading"
+        :aria-label="loading ? 'Chargement…' : (lastFetchLabel ? `Actualiser (mis à jour ${lastFetchLabel})` : 'Actualiser')"
+        :title="lastFetchLabel ? `Mis à jour ${lastFetchLabel}` : 'Actualiser'"
+        @click="emit('refresh')"
+      >
+        <RotateCw :size="17" :stroke-width="2.25" :class="{ 'animate-spin': loading }" />
+      </button>
+
+      <!-- Account slot -->
+      <slot name="account" />
     </div>
 
-  </div>
+    <!-- Mobile search overlay -->
+    <Transition name="search-overlay">
+      <div v-if="searchOpen" class="search-overlay" @click.self="closeSearch">
+        <div class="search-overlay__bar">
+          <Search :size="18" :stroke-width="2.25" class="text-white/55" />
+          <input
+            class="search-overlay__input"
+            type="search"
+            autofocus
+            :placeholder="searchPlaceholder"
+            :value="searchQuery"
+            @input="emit('update:searchQuery', $event.target.value)"
+            @keydown.enter="closeSearch"
+          />
+          <button class="icon-action" aria-label="Fermer" @click="closeSearch">
+            <X :size="18" :stroke-width="2.25" />
+          </button>
+        </div>
+      </div>
+    </Transition>
+  </header>
 </template>

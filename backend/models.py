@@ -9,6 +9,7 @@ class Chapter:
     timestamp: str
     timestamp_seconds: int
     title: str
+    game_name: Optional[str] = None
 
 
 @dataclass

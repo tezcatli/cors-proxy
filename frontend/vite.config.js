@@ -29,6 +29,11 @@ export default defineConfig({
   base: '/silence/',
   server: {
     host: true,
+    allowedHosts: ['frontend', 'localhost'],
+    fs: {
+      // Allow Vite to serve files from /node_modules (mounted outside /frontend in dev)
+      allow: ['/frontend', '/node_modules'],
+    },
     proxy: {
       '/silence/auth':  'http://backend:5000',
       '/silence/games': 'http://backend:5000',

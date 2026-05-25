@@ -44,8 +44,14 @@ def create_app(testing=False):
         def silence_spa(path):
             if Config.DEBUG and os.environ.get("VITE_DEV_SERVER", "false").lower() == "true":
                 vite_url = f"http://frontend:5173/silence/{path}" if path else "http://frontend:5173/silence/"
+                # Forward the raw query string. Re-serializing via requests' `params` from
+                # request.args drops the distinction between `?foo` and `?foo=`, which Vite
+                # uses to recognise virtual extensions like `&lang.css`.
+                raw_qs = request.query_string.decode('latin-1')
+                if raw_qs:
+                    vite_url = f"{vite_url}?{raw_qs}"
                 try:
-                    vite_resp = requests.get(vite_url, params=request.args, timeout=5)
+                    vite_resp = requests.get(vite_url, timeout=5)
                     excluded = {"content-encoding", "content-length", "transfer-encoding", "connection"}
                     headers = [(k, v) for k, v in vite_resp.headers.items() if k.lower() not in excluded]
                     response = Response(vite_resp.content, status=vite_resp.status_code, headers=headers)

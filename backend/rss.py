@@ -122,9 +122,15 @@ def _is_non_game_chapter(title: str) -> bool:
 
 # ── Timestamp matching ────────────────────────────────────────────────────────
 
-def _find_chapter_for_game(game_name: str, chapters: list[Chapter]) -> Chapter | None:
+def find_chapter_for_game(game_name: str, chapters: list[Chapter]) -> Chapter | None:
     """Return the chapter most likely corresponding to game_name, or None."""
     norm_game = _norm(game_name)
+
+    # Fast path: trust AI-annotated game_name if present
+    for chapter in chapters:
+        if chapter.game_name and _norm(chapter.game_name) == norm_game:
+            return chapter
+
     best: Chapter | None = None
     best_score = 0.0
 
@@ -233,7 +239,7 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
             raw_name = re.sub(r'^[,\s]+', '', raw_name).strip()
             if len(raw_name) < 2:
                 continue
-            matched = _find_chapter_for_game(raw_name, chapters)
+            matched = find_chapter_for_game(raw_name, chapters)
             mentions.append(GameMention(
                 name=raw_name,
                 timestamp=matched.timestamp if matched else None,

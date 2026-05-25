@@ -1,31 +1,98 @@
-/* ─── Spin ───────────────────────────────────────────────────────────────── */
+/* ─── Spin (refresh icon) ───────────────────────────────────────────── */
 .icon-spin { display: inline-block; transition: transform 0.5s linear; }
 .icon-spin.spinning { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── Route transitions ──────────────────────────────────────────────────── */
-@keyframes slideInRight  { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes slideOutRight { from { transform: translateX(0); }    to { transform: translateX(100%); } }
-@keyframes stayPut       { from { opacity: 1; }                  to { opacity: 1; } }
+/* ─── Route transitions ─────────────────────────────────────────────── *
+   Driven by App.vue: it picks `nav-forward` / `nav-back` / `nav-overlay`
+   / `nav-fade` based on router meta + history position.                  */
 
-/* Push (navigating forward / deeper) — new view slides in from right over old */
-.slide-push-enter-active { animation: slideInRight var(--dur-slide) var(--ease-std); }
-.slide-push-leave-active { animation: stayPut      var(--dur-slide) forwards; pointer-events: none; }
+@keyframes navForwardIn  {
+  from { transform: translateX(8%)  scale(0.98); opacity: 0; }
+  to   { transform: translateX(0)   scale(1);    opacity: 1; }
+}
+@keyframes navForwardOut {
+  from { transform: translateX(0)     scale(1);    opacity: 1; }
+  to   { transform: translateX(-6%)   scale(0.97); opacity: 0; }
+}
+@keyframes navBackIn  {
+  from { transform: translateX(-6%) scale(0.97); opacity: 0; }
+  to   { transform: translateX(0)   scale(1);    opacity: 1; }
+}
+@keyframes navBackOut {
+  from { transform: translateX(0)   scale(1);    opacity: 1; }
+  to   { transform: translateX(10%) scale(0.98); opacity: 0; }
+}
+@keyframes navOverlayIn  {
+  from { transform: translateY(2%)  scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)   scale(1);    opacity: 1; }
+}
+@keyframes navOverlayOut {
+  from { transform: translateY(0)   scale(1);    opacity: 1; }
+  to   { transform: translateY(1.5%) scale(0.98); opacity: 0; }
+}
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-/* Pop (navigating back / shallower) — old view exits right, new appears instantly behind */
-.slide-pop-leave-active  { animation: slideOutRight var(--dur-slide) var(--ease-std) forwards; pointer-events: none; }
+.nav-forward-enter-active { animation: navForwardIn  var(--dur-med)  var(--ease-out-soft) both; }
+.nav-forward-leave-active { animation: navForwardOut var(--dur-med)  var(--ease-in-soft)  both; }
+.nav-back-enter-active    { animation: navBackIn     var(--dur-med)  var(--ease-out-soft) both; }
+.nav-back-leave-active    { animation: navBackOut    var(--dur-med)  var(--ease-in-soft)  both; }
+.nav-overlay-enter-active { animation: navOverlayIn  var(--dur-slow) var(--ease-out-soft) both; }
+.nav-overlay-leave-active { animation: navOverlayOut var(--dur-med)  var(--ease-in-soft)  both; }
+.nav-fade-enter-active    { animation: fadeIn        var(--dur-fast) var(--ease-out-soft) both; }
+.nav-fade-leave-active    { animation: fadeOut       var(--dur-fast) var(--ease-in-soft)  both; }
 
-/* ─── Audio player slide-up ─────────────────────────────────────────────── */
-@keyframes slideUpPlayer { from { transform: translateY(100%); } to { transform: translateY(0); } }
+/* Leaving views must not block clicks while sliding out */
+.nav-forward-leave-active,
+.nav-back-leave-active,
+.nav-overlay-leave-active,
+.nav-fade-leave-active { pointer-events: none; }
 
-/* ─── Player info marquee ────────────────────────────────────────────────── */
+/* ─── Audio player entry ─────────────────────────────────────────────── */
+@keyframes slideUpPlayer { from { transform: translateY(110%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ─── Player info marquee ────────────────────────────────────────────── */
 @keyframes player-marquee {
-  0%, 12%  { transform: translateX(0); }
+  0%, 12%   { transform: translateX(0); }
   88%, 100% { transform: translateX(-100%); }
 }
 
-/* ─── Player info vertical ticker ────────────────────────────────────────── */
-.player-tick-enter-active { transition: transform 0.35s ease, opacity 0.35s ease; }
-.player-tick-leave-active { transition: transform 0.35s ease, opacity 0.35s ease; position: absolute; inset-inline: 0; }
+/* ─── Player info vertical ticker ────────────────────────────────────── */
+.player-tick-enter-active { transition: transform var(--dur-med) var(--ease-out-soft), opacity var(--dur-med) var(--ease-out-soft); }
+.player-tick-leave-active { transition: transform var(--dur-med) var(--ease-out-soft), opacity var(--dur-med) var(--ease-out-soft); position: absolute; inset-inline: 0; }
 .player-tick-enter-from   { transform: translateY(100%); opacity: 0; }
 .player-tick-leave-to     { transform: translateY(-100%); opacity: 0; }
+
+/* ─── Shimmer (skeleton loaders) ─────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ─── Accent pulse (active card / playing chapter) ───────────────────── */
+@keyframes accent-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  50%      { box-shadow: 0 0 0 6px var(--game-accent, rgba(233,69,96,0.4)); }
+}
+
+/* ─── Account/AudioPlayer/Modal enter (scale-up + fade) ──────────────── */
+.modal-pop-enter-active { transition: transform var(--dur-med) var(--ease-spring), opacity var(--dur-med) var(--ease-out-soft); }
+.modal-pop-leave-active { transition: transform var(--dur-fast) var(--ease-in-soft), opacity var(--dur-fast) var(--ease-in-soft); }
+.modal-pop-enter-from, .modal-pop-leave-to { transform: scale(0.96) translateY(4px); opacity: 0; }
+
+/* ─── Mobile bottom-sheet (audio player) ─────────────────────────────── */
+.sheet-enter-active { transition: transform var(--dur-slow) var(--ease-out-soft), opacity var(--dur-med) var(--ease-out-soft); }
+.sheet-leave-active { transition: transform var(--dur-med)  var(--ease-in-soft),  opacity var(--dur-fast) var(--ease-in-soft); }
+.sheet-enter-from, .sheet-leave-to { transform: translateY(110%); opacity: 0; }
+
+/* Animated gradient backdrop (login hero) */
+@keyframes hueDrift {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+.hero-drift {
+  background-size: 200% 200%;
+  animation: hueDrift 18s ease-in-out infinite;
+}

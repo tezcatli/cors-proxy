@@ -3,6 +3,9 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
+import { useArtworkAccent } from '../composables/useArtworkAccent.js'
+import ArtworkBackdrop from './ArtworkBackdrop.vue'
+import { X, Gamepad2 } from 'lucide-vue-next'
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
 
@@ -13,12 +16,22 @@ const playerStore = usePlayerStore()
 const audioEl     = ref(null)
 const plyrWrapEl  = ref(null)
 const marqueeEl   = ref(null)
+const playerEl    = ref(null)
 const needsScroll = ref(false)
+
+// ── Per-track accent ────────────────────────────────────────────────────────
+const currentCoverId = computed(() => playerStore.current?.coverImageId ?? null)
+const { cssVars } = useArtworkAccent(currentCoverId)
+
+const playerCoverSrc = computed(() => {
+  const id = playerStore.current?.coverImageId
+  return id ? igdbUrl(id, 't_cover_small') : (playerStore.current?.episodeImageUrl ?? null)
+})
 
 // Plain variable — Plyr's proxy breaks Vue reactivity if stored in a ref
 let plyrInstance     = null
-let currentLoadedUrl = null   // the URL currently in the <audio> element
-let playPromise      = null   // tracks in-flight play() Promise to prevent AbortError
+let currentLoadedUrl = null
+let playPromise      = null
 
 function safePlay() {
   playPromise = plyrInstance?.play() ?? null
@@ -29,7 +42,6 @@ function safePlay() {
 
 function safePause() {
   if (playPromise) {
-    // pause() called while play() is pending — defer so the browser isn't interrupted
     playPromise.then(() => { try { plyrInstance?.pause() } catch (_) {} }).catch(() => {})
   } else {
     try { plyrInstance?.pause() } catch (_) {}
@@ -46,13 +58,12 @@ function destroyPlyr() {
   ;[...plyrWrapEl.value.children].forEach(c => { if (c !== audioEl.value) c.remove() })
 }
 
-// Plyr is kept alive across source changes — update markers manually in its progress bar.
 function fixTimeDisplayWidth() {
   const durationEl = plyrWrapEl.value?.querySelector('.plyr__time--duration')
   const currentEl  = plyrWrapEl.value?.querySelector('.plyr__time--current')
   if (!durationEl || !currentEl) return
   const orig = currentEl.textContent
-  currentEl.textContent = durationEl.textContent   // temporarily show max-width text
+  currentEl.textContent = durationEl.textContent
   currentEl.style.minWidth = currentEl.offsetWidth + 'px'
   currentEl.textContent = orig
 }
@@ -71,7 +82,7 @@ function updatePlyrMarkers(chapters) {
   }
 }
 
-// Alternating episode title / chapter name display
+// ── Alternating episode / chapter title ────────────────────────────────────
 const showEpisode = ref(true)
 let flipTimer = null
 
@@ -96,7 +107,6 @@ const currentLabel = computed(() => {
 const tickKey          = computed(() => showEpisode.value ? 'ep' : 'ch')
 const isShowingChapter = computed(() => !showEpisode.value && !!playerStore.currentChapter)
 
-// Overflow detection for marquee auto-scroll
 async function checkScroll() {
   await nextTick()
   if (!marqueeEl.value) { needsScroll.value = false; return }
@@ -143,11 +153,41 @@ function onTimeUpdate() {
   playerStore.setCurrentTime(audioEl.value?.currentTime ?? 0)
   updatePositionState()
 }
-
 function onSeeked() {
   playerStore.setCurrentTime(audioEl.value?.currentTime ?? 0)
   updatePositionState()
 }
+
+// ── Bottom-sheet drag-to-dismiss (mobile only) ─────────────────────────────
+const dragY = ref(0)
+let dragStartY = 0
+let dragActive = false
+
+function onPointerDown(e) {
+  if (!isTouchDevice) return
+  if (window.matchMedia('(min-width: 900px)').matches) return
+  if (e.target.closest('.plyr')) return
+  dragStartY = e.clientY
+  dragActive = true
+  playerEl.value?.setPointerCapture?.(e.pointerId)
+}
+function onPointerMove(e) {
+  if (!dragActive) return
+  const dy = e.clientY - dragStartY
+  if (dy <= 0) { dragY.value = 0; return }
+  dragY.value = dy
+}
+function onPointerUp(e) {
+  if (!dragActive) return
+  dragActive = false
+  playerEl.value?.releasePointerCapture?.(e.pointerId)
+  if (dragY.value > 100) { close(); dragY.value = 0 }
+  else { dragY.value = 0 }
+}
+const sheetStyle = computed(() => ({
+  transform: dragY.value > 0 ? `translateY(${dragY.value}px)` : '',
+  transition: dragY.value > 0 ? 'none' : 'transform var(--dur-med) var(--ease-out-soft)',
+}))
 
 onMounted(() => {
   audioEl.value?.addEventListener('timeupdate', onTimeUpdate)
@@ -268,25 +308,20 @@ function initMediaSession(cur) {
   syncMediaSessionMeta()
 }
 
-// ── Play commands (fired on every playerStore.play() call) ───────────────────
 watch(() => playerStore.playVersion, () => {
   const cur = playerStore.current
   if (!cur || !audioEl.value) return
 
-  // Set immediately so chapter highlighting in EpisodeView is correct before audio seeks
   playerStore.setCurrentTime(cur.ts ?? 0)
   cur.chapters?.length ? startFlip() : stopFlip()
   initMediaSession(cur)
 
-  // Same audio already loaded — just seek
   if (plyrInstance && currentLoadedUrl === cur.url) {
     audioEl.value.currentTime = cur.ts ?? 0
     safePlay()
     return
   }
 
-  // Different episode — update the source directly on the <audio> element.
-  // Plyr stays alive; its UI adapts automatically via the media events it already listens to.
   audioEl.value.src = cur.url
   currentLoadedUrl  = cur.url
   audioEl.value.load()
@@ -295,9 +330,8 @@ watch(() => playerStore.playVersion, () => {
   const capturedVersion = playerStore.playVersion
 
   audioEl.value.addEventListener('loadedmetadata', () => {
-    if (playerStore.playVersion !== capturedVersion) return  // superseded by a newer play()
+    if (playerStore.playVersion !== capturedVersion) return
 
-    // Create Plyr once per player session (destroyed only when the player closes)
     if (!plyrInstance) {
       plyrInstance = new Plyr(audioEl.value, {
         controls: isTouchDevice
@@ -320,58 +354,80 @@ watch(() => playerStore.playVersion, () => {
       })
     }
 
-    updatePlyrMarkers(cur.chapters)  // inject chapter ticks now that duration is known
+    updatePlyrMarkers(cur.chapters)
     fixTimeDisplayWidth()
     if (ts > 0) audioEl.value.currentTime = ts
     safePlay()
   }, { once: true })
 })
 
-// ── Player closed ────────────────────────────────────────────────────────────
 watch(() => playerStore.visible, visible => {
   if (!visible) {
-    // Pause without destroying — recreating Plyr on every reopen causes UI regression
-    // (custom controls lost, no chapter markers). Destroy happens only on unmount.
     safePause()
     stopFlip()
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
   }
 })
 
-// ── Episode image lazy-loaded after initial play ─────────────────────────────
 watch(() => playerStore.current?.episodeImageUrl, url => {
   if (url && playerStore.current) initMediaSession(playerStore.current)
 })
 
-function close() {
-  playerStore.close()
-}
+function close() { playerStore.close() }
 </script>
 
 <template>
-  <div class="audio-player" :class="{ active: playerStore.visible }">
+  <div
+    ref="playerEl"
+    class="audio-player"
+    :class="{ active: playerStore.visible }"
+    :style="[cssVars, sheetStyle]"
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="onPointerUp"
+    @pointercancel="onPointerUp"
+  >
     <template v-if="playerStore.current">
+      <!-- Cover thumb -->
+      <div class="player-art" @click="navigateToEpisode" role="button" :aria-label="playerStore.current.episode">
+        <img v-if="playerCoverSrc" :src="playerCoverSrc" :alt="playerStore.current.episode" />
+        <div v-else class="w-full h-full flex items-center justify-center text-white/40">
+          <Gamepad2 :size="20" :stroke-width="1.75" />
+        </div>
+      </div>
 
-      <!-- Info: episode title / current chapter alternating marquee -->
+      <!-- Info -->
       <div class="player-info" @click="navigateToEpisode">
         <Transition name="player-tick">
-          <div :key="tickKey" class="player-marquee" ref="marqueeEl" :class="{ 'player-marquee--on': needsScroll }" style="line-height: 1.0;padding:0;margin:0;">
-            <div class="player-marquee-inner" :class="isShowingChapter ? 'player-chapter' : 'player-episode'">{{ currentLabel }}</div>
-            <div v-if="needsScroll" class="player-marquee-inner" :class="isShowingChapter ? 'player-chapter' : 'player-episode'" aria-hidden="true">{{ currentLabel }}</div>
+          <div
+            :key="tickKey"
+            ref="marqueeEl"
+            class="player-marquee"
+            :class="{ 'player-marquee--on': needsScroll }"
+            style="line-height: 1.2; padding: 0; margin: 0;"
+          >
+            <div
+              class="player-marquee-inner"
+              :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
+            >{{ currentLabel }}</div>
+            <div
+              v-if="needsScroll"
+              class="player-marquee-inner"
+              :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
+              aria-hidden="true"
+            >{{ currentLabel }}</div>
           </div>
         </Transition>
       </div>
 
       <!-- Close -->
       <button
-        class="btn btn-circle btn-ghost !size-5 !min-h-5 text-[1.0rem] [grid-area:close] self-center"
-        aria-label="Fermer le lecteur" style="line-height: 1.0;padding:0;margin:0;"
+        class="btn btn-circle btn-ghost !size-7 !min-h-7 [grid-area:close] self-center hover:bg-white/10"
+        aria-label="Fermer le lecteur"
         @click="close"
-      >✕</button>
-
+      ><X :size="14" :stroke-width="2.25" /></button>
     </template>
 
-    <!-- Plyr wraps this element; the wrapper div holds the grid-area -->
     <div class="player-plyr-wrap" ref="plyrWrapEl">
       <audio ref="audioEl"></audio>
     </div>
