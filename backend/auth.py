@@ -173,12 +173,19 @@ def reset_confirm():
     pw_hash = _hash(data["new_password"])
     now     = utcnow().isoformat()
     with get_db() as conn:
-        row = conn.execute(
-            "DELETE FROM reset_tokens WHERE token = ? AND expires_at >= ? RETURNING user_id",
-            (data["token"], now),
+        existing = conn.execute(
+            "SELECT user_id, expires_at FROM reset_tokens WHERE token = ?",
+            (data["token"],),
         ).fetchone()
-        if not row:
-            abort(400, "Lien invalide, expiré ou déjà utilisé")
+        if not existing:
+            abort(400, "Lien invalide ou déjà utilisé")
+        if existing["expires_at"] < now:
+            conn.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
+            abort(410, "Lien expiré")
+        row = conn.execute(
+            "DELETE FROM reset_tokens WHERE token = ? RETURNING user_id",
+            (data["token"],),
+        ).fetchone()
         conn.execute(
             "UPDATE users SET password_hash = ? WHERE id = ?",
             (pw_hash, row["user_id"]),

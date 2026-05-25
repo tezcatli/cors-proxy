@@ -29,7 +29,7 @@ services:
     volumes:
       - ./backend:/backend
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(); s.connect(('localhost', 5000)); s.close()\""]
       interval: 2s
       timeout: 5s
       retries: 15
