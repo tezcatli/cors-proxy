@@ -80,7 +80,7 @@ def _inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
                 title=c['title'],
                 game_name=c.get('game_name'),
             )
-            for c in raw_chapters
+            for c in raw_chapters if c['title'] not in ('Publicité', 'Transition')
         ]
         episode.chapters = chapters
         for mention in episode.games:
