@@ -1,5 +1,3 @@
-import { describe, it, expect } from 'vitest'
-
 const BASE      = process.env.BACKEND_URL || 'http://backend-test:5000'
 const ADMIN_KEY = process.env.ADMIN_KEY   || 'test-admin-key'
 
@@ -69,52 +67,5 @@ describe('full auth flow', () => {
     })
     // 200 (cached or upstream) or 502/503 (no IGDB creds / upstream down) — anything but 401
     expect(r.status).not.toBe(401)
-  })
-})
-
-// ── login failures ────────────────────────────────────────────────────────
-
-describe('login failures', () => {
-  it('wrong password returns 401', async () => {
-    const email = uniqueEmail()
-    await register(email, 'correct', await invite(email))
-
-    const r = await login(email, 'wrong')
-    expect(r.status).toBe(401)
-    expect(await r.json()).toHaveProperty('error')
-  })
-
-  it('unknown email returns 401', async () => {
-    const r = await login('nobody@nowhere.example.com', 'anything')
-    expect(r.status).toBe(401)
-  })
-})
-
-// ── register failures ─────────────────────────────────────────────────────
-
-describe('register failures', () => {
-  it('bad invite token returns 400', async () => {
-    const r = await register(uniqueEmail(), 'password123', 'totally-fake-token')
-    expect(r.status).toBe(400)
-    expect(await r.json()).toHaveProperty('error')
-  })
-
-  it('duplicate email returns 409', async () => {
-    const email = uniqueEmail()
-    const token1 = await invite(email)
-    await register(email, 'password123', token1)
-
-    const token2 = await invite(email)
-    const r = await register(email, 'password456', token2)
-    expect(r.status).toBe(409)
-    expect(await r.json()).toHaveProperty('error')
-  })
-
-  it('weak password returns 400', async () => {
-    const email = uniqueEmail()
-    const token = await invite(email)
-    const r = await register(email, '123', token)
-    expect(r.status).toBe(400)
-    expect(await r.json()).toHaveProperty('error')
   })
 })

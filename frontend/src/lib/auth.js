@@ -1,3 +1,5 @@
+import { ref } from 'vue'
+
 const TOKEN_KEY = 'soj-auth-token'
 
 export function getToken() {
@@ -25,8 +27,11 @@ export function isLoggedIn() {
   }
 }
 
+export const loggedIn = ref(isLoggedIn())
+
 export function logout() {
   localStorage.removeItem(TOKEN_KEY)
+  loggedIn.value = false
 }
 
 export async function apiFetch(path, opts = {}) {
@@ -56,11 +61,13 @@ async function post(path, body) {
 export async function login(email, password) {
   const data = await post('/login', { email, password })
   localStorage.setItem(TOKEN_KEY, data.access_token)
+  loggedIn.value = true
 }
 
 export async function register(email, password, invitationToken) {
   const data = await post('/register', { email, password, invitation_token: invitationToken })
   localStorage.setItem(TOKEN_KEY, data.access_token)
+  loggedIn.value = true
 }
 
 export async function resetRequest(email) {

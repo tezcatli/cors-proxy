@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { isLoggedIn, getUserEmail, logout } from './lib/auth.js'
+import { loggedIn, getUserEmail, logout } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
 import { usePlayerStore } from './stores/player.js'
 import AppHeader    from './components/AppHeader.vue'
@@ -17,7 +17,6 @@ const router = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const loggedIn  = computed(() => isLoggedIn())
 const userEmail = computed(() => getUserEmail())
 
 let _prevPos   = router.options.history.state?.position ?? 0

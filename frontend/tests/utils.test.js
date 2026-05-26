@@ -148,10 +148,11 @@ describe('formatDate', () => {
     expect(formatDate('')).toBe('');
     expect(formatDate(null)).toBe('');
   });
-  it('returns a non-empty string for a valid date', () => {
-    const result = formatDate('2024-01-15');
-    expect(typeof result).toBe('string');
-    expect(result.length).toBeGreaterThan(0);
+  it('formats a unix timestamp as a French long date', () => {
+    // 1705276800 = 2024-01-15 00:00:00 UTC
+    const result = formatDate(1705276800);
+    expect(result).toMatch(/janvier/i);
+    expect(result).toContain('2024');
   });
 });
 
