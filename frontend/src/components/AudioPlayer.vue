@@ -36,6 +36,7 @@ const seekProgress = computed(() =>
 )
 
 let playPromise = null
+let _lastHandledVersion = 0
 
 function safePlay() {
   playPromise = audioEl.value?.play() ?? null
@@ -123,6 +124,7 @@ watch(currentLabel, checkScroll)
 
 watch(() => playerStore.paused, paused => {
   if (!audioEl.value || !playerStore.current) return
+  if (playerStore.playVersion !== _lastHandledVersion) return
   if (paused && !audioEl.value.paused) safePause()
   else if (!paused && audioEl.value.paused) safePlay()
 })
@@ -161,7 +163,10 @@ function onSeeked() {
 function onPlay()      { playerStore.setPaused(false); setMSState('playing'); if (playerStore.current) initMediaSession(playerStore.current) }
 function onPause()     { playerStore.setPaused(true);  setMSState('paused')  }
 function onEnded()     { playerStore.setPaused(true);  setMSState('none')    }
-function onDurChange() { duration.value = audioEl.value?.duration || 0 }
+function onDurChange() {
+  duration.value = audioEl.value?.duration || 0
+  playerStore.setDuration(duration.value)
+}
 function onVolChange() { volume.value   = audioEl.value?.volume ?? 1  }
 
 // ── Bottom-sheet drag-to-dismiss (mobile only) ─────────────────────────────
@@ -327,6 +332,7 @@ function initMediaSession(cur) {
 }
 
 watch(() => playerStore.playVersion, () => {
+  _lastHandledVersion = playerStore.playVersion
   const cur = playerStore.current
   if (!cur || !audioEl.value) return
 
@@ -343,7 +349,7 @@ watch(() => playerStore.playVersion, () => {
   audioEl.value.addEventListener('loadedmetadata', () => {
     duration.value = audioEl.value.duration || 0
     if (playerStore.playVersion !== capturedVersion) return
-    if (ts > 0) audioEl.value.currentTime = ts
+    audioEl.value.currentTime = ts
     if (!playerStore.paused) safePlay()
   }, { once: true })
 })

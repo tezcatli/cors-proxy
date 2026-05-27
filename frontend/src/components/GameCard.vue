@@ -5,20 +5,33 @@ import { getScoreClass } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import placeholderCover from '../assets/placeholder-cover.svg'
 import { useGamesStore } from '../stores/games.js'
+import { usePlayerStore } from '../stores/player.js'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { captureSource } from '../lib/flipTransition.js'
 
-const props      = defineProps({ game: Object })
-const router     = useRouter()
-const gamesStore = useGamesStore()
-const el         = ref(null)
-const imgEl      = ref(null)
-const inView     = ref(false)
+const props       = defineProps({ game: Object })
+const router      = useRouter()
+const gamesStore  = useGamesStore()
+const playerStore = usePlayerStore()
+const el          = ref(null)
+const imgEl       = ref(null)
+const inView      = ref(false)
 
 const igdb         = computed(() => props.game?.igdb ?? null)
 const coverImageId = computed(() => igdb.value?.coverImageId ?? null)
 const score        = computed(() => igdb.value?.metacritic ?? null)
 const scoreClass   = computed(() => score.value ? getScoreClass(score.value) : '')
+
+const gameTileProgressPct = computed(() => {
+  const live = playerStore.liveProgress
+  if (live && (live.chapterSlug === props.game.slug || live.gameSlug === props.game.slug)) return live.pct
+
+  const p = playerStore.getGameProgress(props.game.slug)
+  if (!p || !p.chapterEnd) return 0
+  const span = p.chapterEnd - (p.ts ?? 0)
+  if (span <= 0) return 0
+  return Math.min(100, Math.max(0, ((p.currentTime - (p.ts ?? 0)) / span) * 100))
+})
 
 // Only run Vibrant palette extraction once the tile has scrolled into view —
 // avoids spawning thousands of idle callbacks for off-screen cards.
@@ -73,6 +86,10 @@ onUnmounted(() => {
       loading="lazy"
       decoding="async"
     />
+
+    <div v-if="gameTileProgressPct > 2" class="game-tile__progress">
+      <div class="game-tile__progress-fill" :style="{ width: gameTileProgressPct + '%' }"></div>
+    </div>
 
     <div v-if="!coverImageId" class="game-tile__title-fallback">
       <span class="line-clamp-4">{{ game.name }}</span>

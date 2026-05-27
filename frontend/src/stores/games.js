@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { fetchCatalog, refreshCatalog, fetchIgdb, openResolutionStream } from '../lib/games.js'
+import { usePlayerStore } from './player.js'
 
 let _igdbQueue = new Set()
 let _igdbTimer = null
@@ -26,8 +27,10 @@ export const useGamesStore = defineStore('games', () => {
       const event = JSON.parse(e.data)
       if (event.type === 'resolved' && event.igdbSlug) {
         const idx = all.value.findIndex(g => g.slug === event.nameSlug)
-        if (idx !== -1)
+        if (idx !== -1) {
           all.value[idx] = { ...all.value[idx], slug: event.igdbSlug, igdb: event.igdb }
+          usePlayerStore().updateGameSlug(event.nameSlug, event.igdbSlug)
+        }
       }
       if (event.type === 'done') {
         _sse.close(); _sse = null

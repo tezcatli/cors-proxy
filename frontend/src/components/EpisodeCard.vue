@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { Play, Pause, VolumeX, Clock, ChevronRight } from 'lucide-vue-next'
 import { formatDate } from '../lib/utils.js'
+import { usePlayerStore } from '../stores/player.js'
 
 const props = defineProps({
   episode:   Object,
@@ -11,8 +12,21 @@ const props = defineProps({
 })
 const emit = defineEmits(['play', 'togglePause', 'view'])
 
+const playerStore = usePlayerStore()
 const titleEl     = ref(null)
 const needsScroll = ref(false)
+
+const episodeProgressPct = computed(() => {
+  const chapterTs = props.episode.timestampSeconds ?? 0
+  const live      = playerStore.liveProgress
+  if (live?.episodeSlug === props.episode.slug && live.chapterTs === chapterTs) return live.pct
+
+  const p = playerStore.getEpisodeProgress(props.episode.slug, chapterTs)
+  if (!p || !p.chapterEnd) return 0
+  const span = p.chapterEnd - (p.ts ?? 0)
+  if (span <= 0) return 0
+  return Math.min(100, Math.max(0, ((p.currentTime - (p.ts ?? 0)) / span) * 100))
+})
 
 onMounted(async () => {
   await nextTick()
@@ -72,5 +86,8 @@ function handleKey(e) {
       aria-label="Détails de l'épisode"
       @click.stop="emit('view', episode)"
     ><ChevronRight :size="18" :stroke-width="2" /></button>
+    <div v-if="episodeProgressPct > 2" class="ep-progress">
+      <div class="ep-progress-fill" :style="{ width: episodeProgressPct + '%' }"></div>
+    </div>
   </div>
 </template>

@@ -7,8 +7,12 @@ export const usePlayerStore = defineStore('player', () => {
   const paused      = ref(true)
   const currentTime = ref(0)
   const playVersion = ref(0)   // incremented on every play() call, not on metadata updates
+  const audioDuration = ref(0)
 
   function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, coverImageId = null, chapters = null }) {
+    clearTimeout(_progressTimer)
+    _updateProgress()
+    _playCallVersion = playVersion.value + 1
     playVersion.value++
     current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, coverImageId, chapters: chapters ?? [] }
     console.log('Playing:', current.value)
@@ -17,14 +21,18 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function close() {
-    current.value     = null
-    visible.value     = false
-    paused.value      = true
-    currentTime.value = 0
+    clearTimeout(_progressTimer)
+    _updateProgress()           // save final position before clearing
+    current.value       = null
+    visible.value       = false
+    paused.value        = true
+    currentTime.value   = 0
+    audioDuration.value = 0
   }
 
   function setPaused(v)      { paused.value = v }
   function setCurrentTime(t) { currentTime.value = t }
+  function setDuration(d)    { audioDuration.value = d }
 
   const currentChapter = computed(() => {
     const chs = current.value?.chapters
@@ -50,6 +58,98 @@ export const usePlayerStore = defineStore('player', () => {
     playVersion.value++
   }
 
+  // ── Progress tracking ────────────────────────────────────────────────────────
+  let _playCallVersion = 0
+  const PROGRESS_KEY = 'soj-progress'
+
+  function _loadProgressMap() {
+    try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') } catch { return {} }
+  }
+  const progressMap = ref(_loadProgressMap())
+
+  function _saveProgressMap() {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressMap.value))
+  }
+
+  function _updateProgress(overrideChapterTs, overrideCurrentTime) {
+    const cur = current.value
+    if (!cur || audioDuration.value <= 0) return
+    const chapterTs  = overrideChapterTs  ?? (currentChapter.value?.timestampSeconds ?? 0)
+    const ct         = overrideCurrentTime ?? currentTime.value
+    const key        = `${cur.episodeSlug}|${chapterTs}`
+    const chapters   = cur.chapters ?? []
+    const chIdx      = chapters.findIndex(ch => ch.timestampSeconds === chapterTs)
+    const nextCh     = chIdx >= 0 ? chapters[chIdx + 1] : null
+    const chapterEnd = nextCh ? nextCh.timestampSeconds : audioDuration.value
+    progressMap.value = {
+      ...progressMap.value,
+      [key]: {
+        currentTime: ct,
+        chapterEnd,
+        gameSlug: cur.slug,
+        ts:       chapterTs,
+        savedAt:  Date.now(),
+      },
+    }
+    _saveProgressMap()
+  }
+
+  let _progressTimer = null
+  watch(currentTime, () => {
+    clearTimeout(_progressTimer)
+    _progressTimer = setTimeout(_updateProgress, 5000)
+  })
+
+  watch(currentChapter, (newCh, oldCh) => {
+    if (!oldCh || !current.value) return
+    if (playVersion.value === _playCallVersion) return
+    _updateProgress(oldCh.timestampSeconds, currentTime.value)
+  })
+
+  function updateGameSlug(oldSlug, newSlug) {
+    if (current.value?.slug === oldSlug)
+      current.value = { ...current.value, slug: newSlug }
+    const stale = Object.entries(progressMap.value).filter(([, v]) => v.gameSlug === oldSlug)
+    if (stale.length) {
+      progressMap.value = {
+        ...progressMap.value,
+        ...Object.fromEntries(stale.map(([k, v]) => [k, { ...v, gameSlug: newSlug }])),
+      }
+      _saveProgressMap()
+    }
+  }
+
+  // Always-current live snapshot — Pinia computed, so guaranteed reactive.
+  const liveProgress = computed(() => {
+    if (!current.value || audioDuration.value <= 0) return null
+    const chapterTs  = currentChapter.value?.timestampSeconds ?? 0
+    const chapters   = current.value.chapters ?? []
+    const chIdx      = chapters.findIndex(ch => ch.timestampSeconds === chapterTs)
+    const nextCh     = chIdx >= 0 ? chapters[chIdx + 1] : null
+    const chapterEnd = nextCh ? nextCh.timestampSeconds : audioDuration.value
+    const span       = chapterEnd - chapterTs
+    return {
+      gameSlug:    current.value.slug,
+      chapterSlug: currentChapter.value?.slug ?? null,
+      episodeSlug: current.value.episodeSlug,
+      chapterTs,
+      chapterEnd,
+      pct: span > 0
+        ? Math.min(100, Math.max(0, ((currentTime.value - chapterTs) / span) * 100))
+        : 0,
+    }
+  })
+
+  function getEpisodeProgress(episodeSlug, ts) {
+    return progressMap.value[`${episodeSlug}|${ts ?? 0}`] ?? null
+  }
+
+  function getGameProgress(gameSlug) {
+    const entries = Object.values(progressMap.value).filter(e => e.gameSlug === gameSlug)
+    if (!entries.length) return null
+    return entries.sort((a, b) => b.savedAt - a.savedAt)[0]
+  }
+
   // ── Persistence ─────────────────────────────────────────────────────────────
   const STORAGE_KEY = 'soj-player'
 
@@ -73,5 +173,10 @@ export const usePlayerStore = defineStore('player', () => {
     if (document.visibilityState === 'hidden') _saveNow()
   })
 
-  return { current, visible, paused, currentTime, playVersion, currentChapter, play, close, restore, setPaused, setCurrentTime, setEpisodeImageUrl }
+  return {
+    current, visible, paused, currentTime, playVersion, currentChapter,
+    audioDuration,
+    play, close, restore, setPaused, setCurrentTime, setDuration, setEpisodeImageUrl,
+    updateGameSlug, liveProgress, getEpisodeProgress, getGameProgress,
+  }
 })

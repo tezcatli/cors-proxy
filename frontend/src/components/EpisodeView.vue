@@ -14,6 +14,17 @@ const router = useRouter()
 const playerStore = usePlayerStore()
 const gamesStore = useGamesStore()
 
+function chapterProgressPct(ch) {
+  const chapterTs = ch.timestampSeconds ?? 0
+  const live = playerStore.liveProgress
+  if (live?.episodeSlug === episode.value?.slug && live.chapterTs === chapterTs) return live.pct
+  const p = playerStore.getEpisodeProgress(episode.value?.slug, chapterTs)
+  if (!p || !p.chapterEnd) return 0
+  const span = p.chapterEnd - (p.ts ?? 0)
+  if (span <= 0) return 0
+  return Math.min(100, Math.max(0, ((p.currentTime - (p.ts ?? 0)) / span) * 100))
+}
+
 const slug        = route.params.slug
 const episodeSlug = route.params.episodeSlug
 
@@ -234,6 +245,9 @@ watch(() => episode?.chapters, (chs) => {
                   style="color: var(--game-accent);"
                   @click.stop
                 ><ExternalLink :size="14" :stroke-width="2.25" /></RouterLink>
+                <div v-if="chapterProgressPct(ch) > 2" class="ep-progress">
+                  <div class="ep-progress-fill" :style="{ width: chapterProgressPct(ch) + '%' }"></div>
+                </div>
               </button>
             </div>
           </div>
