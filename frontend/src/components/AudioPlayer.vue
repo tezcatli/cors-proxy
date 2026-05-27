@@ -4,17 +4,13 @@ import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
-import ArtworkBackdrop from './ArtworkBackdrop.vue'
-import { X, Gamepad2 } from 'lucide-vue-next'
-import Plyr from 'plyr'
-import 'plyr/dist/plyr.css'
+import { Play, Pause, SkipBack, RotateCw, RotateCcw, ChevronRight, Volume2, VolumeX, Gamepad2, X } from 'lucide-vue-next'
 
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
 
 const router      = useRouter()
 const playerStore = usePlayerStore()
 const audioEl     = ref(null)
-const plyrWrapEl  = ref(null)
 const marqueeEl   = ref(null)
 const playerEl    = ref(null)
 const needsScroll = ref(false)
@@ -24,17 +20,25 @@ const currentCoverId = computed(() => playerStore.current?.coverImageId ?? null)
 const { cssVars } = useArtworkAccent(currentCoverId)
 
 const playerCoverSrc = computed(() => {
+  const chapter = playerStore.currentChapter
+  if (chapter?.coverImageId) return igdbUrl(chapter.coverImageId, 't_cover_small')
   const id = playerStore.current?.coverImageId
   return id ? igdbUrl(id, 't_cover_small') : (playerStore.current?.episodeImageUrl ?? null)
 })
 
-// Plain variable — Plyr's proxy breaks Vue reactivity if stored in a ref
-let plyrInstance     = null
-let currentLoadedUrl = null
-let playPromise      = null
+// ── Player state ────────────────────────────────────────────────────────────
+const collapsed = ref(true)
+const duration  = ref(0)
+const volume    = ref(1)
+
+const seekProgress = computed(() =>
+  duration.value > 0 ? (playerStore.currentTime / duration.value) * 100 : 0
+)
+
+let playPromise = null
 
 function safePlay() {
-  playPromise = plyrInstance?.play() ?? null
+  playPromise = audioEl.value?.play() ?? null
   playPromise
     ?.catch(err => { if (err.name !== 'AbortError') console.error(err) })
     .finally(() => { playPromise = null })
@@ -42,44 +46,35 @@ function safePlay() {
 
 function safePause() {
   if (playPromise) {
-    playPromise.then(() => { try { plyrInstance?.pause() } catch (_) {} }).catch(() => {})
+    playPromise.then(() => { try { audioEl.value?.pause() } catch (_) {} }).catch(() => {})
   } else {
-    try { plyrInstance?.pause() } catch (_) {}
+    try { audioEl.value?.pause() } catch (_) {}
   }
 }
 
-function destroyPlyr() {
-  if (plyrInstance) {
-    try { plyrInstance.destroy() } catch (_) {}
-    plyrInstance = null
-  }
-  if (!plyrWrapEl.value || !audioEl.value) return
-  plyrWrapEl.value.appendChild(audioEl.value)
-  ;[...plyrWrapEl.value.children].forEach(c => { if (c !== audioEl.value) c.remove() })
-}
+// ── Controls ────────────────────────────────────────────────────────────────
+function togglePlay()      { playerStore.paused ? safePlay() : safePause() }
+function toggleCollapsed() { collapsed.value = !collapsed.value }
+function closePlayer()     { safePause(); playerStore.close() }
 
-function fixTimeDisplayWidth() {
-  const durationEl = plyrWrapEl.value?.querySelector('.plyr__time--duration')
-  const currentEl  = plyrWrapEl.value?.querySelector('.plyr__time--current')
-  if (!durationEl || !currentEl) return
-  const orig = currentEl.textContent
-  currentEl.textContent = durationEl.textContent
-  currentEl.style.minWidth = currentEl.offsetWidth + 'px'
-  currentEl.textContent = orig
+function goToChapterStart() {
+  if (!audioEl.value) return
+  audioEl.value.currentTime = playerStore.currentChapter?.timestampSeconds ?? 0
 }
+function jumpForward() {
+  if (!audioEl.value) return
+  audioEl.value.currentTime = Math.min(duration.value, audioEl.value.currentTime + 30)
+}
+function jumpBack() {
+  if (!audioEl.value) return
+  audioEl.value.currentTime = Math.max(0, audioEl.value.currentTime - 30)
+}
+function onSeek(e)   { if (audioEl.value) audioEl.value.currentTime = parseFloat(e.target.value) }
+function onVolume(e) { if (audioEl.value) audioEl.value.volume = parseFloat(e.target.value) }
 
-function updatePlyrMarkers(chapters) {
-  const progress = plyrWrapEl.value?.querySelector('.plyr__progress')
-  if (!progress) return
-  progress.querySelectorAll('.plyr__progress__marker').forEach(el => el.remove())
-  const duration = audioEl.value?.duration
-  if (!duration || !chapters?.length) return
-  for (const ch of chapters) {
-    const span = document.createElement('span')
-    span.className = 'plyr__progress__marker'
-    span.style.left = `${(ch.timestampSeconds / duration) * 100}%`
-    progress.appendChild(span)
-  }
+function onArtInfoClick() {
+  if (window.matchMedia('(min-width: 900px)').matches) navigateToEpisode()
+  else toggleCollapsed()
 }
 
 // ── Alternating episode / chapter title ────────────────────────────────────
@@ -127,15 +122,19 @@ watch(marqueeEl, el => {
 watch(currentLabel, checkScroll)
 
 watch(() => playerStore.paused, paused => {
-  if (!plyrInstance || !playerStore.current) return
-  if (paused && !plyrInstance.paused) safePause()
-  else if (!paused && plyrInstance.paused) safePlay()
+  if (!audioEl.value || !playerStore.current) return
+  if (paused && !audioEl.value.paused) safePause()
+  else if (!paused && audioEl.value.paused) safePlay()
 })
 
 watch(() => playerStore.currentChapter, () => {
   if (!('mediaSession' in navigator) || !navigator.mediaSession.metadata) return
   syncMediaSessionMeta()
 })
+
+watch(collapsed, v => {
+  document.body.classList.toggle('player-expanded', !v)
+}, { immediate: true })
 
 function updatePositionState() {
   const el = audioEl.value
@@ -158,6 +157,13 @@ function onSeeked() {
   updatePositionState()
 }
 
+// Named handlers for clean removal in onUnmounted
+function onPlay()      { playerStore.setPaused(false); setMSState('playing'); if (playerStore.current) initMediaSession(playerStore.current) }
+function onPause()     { playerStore.setPaused(true);  setMSState('paused')  }
+function onEnded()     { playerStore.setPaused(true);  setMSState('none')    }
+function onDurChange() { duration.value = audioEl.value?.duration || 0 }
+function onVolChange() { volume.value   = audioEl.value?.volume ?? 1  }
+
 // ── Bottom-sheet drag-to-dismiss (mobile only) ─────────────────────────────
 const dragY = ref(0)
 let dragStartY = 0
@@ -166,7 +172,7 @@ let dragActive = false
 function onPointerDown(e) {
   if (!isTouchDevice) return
   if (window.matchMedia('(min-width: 900px)').matches) return
-  if (e.target.closest('.plyr')) return
+  if (e.target.closest('button') || e.target.closest('input')) return
   dragStartY = e.clientY
   dragActive = true
   playerEl.value?.setPointerCapture?.(e.pointerId)
@@ -181,7 +187,7 @@ function onPointerUp(e) {
   if (!dragActive) return
   dragActive = false
   playerEl.value?.releasePointerCapture?.(e.pointerId)
-  if (dragY.value > 100) { close(); dragY.value = 0 }
+  if (dragY.value > 100) { closePlayer(); dragY.value = 0 }
   else { dragY.value = 0 }
 }
 const sheetStyle = computed(() => ({
@@ -190,16 +196,28 @@ const sheetStyle = computed(() => ({
 }))
 
 onMounted(() => {
-  audioEl.value?.addEventListener('timeupdate', onTimeUpdate)
-  audioEl.value?.addEventListener('seeked', onSeeked)
+  const el = audioEl.value
+  el.addEventListener('timeupdate',    onTimeUpdate)
+  el.addEventListener('seeked',        onSeeked)
+  el.addEventListener('play',          onPlay)
+  el.addEventListener('pause',         onPause)
+  el.addEventListener('ended',         onEnded)
+  el.addEventListener('durationchange',onDurChange)
+  el.addEventListener('volumechange',  onVolChange)
 })
 
 onUnmounted(() => {
-  audioEl.value?.removeEventListener('timeupdate', onTimeUpdate)
-  audioEl.value?.removeEventListener('seeked', onSeeked)
-  destroyPlyr()
+  const el = audioEl.value
+  el?.removeEventListener('timeupdate',    onTimeUpdate)
+  el?.removeEventListener('seeked',        onSeeked)
+  el?.removeEventListener('play',          onPlay)
+  el?.removeEventListener('pause',         onPause)
+  el?.removeEventListener('ended',         onEnded)
+  el?.removeEventListener('durationchange',onDurChange)
+  el?.removeEventListener('volumechange',  onVolChange)
   resizeObs?.disconnect()
   stopFlip()
+  document.body.classList.remove('player-expanded')
 })
 
 function navigateToEpisode() {
@@ -221,27 +239,27 @@ function syncMediaSessionMeta() {
   if (!meta || !playerStore.current) return
   const cur     = playerStore.current
   const chapter = playerStore.currentChapter
-  if (chapter) {
+  if (chapter?.coverImageId) {
     meta.title   = chapter.title
     meta.artist  = cur.episode
-    meta.artwork = chapter.coverImageId
-      ? [{ src: igdbUrl(chapter.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
-      : cur.episodeImageUrl ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+    meta.artwork = [{ src: igdbUrl(chapter.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
   } else {
     meta.title   = cur.episode
     meta.artist  = ''
-    meta.artwork = cur.episodeImageUrl
-      ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }]
-      : []
+    meta.artwork = cur.coverImageId
+      ? [{ src: igdbUrl(cur.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
+      : cur.episodeImageUrl ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }] : []
   }
 }
 
 function initMediaSession(cur) {
   if (!('mediaSession' in navigator)) return
 
-  const episodeArt = cur.episodeImageUrl
-    ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }]
-    : []
+  const episodeArt = cur.coverImageId
+    ? [{ src: igdbUrl(cur.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
+    : cur.episodeImageUrl
+      ? [{ src: cur.episodeImageUrl, sizes: '512x512', type: 'image/jpeg' }]
+      : []
 
   const metadata = new MediaMetadata({
     title:   cur.episode,
@@ -316,46 +334,15 @@ watch(() => playerStore.playVersion, () => {
   cur.chapters?.length ? startFlip() : stopFlip()
   initMediaSession(cur)
 
-  if (plyrInstance && currentLoadedUrl === cur.url) {
-    audioEl.value.currentTime = cur.ts ?? 0
-    if (!playerStore.paused) safePlay()
-    return
-  }
-
   audioEl.value.src = cur.url
-  currentLoadedUrl  = cur.url
   audioEl.value.load()
 
   const ts              = cur.ts ?? 0
   const capturedVersion = playerStore.playVersion
 
   audioEl.value.addEventListener('loadedmetadata', () => {
-    if (!plyrInstance) {
-      plyrInstance = new Plyr(audioEl.value, {
-        controls: isTouchDevice
-          ? ['play', 'progress', 'current-time', 'duration']
-          : ['play', 'progress', 'current-time', 'duration', 'mute', 'volume'],
-        resetOnEnd: false,
-      })
-      plyrInstance.on('play',  () => {
-        playerStore.setPaused(false)
-        setMSState('playing')
-        if (playerStore.current) initMediaSession(playerStore.current)
-      })
-      plyrInstance.on('pause', () => {
-        playerStore.setPaused(true)
-        setMSState('paused')
-      })
-      plyrInstance.on('ended', () => {
-        playerStore.setPaused(true)
-        setMSState('none')
-      })
-    }
-
+    duration.value = audioEl.value.duration || 0
     if (playerStore.playVersion !== capturedVersion) return
-
-    updatePlyrMarkers(cur.chapters)
-    fixTimeDisplayWidth()
     if (ts > 0) audioEl.value.currentTime = ts
     if (!playerStore.paused) safePlay()
   }, { once: true })
@@ -365,6 +352,7 @@ watch(() => playerStore.visible, visible => {
   if (!visible) {
     safePause()
     stopFlip()
+    collapsed.value = true
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
   }
 })
@@ -372,15 +360,13 @@ watch(() => playerStore.visible, visible => {
 watch(() => playerStore.current?.episodeImageUrl, url => {
   if (url && playerStore.current) initMediaSession(playerStore.current)
 })
-
-function close() { playerStore.close() }
 </script>
 
 <template>
   <div
     ref="playerEl"
     class="audio-player"
-    :class="{ active: playerStore.visible }"
+    :class="{ active: playerStore.visible, 'is-expanded': !collapsed }"
     :style="[cssVars, sheetStyle]"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
@@ -388,48 +374,143 @@ function close() { playerStore.close() }
     @pointercancel="onPointerUp"
   >
     <template v-if="playerStore.current">
-      <!-- Cover thumb -->
-      <div class="player-art" @click="navigateToEpisode" role="button" :aria-label="playerStore.current.episode">
-        <img v-if="playerCoverSrc" :src="playerCoverSrc" :alt="playerStore.current.episode" />
-        <div v-else class="w-full h-full flex items-center justify-center text-white/40">
-          <Gamepad2 :size="20" :stroke-width="1.75" />
+      <!-- Row 1: always visible -->
+      <div class="player-row1">
+        <!-- Cover thumb -->
+        <div class="player-art" @click="onArtInfoClick" role="button" :aria-label="playerStore.current.episode">
+          <img v-if="playerCoverSrc" :src="playerCoverSrc" :alt="playerStore.current.episode" />
+          <div v-else class="w-full h-full flex items-center justify-center text-white/40">
+            <Gamepad2 :size="20" :stroke-width="1.75" />
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="player-info" @click="onArtInfoClick">
+          <Transition name="player-tick">
+            <div
+              :key="tickKey"
+              ref="marqueeEl"
+              class="player-marquee"
+              :class="{ 'player-marquee--on': needsScroll }"
+              style="line-height: 1.2; padding: 0; margin: 0;"
+            >
+              <div
+                class="player-marquee-inner"
+                :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
+              >{{ currentLabel }}</div>
+              <div
+                v-if="needsScroll"
+                class="player-marquee-inner"
+                :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
+                aria-hidden="true"
+              >{{ currentLabel }}</div>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Desktop-only controls -->
+        <div class="player-desktop-controls">
+          <button class="player-ctrl-btn" @click.stop="goToChapterStart" aria-label="Début du chapitre">
+            <SkipBack :size="15" :stroke-width="2" />
+          </button>
+          <button class="player-ctrl-btn" @click.stop="jumpBack" aria-label="Reculer 30 secondes">
+            <RotateCcw :size="15" :stroke-width="2" /><span class="player-ctrl-label">30</span>
+          </button>
+          <button class="player-ctrl-btn" @click.stop="jumpForward" aria-label="Avancer 30 secondes">
+            <RotateCw :size="15" :stroke-width="2" /><span class="player-ctrl-label">30</span>
+          </button>
+          <button class="player-ctrl-btn" @click.stop="navigateToEpisode" aria-label="Aller à l'épisode">
+            <ChevronRight :size="15" :stroke-width="2" />
+          </button>
+        </div>
+
+        <!-- Desktop-only seek -->
+        <div class="player-desktop-seek">
+          <div class="seek-wrap">
+            <div class="seek-track">
+              <div class="seek-fill" :style="{ width: seekProgress + '%' }"></div>
+              <span
+                v-for="ch in (playerStore.current?.chapters ?? []).filter(c => c.timestampSeconds > 0)"
+                :key="ch.timestampSeconds"
+                class="seek-marker"
+                :style="{ left: (ch.timestampSeconds / (duration || 1) * 100) + '%' }"
+              />
+            </div>
+            <div class="seek-thumb" :style="{ left: seekProgress + '%' }"></div>
+            <input
+              type="range" class="seek-input"
+              min="0" :max="duration || 100"
+              :value="playerStore.currentTime"
+              @input="onSeek"
+              aria-label="Position"
+            />
+          </div>
+        </div>
+
+        <!-- Play/pause: always visible -->
+        <button class="player-play-btn" @click.stop="togglePlay" :aria-label="playerStore.paused ? 'Lire' : 'Pause'">
+          <Pause v-if="!playerStore.paused" :size="18" :stroke-width="2" />
+          <Play  v-else                     :size="18" :stroke-width="2" />
+        </button>
+
+        <!-- Desktop-only volume -->
+        <div class="player-desktop-volume">
+          <component :is="volume === 0 ? VolumeX : Volume2" :size="14" :stroke-width="2" class="flex-shrink-0 opacity-60" />
+          <input
+            type="range" class="volume-input"
+            min="0" max="1" step="0.01"
+            :value="volume"
+            @input="onVolume"
+            aria-label="Volume"
+          />
+        </div>
+
+        <!-- Desktop-only close -->
+        <button class="player-close-btn" @click.stop="closePlayer" aria-label="Fermer le lecteur">
+          <X :size="14" :stroke-width="2" />
+        </button>
+      </div>
+
+      <!-- Mobile seek bar (hidden when collapsed) -->
+      <div class="player-mobile-seek">
+        <div class="seek-wrap">
+          <div class="seek-track">
+            <div class="seek-fill" :style="{ width: seekProgress + '%' }"></div>
+            <span
+              v-for="ch in (playerStore.current?.chapters ?? []).filter(c => c.timestampSeconds > 0)"
+              :key="ch.timestampSeconds"
+              class="seek-marker"
+              :style="{ left: (ch.timestampSeconds / (duration || 1) * 100) + '%' }"
+            />
+          </div>
+          <div class="seek-thumb" :style="{ left: seekProgress + '%' }"></div>
+          <input
+            type="range" class="seek-input"
+            min="0" :max="duration || 100"
+            :value="playerStore.currentTime"
+            @input="onSeek"
+            aria-label="Position"
+          />
         </div>
       </div>
 
-      <!-- Info -->
-      <div class="player-info" @click="navigateToEpisode">
-        <Transition name="player-tick">
-          <div
-            :key="tickKey"
-            ref="marqueeEl"
-            class="player-marquee"
-            :class="{ 'player-marquee--on': needsScroll }"
-            style="line-height: 1.2; padding: 0; margin: 0;"
-          >
-            <div
-              class="player-marquee-inner"
-              :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
-            >{{ currentLabel }}</div>
-            <div
-              v-if="needsScroll"
-              class="player-marquee-inner"
-              :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
-              aria-hidden="true"
-            >{{ currentLabel }}</div>
-          </div>
-        </Transition>
+      <!-- Mobile controls row (hidden when collapsed) -->
+      <div class="player-mobile-controls">
+        <button class="player-ctrl-btn" @click="goToChapterStart" aria-label="Début du chapitre">
+          <SkipBack :size="18" :stroke-width="2" />
+        </button>
+        <button class="player-ctrl-btn" @click="jumpBack" aria-label="Reculer 30 secondes">
+          <RotateCcw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
+        </button>
+        <button class="player-ctrl-btn" @click="jumpForward" aria-label="Avancer 30 secondes">
+          <RotateCw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
+        </button>
+        <button class="player-ctrl-btn" @click="navigateToEpisode" aria-label="Aller à l'épisode">
+          <ChevronRight :size="18" :stroke-width="2" />
+        </button>
       </div>
-
-      <!-- Close -->
-      <button
-        class="btn btn-circle btn-ghost !size-7 !min-h-7 [grid-area:close] self-center hover:bg-white/10"
-        aria-label="Fermer le lecteur"
-        @click="close"
-      ><X :size="14" :stroke-width="2.25" /></button>
     </template>
 
-    <div class="player-plyr-wrap" ref="plyrWrapEl">
-      <audio ref="audioEl"></audio>
-    </div>
+    <audio ref="audioEl" style="display:none"></audio>
   </div>
 </template>
