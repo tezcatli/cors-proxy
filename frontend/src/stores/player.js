@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 export const usePlayerStore = defineStore('player', () => {
   const current     = ref(null)
@@ -41,5 +41,37 @@ export const usePlayerStore = defineStore('player', () => {
     if (current.value) current.value = { ...current.value, episodeImageUrl: url }
   }
 
-  return { current, visible, paused, currentTime, playVersion, currentChapter, play, close, setPaused, setCurrentTime, setEpisodeImageUrl }
+  function restore(savedState) {
+    const t           = savedState.currentTime ?? 0
+    current.value     = { ...savedState.current, ts: t }
+    currentTime.value = t
+    visible.value     = true
+    paused.value      = true
+    playVersion.value++
+  }
+
+  // ── Persistence ─────────────────────────────────────────────────────────────
+  const STORAGE_KEY = 'soj-player'
+
+  function _save() {
+    if (!current.value) localStorage.removeItem(STORAGE_KEY)
+    else localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      current:     current.value,
+      currentTime: currentTime.value,
+    }))
+  }
+
+  let _saveTimer = null
+  watch(current, () => { clearTimeout(_saveTimer); _save() })
+  watch(currentTime, () => {
+    clearTimeout(_saveTimer)
+    _saveTimer = setTimeout(_save, 5000)
+  })
+  function _saveNow() { clearTimeout(_saveTimer); _save() }
+  window.addEventListener('pagehide', _saveNow)
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') _saveNow()
+  })
+
+  return { current, visible, paused, currentTime, playVersion, currentChapter, play, close, restore, setPaused, setCurrentTime, setEpisodeImageUrl }
 })

@@ -11,6 +11,7 @@ const props = defineProps({
   sortMode:       String,
   sortAsc:        Boolean,
   loading:        Boolean,
+  resolving:      Boolean,
   lastFetch:      String,
   hideUnresolved: Boolean,
   episodeCount:   Number,
@@ -166,16 +167,18 @@ function closeSearch() { searchOpen.value = false }
         </Transition>
       </div>
 
-      <!-- Refresh (Jeux only) -->
+      <!-- Spacer pushes refresh + account to the right -->
+      <div class="flex-1" aria-hidden="true"></div>
+
+      <!-- Refresh -->
       <button
-        v-if="!isEpisodes"
         class="icon-action"
-        :disabled="loading"
-        :aria-label="loading ? 'Chargement…' : (lastFetchLabel ? `Actualiser (mis à jour ${lastFetchLabel})` : 'Actualiser')"
-        :title="lastFetchLabel ? `Mis à jour ${lastFetchLabel}` : 'Actualiser'"
+        :disabled="loading || resolving"
+        :aria-label="loading ? 'Chargement…' : resolving ? 'Résolution IGDB en cours…' : (lastFetchLabel ? `Actualiser (mis à jour ${lastFetchLabel})` : 'Actualiser')"
+        :title="resolving ? 'Résolution IGDB en cours…' : (lastFetchLabel ? `Mis à jour ${lastFetchLabel}` : 'Actualiser')"
         @click="emit('refresh')"
       >
-        <RotateCw :size="17" :stroke-width="2.25" :class="{ 'animate-spin': loading }" />
+        <RotateCw :size="17" :stroke-width="2.25" :class="{ 'animate-spin': loading || resolving }" />
       </button>
 
       <!-- Account slot -->

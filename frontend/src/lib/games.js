@@ -1,4 +1,4 @@
-import { apiFetch } from './auth.js'
+import { apiFetch, getToken } from './auth.js'
 
 export async function fetchCatalog() {
   const r = await apiFetch('/silence/games')
@@ -34,4 +34,12 @@ export async function fetchEpisodes() {
 export async function fetchEpisodeDetail(episodeSlug) {
   const r = await apiFetch(`/silence/games/episode?slug=${encodeURIComponent(episodeSlug)}`)
   return r.json()
+}
+
+export function openResolutionStream() {
+  const token = getToken()
+  const url = token
+    ? `/silence/games/resolution-stream?token=${encodeURIComponent(token)}`
+    : '/silence/games/resolution-stream'
+  return new EventSource(url)
 } 

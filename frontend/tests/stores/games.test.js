@@ -3,11 +3,12 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useGamesStore } from '../../src/stores/games.js'
 
 vi.mock('../../src/lib/games.js', () => ({
-  fetchCatalog:  vi.fn(),
-  refreshCatalog: vi.fn(),
-  fetchIgdb:     vi.fn(),
+  fetchCatalog:         vi.fn(),
+  refreshCatalog:       vi.fn(),
+  fetchIgdb:            vi.fn(),
+  openResolutionStream: vi.fn(),
 }))
-import { fetchCatalog, refreshCatalog, fetchIgdb } from '../../src/lib/games.js'
+import { fetchCatalog, refreshCatalog, fetchIgdb, openResolutionStream } from '../../src/lib/games.js'
 
 const GAMES = [
   { name: 'Zelda',         slug: 'zelda',         latestPubTs: 1717200000, episodeCount: 3, igdb: { metacritic: 90 } },
@@ -115,7 +116,7 @@ describe('sorting', () => {
 
 describe('refresh', () => {
   it('populates all via refreshCatalog on success', async () => {
-    refreshCatalog.mockResolvedValue(GAMES)
+    refreshCatalog.mockResolvedValue({ games: GAMES, pending: 0 })
     const store = useGamesStore()
     await store.refresh()
     expect(store.all).toHaveLength(3)
@@ -137,7 +138,7 @@ describe('refresh', () => {
 
 describe('load', () => {
   it('populates all and sets lastFetch on success', async () => {
-    fetchCatalog.mockResolvedValue(GAMES)
+    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 0 })
     const store = useGamesStore()
     await store.load()
     expect(store.all).toHaveLength(3)
@@ -161,7 +162,7 @@ describe('load', () => {
     const store = useGamesStore()
     const promise = store.load()
     expect(store.loading).toBe(true)
-    resolve(GAMES)
+    resolve({ games: GAMES, pending: 0 })
     await promise
     expect(store.loading).toBe(false)
   })
@@ -174,7 +175,7 @@ describe('queueIgdb', () => {
   afterEach(() => { vi.useRealTimers() })
 
   it('patches store entry with full igdb after batch resolves', async () => {
-    fetchCatalog.mockResolvedValue(GAMES)
+    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 0 })
     fetchIgdb.mockResolvedValue({
       zelda: { coverImageId: 'abc123', metacritic: 90 },
     })
@@ -188,7 +189,7 @@ describe('queueIgdb', () => {
   })
 
   it('deduplicates slugs in the same batch', async () => {
-    fetchCatalog.mockResolvedValue(GAMES)
+    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 0 })
     fetchIgdb.mockResolvedValue({})
     const store = useGamesStore()
     await store.load()
@@ -198,5 +199,61 @@ describe('queueIgdb', () => {
     await vi.runAllTimersAsync()
     const [calledSlugs] = fetchIgdb.mock.calls[0]
     expect(calledSlugs.filter(s => s === 'zelda')).toHaveLength(1)
+  })
+})
+
+// ── SSE resolution stream ──────────────────────────────────────────────────
+
+describe('SSE resolution', () => {
+  let fakeSSE
+
+  beforeEach(() => {
+    fakeSSE = { onmessage: null, onerror: null, close: vi.fn() }
+    openResolutionStream.mockReturnValue(fakeSSE)
+  })
+
+  it('opens SSE and sets resolving=true when pending > 0 after load', async () => {
+    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 2 })
+    const store = useGamesStore()
+    await store.load()
+    expect(openResolutionStream).toHaveBeenCalled()
+    expect(store.resolving).toBe(true)
+  })
+
+  it('does not open SSE when pending is 0', async () => {
+    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 0 })
+    const store = useGamesStore()
+    await store.load()
+    expect(openResolutionStream).not.toHaveBeenCalled()
+    expect(store.resolving).toBe(false)
+  })
+
+  it('patches game slug and igdb in-place on resolved event', async () => {
+    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 1 })
+    const store = useGamesStore()
+    await store.load()
+
+    fakeSSE.onmessage({ data: JSON.stringify({
+      type: 'resolved', nameSlug: 'mario', igdbSlug: 'super-mario', igdb: { metacritic: 95 },
+    }) })
+
+    const updated = store.all.find(g => g.slug === 'super-mario')
+    expect(updated).toBeTruthy()
+    expect(updated.igdb.metacritic).toBe(95)
+  })
+
+  it('closes SSE, clears resolving, and calls load on done event', async () => {
+    fetchCatalog
+      .mockResolvedValueOnce({ games: GAMES, pending: 1 })
+      .mockResolvedValue({ games: GAMES, pending: 0 })
+    const store = useGamesStore()
+    await store.load()
+
+    fakeSSE.onmessage({ data: JSON.stringify({ type: 'done' }) })
+    await Promise.resolve()   // flush the load() promise
+
+    expect(fakeSSE.close).toHaveBeenCalled()
+    expect(store.resolving).toBe(false)
+    expect(fetchCatalog).toHaveBeenCalledTimes(2)
   })
 })

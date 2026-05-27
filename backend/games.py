@@ -1,10 +1,11 @@
 import json
 import datetime
 import pathlib
+import queue as _queue_mod
 import threading
 
 import requests as http
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, abort, jsonify, request, Response, stream_with_context
 
 from auth import require_auth
 from config import Config
@@ -39,6 +40,17 @@ _cached_at:       datetime.datetime | None = None
 # Keyed by date-qualified podcast_slug (make_slug(name) + '-' + YYYYMMDD).
 # Loaded from DB at startup; written when a new IGDB resolution completes.
 _igdb_cache: dict[str, IgdbEntry] = {}
+
+# ── SSE subscriber management ─────────────────────────────────────────────────
+
+_resolution_subs:      list[_queue_mod.Queue] = []
+_resolution_subs_lock: threading.Lock         = threading.Lock()
+
+
+def _broadcast(event: dict) -> None:
+    with _resolution_subs_lock:
+        for q in _resolution_subs:
+            q.put_nowait(event)
 
 
 # ── AI chapter injection ──────────────────────────────────────────────────────
@@ -244,6 +256,13 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None) -> None:
              int(entry.is_child), now)
         )
 
+    _broadcast({
+        'type':     'resolved',
+        'nameSlug': make_slug(name),
+        'igdbSlug': igdb_slug,
+        'igdb':     {'metacritic': entry.data.get('metacritic')} if entry.data else None,
+    })
+
 
 _resolve_lock   = threading.Lock()
 _resolve_thread: threading.Thread | None = None
@@ -278,6 +297,7 @@ def _resolve_pending(stop: threading.Event) -> None:
                     appearance.episode.pub_ts,
                 )
     finally:
+        _broadcast({'type': 'done'})
         global _resolve_stop
         with _resolve_lock:
             if _resolve_stop is stop:
@@ -480,6 +500,18 @@ def _load_game(slug: str) -> tuple[dict, list[dict]]:
     abort(404, 'Game not found')
 
 
+# ── Pending count ─────────────────────────────────────────────────────────────
+
+def _count_pending() -> int:
+    """Count game appearances not yet resolved in igdb_cache."""
+    with _state_lock:
+        return sum(
+            1 for game in _game_index.values()
+            for a in game.appearances
+            if a.podcast_slug not in _igdb_cache
+        )
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @games_bp.route('/episodes')
@@ -512,7 +544,7 @@ def catalog():
                 abort(502, f'RSS feed unavailable: {exc}')
         else:
             _schedule_resolve()
-    return jsonify(_build_catalog())
+    return jsonify({'games': _build_catalog(), 'pending': _count_pending()})
 
 
 @games_bp.route('/igdb')
@@ -536,7 +568,37 @@ def refresh():
         _schedule_resolve(force=True)
     except http.exceptions.RequestException as exc:
         abort(502, f'RSS feed unavailable: {exc}')
-    return jsonify(_build_catalog())
+    return jsonify({'games': _build_catalog(), 'pending': _count_pending()})
+
+
+@games_bp.route('/resolution-stream')
+def resolution_stream():
+    q = _queue_mod.Queue()
+    with _resolution_subs_lock:
+        _resolution_subs.append(q)
+    # If no thread is alive, nothing will broadcast 'done' — send it ourselves
+    if not (_resolve_thread and _resolve_thread.is_alive()):
+        q.put_nowait({'type': 'done'})
+
+    def generate():
+        try:
+            while True:
+                try:
+                    event = q.get(timeout=30)
+                    yield f'data: {json.dumps(event)}\n\n'
+                    if event.get('type') == 'done':
+                        break
+                except _queue_mod.Empty:
+                    yield ': heartbeat\n\n'
+        finally:
+            with _resolution_subs_lock:
+                if q in _resolution_subs:
+                    _resolution_subs.remove(q)
+
+    r = Response(stream_with_context(generate()), mimetype='text/event-stream')
+    r.headers['Cache-Control']     = 'no-cache'
+    r.headers['X-Accel-Buffering'] = 'no'
+    return r
 
 
 @games_bp.route('/<string:slug>')

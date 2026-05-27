@@ -145,8 +145,8 @@ def test_catalog_returns_list(client):
         r = client.get('/silence/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     data = r.get_json()
-    assert isinstance(data, list)
-    assert any(g['name'] == 'Zelda' for g in data)
+    assert isinstance(data['games'], list)
+    assert any(g['name'] == 'Zelda' for g in data['games'])
 
 
 def test_catalog_response_has_igdb_field(client):
@@ -154,7 +154,7 @@ def test_catalog_response_has_igdb_field(client):
          patch('games._schedule_resolve'):
         r = client.get('/silence/games', headers=auth_header())
     data = r.get_json()
-    assert all('igdb' in g for g in data)
+    assert all('igdb' in g for g in data['games'])
 
 
 def test_cache_hit_skips_fetch(client):
@@ -203,7 +203,7 @@ def test_catalog_deduplicates_by_igdb_slug(client):
          patch.object(games_module, '_igdb_cache', igdb_cache):
         r = client.get('/silence/games', headers=auth_header())
 
-    data = r.get_json()
+    data = r.get_json()['games']
     zelda_entries = [g for g in data if g['slug'] == 'zelda']
     assert len(zelda_entries) == 1
     assert zelda_entries[0]['episodeCount'] == 2
@@ -213,7 +213,7 @@ def test_catalog_igdb_is_slim(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
         r = client.get('/silence/games', headers=auth_header())
-    data = r.get_json()
+    data = r.get_json()['games']
     for game in data:
         if game['igdb'] is not None:
             assert set(game['igdb'].keys()) == {'metacritic'}

@@ -318,7 +318,7 @@ watch(() => playerStore.playVersion, () => {
 
   if (plyrInstance && currentLoadedUrl === cur.url) {
     audioEl.value.currentTime = cur.ts ?? 0
-    safePlay()
+    if (!playerStore.paused) safePlay()
     return
   }
 
@@ -357,7 +357,7 @@ watch(() => playerStore.playVersion, () => {
     updatePlyrMarkers(cur.chapters)
     fixTimeDisplayWidth()
     if (ts > 0) audioEl.value.currentTime = ts
-    safePlay()
+    if (!playerStore.paused) safePlay()
   }, { once: true })
 })
 

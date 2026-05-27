@@ -51,8 +51,13 @@ def require_auth():
     if Config.DEBUG:
         return
     auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer ") or not _decode_jwt(auth[7:]):
-        abort(401, "Not authenticated")
+    if auth.startswith("Bearer ") and _decode_jwt(auth[7:]):
+        return
+    # Fallback for EventSource (cannot send custom headers)
+    token = request.args.get("token", "")
+    if token and _decode_jwt(token):
+        return
+    abort(401, "Not authenticated")
 
 
 def _require_fields(data: dict, *fields):

@@ -162,7 +162,16 @@ function onTouchEnd() {
 }
 
 onMounted(() => {
-  if (loggedIn.value) gamesStore.load()
+  if (loggedIn.value) {
+    gamesStore.load()
+    try {
+      const raw = localStorage.getItem('soj-player')
+      if (raw) {
+        const saved = JSON.parse(raw)
+        if (saved?.current) playerStore.restore(saved)
+      }
+    } catch (_) {}
+  }
   _gridEl = document.querySelector('.grid-area')
   window.addEventListener('touchmove', onTouchMove, { passive: false })
 })
@@ -181,6 +190,7 @@ onBeforeUnmount(() => {
       :sort-mode="gamesStore.sortMode"
       :sort-asc="gamesStore.sortAsc"
       :loading="gamesStore.loading"
+      :resolving="gamesStore.resolving"
       :last-fetch="gamesStore.lastFetch"
       :hide-unresolved="hideUnresolved"
       :episode-count="feedRef?.episodeCount"

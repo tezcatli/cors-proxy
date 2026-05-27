@@ -119,7 +119,7 @@
     "catalog": {
       "success": {
         "status": 200,
-        "item_fields": ["name", "slug", "igdb", "episodeCount", "latestPubTs"]
+        "fields": ["games", "pending"]
       },
       "unauthorized": {
         "status": 401,
@@ -147,7 +147,7 @@
     "refresh": {
       "success": {
         "status": 200,
-        "item_fields": ["name", "slug", "igdb", "episodeCount", "latestPubTs"]
+        "fields": ["games", "pending"]
       },
       "upstream_error": {
         "status": 502,
@@ -173,6 +173,15 @@
       }
     },
     "igdb": {
+      "success": {
+        "status": 200
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": ["error"]
+      }
+    },
+    "resolution_stream": {
       "success": {
         "status": 200
       },
