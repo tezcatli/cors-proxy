@@ -330,8 +330,6 @@ watch(() => playerStore.playVersion, () => {
   const capturedVersion = playerStore.playVersion
 
   audioEl.value.addEventListener('loadedmetadata', () => {
-    if (playerStore.playVersion !== capturedVersion) return
-
     if (!plyrInstance) {
       plyrInstance = new Plyr(audioEl.value, {
         controls: isTouchDevice
@@ -353,6 +351,8 @@ watch(() => playerStore.playVersion, () => {
         setMSState('none')
       })
     }
+
+    if (playerStore.playVersion !== capturedVersion) return
 
     updatePlyrMarkers(cur.chapters)
     fixTimeDisplayWidth()
