@@ -99,10 +99,13 @@ def test_parse_feed_returns_game_list():
     assert 'Zelda' in names
     assert 'Mario Kart' in names
 
-def test_parse_feed_filters_non_game_episodes():
+def test_parse_feed_includes_non_game_episodes():
     episodes = _parse_feed(MINIMAL_RSS)
-    assert len(episodes) == 1
-    assert len(episodes[0].games) == 2
+    assert len(episodes) == 2
+    game_ep = next(ep for ep in episodes if ep.games)
+    assert len(game_ep.games) == 2
+    no_game_ep = next(ep for ep in episodes if not ep.games)
+    assert no_game_ep.title == 'Quelle est la meilleure plateforme ?'
 
 def test_parse_feed_uses_raw_podcast_name():
     # parse_feed no longer applies corrections — canonical name comes from IGDB
