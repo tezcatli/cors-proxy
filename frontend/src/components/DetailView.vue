@@ -8,6 +8,7 @@ import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
 import { fetchGameDetail, refreshGameIgdb } from '../lib/games.js'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
+import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { playInto } from '../lib/flipTransition.js'
 import EpisodeCard from './EpisodeCard.vue'
 import ArtworkBackdrop from './ArtworkBackdrop.vue'
@@ -115,31 +116,16 @@ watch(coverImageId, id => {
 
 const epCount = computed(() => formatEpisodeCount(game.value?.episodeCount ?? episodes.value.length))
 
-function isEpPlaying(ep) {
-  return !!playerStore.current && ep.audioUrl === playerStore.current.url
-}
-
-function playEp(ep) {
-  playerStore.play({
-    game:            game.value.name,
-    slug:            game.value.slug,
-    episode:         ep.title,
-    url:             ep.audioUrl,
-    ts:              ep.timestampSeconds || 0,
-    timestamp:       ep.timestamp || null,
-    episodeImageUrl: ep.imageUrl ?? null,
-    pubTs:           ep.pubTs,
-    episodeSlug:     ep.slug,
-    coverImageId:    coverImageId.value,
-    chapters:        ep.chapters ?? [],
-  })
-}
+const gameCtx = computed(() => ({
+  name:         game.value?.name,
+  slug:         game.value?.slug,
+  coverImageId: coverImageId.value,
+}))
+const { isEpPlaying, playEp, togglePause } = useEpisodePlayer(gameCtx)
 
 function viewEp(ep) {
   router.push({ path: `/episode/${ep.slug}`, query: game.value.slug ? { game: game.value.slug } : {} })
 }
-
-function togglePause() { playerStore.setPaused(!playerStore.paused) }
 
 const selectedScreenshot = ref(null)
 

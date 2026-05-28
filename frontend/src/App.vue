@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loggedIn, getUserEmail, logout } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
 import { usePlayerStore } from './stores/player.js'
+import { useNavDirection } from './composables/useNavDirection.js'
+import { usePullToRefresh } from './composables/usePullToRefresh.js'
 import AppHeader    from './components/AppHeader.vue'
 import GameGrid     from './components/GameGrid.vue'
 import EpisodesFeed from './components/EpisodesFeed.vue'
@@ -19,26 +21,7 @@ const playerStore = usePlayerStore()
 
 const userEmail = computed(() => getUserEmail())
 
-let _prevPos   = router.options.history.state?.position ?? 0
-let _prevDepth = route.meta?.depth ?? 0
-const navDir = ref('nav-fade')
-watch(() => route.path, (newPath, oldPath) => {
-  const newPos   = router.options.history.state?.position ?? 0
-  const newDepth = route.meta?.depth ?? 0
-  if (newPath === '/login' || oldPath === '/login') {
-    navDir.value = 'nav-fade'
-  } else if (newDepth === 0 && _prevDepth === 0) {
-    navDir.value = 'nav-fade'
-  } else if (newPos < _prevPos) {
-    navDir.value = 'nav-back'
-  } else if (newDepth > _prevDepth) {
-    navDir.value = 'nav-overlay'
-  } else {
-    navDir.value = 'nav-forward'
-  }
-  _prevPos   = newPos
-  _prevDepth = newDepth
-}, { flush: 'sync' })
+const { navDir } = useNavDirection(route, router)
 
 const showAccountModal = ref(false)
 
@@ -130,36 +113,7 @@ function handleLogout() {
 function handleRefresh() { gamesStore.refresh() }
 
 // ── Pull-to-refresh ───────────────────────────────────────────────────────────
-const PULL_THRESHOLD = 80
-let   _startY   = 0
-let   _active   = false
-let   _gridEl   = null
-const pullY     = ref(0)
-const isPulling = ref(false)
-
-function onTouchStart(e) {
-  if (_gridEl && _gridEl.scrollTop > 0) return
-  _startY = e.touches[0].clientY
-  _active = true
-}
-
-function onTouchMove(e) {
-  if (!_active) return
-  const dy = e.touches[0].clientY - _startY
-  if (dy <= 0 || (_gridEl && _gridEl.scrollTop > 0)) { _active = false; return }
-  e.preventDefault()
-  pullY.value     = Math.min(dy, PULL_THRESHOLD * 1.5)
-  isPulling.value = true
-}
-
-function onTouchEnd() {
-  if (!_active) return
-  const triggered = pullY.value >= PULL_THRESHOLD
-  _active         = false
-  isPulling.value = false
-  pullY.value     = 0
-  if (triggered) handleRefresh()
-}
+const { pullY, isPulling, onTouchStart, onTouchEnd, setScrollEl } = usePullToRefresh(handleRefresh)
 
 onMounted(() => {
   if (loggedIn.value) {
@@ -172,12 +126,7 @@ onMounted(() => {
       }
     } catch (_) {}
   }
-  _gridEl = document.querySelector('.grid-area')
-  window.addEventListener('touchmove', onTouchMove, { passive: false })
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('touchmove', onTouchMove)
+  setScrollEl(document.querySelector('.grid-area'))
 })
 </script>
 

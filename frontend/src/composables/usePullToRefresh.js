@@ -1,0 +1,38 @@
+import { ref, onMounted, onUnmounted } from 'vue'
+
+export function usePullToRefresh(onTrigger, { threshold = 80 } = {}) {
+  const pullY     = ref(0)
+  const isPulling = ref(false)
+  let _startY = 0, _active = false, _scrollEl = null
+
+  function setScrollEl(el) { _scrollEl = el }
+
+  function onTouchStart(e) {
+    if (_scrollEl?.scrollTop > 0) return
+    _startY = e.touches[0].clientY
+    _active = true
+  }
+
+  function onTouchMove(e) {
+    if (!_active) return
+    const dy = e.touches[0].clientY - _startY
+    if (dy <= 0 || (_scrollEl?.scrollTop > 0)) { _active = false; return }
+    e.preventDefault()
+    pullY.value     = Math.min(dy, threshold * 1.5)
+    isPulling.value = true
+  }
+
+  function onTouchEnd() {
+    if (!_active) return
+    const triggered = pullY.value >= threshold
+    _active         = false
+    isPulling.value = false
+    pullY.value     = 0
+    if (triggered) onTrigger()
+  }
+
+  onMounted(()   => window.addEventListener('touchmove', onTouchMove, { passive: false }))
+  onUnmounted(() => window.removeEventListener('touchmove', onTouchMove))
+
+  return { pullY, isPulling, onTouchStart, onTouchEnd, setScrollEl }
+}

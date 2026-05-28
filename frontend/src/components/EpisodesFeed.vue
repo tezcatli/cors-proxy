@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { usePlayerStore } from '../stores/player.js'
 import { fetchEpisodes } from '../lib/games.js'
+import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import EpisodeFeedCard from './EpisodeFeedCard.vue'
 import { Mic } from 'lucide-vue-next'
 
@@ -10,8 +10,8 @@ const props = defineProps({
   searchQuery: String,
 })
 
-const router      = useRouter()
-const playerStore = usePlayerStore()
+const router = useRouter()
+const { playerStore, isEpPlaying, playEp, togglePause } = useEpisodePlayer()
 
 const episodes = ref([])
 const loading  = ref(true)
@@ -34,34 +34,9 @@ const filteredEpisodes = computed(() => {
 
 defineExpose({ episodeCount: computed(() => episodes.value.length) })
 
-function isEpPlaying(ep) {
-  return !!playerStore.current && ep.audioUrl === playerStore.current.url
-}
-
-function playEp(ep) {
-  const primaryGame    = ep.games?.[0]
-  const gameSlug       = primaryGame?.slug ?? null
-  const primaryChapter = ep.chapters?.find(ch => ch.slug === gameSlug)
-  playerStore.play({
-    game:            primaryGame?.name || 'Silence on Joue',
-    slug:            gameSlug,
-    episode:         ep.title,
-    url:             ep.audioUrl,
-    ts:              0,
-    timestamp:       null,
-    episodeImageUrl: ep.imageUrl ?? null,
-    pubTs:           ep.pubTs,
-    episodeSlug:     ep.slug,
-    coverImageId:    primaryChapter?.coverImageId ?? null,
-    chapters:        ep.chapters ?? [],
-  })
-}
-
 function viewEp(ep) {
   router.push('/episode/' + encodeURIComponent(ep.slug))
 }
-
-function togglePause() { playerStore.setPaused(!playerStore.paused) }
 </script>
 
 <template>
