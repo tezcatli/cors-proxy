@@ -136,7 +136,7 @@ function playEp(ep) {
 }
 
 function viewEp(ep) {
-  router.push(`/episode/${ep.slug}/game/${game.value.slug}`)
+  router.push({ path: `/episode/${ep.slug}`, query: game.value.slug ? { game: game.value.slug } : {} })
 }
 
 function togglePause() { playerStore.setPaused(!playerStore.paused) }

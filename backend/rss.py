@@ -116,6 +116,15 @@ def _extract_chapters(text: str) -> list[Chapter]:
     return chapters
 
 
+def _strip_chapter_list(html: str, chapters: list[Chapter]) -> str:
+    """Remove chapter-list paragraphs from an HTML description."""
+    html = re.sub(r'<p>Chapitres.*?</p>', '', html, flags=re.IGNORECASE | re.DOTALL)
+    for ch in chapters:
+        ts = re.escape(ch.timestamp)
+        html = re.sub(rf'<p>{ts}.*?</p>', '', html, flags=re.IGNORECASE | re.DOTALL)
+    return html
+
+
 def _is_non_game_chapter(title: str) -> bool:
     return any(p.search(title) for p in _NON_GAME_CHAPTER)
 
@@ -200,8 +209,13 @@ def extract_game_names(title: str) -> list[str]:
 
 # ── Feed parser ───────────────────────────────────────────────────────────────
 
+def is_game_catalog_excluded(title: str) -> bool:
+    """True for items that should not appear in the game catalog (trailers, etc.)."""
+    return any(p.search(title) for p in _SKIP_TITLE)
+
+
 def parse_feed(xml_bytes: bytes) -> list[Episode]:
-    """Parse an RSS feed and return one Episode per item that mentions at least one game."""
+    """Parse an RSS feed and return one Episode per RSS item."""
     root    = ET.fromstring(xml_bytes)
     channel = root.find('channel')
     if channel is None:
@@ -211,12 +225,7 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
     for item in channel.findall('item'):
         title = (item.findtext('title') or '').strip() or 'Episode sans titre'
 
-        if any(pattern.search(title) for pattern in _SKIP_TITLE):
-            continue
-
         game_names = extract_game_names(title)
-        if not game_names:
-            continue
 
         audio_url = _get_audio_url(item)
 
@@ -226,7 +235,8 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
 
         raw_desc = (item.findtext(f'{{{_NS_CONTENT}}}encoded') or
                     item.findtext('description') or '')
-        chapters = _extract_chapters(_strip_html(raw_desc))
+        chapters   = _extract_chapters(_strip_html(raw_desc))
+        clean_desc = _strip_chapter_list(raw_desc, chapters) if chapters else raw_desc
 
         img_el    = item.find(f'{{{_NS_ITUNES}}}image')
         image_url = img_el.get('href') if img_el is not None else None
@@ -246,16 +256,15 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
                 timestamp_seconds=matched.timestamp_seconds if matched else 0,
             ))
 
-        if mentions:
-            episodes.append(Episode(
-                title=title,
-                slug=make_slug(title),
-                audio_url=audio_url,
-                pub_ts=pub_ts,
-                image_url=image_url,
-                description=raw_desc or None,
-                chapters=chapters,
-                games=mentions,
-            ))
+        episodes.append(Episode(
+            title=title,
+            slug=make_slug(title),
+            audio_url=audio_url,
+            pub_ts=pub_ts,
+            image_url=image_url,
+            description=clean_desc or None,
+            chapters=chapters,
+            games=mentions,
+        ))
 
     return episodes

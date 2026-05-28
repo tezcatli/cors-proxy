@@ -958,7 +958,7 @@
   background: color-mix(in srgb, var(--game-accent) 14%, transparent);
   border-color: var(--border-accent);
 }
-.episode-card.playing::before {
+.episode-card.playing:not(.chapter-row)::before {
   content: '';
   position: absolute;
   left: -1px; top: 50%;
@@ -1066,40 +1066,28 @@
   right: 0;
   z-index: var(--z-player);
   background:
-    linear-gradient(180deg,
-      rgba(8, 8, 15, 0.72) 0%,
-      rgba(8, 8, 15, 0.92) 100%
-    );
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    radial-gradient(140% 120% at 0% 0%, color-mix(in srgb, var(--game-accent) 22%, transparent), transparent 55%),
+    radial-gradient(120% 100% at 100% 100%, color-mix(in srgb, #8b5cf6 14%, transparent), transparent 60%),
+    linear-gradient(180deg, rgba(10, 10, 22, 0.82), rgba(10, 10, 22, 0.62));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
   border: 1px solid var(--border-accent);
   display: flex;
   flex-direction: column;
-  gap: 6px;
   padding: 10px 14px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   animation: slideUpPlayer var(--dur-med) var(--ease-out-soft);
   border-radius: var(--radius-2xl);
-  margin: 0 12px 8px;
+  margin: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
   box-shadow: var(--elev-4), 0 0 36px -18px var(--game-accent);
   isolation: isolate;
   overflow: hidden;
+  touch-action: none;
 }
 @media (min-width: 600px) {
-  .audio-player.active { margin: 0 20px 10px; }
+  .audio-player.active { margin: 0 20px calc(10px + env(safe-area-inset-bottom, 0px)); }
 }
 
-/* Per-player ambient artwork glow */
-.audio-player.active::before {
-  content: '';
-  position: absolute;
-  inset: -30%;
-  background:
-    radial-gradient(ellipse at top left, color-mix(in srgb, var(--game-accent) 25%, transparent), transparent 60%),
-    radial-gradient(ellipse at bottom right, color-mix(in srgb, var(--game-accent) 18%, transparent), transparent 70%);
-  z-index: -1;
-  pointer-events: none;
-}
+
 
 body.player-open .grid-area {
   padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
@@ -1162,23 +1150,6 @@ body.player-open.player-expanded .grid-area {
 .player-chapter { font-size: 0.86rem; font-weight: 700; color: var(--game-accent); }
 
 /* ─── Play/pause button ──────────────────────────────────────────── */
-.player-play-btn {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  transition: background var(--dur-fast) var(--ease-out-soft), transform var(--dur-fast);
-}
-.player-play-btn:hover  { background: rgba(255, 255, 255, 0.22); }
-.player-play-btn:active { transform: scale(0.91); }
-
 /* ─── Control buttons ────────────────────────────────────────────── */
 .player-ctrl-btn {
   display: inline-flex;
@@ -1222,24 +1193,52 @@ body.player-open.player-expanded .grid-area {
 
 /* ─── Mobile seek bar ────────────────────────────────────────────── */
 .player-mobile-seek {
-  display: none;
+  display: flex;
   position: relative;
   align-items: center;
   width: 100%;
-  padding: 0 2px;
+  padding: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height var(--dur-med) var(--ease-out-soft),
+              opacity var(--dur-fast) var(--ease-out-soft);
 }
 
 /* ─── Mobile controls row ────────────────────────────────────────── */
 .player-mobile-controls {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 4px 2px;
+  padding: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height var(--dur-med) var(--ease-out-soft),
+              opacity var(--dur-fast) var(--ease-out-soft);
+}
+
+.player-controls-inner {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-around;
+  padding: 6px 4px 2px;
 }
 
 /* Expanded: reveal mobile rows */
-.audio-player.active.is-expanded .player-mobile-seek     { display: flex; }
-.audio-player.active.is-expanded .player-mobile-controls { display: flex; }
+.audio-player.active.is-expanded .player-mobile-seek {
+  max-height: 42px;
+  opacity: 1;
+  pointer-events: auto;
+}
+.audio-player.active.is-expanded .player-mobile-controls {
+  max-height: 62px;
+  opacity: 1;
+  pointer-events: auto;
+}
 
 /* ─── Seek bar (layered: fill < markers < thumb < invisible input) ── */
 .player-mobile-seek,
@@ -1250,6 +1249,7 @@ body.player-open.player-expanded .grid-area {
 
 /* Outer container — sets hit area */
 .seek-wrap {
+  margin-top: 6px;
   position: relative;
   width: 100%;
   height: 20px;
@@ -1401,7 +1401,7 @@ body.player-open.player-expanded .grid-area {
   border: 2px solid rgb(var(--rgb-base));
   transition: background var(--dur-fast) var(--ease-out-soft), transform var(--dur-fast) var(--ease-out-soft);
 }
-.chapter-row.is-active::before { background: var(--game-accent); transform: translateY(-50%) scale(1.4); box-shadow: 0 0 12px var(--game-accent); }
+.chapter-row.playing::before  { background: var(--game-accent); transform: translateY(-50%) scale(1.4); box-shadow: 0 0 12px var(--game-accent); }
 
 /* ─── Responsive overrides ─────────────────────────────────────── */
 @media (max-height: 520px) {
@@ -1417,7 +1417,7 @@ body.player-open.player-expanded .grid-area {
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
   .player-art  { width: 48px; height: 48px; }
-  .player-info { flex: 0 1 auto; max-width: 260px; }
+  .player-info { flex: 0 0 33%; }
   .player-row1 { gap: 8px; }
 
   /* Show desktop-only elements */

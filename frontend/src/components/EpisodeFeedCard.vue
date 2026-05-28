@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
-import { Play, Pause, VolumeX, ChevronRight } from 'lucide-vue-next'
+import { Play, Pause, VolumeX } from 'lucide-vue-next'
 import { formatDate } from '../lib/utils.js'
 
 const props = defineProps({
@@ -51,8 +51,10 @@ onUnmounted(() => resizeObs?.disconnect())
   <div
     class="episode-card"
     :class="{ 'has-audio': hasAudio, playing: isPlaying }"
+    style="cursor: pointer"
+    @click="emit('view', episode)"
   >
-    <div class="ep-icon" @click="handlePlay">
+    <div class="ep-icon" @click.stop="handlePlay">
       <component :is="iconComp" :size="14" :fill="hasAudio ? 'currentColor' : 'none'" :stroke-width="hasAudio ? 0 : 2" />
     </div>
 
@@ -62,11 +64,10 @@ onUnmounted(() => resizeObs?.disconnect())
       :alt="episode.title"
       class="w-10 h-10 rounded-lg object-cover flex-shrink-0 self-center shadow-e1"
       loading="lazy"
-      @click="handlePlay"
     />
     <div v-else class="w-10 h-10 flex-shrink-0 rounded-lg bg-white/5" />
 
-    <div class="flex-1 min-w-0" @click="handlePlay">
+    <div class="flex-1 min-w-0">
       <div
         ref="marqueeEl"
         class="ep-title-scroll"
@@ -79,11 +80,5 @@ onUnmounted(() => resizeObs?.disconnect())
         <span>{{ formatDate(episode.pubTs) }}</span>
       </div>
     </div>
-
-    <button
-      class="btn btn-sm btn-ghost text-white/40 hover:text-white/85 px-2 self-center flex-shrink-0 !min-h-0 h-8"
-      aria-label="Détails de l'épisode"
-      @click.stop="emit('view', episode)"
-    ><ChevronRight :size="18" :stroke-width="2" /></button>
   </div>
 </template>

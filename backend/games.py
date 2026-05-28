@@ -13,7 +13,7 @@ from corrections import find_by_podcast
 from db import get_db, utcnow
 from igdb import fetch_by_id, fetch_by_name
 from models import Episode, GameAppearance, IgdbEntry, PodcastGame
-from rss import parse_feed
+from rss import parse_feed, is_game_catalog_excluded
 from utils import make_slug
 
 import logging
@@ -121,6 +121,9 @@ def _build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
 
     for episode in episodes:
         episode_index[episode.slug] = episode
+
+        if is_game_catalog_excluded(episode.title):
+            continue
 
         date_str = (
             datetime.datetime.fromtimestamp(episode.pub_ts, datetime.timezone.utc)

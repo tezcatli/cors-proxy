@@ -21,7 +21,11 @@ const { cssVars } = useArtworkAccent(currentCoverId)
 
 const playerCoverSrc = computed(() => {
   const chapter = playerStore.currentChapter
-  if (chapter?.coverImageId) return igdbUrl(chapter.coverImageId, 't_cover_small')
+  if (chapter) {
+    return chapter.coverImageId
+      ? igdbUrl(chapter.coverImageId, 't_cover_small')
+      : (playerStore.current?.episodeImageUrl ?? null)
+  }
   const id = playerStore.current?.coverImageId
   return id ? igdbUrl(id, 't_cover_small') : (playerStore.current?.episodeImageUrl ?? null)
 })
@@ -74,8 +78,9 @@ function onSeek(e)   { if (audioEl.value) audioEl.value.currentTime = parseFloat
 function onVolume(e) { if (audioEl.value) audioEl.value.volume = parseFloat(e.target.value) }
 
 function onArtInfoClick() {
-  if (window.matchMedia('(min-width: 900px)').matches) navigateToEpisode()
-  else toggleCollapsed()
+  const chapter = playerStore.currentChapter
+  if (chapter?.slug) router.push('/game/' + encodeURIComponent(chapter.slug))
+  else navigateToEpisode()
 }
 
 // ── Alternating episode / chapter title ────────────────────────────────────
@@ -170,9 +175,18 @@ function onDurChange() {
 function onVolChange() { volume.value   = audioEl.value?.volume ?? 1  }
 
 // ── Bottom-sheet drag-to-dismiss (mobile only) ─────────────────────────────
-const dragY = ref(0)
+const dragY      = ref(0)
+const dragExpand = ref(null)   // null = idle; 0–1 fraction while expand/collapse dragging
+const isDragging = ref(false)  // true = suppress CSS transition on mobile rows during drag
 let dragStartY = 0
 let dragActive = false
+
+function endDrag() {
+  isDragging.value = false       // frame N: CSS transition re-enabled, height still at Xpx
+  requestAnimationFrame(() => {
+    dragExpand.value = null      // frame N+1: height override removed → CSS transition fires
+  })
+}
 
 function onPointerDown(e) {
   if (!isTouchDevice) return
@@ -180,20 +194,35 @@ function onPointerDown(e) {
   if (e.target.closest('button') || e.target.closest('input')) return
   dragStartY = e.clientY
   dragActive = true
+  isDragging.value = true
   playerEl.value?.setPointerCapture?.(e.pointerId)
 }
 function onPointerMove(e) {
   if (!dragActive) return
   const dy = e.clientY - dragStartY
-  if (dy <= 0) { dragY.value = 0; return }
-  dragY.value = dy
+  if (dy < 0 && collapsed.value) {
+    dragExpand.value = Math.min(1, -dy / 60)
+    if (dy < -60) { dragActive = false; collapsed.value = false; endDrag() }
+    return
+  }
+  if (dy > 0 && !collapsed.value) {
+    dragExpand.value = Math.max(0, 1 - dy / 100)
+    if (dy > 100) { dragActive = false; collapsed.value = true; endDrag() }
+    return
+  }
+  isDragging.value = false
+  dragExpand.value = null
+  dragY.value = Math.max(0, dy)
+  if (dy > 100) { dragActive = false; dragY.value = 0; closePlayer() }
 }
 function onPointerUp(e) {
   if (!dragActive) return
   dragActive = false
   playerEl.value?.releasePointerCapture?.(e.pointerId)
-  if (dragY.value > 100) { closePlayer(); dragY.value = 0 }
-  else { dragY.value = 0 }
+  if (dragExpand.value !== null) endDrag()
+  else isDragging.value = false
+  if (dragY.value > 100) closePlayer()
+  dragY.value = 0
 }
 const sheetStyle = computed(() => ({
   transform: dragY.value > 0 ? `translateY(${dragY.value}px)` : '',
@@ -229,8 +258,8 @@ function navigateToEpisode() {
   const cur = playerStore.current
   if (!cur) return
   if (cur.episodeSlug)
-    router.push(`/episode/${encodeURIComponent(cur.episodeSlug)}/game/${encodeURIComponent(cur.slug)}`)
-  else
+    router.push({ path: `/episode/${encodeURIComponent(cur.episodeSlug)}`, query: cur.slug ? { game: cur.slug } : {} })
+  else if (cur.slug)
     router.push('/game/' + encodeURIComponent(cur.slug))
 }
 
@@ -332,6 +361,10 @@ function initMediaSession(cur) {
 }
 
 watch(() => playerStore.playVersion, () => {
+  dragY.value        = 0
+  dragExpand.value   = null
+  isDragging.value   = false
+  dragActive         = false
   _lastHandledVersion = playerStore.playVersion
   const cur = playerStore.current
   if (!cur || !audioEl.value) return
@@ -358,7 +391,9 @@ watch(() => playerStore.visible, visible => {
   if (!visible) {
     safePause()
     stopFlip()
-    collapsed.value = true
+    collapsed.value  = true
+    dragExpand.value = null
+    isDragging.value = false
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
   }
 })
@@ -454,7 +489,7 @@ watch(() => playerStore.current?.episodeImageUrl, url => {
         </div>
 
         <!-- Play/pause: always visible -->
-        <button class="player-play-btn" @click.stop="togglePlay" :aria-label="playerStore.paused ? 'Lire' : 'Pause'">
+        <button class="icon-action" @click.stop="togglePlay" :aria-label="playerStore.paused ? 'Lire' : 'Pause'">
           <Pause v-if="!playerStore.paused" :size="18" :stroke-width="2" />
           <Play  v-else                     :size="18" :stroke-width="2" />
         </button>
@@ -478,7 +513,8 @@ watch(() => playerStore.current?.episodeImageUrl, url => {
       </div>
 
       <!-- Mobile seek bar (hidden when collapsed) -->
-      <div class="player-mobile-seek">
+      <div class="player-mobile-seek"
+        :style="dragExpand !== null ? { maxHeight: Math.round(42 * dragExpand) + 'px', opacity: dragExpand, ...(isDragging ? { transition: 'none' } : {}) } : {}">
         <div class="seek-wrap">
           <div class="seek-track">
             <div class="seek-fill" :style="{ width: seekProgress + '%' }"></div>
@@ -501,19 +537,22 @@ watch(() => playerStore.current?.episodeImageUrl, url => {
       </div>
 
       <!-- Mobile controls row (hidden when collapsed) -->
-      <div class="player-mobile-controls">
-        <button class="player-ctrl-btn" @click="goToChapterStart" aria-label="Début du chapitre">
-          <SkipBack :size="18" :stroke-width="2" />
-        </button>
-        <button class="player-ctrl-btn" @click="jumpBack" aria-label="Reculer 30 secondes">
-          <RotateCcw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
-        </button>
-        <button class="player-ctrl-btn" @click="jumpForward" aria-label="Avancer 30 secondes">
-          <RotateCw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
-        </button>
-        <button class="player-ctrl-btn" @click="navigateToEpisode" aria-label="Aller à l'épisode">
-          <ChevronRight :size="18" :stroke-width="2" />
-        </button>
+      <div class="player-mobile-controls"
+        :style="dragExpand !== null ? { maxHeight: Math.round(62 * dragExpand) + 'px', opacity: dragExpand, ...(isDragging ? { transition: 'none' } : {}) } : {}">
+        <div class="player-controls-inner">
+          <button class="player-ctrl-btn" @click="goToChapterStart" aria-label="Début du chapitre">
+            <SkipBack :size="18" :stroke-width="2" />
+          </button>
+          <button class="player-ctrl-btn" @click="jumpBack" aria-label="Reculer 30 secondes">
+            <RotateCcw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
+          </button>
+          <button class="player-ctrl-btn" @click="jumpForward" aria-label="Avancer 30 secondes">
+            <RotateCw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
+          </button>
+          <button class="player-ctrl-btn" @click="navigateToEpisode" aria-label="Aller à l'épisode">
+            <ChevronRight :size="18" :stroke-width="2" />
+          </button>
+        </div>
       </div>
     </template>
 

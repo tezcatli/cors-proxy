@@ -25,7 +25,7 @@ function chapterProgressPct(ch) {
   return Math.min(100, Math.max(0, ((p.currentTime - (p.ts ?? 0)) / span) * 100))
 }
 
-const slug        = route.params.slug
+const slug        = route.query.game ?? null
 const episodeSlug = route.params.episodeSlug
 
 const episode = ref(null)
@@ -105,19 +105,6 @@ const playIconComp = computed(() => {
   return playerStore.paused ? Play : Pause
 })
 
-const cleanDescription = computed(() => {
-  const raw = episode.value?.description
-  const chs = episode.chapters
-  if (!raw) return null
-  if (!chs?.length) return raw
-  let tmp = raw.replace(/<p>Chapitres[\s\S]*?<\/p>/i, '')
-  for (const ch of chs) {
-    let reg = new RegExp(`<p>${ch.timestamp}[\\s\\S]*?</p>`, "i")
-    tmp = tmp.replace(reg, '');
-  }
-  return tmp
-})
-
 const chapterTitleEls = []
 const chapterScrolls  = ref([])
 
@@ -187,9 +174,9 @@ watch(() => episode?.chapters, (chs) => {
             </p>
 
             <div
-              v-if="cleanDescription"
+              v-if="episode.description"
               class="ep-desc text-[0.86rem] text-white/82 leading-relaxed mb-4"
-              v-html="cleanDescription"
+              v-html="episode.description"
             />
 
             <button
@@ -213,10 +200,7 @@ watch(() => episode?.chapters, (chs) => {
                 :key="ch.timestamp"
                 type="button"
                 class="chapter-row episode-card has-audio w-full text-left"
-                :class="{
-                  playing: activeChapter?.timestamp === ch.timestamp,
-                  'is-active': activeChapter?.timestamp === ch.timestamp,
-                }"
+                :class="{ playing: activeChapter?.timestamp === ch.timestamp }"
                 @click="playFrom(ch.timestampSeconds, ch.timestamp)"
               >
                 <div class="ep-icon">

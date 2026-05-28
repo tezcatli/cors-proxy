@@ -13,7 +13,6 @@ const router = createRouter({
     { path: '/episodes',                          component: Empty,       meta: { depth: 0 } },
     { path: '/game/:slug',                        component: DetailView,  meta: { depth: 1 } },
     { path: '/episode/:episodeSlug',              component: EpisodeView, meta: { depth: 1 } },
-    { path: '/episode/:episodeSlug/game/:slug',   component: EpisodeView, meta: { depth: 2 } },
     { path: '/login',                             component: LoginPage,   meta: { depth: 1 } },
     { path: '/:pathMatch(.*)*',                   redirect: '/' },
   ],
