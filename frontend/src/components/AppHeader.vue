@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Search, RotateCw, X, ArrowUp, ArrowDown, SlidersHorizontal, Check, Gamepad2 } from 'lucide-vue-next'
+import { Search, RotateCw, X, ArrowUp, ArrowDown, SlidersHorizontal, Check } from 'lucide-vue-next'
 import { timeAgo } from '../lib/utils.js'
 
 const props = defineProps({

@@ -10,7 +10,7 @@ export function useAuthForm() {
     infoMsg.value  = ''
   }
 
-  async function run(fn, { redirect } = {}) {
+  async function run(fn) {
     clearMessages()
     busy.value = true
     try {

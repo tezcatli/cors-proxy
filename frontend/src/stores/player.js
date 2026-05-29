@@ -15,7 +15,6 @@ export const usePlayerStore = defineStore('player', () => {
     _playCallVersion = playVersion.value + 1
     playVersion.value++
     current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, coverImageId, chapters: chapters ?? [] }
-    console.log('Playing:', current.value)
     visible.value = true
     paused.value  = false
   }

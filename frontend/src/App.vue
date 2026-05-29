@@ -119,6 +119,7 @@ function handleLogout() {
 function handleRefresh() { gamesStore.refresh() }
 
 // ── Pull-to-refresh ───────────────────────────────────────────────────────────
+const PULL_THRESHOLD = 80
 const { pullY, isPulling, setScrollEl } = usePullToRefresh(handleRefresh)
 
 onMounted(() => {

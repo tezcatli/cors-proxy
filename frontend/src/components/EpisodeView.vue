@@ -97,7 +97,7 @@ function togglePlay() {
     playerStore.setPaused(!playerStore.paused)
     return
   }
-  playFrom(episode.timestampSeconds || 0, episode.timestamp)
+  playFrom(episode.value.timestampSeconds || 0, episode.value.timestamp)
 }
 
 const playIconComp = computed(() => {
@@ -108,7 +108,7 @@ const playIconComp = computed(() => {
 const chapterTitleEls = []
 const chapterScrolls  = ref([])
 
-watch(() => episode?.chapters, (chs) => {
+watch(() => episode.value?.chapters, (chs) => {
   if (!chs?.length) { chapterScrolls.value = []; return }
   chapterScrolls.value = chs.map((_, i) => {
     const el = chapterTitleEls[i]
