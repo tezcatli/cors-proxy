@@ -5,10 +5,11 @@ import SkeletonTile from './SkeletonTile.vue'
 import { AlertTriangle, SearchX } from 'lucide-vue-next'
 
 const props = defineProps({
-  games:   Array,
-  loading: Boolean,
-  error:   String,
-  total:   Number,
+  games:    Array,
+  loading:  Boolean,
+  error:    String,
+  total:    Number,
+  resetKey: String,
 })
 
 const PAGE_SIZE    = 60
@@ -18,7 +19,7 @@ let _observer      = null
 
 const visibleGames = computed(() => props.games.slice(0, visibleCount.value))
 
-watch(() => props.games, () => {
+watch(() => props.resetKey, () => {
   visibleCount.value = PAGE_SIZE
   nextTick(() => {
     if (_observer && sentinel.value) {

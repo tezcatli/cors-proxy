@@ -83,7 +83,7 @@ watch(searchQuery, q => {
   }, 350)
 })
 
-const hideUnresolved = ref(false)
+const hideUnresolved = ref(true)
 
 const displayedGames = computed(() => {
   const _s = gamesStore.sortMode  // explicit dep: re-runs on sort change
@@ -92,6 +92,10 @@ const displayedGames = computed(() => {
   if (hideUnresolved.value) games = games.filter(g => g.igdb !== null)
   return games
 })
+
+const gridResetKey = computed(() =>
+  `${searchQuery.value.trim()}|${hideUnresolved.value}|${gamesStore.sortMode}|${gamesStore.sortAsc}`
+)
 
 watch(
   [() => gamesStore.sortMode, () => gamesStore.sortAsc, hideUnresolved],
@@ -181,6 +185,7 @@ onMounted(() => {
       :loading="gamesStore.loading"
       :error="gamesStore.error"
       :total="gamesStore.all.length"
+      :reset-key="gridResetKey"
     />
 
     <EpisodesFeed
