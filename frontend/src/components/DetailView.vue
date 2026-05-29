@@ -175,7 +175,7 @@ function nextScreenshot() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[150]" :style="cssVars">
+  <div class="fixed inset-0 z-[150] bg-base-100" :style="cssVars">
     <!-- Loading / not found -->
     <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[150] bg-base-100 flex flex-col">
       <div class="flex items-center px-4 py-3 border-b border-white/5 backdrop-blur-md bg-black/30">

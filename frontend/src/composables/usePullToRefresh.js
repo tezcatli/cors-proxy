@@ -31,8 +31,16 @@ export function usePullToRefresh(onTrigger, { threshold = 80 } = {}) {
     if (triggered) onTrigger()
   }
 
-  onMounted(()   => window.addEventListener('touchmove', onTouchMove, { passive: false }))
-  onUnmounted(() => window.removeEventListener('touchmove', onTouchMove))
+  onMounted(() => {
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    window.addEventListener('touchend',   onTouchEnd,   { passive: true })
+  })
+  onUnmounted(() => {
+    window.removeEventListener('touchstart', onTouchStart)
+    window.removeEventListener('touchmove',  onTouchMove)
+    window.removeEventListener('touchend',   onTouchEnd)
+  })
 
-  return { pullY, isPulling, onTouchStart, onTouchEnd, setScrollEl }
+  return { pullY, isPulling, setScrollEl }
 }

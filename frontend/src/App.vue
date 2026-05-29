@@ -86,6 +86,8 @@ watch(searchQuery, q => {
 const hideUnresolved = ref(false)
 
 const displayedGames = computed(() => {
+  const _s = gamesStore.sortMode  // explicit dep: re-runs on sort change
+  const _a = gamesStore.sortAsc
   let games = gamesStore.filtered(searchQuery.value.trim())
   if (hideUnresolved.value) games = games.filter(g => g.igdb !== null)
   return games
@@ -93,7 +95,7 @@ const displayedGames = computed(() => {
 
 watch(
   [() => gamesStore.sortMode, () => gamesStore.sortAsc, hideUnresolved],
-  () => { if (_gridEl) _gridEl.scrollTop = 0 }
+  () => { document.querySelector('.grid-area')?.scrollTo({ top: 0 }) }
 )
 
 // Body classes for layout context
@@ -113,7 +115,7 @@ function handleLogout() {
 function handleRefresh() { gamesStore.refresh() }
 
 // ── Pull-to-refresh ───────────────────────────────────────────────────────────
-const { pullY, isPulling, onTouchStart, onTouchEnd, setScrollEl } = usePullToRefresh(handleRefresh)
+const { pullY, isPulling, setScrollEl } = usePullToRefresh(handleRefresh)
 
 onMounted(() => {
   if (loggedIn.value) {

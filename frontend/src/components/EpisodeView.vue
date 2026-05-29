@@ -118,7 +118,7 @@ watch(() => episode?.chapters, (chs) => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[200]" :style="cssVars">
+  <div class="fixed inset-0 z-[200] bg-base-100" :style="cssVars">
     <!-- Loading / error -->
     <div v-if="loading || error || (!loading && !episode)" class="fixed inset-0 z-[200] bg-base-100 flex flex-col">
       <div class="flex items-center px-4 py-3 border-b border-white/5 backdrop-blur-md bg-black/30">
