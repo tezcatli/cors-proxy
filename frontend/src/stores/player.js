@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
+import { progressPct } from '../lib/utils.js'
 
 export const usePlayerStore = defineStore('player', () => {
   const current     = ref(null)
@@ -126,16 +127,13 @@ export const usePlayerStore = defineStore('player', () => {
     const chIdx      = chapters.findIndex(ch => ch.timestampSeconds === chapterTs)
     const nextCh     = chIdx >= 0 ? chapters[chIdx + 1] : null
     const chapterEnd = nextCh ? nextCh.timestampSeconds : audioDuration.value
-    const span       = chapterEnd - chapterTs
     return {
       gameSlug:    current.value.slug,
       chapterSlug: currentChapter.value?.slug ?? null,
       episodeSlug: current.value.episodeSlug,
       chapterTs,
       chapterEnd,
-      pct: span > 0
-        ? Math.min(100, Math.max(0, ((currentTime.value - chapterTs) / span) * 100))
-        : 0,
+      pct: progressPct(currentTime.value, chapterTs, chapterEnd),
     }
   })
 

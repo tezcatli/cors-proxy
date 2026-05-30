@@ -7,8 +7,8 @@ const CONTRACT = JSON.parse(
   readFileSync(join(__dirname, '../../contracts/api.json'), 'utf8')
 );
 
-export const AUTH = CONTRACT.auth;
-export const IGDB = CONTRACT.igdb;
+export const AUTH  = CONTRACT.auth;
+export const GAMES = CONTRACT.games;
 
 export function mockResponse(entry, body = {}) {
   return {

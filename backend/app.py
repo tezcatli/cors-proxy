@@ -79,6 +79,14 @@ def create_app(testing=False):
         if not Config.DEBUG or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
             startup_warmup()
 
+    @_app.route("/healthz")
+    def healthz():
+        # Liveness probe: 200 whenever the process is serving. `feedLoaded` is
+        # informational — a not-yet-loaded feed must not fail the healthcheck,
+        # or Docker would restart the container while it is still warming up.
+        import games
+        return jsonify(status="ok", feedLoaded=bool(games._cached_episodes)), 200
+
     def json_error(e):
         return jsonify(error=str(e.description)), e.code
 

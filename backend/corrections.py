@@ -229,12 +229,12 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "la légende de Pac-man",
-        "igdb_id":  "2750",
+        "igdb_id":  2750,
     },
     {
         "podcast_name": "Danganrompa",
         "hint_date": "2014-03-27",
-        "igdb_id":  "9708",
+        "igdb_id":  9708,
     },
     {
         "podcast_name": "elec head",
@@ -242,11 +242,11 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "Fortnite Battle Royale",
-        "igdb_id":  "1905",
+        "igdb_id":  1905,
     },
     {
         "podcast_name": "Broken Age acte 2",
-        "igdb_id":  "3087"
+        "igdb_id":  3087
     },
     {
         "podcast_name": "Might & Magic sur DS",
@@ -258,7 +258,7 @@ CORRECTIONS = [
     },
     {
         "podcast_name": "L'histoire de Tomb Raider",
-        "igdb_id":  "912",
+        "igdb_id":  912,
     },
     {
         "podcast_name": "La ferme des animaux",

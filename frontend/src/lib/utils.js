@@ -1,41 +1,3 @@
-export function stripHtml(html) {
-  if (!html) return '';
-  return html
-    .replace(/<\/p>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
-    .replace(/[ \t]+/g, ' ').replace(/\n[ \t]+/g, '\n').trim();
-}
-
-export function timestampToSeconds(ts) {
-  if (!ts) return 0;
-  ts = ts.trim();
-  const colonMatch = ts.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
-  if (colonMatch) {
-    const [, a, b, c] = colonMatch;
-    return c !== undefined
-      ? parseInt(a, 10) * 3600 + parseInt(b, 10) * 60 + parseInt(c, 10)
-      : parseInt(a, 10) * 60 + parseInt(b, 10);
-  }
-  const hBareMin = ts.match(/^(\d+)\s*h(?:eure?s?)?(\d+)$/i);
-  if (hBareMin) return parseInt(hBareMin[1], 10) * 3600 + parseInt(hBareMin[2], 10) * 60;
-  const hmsMatch = ts.match(/(?:(\d+)\s*h(?:eure?s?)?)?\s*(?:(\d+)\s*m(?:in(?:utes?)?)?)?\s*(?:(\d+)\s*s(?:ec(?:ondes?)?)?)?/i);
-  if (hmsMatch) {
-    const total = parseInt(hmsMatch[1]||'0',10)*3600 + parseInt(hmsMatch[2]||'0',10)*60 + parseInt(hmsMatch[3]||'0',10);
-    if (total > 0) return total;
-  }
-  return 0;
-}
-
-export function norm(s) {
-  return s.toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-}
-
-export const normKey = s => norm(s).replaceAll(' ', '')
-
 export function formatDate(ts) {
   if (!ts) return '';
   try { return new Date(ts * 1000).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }); }
@@ -53,15 +15,21 @@ export function timeAgo(iso) {
   return `il y a ${days} jour${days > 1 ? 's' : ''}`;
 }
 
-export function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-
 export function getScoreClass(score) {
   return score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
 }
 
 export function formatEpisodeCount(n) {
   return `${n} épisode${n > 1 ? 's' : ''}`;
+}
+
+/**
+ * Percentage (0–100) of a chapter that has been listened to.
+ * Returns 0 when the span is non-positive. Shared by the player store's
+ * live progress and the stored-progress readouts in the views.
+ */
+export function progressPct(currentTime, start, end) {
+  const span = end - start;
+  if (span <= 0) return 0;
+  return Math.min(100, Math.max(0, ((currentTime - start) / span) * 100));
 }

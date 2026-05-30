@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import datetime
+from contextlib import contextmanager
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'users.db')
 
@@ -9,11 +10,25 @@ def utcnow():
     return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
 
+@contextmanager
 def get_db():
+    """Yield a SQLite connection, committing on success and always closing.
+
+    Mirrors the commit/rollback semantics of using a raw connection as a
+    context manager, but additionally closes the connection so file
+    descriptors are not leaked while waiting for GC finalisation.
+    """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db():

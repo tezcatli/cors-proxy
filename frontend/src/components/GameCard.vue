@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getScoreClass } from '../lib/utils.js'
+import { getScoreClass, progressPct } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import placeholderCover from '../assets/placeholder-cover.svg'
 import { useGamesStore } from '../stores/games.js'
@@ -28,9 +28,7 @@ const gameTileProgressPct = computed(() => {
 
   const p = playerStore.getGameProgress(props.game.slug)
   if (!p || !p.chapterEnd) return 0
-  const span = p.chapterEnd - (p.ts ?? 0)
-  if (span <= 0) return 0
-  return Math.min(100, Math.max(0, ((p.currentTime - (p.ts ?? 0)) / span) * 100))
+  return progressPct(p.currentTime, p.ts ?? 0, p.chapterEnd)
 })
 
 // Only run Vibrant palette extraction once the tile has scrolled into view —

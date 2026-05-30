@@ -24,6 +24,18 @@ function handlePlay() {
   else emit('play', props.episode)
 }
 
+// Keyboard activation of the row (view). Ignore keys that bubbled up from the
+// inner play button so Enter/Space there doesn't also trigger a navigation.
+function onRowKey(e) {
+  if (e.target !== e.currentTarget) return
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); emit('view', props.episode) }
+}
+
+const playLabel = computed(() =>
+  !hasAudio.value ? 'Pas d’audio'
+    : props.isPlaying && !props.isPaused ? 'Mettre en pause' : 'Lire l’épisode'
+)
+
 const marqueeEl   = ref(null)
 const needsScroll = ref(false)
 
@@ -51,12 +63,16 @@ onUnmounted(() => resizeObs?.disconnect())
   <div
     class="episode-card"
     :class="{ 'has-audio': hasAudio, playing: isPlaying }"
+    role="button"
+    tabindex="0"
+    :aria-label="`Voir l’épisode : ${episode.title}`"
     style="cursor: pointer"
     @click="emit('view', episode)"
+    @keydown="onRowKey"
   >
-    <div class="ep-icon" @click.stop="handlePlay">
+    <button type="button" class="ep-icon" :aria-label="playLabel" @click.stop="handlePlay">
       <component :is="iconComp" :size="14" :fill="hasAudio ? 'currentColor' : 'none'" :stroke-width="hasAudio ? 0 : 2" />
-    </div>
+    </button>
 
     <img
       v-if="episode.imageUrl"

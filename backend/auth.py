@@ -185,7 +185,8 @@ def reset_confirm():
         if not existing:
             abort(400, "Lien invalide ou déjà utilisé")
         if existing["expires_at"] < now:
-            conn.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
+            with get_db() as conn2:
+                conn2.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
             abort(410, "Lien expiré")
         row = conn.execute(
             "DELETE FROM reset_tokens WHERE token = ? RETURNING user_id",

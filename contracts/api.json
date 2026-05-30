@@ -189,6 +189,33 @@
         "status": 401,
         "fields": ["error"]
       }
+    },
+    "episodes": {
+      "success": {
+        "status": 200
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": ["error"]
+      }
+    },
+    "episode": {
+      "success": {
+        "status": 200,
+        "fields": ["title", "slug", "audioUrl", "pubTs", "imageUrl", "description", "chapters", "games", "timestamp", "timestampSeconds"]
+      },
+      "not_found": {
+        "status": 404,
+        "fields": ["error"]
+      },
+      "bad_request": {
+        "status": 400,
+        "fields": ["error"]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": ["error"]
+      }
     }
   }
 }

@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchEpisodes } from '../lib/games.js'
 import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
 import EpisodeFeedCard from './EpisodeFeedCard.vue'
 import { Mic } from 'lucide-vue-next'
 
@@ -32,40 +33,11 @@ const filteredEpisodes = computed(() => {
   )
 })
 
-defineExpose({ episodeCount: computed(() => episodes.value.length) })
-
 // ── Incremental rendering ────────────────────────────────────────────────────
-const PAGE_SIZE    = 50
-const visibleCount = ref(PAGE_SIZE)
-const sentinel     = ref(null)
-let _observer      = null
-
-const visibleEpisodes = computed(() =>
-  filteredEpisodes.value.slice(0, visibleCount.value)
+const { visibleItems: visibleEpisodes, sentinel } = useInfiniteScroll(
+  filteredEpisodes,
+  { pageSize: 50 },
 )
-
-watch(filteredEpisodes, () => {
-  visibleCount.value = PAGE_SIZE
-  nextTick(() => {
-    if (_observer && sentinel.value) {
-      _observer.unobserve(sentinel.value)
-      _observer.observe(sentinel.value)
-    }
-  })
-})
-
-watch(sentinel, el => {
-  _observer?.disconnect()
-  if (!el) return
-  _observer = new IntersectionObserver(([entry]) => {
-    if (!entry.isIntersecting || visibleCount.value >= filteredEpisodes.value.length) return
-    _observer.unobserve(entry.target)
-    visibleCount.value += PAGE_SIZE
-    nextTick(() => { if (sentinel.value) _observer.observe(sentinel.value) })
-  })
-  _observer.observe(el)
-})
-onUnmounted(() => _observer?.disconnect())
 
 function viewEp(ep) {
   router.push('/episode/' + encodeURIComponent(ep.slug))

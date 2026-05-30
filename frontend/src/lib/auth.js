@@ -34,6 +34,17 @@ export function logout() {
   loggedIn.value = false
 }
 
+function _redirectToLogin() {
+  // Lazy import avoids a circular dependency (router.js imports this module).
+  import('../router.js')
+    .then(({ default: router }) => {
+      if (router.currentRoute.value.path !== '/login') router.push('/login')
+    })
+    .catch(() => {
+      if (!location.pathname.endsWith('/login')) location.assign('/silence/login')
+    })
+}
+
 export async function apiFetch(path, opts = {}) {
   const token = getToken()
   const headers = {
@@ -42,6 +53,13 @@ export async function apiFetch(path, opts = {}) {
   }
   const res = await fetch(path, { ...opts, headers })
   if (!res.ok) {
+    // A 401 on a protected endpoint means the session expired — drop the token
+    // and bounce to login. Auth endpoints (login/register/reset) legitimately
+    // return 401 for bad credentials, so those surface the error normally.
+    if (res.status === 401 && !path.startsWith('/silence/auth/')) {
+      logout()
+      _redirectToLogin()
+    }
     let msg = `HTTP ${res.status}`
     try { msg = (await res.json()).error || msg } catch {}
     throw new Error(msg)
@@ -58,16 +76,17 @@ async function post(path, body) {
   return res.status === 204 ? null : res.json()
 }
 
-export async function login(email, password) {
-  const data = await post('/login', { email, password })
+function setToken(data) {
   localStorage.setItem(TOKEN_KEY, data.access_token)
   loggedIn.value = true
 }
 
+export async function login(email, password) {
+  setToken(await post('/login', { email, password }))
+}
+
 export async function register(email, password, invitationToken) {
-  const data = await post('/register', { email, password, invitation_token: invitationToken })
-  localStorage.setItem(TOKEN_KEY, data.access_token)
-  loggedIn.value = true
+  setToken(await post('/register', { email, password, invitation_token: invitationToken }))
 }
 
 export async function resetRequest(email) {

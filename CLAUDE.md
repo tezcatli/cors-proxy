@@ -74,7 +74,7 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
 
 ### Backend (`backend/`)
 
-- **`app.py`** — Flask app factory. The `/proxy?url=` endpoint strips upstream CORS headers and re-adds its own. Auth is skipped entirely when `DEBUG=true`.
+- **`app.py`** — Flask app factory. Registers the auth and games blueprints, an unauthenticated `GET /healthz` liveness probe, and (in `DEBUG=true`) the SPA/Vite-proxy static routes. Auth is skipped entirely when `DEBUG=true`. (The repo dir is still named `cors-proxy` for historical reasons — there is no longer a generic CORS-proxy endpoint.)
 - **`auth.py`** — Blueprint at `/auth`: invite-token-based registration, login, password reset. All tokens (invite, reset, JWT) are random `secrets.token_urlsafe` strings stored in SQLite.
 - **`models.py`** — Dataclasses shared across the backend: `Chapter`, `GameMention`, `Episode`, `GameAppearance`, `PodcastGame`, `IgdbEntry`. No logic.
 - **`rss.py`** — Pure RSS feed parsing (no I/O, no state). Public API: `parse_feed(xml_bytes) -> list[Episode]`, `extract_game_names(title)`, `extract_legacy_names(title)`.
@@ -105,6 +105,8 @@ _igdb_cache        dict[podcast_slug, IgdbEntry]  loaded from DB at startup
 ```
 
 `_igdb_cache` is written whenever `_resolve_one()` completes (background thread or explicit refresh). All other structures are read-only from the perspective of HTTP handlers.
+
+**Single-worker constraint:** because this state lives in process memory (and SSE subscribers and the rate limiter are likewise in-process), prod must run gunicorn with `--workers 1` (see `backend/Dockerfile.prod`). Scaling to multiple workers silently breaks the cache, SSE fan-out, and rate limiting — move that state to shared storage (e.g. redis) first.
 
 ### Slug model
 

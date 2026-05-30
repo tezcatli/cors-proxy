@@ -9,6 +9,7 @@ export function usePullToRefresh(onTrigger, { threshold = 80 } = {}) {
 
   function onTouchStart(e) {
     if (_scrollEl?.scrollTop > 0) return
+    if (e.target.closest('.audio-player')) return
     _startY = e.touches[0].clientY
     _active = true
   }

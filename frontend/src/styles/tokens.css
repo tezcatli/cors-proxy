@@ -5,7 +5,6 @@
   --rgb-raised:  26,  26,  46;   /* #1a1a2e — raised cards */
   --rgb-line:    255, 255, 255;  /* used at low alpha for hairline borders */
 
-  --rgb-neutral: 26,  42,  80;
   --rgb-primary: 233,  69,  96;  /* #e94560 retained for CTAs */
   --rgb-muted:   148, 148, 168;
   --rgb-light:   232, 232, 240;
@@ -21,10 +20,7 @@
   --col-rating-text: #ff8aa0;
 
   /* ─── Glass / surface tokens ──────────────────────────────────────────── */
-  --glass-bg:      rgba(10, 10, 20, 0.55);
   --glass-blur:    18px;
-  --glass-border:  rgba(var(--rgb-line), 0.08);
-  --glass-radius:  20px;
 
   --panel-bg:        rgba(var(--rgb-raised), 0.45);
 
@@ -44,7 +40,6 @@
   --elev-2: 0 6px  16px -4px rgba(0,0,0,0.45);
   --elev-3: 0 14px 32px -8px rgba(0,0,0,0.55);
   --elev-4: 0 28px 60px -12px rgba(0,0,0,0.65);
-  --elev-glow: 0 8px 30px -8px var(--game-accent);
 
   /* ─── Radii ──────────────────────────────────────────────────────────── */
   --radius-sm: 8px;
@@ -72,9 +67,6 @@
   --dur-hero: 640ms;
   --dur-slide: var(--dur-med);  /* legacy alias */
 
-  /* ─── Player ─────────────────────────────────────────────────────────── */
-  --player-bg:      rgba(var(--rgb-base), 0.78);
-  --player-control: rgb(var(--rgb-light));
 }
 
 /* ─── Reduced motion: kill non-essential animation, keep opacity fades ─── */

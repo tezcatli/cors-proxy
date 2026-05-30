@@ -1,3 +1,8 @@
+/* Breakpoint scale (keep media queries on these values):
+   600 (sm) · 768 (md) · 900 (lg) · 1200 (xl) — mirrors tailwind.config `screens`.
+   The DetailView grid additionally reflows at 700 (2-col) and 1100 (3-col);
+   these are intentional, content-driven layout breakpoints, not the token scale. */
+
 /* ─── Command bar (floating header) ──────────────────────────────────── */
 .command-bar {
   position: absolute;
@@ -26,38 +31,6 @@
   margin: 0 auto;
 }
 @media (min-width: 600px) { .command-bar__inner { gap: 8px; padding: 7px 10px; } }
-
-.command-bar__meta {
-  padding: 0 16px 8px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-align: right;
-}
-
-/* Brand */
-.brand-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: var(--radius-pill);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  font-size: 0.85rem;
-  text-decoration: none;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--game-accent) 35%, transparent),
-    color-mix(in srgb, #8b5cf6 28%, transparent));
-  color: #fff;
-  border: 1px solid var(--border-accent);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
-  transition: transform var(--dur-fast) var(--ease-spring), filter var(--dur-fast) var(--ease-out-soft);
-  flex-shrink: 0;
-}
-.brand-pill:hover { transform: scale(1.04); filter: brightness(1.1) saturate(1.1); }
-.brand-pill svg { color: #fff; filter: drop-shadow(0 1px 4px var(--game-accent)); }
-.brand-pill__name { display: none; }
-@media (min-width: 600px) { .brand-pill__name { display: inline; } }
 
 /* Tab group (Jeux / Épisodes) */
 .tab-group {
@@ -95,23 +68,6 @@
     inset 0 1px 0 rgba(255,255,255,0.28);
   text-shadow: 0 1px 1px rgba(0,0,0,0.2);
 }
-.tab-pill__count {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 6px;
-  border-radius: var(--radius-pill);
-  font-size: 0.62rem;
-  font-weight: 700;
-  font-family: 'JetBrains Mono Variable', monospace;
-  letter-spacing: 0;
-  background: rgba(0, 0, 0, 0.22);
-  color: inherit;
-}
-.tab-pill:not(.is-active) .tab-pill__count {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.55);
-}
-
 /* Search */
 .search-wrap {
   position: relative;
@@ -151,7 +107,7 @@
   border-color: var(--game-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--game-accent) 22%, transparent);
 }
-.search-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.search-input::placeholder { color: rgba(255, 255, 255, 0.45); }
 .search-input::-webkit-search-cancel-button { display: none; }
 
 .search-wrap__clear {
@@ -326,12 +282,12 @@
 .search-overlay-enter-active, .search-overlay-leave-active { transition: opacity var(--dur-fast) var(--ease-out-soft); }
 .search-overlay-enter-from, .search-overlay-leave-to { opacity: 0; }
 
-/* Grid top-padding now driven by the shorter command-bar */
+/* Clearance for the floating (absolute) command bar. --command-bar-h is the
+   bar's measured height, published by App.vue via ResizeObserver, so this
+   survives font-scaling, zoom, and content wrap instead of a fixed magic number.
+   +20px covers the bar's top margin (8–12px) plus breathing room. */
 .grid-area {
-  padding-top: 68px;  /* mobile: 56px bar + 8px margin + small breathing room */
-}
-@media (min-width: 600px) {
-  .grid-area { padding-top: 76px; }
+  padding-top: calc(var(--command-bar-h, 48px) + 20px);
 }
 
 #mainView { position: relative; }
@@ -362,7 +318,7 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--game-accent) 18%, transparent),
               inset 0 0 0 1px var(--game-accent);
 }
-.app-input::placeholder { color: rgba(255, 255, 255, 0.32); }
+.app-input::placeholder { color: rgba(255, 255, 255, 0.45); }
 
 /* ─── Glass panel ──────────────────────────────────────────────────── */
 .panel {
@@ -417,9 +373,6 @@
   transition:
     transform var(--dur-fast) var(--ease-out-soft),
     box-shadow var(--dur-med)  var(--ease-out-soft);
-  box-shadow: var(--elev-1);
-}
-.game-tile {
   box-shadow: var(--elev-1), 0 0 0 1px color-mix(in srgb, var(--game-accent) 35%, transparent);
 }
 .game-tile::after {
@@ -539,26 +492,6 @@
   box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--col-low-text) 50%, transparent);
 }
 
-/* ─── Legacy card-score (kept for back-compat — same look as score-arc) */
-.card-score {
-  position: absolute;
-  top: 8px; right: 8px; z-index: 4;
-  font-size: 0.7rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  display: none;
-  color: #fff;
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border-strong);
-}
-.card-score.visible    { display: block; }
-.card-score.score-high { background: rgba(var(--rgb-high), 0.85); }
-.card-score.score-mid  { background: rgba(var(--rgb-mid),  0.85); }
-.card-score.score-low  { background: rgba(var(--rgb-low),  0.85); }
-
-/* ─── IGDB badge ───────────────────────────────────────────────────── */
-.igdb-badge { font-weight: 700; white-space: nowrap; }
 
 /* ─── Hero backdrop (ArtworkBackdrop.vue) ──────────────────────────── */
 .hero-backdrop {
@@ -831,35 +764,6 @@
 .score-number { font-size: 1.5rem; font-weight: 800; line-height: 1; font-feature-settings: 'tnum'; }
 .score-label  { font-size: 0.6rem; opacity: 0.7; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 
-/* ─── Screenshot strip ────────────────────────────────────────────── */
-.screenshot-scroll {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  scroll-snap-type: x mandatory;
-  padding-inline: 16px;
-  mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
-}
-.screenshot-scroll::-webkit-scrollbar { display: none; }
-
-.screenshot-thumb {
-  height: clamp(96px, 9vw, 168px);
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-  scroll-snap-align: start;
-  transition: transform var(--dur-fast) var(--ease-out-soft), box-shadow var(--dur-fast) var(--ease-out-soft);
-}
-.screenshot-thumb:hover  { transform: translateY(-2px); box-shadow: var(--elev-3); }
-.screenshot-thumb:first-child { margin-left: auto; }
-.screenshot-thumb:last-child  { margin-right: auto; }
-
 /* ─── Screenshot lightbox ─────────────────────────────────────────── */
 .screenshot-lightbox {
   position: fixed;
@@ -972,11 +876,13 @@
   width: 38px;
   height: 38px;
   flex-shrink: 0;
+  padding: 0;                       /* reset UA button padding when used as <button> */
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
+  cursor: pointer;
   background: rgba(var(--rgb-primary), 0.12);
   color: rgb(var(--rgb-primary));
   border: 1px solid rgba(var(--rgb-primary), 0.22);
@@ -1030,7 +936,7 @@
   padding-right: 2.5rem;
   letter-spacing: -0.005em;
 }
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .ep-title-inner { font-size: 0.92rem; }
 }
 .ep-title-scroll--on .ep-title-inner {
@@ -1371,11 +1277,6 @@ body.player-open.player-expanded .grid-area {
   animation: shimmer 1.6s linear infinite;
 }
 
-/* ─── Accent ring (utility for active states) ──────────────────── */
-.accent-ring {
-  box-shadow: 0 0 0 2px var(--game-accent);
-}
-
 /* ─── Chapter timeline (EpisodeView) ───────────────────────────── */
 .chapter-timeline {
   position: relative;
@@ -1406,7 +1307,6 @@ body.player-open.player-expanded .grid-area {
 /* ─── Responsive overrides ─────────────────────────────────────── */
 @media (max-height: 520px) {
   .detail-cover-card { width: clamp(140px, 28vw, 220px); }
-  .igdb-badge        { font-size: 0.68rem; padding: 2px 6px; }
 }
 
 /* ─── Desktop layout (single row) ───────────────────────────────── */

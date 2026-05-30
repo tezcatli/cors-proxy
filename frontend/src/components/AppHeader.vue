@@ -5,8 +5,6 @@ import { Search, RotateCw, X, ArrowUp, ArrowDown, SlidersHorizontal, Check } fro
 import { timeAgo } from '../lib/utils.js'
 
 const props = defineProps({
-  gameCount:      Number,
-  filteredCount:  Number,
   searchQuery:    String,
   sortMode:       String,
   sortAsc:        Boolean,
@@ -14,7 +12,6 @@ const props = defineProps({
   resolving:      Boolean,
   lastFetch:      String,
   hideUnresolved: Boolean,
-  episodeCount:   Number,
   isEpisodes:     Boolean,
 })
 const emit = defineEmits(['update:searchQuery', 'setSort', 'refresh', 'toggle-hide-unresolved'])
@@ -65,18 +62,13 @@ function closeSearch() { searchOpen.value = false }
 <template>
   <header class="command-bar">
     <div class="command-bar__inner">
-      <!-- Brand pill -->
-      
-
-      <!-- Tab pills with counts -->
-      <nav class="tab-group" role="tablist">
-        <RouterLink to="/" class="tab-pill" :class="{ 'is-active': !isEpisodes }" role="tab" :aria-selected="!isEpisodes">
+      <!-- Tab pills -->
+      <nav class="tab-group" aria-label="Sections">
+        <RouterLink to="/" class="tab-pill" :class="{ 'is-active': !isEpisodes }">
           <span>Jeux</span>
-          <!-- <span v-if="gameCount" class="tab-pill__count">{{ gameCount }}</span>  --><!-- Count is a bit redundant here, and noisy on mobile -->
         </RouterLink>
-        <RouterLink to="/episodes" class="tab-pill" :class="{ 'is-active': isEpisodes }" role="tab" :aria-selected="isEpisodes">
+        <RouterLink to="/episodes" class="tab-pill" :class="{ 'is-active': isEpisodes }">
           <span>Épisodes</span>
-          <!-- <span v-if="episodeCount" class="tab-pill__count">{{ episodeCount }}</span> -->
         </RouterLink>
       </nav>
 

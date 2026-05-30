@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loggedIn, getUserEmail, logout } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
@@ -42,7 +42,6 @@ watch(() => route.path, path => {
 // ── Search ────────────────────────────────────────────────────────────────────
 const searchQuery         = ref(route.query.q || '')
 const episodesSearchQuery = ref('')
-const feedRef             = ref(null)
 
 const isEpisodes = computed(() => baseRoute.value === '/episodes')
 
@@ -86,8 +85,6 @@ watch(searchQuery, q => {
 const hideUnresolved = ref(true)
 
 const displayedGames = computed(() => {
-  const _s = gamesStore.sortMode  // explicit dep: re-runs on sort change
-  const _a = gamesStore.sortAsc
   let games = gamesStore.filtered(searchQuery.value.trim())
   if (hideUnresolved.value) games = games.filter(g => g.igdb !== null)
   return games
@@ -134,14 +131,25 @@ onMounted(() => {
     } catch (_) {}
   }
   setScrollEl(document.querySelector('.grid-area'))
+
+  // Publish the command bar's measured height so .grid-area can clear it
+  // robustly (survives font-scaling / wrap) instead of a fixed padding.
+  const bar = document.querySelector('.command-bar')
+  if (bar && 'ResizeObserver' in window) {
+    _barObserver = new ResizeObserver(() => {
+      document.documentElement.style.setProperty('--command-bar-h', `${bar.offsetHeight}px`)
+    })
+    _barObserver.observe(bar)
+  }
 })
+
+let _barObserver = null
+onUnmounted(() => _barObserver?.disconnect())
 </script>
 
 <template>
   <div id="mainView">
     <AppHeader
-      :game-count="gamesStore.all.length"
-      :filtered-count="displayedGames.length"
       :search-query="activeSearchQuery"
       :sort-mode="gamesStore.sortMode"
       :sort-asc="gamesStore.sortAsc"
@@ -149,7 +157,6 @@ onMounted(() => {
       :resolving="gamesStore.resolving"
       :last-fetch="gamesStore.lastFetch"
       :hide-unresolved="hideUnresolved"
-      :episode-count="feedRef?.episodeCount"
       :is-episodes="isEpisodes"
       @update:searchQuery="handleSearchUpdate"
       @set-sort="gamesStore.setSort"
@@ -166,34 +173,35 @@ onMounted(() => {
       </template>
     </AppHeader>
 
-    <!-- Pull-to-refresh indicator -->
-    <div
-      class="flex justify-center items-center overflow-hidden"
-      :style="{
-        height: isPulling ? pullY + 'px' : '0px',
-        transition: isPulling ? 'none' : 'height 0.2s ease',
-      }"
-    >
-      <span
-        class="loading loading-spinner text-primary loading-sm"
-        :style="{ opacity: Math.min(pullY / PULL_THRESHOLD, 1) }"
+    <main class="main-region">
+      <!-- Pull-to-refresh indicator -->
+      <div
+        class="flex justify-center items-center overflow-hidden"
+        :style="{
+          height: isPulling ? pullY + 'px' : '0px',
+          transition: isPulling ? 'none' : 'height 0.2s ease',
+        }"
+      >
+        <span
+          class="loading loading-spinner text-primary loading-sm"
+          :style="{ opacity: Math.min(pullY / PULL_THRESHOLD, 1) }"
+        />
+      </div>
+
+      <GameGrid
+        v-show="baseRoute === '/'"
+        :games="displayedGames"
+        :loading="gamesStore.loading"
+        :error="gamesStore.error"
+        :total="gamesStore.all.length"
+        :reset-key="gridResetKey"
       />
-    </div>
 
-    <GameGrid
-      v-show="baseRoute === '/'"
-      :games="displayedGames"
-      :loading="gamesStore.loading"
-      :error="gamesStore.error"
-      :total="gamesStore.all.length"
-      :reset-key="gridResetKey"
-    />
-
-    <EpisodesFeed
-      v-show="baseRoute === '/episodes'"
-      ref="feedRef"
-      :search-query="episodesSearchQuery"
-    />
+      <EpisodesFeed
+        v-show="baseRoute === '/episodes'"
+        :search-query="episodesSearchQuery"
+      />
+    </main>
 
     <AudioPlayer />
   </div>

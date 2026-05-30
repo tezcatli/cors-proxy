@@ -4,7 +4,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
 import { fetchEpisodeDetail, fetchGameDetail } from '../lib/games.js'
-import { formatDate } from '../lib/utils.js'
+import { formatDate, progressPct } from '../lib/utils.js'
 import ArtworkBackdrop from './ArtworkBackdrop.vue'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { ArrowLeft, Play, Pause, ExternalLink } from 'lucide-vue-next'
@@ -20,9 +20,7 @@ function chapterProgressPct(ch) {
   if (live?.episodeSlug === episode.value?.slug && live.chapterTs === chapterTs) return live.pct
   const p = playerStore.getEpisodeProgress(episode.value?.slug, chapterTs)
   if (!p || !p.chapterEnd) return 0
-  const span = p.chapterEnd - (p.ts ?? 0)
-  if (span <= 0) return 0
-  return Math.min(100, Math.max(0, ((p.currentTime - (p.ts ?? 0)) / span) * 100))
+  return progressPct(p.currentTime, p.ts ?? 0, p.chapterEnd)
 }
 
 const slug        = route.query.game ?? null
@@ -35,6 +33,7 @@ const error = ref(null)
 
 onMounted(async () => {
   document.body.style.overflow = 'hidden'
+  document.addEventListener('keydown', onKeydown)
   try {
     if (slug != null) {
       const detail = await fetchGameDetail(slug)
@@ -57,7 +56,6 @@ function back() {
 
 function onKeydown(e) { if (e.key === 'Escape') back() }
 
-onMounted(() => document.addEventListener('keydown', onKeydown))
 onUnmounted(() => {
   document.body.style.overflow = ''
   document.removeEventListener('keydown', onKeydown)

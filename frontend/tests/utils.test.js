@@ -1,100 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  stripHtml, timestampToSeconds, norm, normKey,
-  formatDate, timeAgo, escHtml, getScoreClass, formatEpisodeCount,
+  formatDate, timeAgo, getScoreClass, formatEpisodeCount, progressPct,
 } from '../src/lib/utils.js';
-
-// ── stripHtml ──────────────────────────────────────────────────────────────
-
-describe('stripHtml', () => {
-  it('returns empty string for falsy input', () => {
-    expect(stripHtml('')).toBe('');
-    expect(stripHtml(null)).toBe('');
-  });
-  it('removes HTML tags', () => {
-    expect(stripHtml('<b>hello</b>')).toBe('hello');
-    expect(stripHtml('<div><p>text</p></div>')).toBe('text');
-  });
-  it('converts </p> and <br> to newlines', () => {
-    const result = stripHtml('line1<br>line2</p>line3');
-    expect(result).toContain('\n');
-  });
-  it('decodes common HTML entities', () => {
-    expect(stripHtml('a &amp; b')).toBe('a & b');
-    expect(stripHtml('&lt;tag&gt;')).toBe('<tag>');
-    expect(stripHtml('say &quot;hi&quot;')).toBe('say "hi"');
-    expect(stripHtml("it&#39;s")).toBe("it's");
-  });
-  it('collapses multiple spaces', () => {
-    expect(stripHtml('a   b')).toBe('a b');
-  });
-});
-
-// ── timestampToSeconds ────────────────────────────────────────────────────
-
-describe('timestampToSeconds', () => {
-  it('returns 0 for falsy input', () => {
-    expect(timestampToSeconds('')).toBe(0);
-    expect(timestampToSeconds(null)).toBe(0);
-  });
-  it('parses MM:SS', () => {
-    expect(timestampToSeconds('1:30')).toBe(90);
-    expect(timestampToSeconds('00:00')).toBe(0);
-    expect(timestampToSeconds('59:59')).toBe(3599);
-  });
-  it('parses HH:MM:SS', () => {
-    expect(timestampToSeconds('1:30:00')).toBe(5400);
-    expect(timestampToSeconds('2:00:30')).toBe(7230);
-  });
-  it('parses bare Nh format', () => {
-    expect(timestampToSeconds('1h30')).toBe(5400);
-    expect(timestampToSeconds('2h15')).toBe(8100);
-  });
-});
-
-// ── norm ──────────────────────────────────────────────────────────────────
-
-describe('norm', () => {
-  it('lowercases', () => {
-    expect(norm('ZELDA')).toBe('zelda');
-  });
-  it('strips accents', () => {
-    expect(norm('Élodie')).toBe('elodie');
-  });
-  it('strips punctuation, preserves spaces', () => {
-    expect(norm('«Zelda: Breath»')).toBe('zelda breath');
-  });
-  it('collapses multiple spaces', () => {
-    expect(norm('a  b')).toBe('a b');
-  });
-});
-
-// ── normKey ───────────────────────────────────────────────────────────────
-
-describe('normKey', () => {
-  it('removes all spaces', () => {
-    expect(normKey('Zelda: Breath of the Wild')).toBe('zeldabreathofthewild');
-  });
-  it('handles empty string', () => {
-    expect(normKey('')).toBe('');
-  });
-});
-
-// ── escHtml ───────────────────────────────────────────────────────────────
-
-describe('escHtml', () => {
-  it('escapes all dangerous characters', () => {
-    expect(escHtml('<script>alert("xss")&foo</script>')).toBe(
-      '&lt;script&gt;alert(&quot;xss&quot;)&amp;foo&lt;/script&gt;'
-    );
-  });
-  it('leaves safe strings untouched', () => {
-    expect(escHtml('hello world')).toBe('hello world');
-  });
-  it('coerces non-strings', () => {
-    expect(escHtml(42)).toBe('42');
-  });
-});
 
 // ── getScoreClass ─────────────────────────────────────────────────────────
 
@@ -168,5 +75,23 @@ describe('formatEpisodeCount', () => {
   });
   it('handles 0', () => {
     expect(formatEpisodeCount(0)).toBe('0 épisode');
+  });
+});
+
+// ── progressPct ───────────────────────────────────────────────────────────
+
+describe('progressPct', () => {
+  it('returns the listened fraction as a percentage', () => {
+    expect(progressPct(150, 100, 200)).toBe(50);
+    expect(progressPct(100, 100, 200)).toBe(0);
+    expect(progressPct(200, 100, 200)).toBe(100);
+  });
+  it('clamps below 0 and above 100', () => {
+    expect(progressPct(50, 100, 200)).toBe(0);
+    expect(progressPct(500, 100, 200)).toBe(100);
+  });
+  it('returns 0 for a non-positive span', () => {
+    expect(progressPct(150, 200, 200)).toBe(0);
+    expect(progressPct(150, 300, 200)).toBe(0);
   });
 });

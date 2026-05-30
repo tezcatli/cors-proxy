@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getToken, getUserEmail, isLoggedIn, logout, login, register, resetRequest, resetConfirm } from '../src/lib/auth.js';
+import { getToken, getUserEmail, isLoggedIn, logout, login, register, resetRequest, resetConfirm, apiFetch } from '../src/lib/auth.js';
 import { AUTH, mockResponse } from './contract.js';
+
+// Stub the router so apiFetch's lazy redirect-to-login import is inert in tests.
+vi.mock('../src/router.js', () => ({
+  default: { currentRoute: { value: { path: '/' } }, push: vi.fn() },
+}));
 
 const TOKEN_KEY = 'soj-auth-token';
 
@@ -68,6 +73,30 @@ describe('logout', () => {
     logout();
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
     expect(isLoggedIn()).toBe(false);
+  });
+});
+
+// ── apiFetch 401 handling ───────────────────────────────────────────────────
+
+describe('apiFetch 401 handling', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('clears the token on a 401 from a protected endpoint', async () => {
+    localStorage.setItem(TOKEN_KEY, makeToken());
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false, status: 401, json: vi.fn().mockResolvedValue({ error: 'Not authenticated' }),
+    }));
+    await expect(apiFetch('/silence/games')).rejects.toThrow('Not authenticated');
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  });
+
+  it('does NOT clear the token on a 401 from an auth endpoint (bad login)', async () => {
+    localStorage.setItem(TOKEN_KEY, makeToken());
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false, status: 401, json: vi.fn().mockResolvedValue({ error: 'E-mail ou mot de passe incorrect' }),
+    }));
+    await expect(login('x@x.com', 'wrong')).rejects.toThrow('E-mail ou mot de passe incorrect');
+    expect(localStorage.getItem(TOKEN_KEY)).not.toBeNull();
   });
 });
 

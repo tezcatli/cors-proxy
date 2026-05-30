@@ -34,7 +34,6 @@ export default {
         e2: '0 6px 16px -4px rgba(0,0,0,0.45)',
         e3: '0 14px 32px -8px rgba(0,0,0,0.55)',
         e4: '0 28px 60px -12px rgba(0,0,0,0.65)',
-        glow: '0 8px 30px -8px var(--game-accent)',
       },
       transitionTimingFunction: {
         'out-soft': 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -48,14 +47,9 @@ export default {
           '0%':   { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition:  '200% 0' },
         },
-        'accent-pulse': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(255,255,255,0)' },
-          '50%':      { boxShadow: '0 0 0 6px var(--game-accent, rgba(233,69,96,0.4))' },
-        },
       },
       animation: {
         shimmer: 'shimmer 1.6s linear infinite',
-        'accent-pulse': 'accent-pulse 1.8s ease-in-out infinite',
       },
     },
   },

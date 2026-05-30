@@ -6,7 +6,7 @@ import pytest
 import games as games_module
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
-from rss import extract_game_names as _extract_game_names, extract_legacy_names as _extract_legacy_names, parse_feed as _parse_feed
+from rss import extract_game_names as _extract_game_names, extract_legacy_names as _extract_legacy_names, parse_feed as _parse_feed, sanitize_html as _sanitize_html
 
 GAMES = CONTRACT['games']
 
@@ -133,6 +133,44 @@ def test_parse_feed_resolves_timestamps():
     zelda = next(g for g in episodes[0].games if g.name == 'Zelda')
     assert zelda.timestamp == '00:30'
     assert zelda.timestamp_seconds == 30
+
+
+# ── HTML sanitisation ──────────────────────────────────────────────────────────
+
+def test_sanitize_html_drops_script_and_event_handlers():
+    dirty = '<p>Hi</p><script>alert(1)</script><img src=x onerror="alert(2)">'
+    clean = _sanitize_html(dirty)
+    assert '<script' not in clean
+    assert 'onerror' not in clean
+    assert 'alert' not in clean          # script body dropped entirely
+    assert '<p>Hi</p>' in clean
+
+def test_sanitize_html_keeps_whitelisted_formatting():
+    clean = _sanitize_html('<p>a <strong>b</strong> <em>c</em></p><ul><li>x</li></ul>')
+    assert clean == '<p>a <strong>b</strong> <em>c</em></p><ul><li>x</li></ul>'
+
+def test_sanitize_html_neutralises_javascript_urls():
+    clean = _sanitize_html('<a href="javascript:alert(1)">x</a>')
+    assert 'javascript:' not in clean
+    assert '>x</a>' in clean
+
+def test_sanitize_html_keeps_safe_links():
+    clean = _sanitize_html('<a href="https://example.com">link</a>')
+    assert 'href="https://example.com"' in clean
+
+def test_parse_feed_sanitizes_description():
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel>
+  <item>
+    <title>On a joue a \xc2\xabZelda\xc2\xbb</title>
+    <enclosure url="https://example.com/ep.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate>
+    <content:encoded><![CDATA[<p>Bonjour</p><script>alert(1)</script>]]></content:encoded>
+  </item>
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+    episodes = _parse_feed(rss)
+    assert '<script' not in (episodes[0].description or '')
+    assert '<p>Bonjour</p>' in episodes[0].description
 
 
 # ── GET /games ────────────────────────────────────────────────────────────────
@@ -272,3 +310,42 @@ def test_igdb_returns_map(client):
     assert_contract(r, GAMES['igdb']['success'])
     data = r.get_json()
     assert isinstance(data, dict)
+
+
+# ── GET /games/episodes ───────────────────────────────────────────────────────
+
+_UNIFIED_EPISODE_KEYS = ('title', 'slug', 'audioUrl', 'pubTs', 'imageUrl',
+                         'description', 'chapters', 'games', 'timestamp', 'timestampSeconds')
+
+def test_episodes_returns_list_with_unified_shape(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._schedule_resolve'):
+        client.get('/silence/games', headers=auth_header())
+    r = client.get('/silence/games/episodes', headers=auth_header())
+    assert_contract(r, GAMES['episodes']['success'])
+    data = r.get_json()
+    assert isinstance(data, list) and len(data) > 0
+    for key in _UNIFIED_EPISODE_KEYS:
+        assert key in data[0], f"missing '{key}' in feed episode"
+
+
+# ── GET /games/episode ────────────────────────────────────────────────────────
+
+def test_episode_detail_returns_unified_shape(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._schedule_resolve'):
+        client.get('/silence/games', headers=auth_header())
+    slug = client.get('/silence/games/episodes', headers=auth_header()).get_json()[0]['slug']
+    r = client.get(f'/silence/games/episode?slug={slug}', headers=auth_header())
+    assert_contract(r, GAMES['episode']['success'])
+
+def test_episode_missing_slug_returns_400(client):
+    r = client.get('/silence/games/episode', headers=auth_header())
+    assert_contract(r, GAMES['episode']['bad_request'])
+
+def test_episode_unknown_slug_returns_404(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._schedule_resolve'):
+        client.get('/silence/games', headers=auth_header())
+    r = client.get('/silence/games/episode?slug=does-not-exist', headers=auth_header())
+    assert_contract(r, GAMES['episode']['not_found'])

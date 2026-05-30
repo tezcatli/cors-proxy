@@ -34,6 +34,9 @@ export default defineConfig({
       // Allow Vite to serve files from /node_modules (mounted outside /frontend in dev)
       allow: ['/frontend', '/node_modules'],
     },
+    // Required for the :5173-direct dev flow: forward API calls from the Vite
+    // dev server to the Flask backend container. (When developing via Flask on
+    // :5000 instead, Flask serves the API itself and this proxy is unused.)
     proxy: {
       '/silence/auth':  'http://backend:5000',
       '/silence/games': 'http://backend:5000',

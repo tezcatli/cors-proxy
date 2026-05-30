@@ -11,10 +11,14 @@ def _send(to_email: str, subject: str, body: str):
     msg["Subject"] = subject
     msg["From"]    = Config.SMTP_FROM
     msg["To"]      = to_email
-    with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as smtp:
-        smtp.starttls()
-        smtp.login(Config.SMTP_USER, Config.SMTP_PASS)
-        smtp.sendmail(Config.SMTP_FROM, [to_email], msg.as_string())
+    try:
+        with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as smtp:
+            smtp.starttls()
+            smtp.login(Config.SMTP_USER, Config.SMTP_PASS)
+            smtp.sendmail(Config.SMTP_FROM, [to_email], msg.as_string())
+    except Exception:
+        logger.exception("Failed to send email to %s (subject: %s)", to_email, subject)
+        raise
 
 
 def send_invite_email(to_email: str, invite_url: str):

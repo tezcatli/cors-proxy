@@ -29,15 +29,18 @@ const newPassword2 = ref('')
 
 function setView(v) { view.value = v; clearMessages() }
 
+function passwordsMatch(a, b) {
+  if (a !== b) { errorMsg.value = 'Les mots de passe ne correspondent pas'; return false }
+  return true
+}
+
 async function submitLogin() {
   const ok = await run(() => login(loginEmail.value.trim(), loginPassword.value))
   if (ok) router.replace(route.query.redirect || '/')
 }
 
 async function submitRegister() {
-  if (regPassword.value !== regPassword2.value) {
-    errorMsg.value = 'Les mots de passe ne correspondent pas'; return
-  }
+  if (!passwordsMatch(regPassword.value, regPassword2.value)) return
   const ok = await run(() => register(regEmail.value.trim(), regPassword.value, inviteToken.value))
   if (ok) router.replace(route.query.redirect || '/')
 }
@@ -48,9 +51,7 @@ async function submitResetRequest() {
 }
 
 async function submitReset() {
-  if (newPassword.value !== newPassword2.value) {
-    errorMsg.value = 'Les mots de passe ne correspondent pas'; return
-  }
+  if (!passwordsMatch(newPassword.value, newPassword2.value)) return
   const ok = await run(() => resetConfirm(resetToken.value, newPassword.value))
   if (ok) { setView('login'); infoMsg.value = 'Mot de passe mis à jour. Connectez-vous.' }
 }
@@ -106,7 +107,7 @@ onMounted(() => {
             <div class="flex flex-col gap-1.5">
               <div class="flex items-center justify-between">
                 <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Mot de passe</label>
-                <a href="#" class="text-xs text-white/55 hover:text-white transition-colors" @click.prevent="setView('reset-request')">Oublié ?</a>
+                <button type="button" class="text-xs text-white/55 hover:text-white transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('reset-request')">Oublié ?</button>
               </div>
               <input v-model="loginPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
             </div>
@@ -133,7 +134,7 @@ onMounted(() => {
             <SubmitBtn :busy="busy" label="Créer le compte" />
           </form>
           <p class="text-center text-sm mt-4">
-            <a href="#" class="text-white/70 hover:text-white font-medium transition-colors" @click.prevent="setView('login')">Déjà un compte ?</a>
+            <button type="button" class="text-white/70 hover:text-white font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('login')">Déjà un compte ?</button>
           </p>
         </div>
 
@@ -148,7 +149,7 @@ onMounted(() => {
             <SubmitBtn :busy="busy" label="Envoyer le lien" />
           </form>
           <p class="text-center text-sm mt-4">
-            <a href="#" class="text-white/70 hover:text-white font-medium transition-colors" @click.prevent="setView('login')">Retour à la connexion</a>
+            <button type="button" class="text-white/70 hover:text-white font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('login')">Retour à la connexion</button>
           </p>
         </div>
 
@@ -167,7 +168,7 @@ onMounted(() => {
             <SubmitBtn :busy="busy" label="Enregistrer" />
           </form>
           <p class="text-center text-sm mt-4">
-            <a href="#" class="text-white/70 hover:text-white font-medium transition-colors" @click.prevent="setView('login')">Retour à la connexion</a>
+            <button type="button" class="text-white/70 hover:text-white font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('login')">Retour à la connexion</button>
           </p>
         </div>
 

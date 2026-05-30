@@ -26,7 +26,8 @@ const game = computed(() => {
 
 const igdb         = computed(() => game.value?.igdb ?? null)
 const coverImageId = computed(() => igdb.value?.coverImageId ?? null)
-const coverFailed  = ref(false)
+const coverFailed        = ref(false)
+const selectedScreenshot = ref(null)
 
 const { cssVars } = useArtworkAccent(coverImageId)
 
@@ -85,10 +86,13 @@ async function _loadEpisodes(g) {
 
 watch(game, g => {
   coverFailed.value = false
+  selectedScreenshot.value = null
   _loadEpisodes(g)
 }, { immediate: true })
 
 onMounted(async () => {
+  document.body.style.overflow = 'hidden'
+  document.addEventListener('keydown', onKeydown)
   await nextTick()
   if (game.value && heroCoverEl.value) {
     playInto(`cover:${game.value.slug}`, heroCoverEl.value)
@@ -127,12 +131,6 @@ function viewEp(ep) {
   router.push({ path: `/episode/${ep.slug}`, query: game.value.slug ? { game: game.value.slug } : {} })
 }
 
-const selectedScreenshot = ref(null)
-
-watch(game, g => {
-  if (g) selectedScreenshot.value = null
-})
-
 function close() {
   if (router.options.history.state?.back) router.back()
   else router.push('/')
@@ -147,10 +145,6 @@ function onKeydown(e) {
   }
   if (e.key === 'Escape') close()
 }
-onMounted(() => {
-  document.body.style.overflow = 'hidden'
-  document.addEventListener('keydown', onKeydown)
-})
 onUnmounted(() => {
   document.body.style.overflow = ''
   document.removeEventListener('keydown', onKeydown)
@@ -158,6 +152,9 @@ onUnmounted(() => {
 
 function openScreenshot(id) { selectedScreenshot.value = id }
 function closeScreenshot()  { selectedScreenshot.value = null }
+function onScreenshotKey(e, id) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openScreenshot(id) }
+}
 
 function prevScreenshot() {
   const ids = igdb.value?.screenshotIds
@@ -327,11 +324,15 @@ function nextScreenshot() {
                 v-for="id in igdb.screenshotIds"
                 :key="id"
                 class="detail-carousel__slide"
+                role="button"
+                tabindex="0"
+                aria-label="Agrandir la capture d’écran"
                 :src="igdbUrl(id, 't_screenshot_big')"
                 :srcset="`${igdbUrl(id, 't_screenshot_med')} 1x, ${igdbUrl(id, 't_screenshot_huge')} 2x`"
                 alt=""
                 loading="lazy"
                 @click="openScreenshot(id)"
+                @keydown="e => onScreenshotKey(e, id)"
               />
             </div>
             <button

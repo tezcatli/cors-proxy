@@ -6,6 +6,8 @@ No I/O, no global state, no imports from other app modules.
 import re
 from calendar import timegm
 from email.utils import parsedate
+from html import escape as _html_escape
+from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 
 from models import Chapter, Episode, GameMention
@@ -73,6 +75,77 @@ def _strip_html(html: str) -> str:
     html = re.sub(r'[ \t]+', ' ', html)
     html = re.sub(r'\n[ \t]+', '\n', html)
     return html.strip()
+
+
+# ── HTML sanitisation ─────────────────────────────────────────────────────────
+# The episode description is rendered with v-html on the client, so the feed's
+# HTML must be reduced to a safe whitelist before it ever reaches the browser.
+
+_ALLOWED_TAGS       = {'p', 'br', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'a'}
+_VOID_TAGS          = {'br'}
+_DROP_CONTENT_TAGS  = {'script', 'style'}
+_SAFE_URL_RE        = re.compile(r'^(?:https?:|mailto:|/|#)', re.IGNORECASE)
+
+
+class _Sanitizer(HTMLParser):
+    """Keep only whitelisted tags; drop everything else (and script/style bodies)."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self._out = []
+        self._suppress = 0   # depth inside a drop-content tag
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _DROP_CONTENT_TAGS:
+            self._suppress += 1
+            return
+        if self._suppress or tag not in _ALLOWED_TAGS:
+            return
+        if tag == 'a':
+            href = next((v for k, v in attrs if k == 'href' and v), None)
+            if href and _SAFE_URL_RE.match(href.strip()):
+                safe = _html_escape(href.strip(), quote=True)
+                self._out.append(f'<a href="{safe}" rel="noopener noreferrer" target="_blank">')
+            else:
+                self._out.append('<a>')
+        else:
+            self._out.append(f'<{tag}>')
+
+    def handle_startendtag(self, tag, attrs):
+        if self._suppress or tag not in _ALLOWED_TAGS:
+            return
+        if tag in _VOID_TAGS:
+            self._out.append(f'<{tag}>')
+        elif tag == 'a':
+            self.handle_starttag(tag, attrs)
+            self._out.append('</a>')
+        else:
+            self._out.append(f'<{tag}></{tag}>')
+
+    def handle_endtag(self, tag):
+        if tag in _DROP_CONTENT_TAGS:
+            self._suppress = max(0, self._suppress - 1)
+            return
+        if self._suppress or tag not in _ALLOWED_TAGS or tag in _VOID_TAGS:
+            return
+        self._out.append(f'</{tag}>')
+
+    def handle_data(self, data):
+        if not self._suppress:
+            self._out.append(_html_escape(data, quote=False))
+
+    def result(self) -> str:
+        return ''.join(self._out)
+
+
+def sanitize_html(html: str) -> str:
+    """Reduce feed HTML to a safe whitelisted subset for client-side rendering."""
+    if not html:
+        return html
+    parser = _Sanitizer()
+    parser.feed(html)
+    parser.close()
+    return parser.result().strip()
 
 
 # ── Timestamp parsing ─────────────────────────────────────────────────────────
@@ -237,6 +310,7 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
                     item.findtext('description') or '')
         chapters   = _extract_chapters(_strip_html(raw_desc))
         clean_desc = _strip_chapter_list(raw_desc, chapters) if chapters else raw_desc
+        clean_desc = sanitize_html(clean_desc)
 
         img_el    = item.find(f'{{{_NS_ITUNES}}}image')
         image_url = img_el.get('href') if img_el is not None else None

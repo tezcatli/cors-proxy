@@ -18,8 +18,14 @@ self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
 
+  // Only GET is cacheable — let mutations (auth POSTs, refresh/igdb-refresh) pass through.
+  if (request.method !== 'GET') return;
+
   // Auth endpoints — never cache (tokens, login state)
-  if (url.pathname.startsWith('/auth/')) return;
+  if (url.pathname.startsWith('/silence/auth/')) return;
+
+  // SSE resolution stream — must never be buffered or cached
+  if (url.pathname === '/silence/games/resolution-stream') return;
 
   // Hashed assets (content-addressed) — cache-first, safe indefinitely
   if (url.pathname.startsWith('/silence/assets/')) {
@@ -34,8 +40,8 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // API data (RSS feed, IGDB metadata) — network-first, cache as offline fallback
-  if (url.pathname.startsWith('/rss/') || url.pathname.startsWith('/igdb/')) {
+  // API data (catalog, IGDB metadata, episodes) — network-first, cache as offline fallback
+  if (url.pathname === '/silence/games' || url.pathname.startsWith('/silence/games/')) {
     e.respondWith(
       fetch(request)
         .then(res => {

@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import GameCard from './GameCard.vue'
 import SkeletonTile from './SkeletonTile.vue'
 import { AlertTriangle, SearchX } from 'lucide-vue-next'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
 
 const props = defineProps({
   games:    Array,
@@ -12,35 +12,10 @@ const props = defineProps({
   resetKey: String,
 })
 
-const PAGE_SIZE    = 60
-const visibleCount = ref(PAGE_SIZE)
-const sentinel     = ref(null)
-let _observer      = null
-
-const visibleGames = computed(() => props.games.slice(0, visibleCount.value))
-
-watch(() => props.resetKey, () => {
-  visibleCount.value = PAGE_SIZE
-  nextTick(() => {
-    if (_observer && sentinel.value) {
-      _observer.unobserve(sentinel.value)
-      _observer.observe(sentinel.value)
-    }
-  })
-})
-
-watch(sentinel, el => {
-  _observer?.disconnect()
-  if (!el) return
-  _observer = new IntersectionObserver(([entry]) => {
-    if (!entry.isIntersecting || visibleCount.value >= props.games.length) return
-    _observer.unobserve(entry.target)
-    visibleCount.value += PAGE_SIZE
-    nextTick(() => { if (sentinel.value) _observer.observe(sentinel.value) })
-  })
-  _observer.observe(el)
-})
-onUnmounted(() => _observer?.disconnect())
+const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
+  () => props.games,
+  { pageSize: 60, resetKey: () => props.resetKey },
+)
 </script>
 
 <template>

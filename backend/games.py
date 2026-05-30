@@ -275,7 +275,8 @@ _resolve_stop:   threading.Event  | None = None
 def _resolve_pending(stop: threading.Event) -> None:
     try:
         with _state_lock:
-            games = dict(_game_index)
+            games      = dict(_game_index)
+            cache_snap = list(_igdb_cache.items())
         if not games:
             return
 
@@ -283,7 +284,7 @@ def _resolve_pending(stop: threading.Event) -> None:
             utcnow() - datetime.timedelta(hours=Config.IGDB_TTL_HOURS)
         ).isoformat()
         fresh_slugs = {
-            slug for slug, entry in _igdb_cache.items()
+            slug for slug, entry in cache_snap
             if entry.cached_at > ttl_cutoff
         }
 
@@ -339,28 +340,9 @@ def startup_warmup() -> None:
 # ── Response serialisation ────────────────────────────────────────────────────
 
 def _serialise_appearance(appearance: GameAppearance) -> dict:
-    ep       = appearance.episode
-    resolved = _build_resolved(ep)
-    chapters = []
-    for c in ep.chapters:
-        ch: dict = {'timestamp': c.timestamp, 'timestampSeconds': c.timestamp_seconds, 'title': c.title}
-        if c.timestamp in resolved:
-            _, igdb_slug, cover_image_id = resolved[c.timestamp]
-            ch['slug'] = igdb_slug
-            if cover_image_id:
-                ch['coverImageId'] = cover_image_id
-        chapters.append(ch)
-    return {
-        'title':            ep.title,
-        'slug':             ep.slug,
-        'audioUrl':         ep.audio_url,
-        'pubTs':            ep.pub_ts,
-        'imageUrl':         ep.image_url,
-        'description':      ep.description,
-        'chapters':         chapters,
-        'timestamp':        appearance.mention.timestamp,
-        'timestampSeconds': appearance.mention.timestamp_seconds,
-    }
+    """Game-detail episode = the unified episode shape carrying this game's mention."""
+    ep = appearance.episode
+    return _serialise_episode(ep, _build_resolved(ep), mention=appearance.mention)
 
 
 def _build_resolved(episode: Episode) -> dict[str, tuple[str, str, str | None]]:
@@ -379,10 +361,17 @@ def _build_resolved(episode: Episode) -> dict[str, tuple[str, str, str | None]]:
     return resolved
 
 
-def _serialise_episode(episode: Episode, resolved: dict[str, tuple[str, str, str | None]] | None = None) -> dict:
-    """Serialise an Episode to a JSON-ready dict.
+def _serialise_episode(
+    episode: Episode,
+    resolved: dict[str, tuple[str, str, str | None]],
+    mention=None,
+) -> dict:
+    """Serialise an Episode to the single canonical JSON shape used everywhere.
 
-    resolved maps timestamp_str → (igdb_name, igdb_slug, cover_image_id) for chapter annotation.
+    resolved maps timestamp_str → (igdb_name, igdb_slug, cover_image_id) for
+    chapter/game annotation. `mention`, when given (game-detail context), fills
+    the top-level timestamp fields with that game's position in the episode;
+    otherwise they default to None/0 (feed / whole-episode context).
     """
     chapters = []
     for chapter in episode.chapters:
@@ -401,20 +390,22 @@ def _serialise_episode(episode: Episode, resolved: dict[str, tuple[str, str, str
 
     games = []
     for g in episode.games:
-        entry: dict = {'name': g.name, 'timestamp': g.timestamp, 'tsSeconds': g.timestamp_seconds}
+        entry: dict = {'name': g.name, 'timestamp': g.timestamp, 'timestampSeconds': g.timestamp_seconds}
         if resolved and g.timestamp and g.timestamp in resolved:
             entry['slug'] = resolved[g.timestamp][1]
         games.append(entry)
 
     return {
-        'title':       episode.title,
-        'slug':        episode.slug,
-        'audioUrl':    episode.audio_url,
-        'pubTs':       episode.pub_ts,
-        'imageUrl':    episode.image_url,
-        'description': episode.description,
-        'chapters':    chapters,
-        'games':       games,
+        'title':            episode.title,
+        'slug':             episode.slug,
+        'audioUrl':         episode.audio_url,
+        'pubTs':            episode.pub_ts,
+        'imageUrl':         episode.image_url,
+        'description':      episode.description,
+        'chapters':         chapters,
+        'games':            games,
+        'timestamp':        mention.timestamp        if mention else None,
+        'timestampSeconds': mention.timestamp_seconds if mention else 0,
     }
 
 
@@ -434,7 +425,7 @@ def _build_catalog() -> list[dict]:
     for slug, matched_games in groups.items():
         primary = next(
             (g for g in matched_games
-             if not (_best_igdb_entry(g) or IgdbEntry('', None, None, None, None, True, '')).is_child),
+             if (e := _best_igdb_entry(g)) and not e.is_child),
             matched_games[0],
         )
         entry     = _best_igdb_entry(primary)
@@ -479,9 +470,11 @@ def _load_game(slug: str) -> tuple[dict, list[dict]]:
     if matched_games:
         episodes = [_serialise_appearance(a) for game in matched_games for a in game.appearances]
         # Use the non-child game for the display name if available
-        primary = next((g for g in matched_games
-                        if not (_best_igdb_entry(g) or IgdbEntry('', None, None, None, None, True, '')).is_child),
-                       matched_games[0])
+        primary = next(
+            (g for g in matched_games
+             if (e := _best_igdb_entry(g)) and not e.is_child),
+            matched_games[0],
+        )
         entry   = _best_igdb_entry(primary)
         return {
             'display_name': _display_name(primary, entry),

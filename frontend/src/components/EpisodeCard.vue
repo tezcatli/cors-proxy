@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { Play, Pause, VolumeX, Clock, ChevronRight } from 'lucide-vue-next'
-import { formatDate } from '../lib/utils.js'
+import { formatDate, progressPct } from '../lib/utils.js'
 import { usePlayerStore } from '../stores/player.js'
 
 const props = defineProps({
@@ -23,9 +23,7 @@ const episodeProgressPct = computed(() => {
 
   const p = playerStore.getEpisodeProgress(props.episode.slug, chapterTs)
   if (!p || !p.chapterEnd) return 0
-  const span = p.chapterEnd - (p.ts ?? 0)
-  if (span <= 0) return 0
-  return Math.min(100, Math.max(0, ((p.currentTime - (p.ts ?? 0)) / span) * 100))
+  return progressPct(p.currentTime, p.ts ?? 0, p.chapterEnd)
 })
 
 onMounted(async () => {

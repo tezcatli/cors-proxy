@@ -8,4 +8,9 @@ RUN adduser -D -u 1001 appuser \
     && chown -R appuser /backend/data
 USER appuser
 EXPOSE 8000
+# IMPORTANT: keep --workers 1. The app holds all catalog/IGDB state in process
+# memory (see games.py) and broadcasts SSE to in-process subscribers, and the
+# rate limiter uses in-process storage. Running >1 worker silently breaks the
+# cache, SSE fan-out, and rate limiting — move that state to shared storage
+# (e.g. the commented-out redis service) before scaling workers.
 CMD ["gunicorn", "-b", "0.0.0.0:8000", "--worker-class", "gthread", "--workers", "1", "--threads", "4", "app:app"]
