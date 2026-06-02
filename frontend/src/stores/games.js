@@ -1,10 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchCatalog, refreshCatalog, fetchIgdb, openResolutionStream } from '../lib/games.js'
+import { fetchCatalog, refreshCatalog, openResolutionStream } from '../lib/games.js'
 import { usePlayerStore } from './player.js'
-
-let _igdbQueue = new Set()
-let _igdbTimer = null
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
 
@@ -19,10 +16,15 @@ export const useGamesStore = defineStore('games', () => {
 
   let _sse = null
 
-  function _startSSE() {
+  async function _startSSE() {
     if (_sse) { _sse.close(); _sse = null }
     resolving.value = true
-    _sse = openResolutionStream()
+    try {
+      _sse = await openResolutionStream()   // fetches a short-lived stream token first
+    } catch (_) {
+      resolving.value = false
+      return
+    }
     _sse.onmessage = (e) => {
       const event = JSON.parse(e.data)
       if (event.type === 'resolved' && event.igdbSlug) {
@@ -38,7 +40,17 @@ export const useGamesStore = defineStore('games', () => {
         load()
       }
     }
-    _sse.onerror = () => { _sse?.close(); _sse = null; resolving.value = false }
+    _sse.onerror = () => {
+      // Don't close() on a transient error — that disables EventSource's built-in
+      // auto-reconnect (a Wi-Fi flap would otherwise strand live resolution).
+      // Only finalize when the browser has marked the stream permanently CLOSED;
+      // then reconcile whatever resolved while we were disconnected.
+      if (_sse && _sse.readyState === EventSource.CLOSED) {
+        _sse = null
+        resolving.value = false
+        load()
+      }
+    }
   }
 
   function _sort(games) {
@@ -66,55 +78,31 @@ export const useGamesStore = defineStore('games', () => {
     return _sort(games)
   }
 
-  async function load() {
+  // In-flight guard so concurrent triggers (App onMounted + the route watch)
+  // coalesce into a single fetch instead of double-fetching the catalog.
+  const _inflight = {}
+  function _populate(key, fetcher) {
+    if (_inflight[key]) return _inflight[key]
     loading.value = true
     error.value   = null
-    try {
-      const { games, pending } = await fetchCatalog()
-      all.value       = games
-      lastFetch.value = new Date().toISOString()
-      if (pending > 0) _startSSE()
-    } catch (err) {
-      error.value = err.message
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function refresh() {
-    loading.value = true
-    error.value   = null
-    try {
-      const { games, pending } = await refreshCatalog()
-      all.value       = games
-      lastFetch.value = new Date().toISOString()
-      if (pending > 0) _startSSE()
-    } catch (err) {
-      error.value = err.message
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function _flushIgdbQueue() {
-    const slugs = [..._igdbQueue]
-    _igdbQueue.clear()
-    _igdbTimer = null
-    try {
-      const map = await fetchIgdb(slugs)
-      for (const [slug, igdb] of Object.entries(map)) {
-        const idx = all.value.findIndex(g => g.slug === slug)
-        if (idx !== -1) all.value[idx].igdb = igdb
+    _inflight[key] = (async () => {
+      try {
+        const { games, pending } = await fetcher()
+        all.value       = games
+        lastFetch.value = new Date().toISOString()
+        if (pending > 0) await _startSSE()
+      } catch (err) {
+        error.value = err.message
+      } finally {
+        loading.value = false
+        _inflight[key] = null
       }
-    } catch (_) { /* silent — card stays with placeholder */ }
+    })()
+    return _inflight[key]
   }
 
-  function queueIgdb(slug) {
-    if (_igdbQueue.has(slug)) return
-    _igdbQueue.add(slug)
-    clearTimeout(_igdbTimer)
-    _igdbTimer = setTimeout(_flushIgdbQueue, 50)
-  }
+  function load()    { return _populate('load', fetchCatalog) }
+  function refresh() { return _populate('refresh', refreshCatalog) }
 
   function setSort(mode) {
     if (mode === sortMode.value) {
@@ -127,5 +115,5 @@ export const useGamesStore = defineStore('games', () => {
     localStorage.setItem('soj-sort-asc', String(sortAsc.value))
   }
 
-  return { all, lastFetch, sortMode, sortAsc, loading, resolving, error, filtered, load, refresh, setSort, queueIgdb }
+  return { all, lastFetch, sortMode, sortAsc, loading, resolving, error, filtered, load, refresh, setSort }
 })

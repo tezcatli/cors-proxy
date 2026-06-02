@@ -23,7 +23,7 @@ class GameMention:
 @dataclass
 class Episode:
     title: str
-    slug: str               # make_slug(title) — stable lookup key
+    slug: str               # stable RSS guid (fallback: enclosure-URL/title) — episode identity & lookup key
     audio_url: Optional[str]
     pub_ts: Optional[int]
     image_url: Optional[str]
@@ -46,7 +46,7 @@ class PodcastGame:
     name_slug: str          # make_slug(name); key in _game_index
     name: str               # raw podcast name as written in the episode title
     appearances: list[GameAppearance] = field(default_factory=list)
-    latest_pub_ts: int = 0
+    latest_pub_ts: Optional[int] = None   # None when no appearance has a pub_ts
     episode_count: int = 0
 
 

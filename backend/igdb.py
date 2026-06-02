@@ -21,8 +21,36 @@ IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'slug', 'data', 'is_child']
 
 _IGDB_BASE = 'https://api.igdb.com/v4'
 _TWITCH    = 'https://id.twitch.tv/oauth2/token'
+# ESRB labels keyed by the legacy age_ratings.rating enum…
 _ESRB      = {6: 'RP', 7: 'EC', 8: 'E', 9: 'E10+', 10: 'T', 11: 'M', 12: 'AO'}
+# …and by the new age_ratings.rating_category ids (organization 1 = ESRB).
+_ESRB_NEW  = {1: 'RP', 2: 'EC', 3: 'E', 4: 'E10+', 5: 'T', 6: 'M', 7: 'AO'}
 _session   = requests.Session()
+
+
+# ── HTTP retry (transient upstream failures) ──────────────────────────────────
+
+_MAX_TRIES       = 3
+_RETRY_STATUSES  = {429, 500, 502, 503, 504}
+
+
+def _with_retry(do_request):
+    """Call `do_request` (returns a Response); retry on connection errors and
+    429/5xx with exponential backoff. Returns the Response (raise_for_status'd)."""
+    last_exc = None
+    for attempt in range(_MAX_TRIES):
+        try:
+            resp = do_request()
+        except requests.RequestException as exc:
+            last_exc = exc
+        else:
+            if resp.status_code not in _RETRY_STATUSES:
+                resp.raise_for_status()
+                return resp
+            last_exc = requests.HTTPError(f'HTTP {resp.status_code} from upstream')
+        if attempt < _MAX_TRIES - 1:
+            time.sleep(0.5 * (2 ** attempt))   # 0.5s, 1s
+    raise last_exc or RuntimeError('IGDB request failed')
 
 
 # ── OAuth token ───────────────────────────────────────────────────────────────
@@ -37,12 +65,11 @@ def _get_token() -> str:
     with _token_lock:
         if _token and time.monotonic() < _token_expires:
             return _token
-        resp = _session.post(_TWITCH, params={
+        resp = _with_retry(lambda: _session.post(_TWITCH, params={
             'client_id':     Config.IGDB_CLIENT_ID,
             'client_secret': Config.IGDB_CLIENT_SECRET,
             'grant_type':    'client_credentials',
-        }, timeout=10)
-        resp.raise_for_status()
+        }, timeout=10))
         body           = resp.json()
         _token         = body['access_token']
         # Subtract 5 minutes so we refresh before the token actually expires
@@ -87,21 +114,23 @@ def _simplify_platform(name: str) -> str | None:
 # ── IGDB POST ─────────────────────────────────────────────────────────────────
 
 def _post(body: str) -> list[dict]:
-    _rate_limiter.wait()
     token = _get_token()
     logger.debug('IGDB query: %s', body.strip())
-    resp = _session.post(
-        f'{_IGDB_BASE}/games',
-        headers={
-            'Client-ID':     Config.IGDB_CLIENT_ID,
-            'Authorization': f'Bearer {token}',
-            'Content-Type':  'text/plain',
-        },
-        data=body,
-        timeout=Config.REQUEST_TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json()
+
+    def do():
+        _rate_limiter.wait()   # honor the 4 req/s budget on every attempt
+        return _session.post(
+            f'{_IGDB_BASE}/games',
+            headers={
+                'Client-ID':     Config.IGDB_CLIENT_ID,
+                'Authorization': f'Bearer {token}',
+                'Content-Type':  'text/plain',
+            },
+            data=body,
+            timeout=Config.REQUEST_TIMEOUT,
+        )
+
+    return _with_retry(do).json()
 
 
 # ── Subtitle stripping ────────────────────────────────────────────────────────
@@ -157,8 +186,13 @@ def _to_game_data(game: dict) -> dict:
 
     esrb = None
     for age_rating in (game.get('age_ratings') or []):
-        if age_rating.get('category') == 1:
+        # New schema: organization 1 = ESRB, rating_category id → label.
+        if age_rating.get('organization') == 1:
+            esrb = _ESRB_NEW.get(age_rating.get('rating_category'))
+        # Legacy schema: category 1 = ESRB, rating enum → label.
+        elif age_rating.get('category') == 1:
             esrb = _ESRB.get(age_rating.get('rating'))
+        if esrb:
             break
 
     raw_desc    = (game.get('summary') or '').strip()
@@ -178,7 +212,8 @@ def _to_game_data(game: dict) -> dict:
 
     steam_url = None
     for website in (game.get('websites') or []):
-        if website.get('category') == 13 and website.get('url'):
+        # Steam is id 13 in both the new `type` and legacy `category` fields.
+        if (website.get('type') == 13 or website.get('category') == 13) and website.get('url'):
             steam_url = website['url']
             break
 
@@ -236,34 +271,27 @@ def _build_result(game: dict) -> IgdbResult:
 
 # ── Query helpers ─────────────────────────────────────────────────────────────
 
-# All fields fetched for a game, including inline parent/version expansions
-# so canonical resolution never needs a second API call.
-_FIELDS = (
-    'fields name, slug, category, game_type.id, '
+# The fields fetched for one game. The parent_game/version_parent expansions
+# request the SAME set inline (plus their own id) so canonical resolution never
+# needs a second API call — generated from one base list instead of by hand.
+_GAME_FIELDS = (
+    'name, slug, category, game_type.id, '
     'aggregated_rating, aggregated_rating_count, rating, first_release_date, summary, '
     'genres.name, platforms.name, cover.image_id, screenshots.image_id, '
-    'age_ratings.category, age_ratings.rating, '
+    'age_ratings.category, age_ratings.rating, age_ratings.organization, age_ratings.rating_category, '
     'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
-    'game_modes.name, websites.category, websites.url, '
-
-    'parent_game.id, parent_game.name, parent_game.slug, parent_game.category, parent_game.game_type.id, '
-    'parent_game.aggregated_rating, parent_game.aggregated_rating_count, parent_game.rating, '
-    'parent_game.first_release_date, parent_game.summary, '
-    'parent_game.genres.name, parent_game.platforms.name, parent_game.cover.image_id, '
-    'parent_game.screenshots.image_id, parent_game.age_ratings.category, parent_game.age_ratings.rating, '
-    'parent_game.involved_companies.developer, parent_game.involved_companies.publisher, '
-    'parent_game.involved_companies.company.name, '
-    'parent_game.game_modes.name, parent_game.websites.category, parent_game.websites.url, '
-
-    'version_parent.id, version_parent.name, version_parent.slug, version_parent.category, version_parent.game_type.id, '
-    'version_parent.aggregated_rating, version_parent.aggregated_rating_count, version_parent.rating, '
-    'version_parent.first_release_date, version_parent.summary, '
-    'version_parent.genres.name, version_parent.platforms.name, version_parent.cover.image_id, '
-    'version_parent.screenshots.image_id, version_parent.age_ratings.category, version_parent.age_ratings.rating, '
-    'version_parent.involved_companies.developer, version_parent.involved_companies.publisher, '
-    'version_parent.involved_companies.company.name, '
-    'version_parent.game_modes.name, version_parent.websites.category, version_parent.websites.url; '
+    'game_modes.name, websites.category, websites.type, websites.url'
 )
+
+
+def _prefixed(prefix: str) -> str:
+    # nested objects must request `id` explicitly to be expandable
+    return ', '.join([f'{prefix}.id'] + [f'{prefix}.{f.strip()}' for f in _GAME_FIELDS.split(',')])
+
+
+_FIELDS = 'fields ' + ', '.join(
+    [_GAME_FIELDS] + [_prefixed(p) for p in ('parent_game', 'version_parent')]
+) + '; '
 
 
 def _release_window(pub_ts: int) -> tuple[int, int]:

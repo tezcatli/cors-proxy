@@ -4,6 +4,7 @@ import pytest
 from config import Config
 import db
 from contract import assert_contract, AUTH
+from conftest import auth_header
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -200,3 +201,71 @@ def test_reset_confirm_token_consumed(client):
     r = client.post('/silence/auth/reset-confirm',
                     json={'token': token, 'new_password': 'anotherpass1'})
     assert_contract(r, AUTH['reset_confirm']['invalid_token'])
+
+
+# ── POST /auth/refresh ────────────────────────────────────────────────────────
+
+def test_refresh_success(client):
+    register(client, 'refresh@example.com')
+    r = login(client, 'refresh@example.com')
+    token = r.get_json()['access_token']
+    r2 = client.post('/silence/auth/refresh',
+                     headers={'Authorization': f'Bearer {token}'})
+    assert_contract(r2, AUTH['refresh']['success'])
+    payload = jwt.decode(r2.get_json()['access_token'], Config.JWT_SECRET, algorithms=['HS256'])
+    assert payload['email'] == 'refresh@example.com'
+
+def test_refresh_requires_auth(client):
+    r = client.post('/silence/auth/refresh')
+    assert_contract(r, AUTH['refresh']['unauthorized'])
+
+def test_refresh_stream_token_rejected(client):
+    r = client.post('/silence/auth/refresh',
+                    headers={'Authorization': f'Bearer {_stream_token()}'})
+    assert_contract(r, AUTH['refresh']['unauthorized'])
+
+def test_refresh_deleted_user_rejected(client):
+    with db.get_db() as conn:
+        conn.execute('DELETE FROM users WHERE id = 1')
+    r = client.post('/silence/auth/refresh', headers=auth_header())
+    assert_contract(r, AUTH['refresh']['unauthorized'])
+
+
+# ── Stream token + scope (S3) / user-existence revocation (S6) ──────────────
+
+def _stream_token(uid=1):
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    return jwt.encode(
+        {'sub': str(uid), 'scope': 'stream', 'iat': now,
+         'exp': now + datetime.timedelta(hours=1)},
+        Config.JWT_SECRET, algorithm='HS256',
+    )
+
+
+def test_stream_token_endpoint_returns_stream_scoped_token(client):
+    r = client.get('/silence/auth/stream-token', headers=auth_header())
+    assert r.status_code == 200
+    claims = jwt.decode(r.get_json()['token'], Config.JWT_SECRET, algorithms=['HS256'])
+    assert claims['scope'] == 'stream'
+
+def test_stream_token_requires_auth(client):
+    assert client.get('/silence/auth/stream-token').status_code == 401
+
+def test_stream_scoped_token_rejected_on_data_endpoint(client):
+    r = client.get('/silence/games', headers={'Authorization': f'Bearer {_stream_token()}'})
+    assert r.status_code == 401
+
+def test_resolution_stream_accepts_stream_token_in_query(client):
+    r = client.get(f'/silence/games/resolution-stream?token={_stream_token()}')
+    assert r.status_code == 200
+
+def test_resolution_stream_rejects_full_jwt_in_query(client):
+    full = auth_header()['Authorization'].split(' ', 1)[1]
+    r = client.get(f'/silence/games/resolution-stream?token={full}')
+    assert r.status_code == 401
+
+def test_token_for_deleted_user_is_rejected(client):
+    with db.get_db() as conn:
+        conn.execute('DELETE FROM users WHERE id = 1')
+    r = client.get('/silence/games', headers=auth_header())
+    assert r.status_code == 401

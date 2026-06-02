@@ -46,6 +46,12 @@ def client(app):
 
 @pytest.fixture(autouse=True)
 def clean_db():
+    # Seed the user that auth_header()'s token (sub='1') refers to, so the
+    # require_auth user-existence check passes for authenticated tests.
+    with _db.get_db() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO users (id, email, password_hash) VALUES (1, '__auth_fixture__@test', 'x')"
+        )
     yield
     with _db.get_db() as conn:
         conn.executescript("""

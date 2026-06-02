@@ -4,14 +4,12 @@ import { useRouter } from 'vue-router'
 import { getScoreClass, progressPct } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import placeholderCover from '../assets/placeholder-cover.svg'
-import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { captureSource } from '../lib/flipTransition.js'
 
 const props       = defineProps({ game: Object })
 const router      = useRouter()
-const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 const el          = ref(null)
 const imgEl       = ref(null)
@@ -32,7 +30,8 @@ const gameTileProgressPct = computed(() => {
 })
 
 // Only run Vibrant palette extraction once the tile has scrolled into view —
-// avoids spawning thousands of idle callbacks for off-screen cards.
+// avoids spawning thousands of idle callbacks for off-screen cards. (Covers
+// themselves now ship with the catalog, so no per-card fetch is needed.)
 const { cssVars } = useArtworkAccent(coverImageId, inView)
 
 function open() {
@@ -44,12 +43,10 @@ function handleKey(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefau
 let _observer = null
 
 onMounted(() => {
-  // One observer that handles both visibility flagging (for accent extraction)
-  // and IGDB queueing for tiles that don't yet have cover data.
+  // Flag the tile visible so accent extraction runs only for on-screen cards.
   _observer = new IntersectionObserver(([entry]) => {
     if (!entry.isIntersecting) return
     inView.value = true
-    if (!coverImageId.value) gamesStore.queueIgdb(props.game.slug)
     _observer.disconnect()
     _observer = null
   }, { rootMargin: '300px' })

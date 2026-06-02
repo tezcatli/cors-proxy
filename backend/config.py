@@ -16,10 +16,14 @@ class Config:
     # RSS / IGDB refresh
     RSS_TTL_HOURS:  int = int(os.getenv("RSS_TTL_HOURS",  "8"))
     IGDB_TTL_HOURS: int = int(os.getenv("IGDB_TTL_HOURS", "720"))  # 30 days
+    # Periodic retry of never-resolved appearances (transient upstream failures)
+    RESOLVE_RETRY_MINUTES: int = int(os.getenv("RESOLVE_RETRY_MINUTES", "15"))
 
     # Auth
     JWT_SECRET: str      = os.getenv("JWT_SECRET", "dev-insecure-change-me")
     JWT_TTL_SECONDS: int = int(os.getenv("JWT_TTL_SECONDS", str(7 * 24 * 3600)))  # 7 days
+    # Short-lived, stream-scoped token used only by the SSE EventSource (?token=)
+    STREAM_TTL_SECONDS: int = int(os.getenv("STREAM_TTL_SECONDS", "3600"))  # 1 hour
     RESET_TTL_SECONDS: int = 3600  # 1 hour, not configurable
 
     # Password reset e-mail

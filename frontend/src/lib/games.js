@@ -1,4 +1,4 @@
-import { apiFetch, getToken } from './auth.js'
+import { apiFetch } from './auth.js'
 
 export async function fetchCatalog() {
   const r = await apiFetch('/silence/games')
@@ -20,12 +20,6 @@ export async function refreshGameIgdb(slug) {
   return r.json()
 }
 
-export async function fetchIgdb(slugs) {
-  const params = new URLSearchParams(slugs.map(s => ['slug', s]))
-  const r = await apiFetch(`/silence/games/igdb?${params}`)
-  return r.json()
-}
-
 export async function fetchEpisodes() {
   const r = await apiFetch('/silence/games/episodes')
   return r.json()
@@ -36,10 +30,13 @@ export async function fetchEpisodeDetail(episodeSlug) {
   return r.json()
 }
 
-export function openResolutionStream() {
-  const token = getToken()
-  const url = token
-    ? `/silence/games/resolution-stream?token=${encodeURIComponent(token)}`
-    : '/silence/games/resolution-stream'
-  return new EventSource(url)
-} 
+// A short-lived, stream-scoped token (not the session JWT) for the SSE URL.
+async function fetchStreamToken() {
+  const r = await apiFetch('/silence/auth/stream-token')
+  return (await r.json()).token
+}
+
+export async function openResolutionStream() {
+  const token = await fetchStreamToken()
+  return new EventSource(`/silence/games/resolution-stream?token=${encodeURIComponent(token)}`)
+}

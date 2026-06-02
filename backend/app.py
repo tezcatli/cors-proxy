@@ -71,6 +71,12 @@ def create_app(testing=False):
     _app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
     _app.config['RATELIMIT_ENABLED'] = not testing
 
+    # Behind nginx (one hop): trust X-Forwarded-For so request.remote_addr — and
+    # thus the rate-limiter key — is the real client, not the proxy. No-op when no
+    # proxy header is present (dev / direct).
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    _app.wsgi_app = ProxyFix(_app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     limiter.init_app(_app)
     _app.register_blueprint(auth_bp)
     _app.register_blueprint(games_bp)

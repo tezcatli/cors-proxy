@@ -96,3 +96,8 @@ export async function resetRequest(email) {
 export async function resetConfirm(token, newPassword) {
   await post('/reset-confirm', { token, new_password: newPassword })
 }
+
+export async function refresh() {
+  const res = await apiFetch('/silence/auth/refresh', { method: 'POST' })
+  setToken(await res.json())
+}

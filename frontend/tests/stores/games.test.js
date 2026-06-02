@@ -5,10 +5,9 @@ import { useGamesStore } from '../../src/stores/games.js'
 vi.mock('../../src/lib/games.js', () => ({
   fetchCatalog:         vi.fn(),
   refreshCatalog:       vi.fn(),
-  fetchIgdb:            vi.fn(),
   openResolutionStream: vi.fn(),
 }))
-import { fetchCatalog, refreshCatalog, fetchIgdb, openResolutionStream } from '../../src/lib/games.js'
+import { fetchCatalog, refreshCatalog, openResolutionStream } from '../../src/lib/games.js'
 
 const GAMES = [
   { name: 'Zelda',         slug: 'zelda',         latestPubTs: 1717200000, episodeCount: 3, igdb: { metacritic: 90 } },
@@ -156,6 +155,18 @@ describe('load', () => {
     expect(store.loading).toBe(false)
   })
 
+  it('coalesces concurrent load() calls into a single fetch (in-flight dedup)', async () => {
+    let resolve
+    fetchCatalog.mockReturnValue(new Promise(r => { resolve = r }))
+    const store = useGamesStore()
+    const p1 = store.load()
+    const p2 = store.load()
+    expect(fetchCatalog).toHaveBeenCalledTimes(1)
+    resolve({ games: GAMES, pending: 0 })
+    await Promise.all([p1, p2])
+    expect(fetchCatalog).toHaveBeenCalledTimes(1)
+  })
+
   it('sets loading=true while fetching', async () => {
     let resolve
     fetchCatalog.mockReturnValue(new Promise(r => { resolve = r }))
@@ -165,40 +176,6 @@ describe('load', () => {
     resolve({ games: GAMES, pending: 0 })
     await promise
     expect(store.loading).toBe(false)
-  })
-})
-
-// ── queueIgdb ─────────────────────────────────────────────────────────────
-
-describe('queueIgdb', () => {
-  beforeEach(() => { vi.useFakeTimers() })
-  afterEach(() => { vi.useRealTimers() })
-
-  it('patches store entry with full igdb after batch resolves', async () => {
-    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 0 })
-    fetchIgdb.mockResolvedValue({
-      zelda: { coverImageId: 'abc123', metacritic: 90 },
-    })
-    const store = useGamesStore()
-    await store.load()
-    store.queueIgdb('zelda')
-    // flush the debounce timer
-    await vi.runAllTimersAsync()
-    const zelda = store.all.find(g => g.slug === 'zelda')
-    expect(zelda.igdb.coverImageId).toBe('abc123')
-  })
-
-  it('deduplicates slugs in the same batch', async () => {
-    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 0 })
-    fetchIgdb.mockResolvedValue({})
-    const store = useGamesStore()
-    await store.load()
-    store.queueIgdb('zelda')
-    store.queueIgdb('zelda')
-    store.queueIgdb('mario')
-    await vi.runAllTimersAsync()
-    const [calledSlugs] = fetchIgdb.mock.calls[0]
-    expect(calledSlugs.filter(s => s === 'zelda')).toHaveLength(1)
   })
 })
 

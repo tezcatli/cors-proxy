@@ -302,6 +302,12 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
 
         audio_url = _get_audio_url(item)
 
+        # Canonical episode identity: the RSS guid is a stable, unique per-item id
+        # (more stable than the title, which gets edited). Fall back to the audio
+        # URL, then the title slug, so a guid-less item still gets a usable key.
+        guid       = (item.findtext('guid') or '').strip()
+        episode_id = guid or make_slug(audio_url or '') or make_slug(title)
+
         raw_pub  = (item.findtext('pubDate') or '').strip()
         parsed_d = parsedate(raw_pub) if raw_pub else None
         pub_ts   = timegm(parsed_d) if parsed_d else None
@@ -332,7 +338,7 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
 
         episodes.append(Episode(
             title=title,
-            slug=make_slug(title),
+            slug=episode_id,
             audio_url=audio_url,
             pub_ts=pub_ts,
             image_url=image_url,

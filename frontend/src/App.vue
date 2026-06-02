@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { loggedIn, getUserEmail, logout } from './lib/auth.js'
+import { loggedIn, getUserEmail, logout, refresh } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
 import { usePlayerStore } from './stores/player.js'
 import { useNavDirection } from './composables/useNavDirection.js'
@@ -44,6 +44,11 @@ const searchQuery         = ref(route.query.q || '')
 const episodesSearchQuery = ref('')
 
 const isEpisodes = computed(() => baseRoute.value === '/episodes')
+
+// Mount the episodes feed only once the Épisodes tab is first opened, then keep
+// it mounted — avoids fetching the (large) feed for grid-only sessions.
+const episodesVisited = ref(false)
+watch(isEpisodes, v => { if (v) episodesVisited.value = true }, { immediate: true })
 
 const activeSearchQuery = computed(() =>
   isEpisodes.value ? episodesSearchQuery.value : searchQuery.value
@@ -129,6 +134,7 @@ onMounted(() => {
         if (saved?.current) playerStore.restore(saved)
       }
     } catch (_) {}
+    refresh().catch(() => {})
   }
   setScrollEl(document.querySelector('.grid-area'))
 
@@ -198,6 +204,7 @@ onUnmounted(() => _barObserver?.disconnect())
       />
 
       <EpisodesFeed
+        v-if="episodesVisited"
         v-show="baseRoute === '/episodes'"
         :search-query="episodesSearchQuery"
       />

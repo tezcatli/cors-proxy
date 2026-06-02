@@ -15,6 +15,7 @@ MINIMAL_RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
   <channel>
     <item>
       <title>On a joue a \xc2\xabZelda\xc2\xbb et \xc2\xabMario Kart\xc2\xbb</title>
+      <guid isPermaLink="false">ep1guid</guid>
       <enclosure url="https://example.com/ep1.mp3" type="audio/mpeg" length="0" />
       <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate>
       <description>00:30 Zelda
@@ -23,6 +24,7 @@ MINIMAL_RSS = b"""<?xml version="1.0" encoding="UTF-8"?>
     </item>
     <item>
       <title>Quelle est la meilleure plateforme ?</title>
+      <guid isPermaLink="false">ep2guid</guid>
       <enclosure url="https://example.com/ep2.mp3" type="audio/mpeg" length="0" />
       <pubDate>Mon, 08 Jan 2024 00:00:00 +0000</pubDate>
       <description>No games here</description>
@@ -173,6 +175,104 @@ def test_parse_feed_sanitizes_description():
     assert '<p>Bonjour</p>' in episodes[0].description
 
 
+# ── Episode identity (guid) + L2 collision ──────────────────────────────────────
+
+def test_parse_feed_uses_guid_as_slug():
+    episodes = _parse_feed(MINIMAL_RSS)
+    assert episodes[0].slug == 'ep1guid'
+    assert episodes[1].slug == 'ep2guid'
+
+def test_parse_feed_guid_fallback_to_enclosure():
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>No Guid Here</title>
+    <enclosure url="https://example.com/x.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description></description></item>
+</channel></rss>"""
+    ep = _parse_feed(rss)[0]
+    assert ep.slug == games_module.make_slug('https://example.com/x.mp3')
+
+def test_same_day_episodes_both_kept():
+    # Two DISTINCT episodes, same calendar day, both mention «Zelda», different guids.
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>Matin on a joue a \xc2\xabZelda\xc2\xbb</title>
+    <guid>day-a</guid><enclosure url="https://example.com/a.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 09:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
+  <item><title>Soir on rejoue a \xc2\xabZelda\xc2\xbb</title>
+    <guid>day-b</guid><enclosure url="https://example.com/b.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 20:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
+</channel></rss>"""
+    _, game_index = games_module._build_indexes(_parse_feed(rss))
+    zelda = game_index[games_module.make_slug('Zelda')]
+    assert zelda.episode_count == 2
+    assert {a.episode.slug for a in zelda.appearances} == {'day-a', 'day-b'}
+
+def test_intra_episode_duplicate_deduped():
+    # Same game mentioned twice in ONE episode → a single appearance.
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>Special \xc2\xabZelda\xc2\xbb et encore \xc2\xabZelda\xc2\xbb</title>
+    <guid>solo</guid><enclosure url="https://example.com/s.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 09:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
+</channel></rss>"""
+    _, game_index = games_module._build_indexes(_parse_feed(rss))
+    zelda = game_index[games_module.make_slug('Zelda')]
+    assert len(zelda.appearances) == 1
+
+
+# ── AI chapter injection (L2 gotcha + L5 guard) ────────────────────────────────
+
+def _blank_episode(title, slug):
+    from models import Episode
+    return Episode(title=title, slug=slug, audio_url=None, pub_ts=None,
+                   image_url=None, description=None, chapters=[], games=[])
+
+def test_inject_ai_chapters_matches_on_title_slug():
+    # episode.slug is now a guid; injection must still match on make_slug(title).
+    ep = _blank_episode('My Episode', 'guid-xyz')
+    ai_index = {games_module.make_slug('My Episode'): [
+        {'start_s': 30, 'title': 'Intro'}, {'start_s': 90, 'title': 'Zelda'},
+    ]}
+    games_module._inject_ai_chapters([ep], ai_index)
+    assert [c.title for c in ep.chapters] == ['Intro', 'Zelda']
+
+def test_inject_ai_chapters_skips_malformed_entries():
+    ep = _blank_episode('Bad Ep', 'g')
+    ai_index = {games_module.make_slug('Bad Ep'): [
+        {'title': 'no start'},                # missing start_s → skipped
+        {'start_s': 10},                       # missing title  → skipped
+        {'start_s': 20, 'title': 'Good'},      # kept
+    ]}
+    games_module._inject_ai_chapters([ep], ai_index)
+    assert [c.title for c in ep.chapters] == ['Good']
+
+
+# ── Catalog episodeCount (L4) ───────────────────────────────────────────────────
+
+def test_catalog_counts_distinct_episodes():
+    # Two name variants resolving to ONE igdb_slug, co-occurring in ONE episode,
+    # must count that episode once (not twice).
+    from models import IgdbEntry
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabZelda\xc2\xbb et \xc2\xabZelda BOTW\xc2\xbb</title>
+    <guid>g1</guid><enclosure url="https://example.com/e.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
+</channel></rss>"""
+    episodes = _parse_feed(rss)
+    episode_index, game_index = games_module._build_indexes(episodes)
+    games_module._cached_episodes = episodes
+    games_module._episode_index   = episode_index
+    games_module._game_index      = game_index
+    now = '2999-01-01T00:00:00'
+    games_module._igdb_cache = {
+        f"{games_module.make_slug('Zelda')}-g1":
+            IgdbEntry('z-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
+        f"{games_module.make_slug('Zelda BOTW')}-g1":
+            IgdbEntry('zb-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
+    }
+    catalog = games_module._build_catalog()
+    entry = next(g for g in catalog if g['slug'] == 'zelda-botw')
+    assert entry['episodeCount'] == 1
+
+
 # ── GET /games ────────────────────────────────────────────────────────────────
 
 def test_no_auth_returns_401(client):
@@ -221,12 +321,14 @@ def test_catalog_deduplicates_by_igdb_slug(client):
 <rss version="2.0"><channel>
   <item>
     <title>On a joue a \xc2\xabZelda\xc2\xbb</title>
+    <guid>z1</guid>
     <enclosure url="https://example.com/ep1.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate>
     <description>00:30 Zelda</description>
   </item>
   <item>
     <title>On a joue a \xc2\xabZelda BotW\xc2\xbb</title>
+    <guid>z2</guid>
     <enclosure url="https://example.com/ep2.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate>
     <description>00:30 Zelda BotW</description>
@@ -236,8 +338,8 @@ def test_catalog_deduplicates_by_igdb_slug(client):
 
     from models import IgdbEntry
     igdb_cache = {
-        'zelda-20240115':      IgdbEntry('zelda-20240115',      1, 'zelda', 'Zelda', None, False, '2099-01-01'),
-        'zelda-botw-20240122': IgdbEntry('zelda-botw-20240122', 1, 'zelda', 'Zelda', None, False, '2099-01-01'),
+        'zelda-z1':      IgdbEntry('zelda-z1',      1, 'zelda', 'Zelda', None, False, '2099-01-01'),
+        'zelda-botw-z2': IgdbEntry('zelda-botw-z2', 1, 'zelda', 'Zelda', None, False, '2099-01-01'),
     }
     with patch('games.http.get', return_value=mock_rss_response(rss_two_names)), \
          patch('games._schedule_resolve'), \
@@ -250,6 +352,33 @@ def test_catalog_deduplicates_by_igdb_slug(client):
     assert zelda_entries[0]['episodeCount'] == 2
 
 
+def test_catalog_serves_cache_on_refresh_parse_error(client):
+    # warm the in-memory catalog
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._schedule_resolve'):
+        client.get('/silence/games', headers=auth_header())
+    # force staleness so the next request attempts a refresh
+    games_module._cached_at = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+                               - datetime.timedelta(hours=9))
+    # a malformed feed (non-RequestException) must NOT 500 when we already have data
+    with patch('games._refresh_feed', side_effect=ValueError('malformed XML')):
+        r = client.get('/silence/games', headers=auth_header())
+    assert r.status_code == 200
+    assert any(g['name'] == 'Zelda' for g in r.get_json()['games'])
+
+
+def test_catalog_returns_304_on_matching_etag(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games._schedule_resolve'):
+        r1 = client.get('/silence/games', headers=auth_header())
+    etag = r1.headers.get('ETag')
+    assert etag
+    # second load with the same ETag and an unchanged catalog → 304, no re-transfer
+    r2 = client.get('/silence/games', headers={**auth_header(), 'If-None-Match': etag})
+    assert r2.status_code == 304
+    assert r2.get_data() == b''
+
+
 def test_catalog_igdb_is_slim(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
@@ -257,7 +386,7 @@ def test_catalog_igdb_is_slim(client):
     data = r.get_json()['games']
     for game in data:
         if game['igdb'] is not None:
-            assert set(game['igdb'].keys()) == {'metacritic'}
+            assert set(game['igdb'].keys()) == {'metacritic', 'coverImageId'}
 
 
 # ── GET /games/<slug> ─────────────────────────────────────────────────────────

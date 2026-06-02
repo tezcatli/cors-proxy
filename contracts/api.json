@@ -86,6 +86,20 @@
         ]
       }
     },
+    "refresh": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "access_token"
+        ]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": [
+          "error"
+        ]
+      }
+    },
     "reset_request": {
       "success": {
         "status": 204

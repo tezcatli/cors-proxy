@@ -23,12 +23,25 @@ def _check(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
-def _decode_jwt(token: str) -> bool:
+def _decode_jwt(token: str, scope: str | None = None):
+    """Return the JWT claims if valid (and `scope` matches when given), else None."""
     try:
-        jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
-        return True
+        claims = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
     except jwt.PyJWTError:
+        return None
+    if scope is not None and claims.get("scope") != scope:
+        return None
+    return claims
+
+
+def _user_exists(claims) -> bool:
+    """True if the token's subject still maps to a live user (revocation by deletion)."""
+    try:
+        uid = int(claims.get("sub"))
+    except (TypeError, ValueError):
         return False
+    with get_db() as conn:
+        return conn.execute("SELECT 1 FROM users WHERE id = ?", (uid,)).fetchone() is not None
 
 
 def _validate_password(password: str):
@@ -47,17 +60,53 @@ def _make_jwt(user_id: int, email: str) -> str:
     return jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
 
 
+def _make_stream_token(user_id) -> str:
+    """A short-lived token, scoped to the SSE stream, so the long-lived JWT never
+    travels in the EventSource URL (and so it can't be used for data endpoints)."""
+    now = utcnow()
+    return jwt.encode({
+        "sub":   str(user_id),
+        "scope": "stream",
+        "iat":   now,
+        "exp":   now + datetime.timedelta(seconds=Config.STREAM_TTL_SECONDS),
+    }, Config.JWT_SECRET, algorithm="HS256")
+
+
 def require_auth():
     if Config.DEBUG:
         return
     auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer ") and _decode_jwt(auth[7:]):
-        return
-    # Fallback for EventSource (cannot send custom headers)
-    token = request.args.get("token", "")
-    if token and _decode_jwt(token):
-        return
+    if auth.startswith("Bearer "):
+        claims = _decode_jwt(auth[7:])
+        # Full API token (not a stream-scoped one) for a still-existing user.
+        if claims and claims.get("scope") != "stream" and _user_exists(claims):
+            return
+    # EventSource can't set headers → accept a stream-scoped token in the query
+    # string, but ONLY on the resolution-stream endpoint.
+    if request.path.endswith("/resolution-stream"):
+        claims = _decode_jwt(request.args.get("token", ""), scope="stream")
+        if claims and _user_exists(claims):
+            return
     abort(401, "Not authenticated")
+
+
+@auth_bp.route("/stream-token")
+def stream_token():
+    auth   = request.headers.get("Authorization", "")
+    claims = _decode_jwt(auth[7:]) if auth.startswith("Bearer ") else None
+    if not claims or claims.get("scope") == "stream" or not _user_exists(claims):
+        abort(401, "Not authenticated")
+    return jsonify(token=_make_stream_token(claims["sub"]))
+
+
+@auth_bp.route("/refresh", methods=["POST"])
+@limiter.limit("20 per minute")
+def refresh():
+    auth   = request.headers.get("Authorization", "")
+    claims = _decode_jwt(auth[7:]) if auth.startswith("Bearer ") else None
+    if not claims or claims.get("scope") == "stream" or not _user_exists(claims):
+        abort(401, "Not authenticated")
+    return jsonify(access_token=_make_jwt(int(claims["sub"]), claims["email"]))
 
 
 def _require_fields(data: dict, *fields):
@@ -67,6 +116,7 @@ def _require_fields(data: dict, *fields):
 
 
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit("10 per minute")
 def register():
     data = request.get_json(silent=True) or {}
     _require_fields(data, "email", "password", "invitation_token")
@@ -79,12 +129,9 @@ def register():
         inv = conn.execute(
             "SELECT email, used_at FROM invitations WHERE token = ?", (invite,)
         ).fetchone()
-        if not inv:
+        # One generic message for missing / used / mismatched invites (no enumeration).
+        if not inv or inv["used_at"] or inv["email"].lower() != email:
             abort(400, "Invitation invalide")
-        if inv["used_at"]:
-            abort(400, "Cette invitation a déjà été utilisée")
-        if inv["email"].lower() != email:
-            abort(400, "L'adresse e-mail ne correspond pas à l'invitation")
         if conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
             abort(409, "Cette adresse e-mail est déjà utilisée")
         cur = conn.execute(
@@ -100,10 +147,12 @@ def register():
 
 
 @auth_bp.route("/invite", methods=["POST"])
+@limiter.limit("10 per minute")
 def invite():
     from mail import send_invite_email
-    
-    if not Config.ADMIN_KEY or request.headers.get("X-Admin-Key") != Config.ADMIN_KEY:
+
+    if not Config.ADMIN_KEY or not secrets.compare_digest(
+            request.headers.get("X-Admin-Key", ""), Config.ADMIN_KEY):
         abort(403, "Accès refusé")
     data = request.get_json(silent=True) or {}
     _require_fields(data, "email")

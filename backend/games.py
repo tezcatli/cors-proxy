@@ -9,6 +9,7 @@ from flask import Blueprint, abort, jsonify, request, Response, stream_with_cont
 
 from auth import require_auth
 from config import Config
+from limiter import limiter
 from corrections import find_by_podcast
 from db import get_db, utcnow
 from igdb import fetch_by_id, fetch_by_name
@@ -82,9 +83,12 @@ def _inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
     from models import Chapter as Ch
     injected = 0
     for episode in episodes:
-        if episode.chapters or episode.slug not in ai_index:
+        # chapters.json is keyed by make_slug(title); episode.slug is now the guid,
+        # so match on the title slug here.
+        title_slug = make_slug(episode.title)
+        if episode.chapters or title_slug not in ai_index:
             continue
-        raw_chapters = ai_index[episode.slug]
+        raw_chapters = ai_index[title_slug]
         chapters = [
             Ch(
                 timestamp=_seconds_to_ts(c['start_s']),
@@ -92,7 +96,9 @@ def _inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
                 title=c['title'],
                 game_name=c.get('game_name'),
             )
-            for c in raw_chapters if c['title'] not in ('Publicité', 'Transition')
+            for c in raw_chapters
+            if c.get('start_s') is not None and c.get('title')
+            and c['title'] not in ('Publicité', 'Transition')
         ]
         episode.chapters = chapters
         for mention in episode.games:
@@ -125,23 +131,20 @@ def _build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
         if is_game_catalog_excluded(episode.title):
             continue
 
-        date_str = (
-            datetime.datetime.fromtimestamp(episode.pub_ts, datetime.timezone.utc)
-            .strftime('%Y%m%d')
-            if episode.pub_ts else 'nopubts'
-        )
-
         for mention in episode.games:
             name_slug    = make_slug(mention.name)
-            podcast_slug = f'{name_slug}-{date_str}'
+            # Per-episode cache/appearance key (episode.slug is the stable guid).
+            # Same game in the same episode collides → deduped; distinct episodes
+            # (incl. same-day) get distinct keys and are both kept.
+            podcast_slug = f'{name_slug}-{episode.slug}'
 
             if name_slug not in game_index:
                 game_index[name_slug] = PodcastGame(name_slug=name_slug, name=mention.name)
             else:
                 existing = game_index[name_slug]
-                # Keep the first-seen raw name but log if the same (name, date) appears twice
+                # Drop only a true intra-episode duplicate (same game twice in one item).
                 if any(a.podcast_slug == podcast_slug for a in existing.appearances):
-                    logger.info('Duplicate podcast_slug %r in episode %r, skipping', podcast_slug, episode.title)
+                    logger.info('Duplicate mention %r in episode %r, skipping', podcast_slug, episode.title)
                     continue
 
             game = game_index[name_slug]
@@ -150,18 +153,34 @@ def _build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
                 mention=mention,
                 podcast_slug=podcast_slug,
             ))
-            if episode.pub_ts and episode.pub_ts > game.latest_pub_ts:
+            if episode.pub_ts and (game.latest_pub_ts is None or episode.pub_ts > game.latest_pub_ts):
                 game.latest_pub_ts = episode.pub_ts
             game.episode_count += 1
 
     return episode_index, game_index
 
 
+_feed_etag:          str | None = None
+_feed_last_modified: str | None = None
+
+
 def _refresh_feed() -> None:
     global _cached_episodes, _episode_index, _game_index, _cached_at
-    resp = http.get(_RSS_URL, timeout=Config.REQUEST_TIMEOUT,
-                    headers={'User-Agent': 'SilenceOnJoue/1.0'})
+    global _feed_etag, _feed_last_modified
+
+    headers = {'User-Agent': 'SilenceOnJoue/1.0'}
+    if _feed_etag:          headers['If-None-Match']     = _feed_etag
+    if _feed_last_modified: headers['If-Modified-Since']  = _feed_last_modified
+
+    resp = http.get(_RSS_URL, timeout=Config.REQUEST_TIMEOUT, headers=headers)
+    if resp.status_code == 304:
+        logger.info('RSS feed unchanged (304); skipping re-parse')
+        with _state_lock:
+            _cached_at = utcnow()
+        return
     resp.raise_for_status()
+    _feed_etag          = resp.headers.get('ETag')
+    _feed_last_modified = resp.headers.get('Last-Modified')
     episodes                        = parse_feed(resp.content)
     ai_index                        = _load_ai_chapter_index()
     _inject_ai_chapters(episodes, ai_index)
@@ -214,6 +233,15 @@ def _best_igdb_entry(game: PodcastGame) -> IgdbEntry | None:
     return max(pool, key=lambda e: e.cached_at)
 
 
+def _primary_and_entry(matched_games: list[PodcastGame]) -> tuple[PodcastGame, IgdbEntry | None]:
+    """The representative game for a catalog group (a non-child if any) and its best entry."""
+    primary = next(
+        (g for g in matched_games if (e := _best_igdb_entry(g)) and not e.is_child),
+        matched_games[0],
+    )
+    return primary, _best_igdb_entry(primary)
+
+
 # ── IGDB resolution ───────────────────────────────────────────────────────────
 
 def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None) -> None:
@@ -263,13 +291,29 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None) -> None:
         'type':     'resolved',
         'nameSlug': make_slug(name),
         'igdbSlug': igdb_slug,
-        'igdb':     {'metacritic': entry.data.get('metacritic')} if entry.data else None,
+        'igdb':     {'metacritic': entry.data.get('metacritic'),
+                     'coverImageId': entry.data.get('coverImageId')} if entry.data else None,
     })
 
 
 _resolve_lock   = threading.Lock()
 _resolve_thread: threading.Thread | None = None
 _resolve_stop:   threading.Event  | None = None
+
+
+def _fresh_slugs(cache_items) -> set:
+    """Cache keys resolved within the IGDB TTL window."""
+    cutoff = (utcnow() - datetime.timedelta(hours=Config.IGDB_TTL_HOURS)).isoformat()
+    return {slug for slug, entry in cache_items if entry.cached_at > cutoff}
+
+
+def _count_appearances_not_in(excluded: set) -> int:
+    """Count appearances whose cache key isn't in `excluded`. Caller holds _state_lock."""
+    return sum(
+        1 for game in _game_index.values()
+        for a in game.appearances
+        if a.podcast_slug not in excluded
+    )
 
 
 def _resolve_pending(stop: threading.Event) -> None:
@@ -280,13 +324,7 @@ def _resolve_pending(stop: threading.Event) -> None:
         if not games:
             return
 
-        ttl_cutoff = (
-            utcnow() - datetime.timedelta(hours=Config.IGDB_TTL_HOURS)
-        ).isoformat()
-        fresh_slugs = {
-            slug for slug, entry in cache_snap
-            if entry.cached_at > ttl_cutoff
-        }
+        fresh_slugs = _fresh_slugs(cache_snap)
 
         for name_slug, game in games.items():
             if stop.is_set():
@@ -321,6 +359,44 @@ def _schedule_resolve(force: bool = False) -> None:
         _resolve_thread.start()
 
 
+# ── Periodic re-resolve (retry transient failures without a manual refresh) ────
+
+_periodic_stop: threading.Event | None = None
+
+
+def _count_unresolved() -> int:
+    """Appearances never resolved (uncached) — typically the casualties of a
+    transient upstream failure, which the periodic pass retries."""
+    with _state_lock:
+        return _count_appearances_not_in(set(_igdb_cache.keys()))
+
+
+def _periodic_resolve(stop: threading.Event) -> None:
+    interval = Config.RESOLVE_RETRY_MINUTES * 60
+    while not stop.wait(interval):
+        try:
+            # Proactively pick up newly published episodes during idle periods.
+            if _feed_is_stale():
+                try:
+                    _refresh_feed()
+                except Exception as exc:
+                    logger.warning('Periodic feed refresh failed: %s', exc)
+            pending = _count_unresolved()
+            if pending:
+                logger.info('Periodic re-resolve: %d unresolved appearance(s)', pending)
+                _schedule_resolve()
+        except Exception:
+            logger.exception('Periodic re-resolve tick failed')
+
+
+def _start_periodic_resolve() -> None:
+    global _periodic_stop
+    if _periodic_stop:
+        return
+    _periodic_stop = threading.Event()
+    threading.Thread(target=_periodic_resolve, args=(_periodic_stop,), daemon=True).start()
+
+
 # ── Startup ───────────────────────────────────────────────────────────────────
 
 def _startup() -> None:
@@ -331,6 +407,7 @@ def _startup() -> None:
         except Exception as exc:
             logger.warning('Startup RSS fetch failed: %s', exc)
     _schedule_resolve()
+    _start_periodic_resolve()
 
 
 def startup_warmup() -> None:
@@ -347,13 +424,9 @@ def _serialise_appearance(appearance: GameAppearance) -> dict:
 
 def _build_resolved(episode: Episode) -> dict[str, tuple[str, str, str | None]]:
     """Build a timestamp → (igdb_name, igdb_slug, cover_image_id) map for one episode."""
-    date_str = (
-        datetime.datetime.fromtimestamp(episode.pub_ts, datetime.timezone.utc).strftime('%Y%m%d')
-        if episode.pub_ts else 'nopubts'
-    )
     resolved: dict[str, tuple[str, str, str | None]] = {}
     for mention in episode.games:
-        podcast_slug = f'{make_slug(mention.name)}-{date_str}'
+        podcast_slug = f'{make_slug(mention.name)}-{episode.slug}'
         entry        = _igdb_cache.get(podcast_slug)
         if entry and entry.igdb_slug and mention.timestamp:
             cover_image_id = entry.data.get('coverImageId') if entry.data else None
@@ -423,19 +496,21 @@ def _build_catalog() -> list[dict]:
 
     result = []
     for slug, matched_games in groups.items():
-        primary = next(
-            (g for g in matched_games
-             if (e := _best_igdb_entry(g)) and not e.is_child),
-            matched_games[0],
-        )
-        entry     = _best_igdb_entry(primary)
-        igdb_slim = {'metacritic': entry.data.get('metacritic')} if entry and entry.data else None
+        primary, entry = _primary_and_entry(matched_games)
+        igdb_slim = {
+            'metacritic':   entry.data.get('metacritic'),
+            'coverImageId': entry.data.get('coverImageId'),
+        } if entry and entry.data else None
+        # Count distinct episodes (by guid) — two name variants co-occurring in one
+        # episode must not double-count it.
+        episode_slugs = {a.episode.slug for g in matched_games for a in g.appearances}
+        pub_tss       = [g.latest_pub_ts for g in matched_games if g.latest_pub_ts is not None]
         result.append({
             'slug':         slug,
             'name':         _display_name(primary, entry),
             'igdb':         igdb_slim,
-            'episodeCount': sum(g.episode_count for g in matched_games),
-            'latestPubTs':  max(g.latest_pub_ts for g in matched_games),
+            'episodeCount': len(episode_slugs),
+            'latestPubTs':  max(pub_tss) if pub_tss else None,
         })
 
     return sorted(result, key=lambda g: g['name'].lower())
@@ -469,13 +544,7 @@ def _load_game(slug: str) -> tuple[dict, list[dict]]:
 
     if matched_games:
         episodes = [_serialise_appearance(a) for game in matched_games for a in game.appearances]
-        # Use the non-child game for the display name if available
-        primary = next(
-            (g for g in matched_games
-             if (e := _best_igdb_entry(g)) and not e.is_child),
-            matched_games[0],
-        )
-        entry   = _best_igdb_entry(primary)
+        primary, entry = _primary_and_entry(matched_games)
         return {
             'display_name': _display_name(primary, entry),
             'slug':         slug,
@@ -499,22 +568,28 @@ def _load_game(slug: str) -> tuple[dict, list[dict]]:
 # ── Pending count ─────────────────────────────────────────────────────────────
 
 def _count_pending() -> int:
-    """Count game appearances not yet resolved in igdb_cache."""
+    """Count appearances the resolver still considers pending — never resolved OR
+    resolved longer ago than IGDB_TTL_HOURS. Matches `_resolve_pending`'s notion
+    of "pending" so a catalog with stale entries still opens the SSE stream and
+    gets live updates."""
     with _state_lock:
-        return sum(
-            1 for game in _game_index.values()
-            for a in game.appearances
-            if a.podcast_slug not in _igdb_cache
-        )
+        return _count_appearances_not_in(_fresh_slugs(_igdb_cache.items()))
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+def _conditional(resp):
+    """Attach a content ETag + revalidation header and 304 when If-None-Match matches."""
+    resp.headers['Cache-Control'] = 'no-cache'
+    resp.add_etag()
+    return resp.make_conditional(request)
+
 
 @games_bp.route('/episodes')
 def games_episodes():
     with _state_lock:
         episodes = list(_cached_episodes)
-    return jsonify([_serialise_episode(ep, _build_resolved(ep)) for ep in episodes])
+    return _conditional(jsonify([_serialise_episode(ep, _build_resolved(ep)) for ep in episodes]))
 
 
 @games_bp.route('/episode')
@@ -535,12 +610,13 @@ def catalog():
     if _feed_is_stale():
         try:
             _refresh_feed()
-        except http.exceptions.RequestException as exc:
+        except Exception as exc:   # network error, malformed XML, etc.
             if not _cached_episodes:
                 abort(502, f'RSS feed unavailable: {exc}')
+            logger.warning('Feed refresh failed; serving cached catalog: %s', exc)
         else:
             _schedule_resolve()
-    return jsonify({'games': _build_catalog(), 'pending': _count_pending()})
+    return _conditional(jsonify({'games': _build_catalog(), 'pending': _count_pending()}))
 
 
 @games_bp.route('/igdb')
@@ -558,12 +634,16 @@ def games_igdb():
 
 
 @games_bp.route('/refresh', methods=['POST'])
+@limiter.limit("10 per minute")
 def refresh():
     try:
         _refresh_feed()
+    except Exception as exc:   # network error, malformed XML, etc.
+        if not _cached_episodes:
+            abort(502, f'RSS feed unavailable: {exc}')
+        logger.warning('Manual refresh failed; serving cached catalog: %s', exc)
+    else:
         _schedule_resolve(force=True)
-    except http.exceptions.RequestException as exc:
-        abort(502, f'RSS feed unavailable: {exc}')
     return jsonify({'games': _build_catalog(), 'pending': _count_pending()})
 
 
@@ -609,6 +689,7 @@ def game_detail(slug):
 
 
 @games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
+@limiter.limit("10 per minute")
 def game_igdb_refresh(slug):
     with _state_lock:
         games = dict(_game_index)
