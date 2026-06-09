@@ -134,7 +134,7 @@ const { needsScroll } = useMarquee(marqueeEl, currentLabel)
 
 // ── Bottom-sheet swipe (mobile only) ─────────────────────────────────────────
 const {
-  dragExpand, isDragging, dragX, sheetStyle, reset: resetDrag,
+  dragExpand, isDragging, sheetStyle, reset: resetDrag,
   onPointerDown, onPointerMove, onPointerUp, onPointerCancel,
 } = useBottomSheetDrag(playerEl, collapsed, closePlayer)
 

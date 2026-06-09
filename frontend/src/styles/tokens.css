@@ -53,7 +53,12 @@
   --z-player:   300;
   --z-detail:   150;
   --z-episode:  200;
+  --z-modal:    350;   /* account modal — above the player */
   --z-lightbox: 400;
+
+  /* ─── Horizontal gutter (shared by floating chrome + grid content) ─────
+     Keeps the command bar, audio player, and grid edges on one line. */
+  --gutter: 12px;
 
   /* ─── Motion ─────────────────────────────────────────────────────────── */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -68,6 +73,9 @@
   --dur-slide: var(--dur-med);  /* legacy alias */
 
 }
+
+@media (min-width: 600px) { :root { --gutter: 20px; } }
+@media (min-width: 900px) { :root { --gutter: 28px; } }
 
 /* ─── Reduced motion: kill non-essential animation, keep opacity fades ─── */
 @media (prefers-reduced-motion: reduce) {

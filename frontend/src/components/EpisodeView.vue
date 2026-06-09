@@ -116,11 +116,11 @@ watch(() => episode.value?.chapters, (chs) => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[200] bg-base-100" :style="cssVars">
+  <div class="fixed inset-0 z-[var(--z-episode)] bg-base-100" :style="cssVars">
     <!-- Loading / error -->
-    <div v-if="loading || error || (!loading && !episode)" class="fixed inset-0 z-[200] bg-base-100 flex flex-col">
-      <div class="flex items-center px-4 py-3 border-b border-white/5 backdrop-blur-md bg-black/30">
-        <button class="btn btn-sm btn-ghost gap-1.5" @click="back">
+    <div v-if="loading || error || (!loading && !episode)" class="fixed inset-0 z-[var(--z-episode)] bg-base-100 flex flex-col">
+      <div class="flex items-center px-3 h-12 bg-black/35 backdrop-blur-xl border-b border-white/5 flex-shrink-0">
+        <button class="btn btn-sm btn-ghost gap-1.5 text-white/85 hover:text-white" @click="back">
           <ArrowLeft :size="16" :stroke-width="2.25" /> {{ slug ? (gameName || 'Retour') : 'Épisodes' }}
         </button>
       </div>
@@ -132,7 +132,7 @@ watch(() => episode.value?.chapters, (chs) => {
     </div>
 
     <!-- Main view -->
-    <div v-else class="fixed inset-0 z-[200] flex flex-col">
+    <div v-else class="fixed inset-0 z-[var(--z-episode)] flex flex-col">
 
       <!-- Hero backdrop: episode image if present, else game cover -->
       <ArtworkBackdrop
@@ -144,7 +144,7 @@ watch(() => episode.value?.chapters, (chs) => {
       <!-- Back bar -->
       <div class="relative flex items-center px-3 h-12 bg-black/35 backdrop-blur-xl border-b border-white/5 flex-shrink-0 z-10">
         <button class="btn btn-sm btn-ghost gap-1.5 text-white/85 hover:text-white" @click="back">
-          <span class="text-[1rem] leading-none">←</span> {{ slug ? gameName : 'Épisodes' }}
+          <ArrowLeft :size="16" :stroke-width="2.25" /> {{ slug ? gameName : 'Épisodes' }}
         </button>
       </div>
 
@@ -160,7 +160,7 @@ watch(() => episode.value?.chapters, (chs) => {
           />
         </div>
 
-        <div class="px-4 py-4 pb-32 max-w-2xl mx-auto">
+        <div class="px-[var(--gutter)] py-4 pb-32 max-w-3xl mx-auto">
 
           <!-- Title + description -->
           <div class="panel p-5 mb-5">

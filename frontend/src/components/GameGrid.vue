@@ -10,6 +10,7 @@ const props = defineProps({
   error:    String,
   total:    Number,
   resetKey: String,
+  hasQuery: Boolean,
 })
 
 const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
@@ -23,7 +24,7 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
     <!-- Loading: skeleton shimmer grid -->
     <div
       v-if="loading"
-      class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6  sm:grid-cols-4 sm:gap-3 sm:px-5 sm:pt-4 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:px-7 lg:pt-5"
+      class="grid grid-cols-3 gap-2 px-[var(--gutter)] pt-3.5 pb-6  sm:grid-cols-4 sm:gap-3 sm:pt-4 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:pt-5"
     >
       <SkeletonTile v-for="i in 18" :key="i" />
     </div>
@@ -36,13 +37,14 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
       <component :is="error ? AlertTriangle : SearchX" :size="48" :stroke-width="1.5" class="opacity-70" />
       <p v-if="error" class="text-sm text-center max-w-sm">{{ error }}</p>
       <p v-else-if="total === 0" class="text-sm text-center">Aucun jeu dans le catalogue. Essayez d'actualiser.</p>
-      <p v-else class="text-sm text-center">Aucun jeu ne correspond à votre recherche.</p>
+      <p v-else-if="hasQuery" class="text-sm text-center">Aucun jeu ne correspond à votre recherche.</p>
+      <p v-else class="text-sm text-center max-w-sm">Aucun jeu résolu pour l'instant. Désactivez « Jeux résolus uniquement » pour voir les autres.</p>
     </div>
 
     <!-- Grid -->
     <div
       v-else
-      class="grid grid-cols-3 gap-2 px-3 pt-3.5 pb-6  sm:grid-cols-4 sm:gap-3 sm:px-5 sm:pt-4 sm:pb-8 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:px-7 lg:pt-5 lg:pb-10"
+      class="grid grid-cols-3 gap-2 px-[var(--gutter)] pt-3.5 pb-6  sm:grid-cols-4 sm:gap-3 sm:pt-4 sm:pb-8 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:pt-5 lg:pb-10"
     >
       <GameCard v-for="game in visibleGames" :key="game.slug" :game="game" />
     </div>

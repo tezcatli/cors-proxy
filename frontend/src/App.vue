@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loggedIn, getUserEmail, logout, refresh } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
@@ -81,7 +81,7 @@ let searchTimer
 watch(searchQuery, q => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    if (route.path === '/' || route.path === '') {
+    if (route.path === '/') {
       router.replace({ query: q ? { q } : {} })
     }
   }, 350)
@@ -118,11 +118,28 @@ function handleLogout() {
   router.push('/login')
 }
 
-function handleRefresh() { gamesStore.refresh() }
+// Bumped on every pull-to-refresh so the (separately-mounted) EpisodesFeed
+// reloads in step with the games catalog — a pull on either tab refreshes both.
+const episodesRefreshSignal = ref(0)
+function handleRefresh() {
+  gamesStore.refresh()
+  episodesRefreshSignal.value++
+}
 
 // ── Pull-to-refresh ───────────────────────────────────────────────────────────
 const PULL_THRESHOLD = 80
 const { pullY, isPulling, setScrollEl } = usePullToRefresh(handleRefresh)
+
+// Point pull-to-refresh at whichever tab's scroll container is currently shown,
+// so its "at the top?" guard reads the right element (the inactive tab's grid is
+// v-show-hidden with scrollTop 0, which would otherwise arm the gesture mid-scroll).
+function syncPullScrollEl() {
+  nextTick(() => {
+    const grids = document.querySelectorAll('.grid-area')
+    setScrollEl(isEpisodes.value ? (grids[grids.length - 1] ?? grids[0]) : grids[0])
+  })
+}
+watch(isEpisodes, syncPullScrollEl)
 
 onMounted(() => {
   if (loggedIn.value) {
@@ -136,7 +153,7 @@ onMounted(() => {
     } catch (_) {}
     refresh().catch(() => {})
   }
-  setScrollEl(document.querySelector('.grid-area'))
+  syncPullScrollEl()
 
   // Publish the command bar's measured height so .grid-area can clear it
   // robustly (survives font-scaling / wrap) instead of a fixed padding.
@@ -171,11 +188,11 @@ onUnmounted(() => _barObserver?.disconnect())
     >
       <template #account>
         <button
-          class="btn btn-circle btn-ghost !size-9 !min-h-9"
+          class="icon-action"
           :class="loggedIn ? 'text-primary' : 'text-base-content/50'"
           :aria-label="loggedIn ? 'Mon compte' : 'Connexion'"
           @click="handleShowAccount"
-        ><User :size="18" :stroke-width="2.25" /></button>
+        ><User :size="17" :stroke-width="2.25" /></button>
       </template>
     </AppHeader>
 
@@ -189,8 +206,8 @@ onUnmounted(() => _barObserver?.disconnect())
         }"
       >
         <span
-          class="loading loading-spinner text-primary loading-sm"
-          :style="{ opacity: Math.min(pullY / PULL_THRESHOLD, 1) }"
+          class="loading loading-spinner loading-sm"
+          :style="{ color: 'var(--game-accent)', opacity: Math.min(pullY / PULL_THRESHOLD, 1) }"
         />
       </div>
 
@@ -201,12 +218,14 @@ onUnmounted(() => _barObserver?.disconnect())
         :error="gamesStore.error"
         :total="gamesStore.all.length"
         :reset-key="gridResetKey"
+        :has-query="!!searchQuery.trim()"
       />
 
       <EpisodesFeed
         v-if="episodesVisited"
         v-show="baseRoute === '/episodes'"
         :search-query="episodesSearchQuery"
+        :refresh-signal="episodesRefreshSignal"
       />
     </main>
 

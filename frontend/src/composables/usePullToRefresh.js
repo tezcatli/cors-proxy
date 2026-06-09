@@ -8,8 +8,11 @@ export function usePullToRefresh(onTrigger, { threshold = 80 } = {}) {
   function setScrollEl(el) { _scrollEl = el }
 
   function onTouchStart(e) {
-    if (_scrollEl?.scrollTop > 0) return
-    if (e.target.closest('.audio-player')) return
+    // Only engage when the gesture begins inside the tracked scroll container.
+    // Overlay routes (game/episode/login) live outside .grid-area, so this keeps
+    // pull-to-refresh from hijacking (and blocking) their own scrolling.
+    if (!_scrollEl || !_scrollEl.contains(e.target)) return
+    if (_scrollEl.scrollTop > 0) return
     _startY = e.touches[0].clientY
     _active = true
   }

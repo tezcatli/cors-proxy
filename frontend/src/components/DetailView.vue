@@ -12,7 +12,7 @@ import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { playInto } from '../lib/flipTransition.js'
 import EpisodeCard from './EpisodeCard.vue'
 import ArtworkBackdrop from './ArtworkBackdrop.vue'
-import { ArrowLeft, RotateCw, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ArrowLeft, RotateCw, ExternalLink, ChevronLeft, ChevronRight, X } from 'lucide-vue-next'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -172,22 +172,22 @@ function nextScreenshot() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[150] bg-base-100" :style="cssVars">
+  <div class="fixed inset-0 z-[var(--z-detail)] bg-base-100" :style="cssVars">
     <!-- Loading / not found -->
-    <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[150] bg-base-100 flex flex-col">
-      <div class="flex items-center px-4 py-3 border-b border-white/5 backdrop-blur-md bg-black/30">
-        <button class="btn btn-sm btn-ghost gap-1.5" @click="close">
+    <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[var(--z-detail)] bg-base-100 flex flex-col">
+      <div class="flex items-center px-3 h-12 bg-black/35 backdrop-blur-xl border-b border-white/5 flex-shrink-0">
+        <button class="btn btn-sm btn-ghost gap-1.5 text-white/85 hover:text-white" @click="close">
           <ArrowLeft :size="16" :stroke-width="2.25" /> Retour
         </button>
       </div>
       <div class="flex flex-1 items-center justify-center">
-        <span v-if="gamesStore.loading" class="loading loading-spinner loading-lg text-primary"></span>
+        <span v-if="gamesStore.loading" class="loading loading-spinner loading-lg" style="color: var(--game-accent);"></span>
         <p v-else class="text-base-content/50">Jeu introuvable.</p>
       </div>
     </div>
 
     <!-- Main view -->
-    <div v-else class="fixed inset-0 z-[150]">
+    <div v-else class="fixed inset-0 z-[var(--z-detail)]">
 
       <!-- Hero backdrop — driven by the cover, not screenshots -->
       <ArtworkBackdrop :cover-image-id="coverImageId" intensity="hero" />
@@ -297,13 +297,18 @@ function nextScreenshot() {
                 <div class="text-[0.68rem] uppercase tracking-[0.12em] font-extrabold text-white/55 mb-2 px-1">
                   Épisodes
                 </div>
-                <div v-if="episodesLoading" class="flex justify-center py-6">
-                  <span class="loading loading-spinner loading-sm" style="color: var(--game-accent);"></span>
+                <div v-if="episodesLoading" class="flex flex-col gap-2">
+                  <div
+                    v-for="i in 4"
+                    :key="i"
+                    class="skeleton-shimmer h-[56px] rounded-xl"
+                    aria-hidden="true"
+                  />
                 </div>
                 <div v-else class="flex flex-col gap-2">
                   <EpisodeCard
                     v-for="ep in episodes"
-                    :key="ep.title"
+                    :key="ep.slug"
                     :episode="ep"
                     :game-name="game.name"
                     :is-playing="isEpPlaying(ep)"
@@ -369,9 +374,9 @@ function nextScreenshot() {
     <!-- Screenshot lightbox -->
     <Teleport to="body">
       <div v-if="selectedScreenshot" class="screenshot-lightbox" @click.self="closeScreenshot">
-        <button class="lightbox-btn lightbox-close" @click="closeScreenshot" aria-label="Fermer">✕</button>
-        <button v-if="igdb.screenshotIds.length > 1" class="lightbox-btn lightbox-prev" @click="prevScreenshot" aria-label="Précédent">‹</button>
-        <button v-if="igdb.screenshotIds.length > 1" class="lightbox-btn lightbox-next" @click="nextScreenshot" aria-label="Suivant">›</button>
+        <button class="lightbox-btn lightbox-close" @click="closeScreenshot" aria-label="Fermer"><X :size="20" :stroke-width="2.25" /></button>
+        <button v-if="igdb.screenshotIds.length > 1" class="lightbox-btn lightbox-prev" @click="prevScreenshot" aria-label="Précédent"><ChevronLeft :size="28" :stroke-width="2.25" /></button>
+        <button v-if="igdb.screenshotIds.length > 1" class="lightbox-btn lightbox-next" @click="nextScreenshot" aria-label="Suivant"><ChevronRight :size="28" :stroke-width="2.25" /></button>
         <img
           class="lightbox-img"
           :src="igdbUrl(selectedScreenshot, 't_screenshot_huge')"

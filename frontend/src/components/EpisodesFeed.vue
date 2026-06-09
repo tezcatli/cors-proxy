@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchEpisodes } from '../lib/games.js'
 import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
@@ -8,7 +8,8 @@ import EpisodeFeedCard from './EpisodeFeedCard.vue'
 import { Mic } from 'lucide-vue-next'
 
 const props = defineProps({
-  searchQuery: String,
+  searchQuery:   String,
+  refreshSignal: { type: Number, default: 0 },
 })
 
 const router = useRouter()
@@ -18,11 +19,15 @@ const episodes = ref([])
 const loading  = ref(true)
 const error    = ref(null)
 
-onMounted(async () => {
-  try { episodes.value = await fetchEpisodes() }
+async function load() {
+  try { episodes.value = await fetchEpisodes(); error.value = null }
   catch (e) { error.value = e.message }
   finally   { loading.value = false }
-})
+}
+
+onMounted(load)
+// Reload when the pull-to-refresh signal bumps (keeps the existing list visible).
+watch(() => props.refreshSignal, (v, prev) => { if (v !== prev) load() })
 
 const filteredEpisodes = computed(() => {
   const q = props.searchQuery?.trim().toLowerCase()
@@ -47,7 +52,7 @@ function viewEp(ep) {
 <template>
   <div class="grid-area overflow-y-auto">
     <!-- Loading skeletons -->
-    <div v-if="loading" class="max-w-[900px] mx-auto px-3 pt-3 flex flex-col gap-2">
+    <div v-if="loading" class="max-w-3xl mx-auto px-[var(--gutter)] pt-3.5 sm:pt-4 lg:pt-5 flex flex-col gap-2">
       <div
         v-for="i in 10"
         :key="i"
@@ -64,16 +69,16 @@ function viewEp(ep) {
     <!-- Empty -->
     <div
       v-else-if="!filteredEpisodes.length"
-      class="flex flex-col items-center gap-2 py-20 text-base-content/45"
+      class="flex flex-col items-center gap-3 py-20 text-base-content/50"
     >
-      <Mic :size="40" :stroke-width="1.5" class="opacity-70" />
+      <Mic :size="48" :stroke-width="1.5" class="opacity-70" />
       <p class="text-sm">Aucun épisode trouvé.</p>
     </div>
 
     <!-- Feed list -->
     <div
       v-else
-      class="max-w-[900px] mx-auto px-3 pt-3 pb-[calc(120px+env(safe-area-inset-bottom,0px))]"
+      class="max-w-3xl mx-auto px-[var(--gutter)] pt-3.5 pb-6 sm:pt-4 sm:pb-8 lg:pt-5 lg:pb-10"
     >
       <div class="flex flex-col gap-2">
         <EpisodeFeedCard

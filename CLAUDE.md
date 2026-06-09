@@ -86,10 +86,10 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
 
 ### Frontend (`frontend/`)
 
-- **`src/lib/games.js`** — Thin API client for the `/games/*` endpoints. Five functions: `fetchCatalog()`, `fetchGameDetail(slug)`, `refreshCatalog()`, `refreshGameIgdb(slug)`, `fetchIgdb(slugs)`. All use `igdb_slug` as the identifier. No XML parsing — all feed processing happens on the backend.
+- **`src/lib/games.js`** — Thin API client for the `/games/*` and stream endpoints: `fetchCatalog()`, `fetchGameDetail(slug)`, `refreshCatalog()`, `refreshGameIgdb(slug)`, `fetchEpisodes()`, `fetchEpisodeDetail(episodeSlug)`, and `openResolutionStream()` (fetches a short-lived stream token, then opens the SSE `EventSource`). All use `igdb_slug` as the identifier. No XML parsing — all feed processing happens on the backend.
 - **`src/lib/igdbCdn.js`** — One-liner helper that builds IGDB image CDN URLs (`igdbUrl(imageId, template)`).
 - **`src/lib/auth.js`** — JWT stored in `localStorage` under key `soj-auth-token`. `apiFetch()` attaches `Authorization: Bearer` header to every request and throws on non-2xx.
-- **`src/stores/games.js`** — Central Pinia store. Loads `all` games from the slim catalog, exposes `filtered(query)` with sort (alpha / date / metacritic). `queueIgdb(slug)` debounces card-visible events (50 ms) into a single `fetchIgdb` call, patching store entries with full igdb as the user scrolls.
+- **`src/stores/games.js`** — Central Pinia store. Loads `all` games from the catalog, exposes `filtered(query)` with sort (alpha / date / metacritic). When the catalog reports `pending > 0` resolutions it opens an SSE resolution stream (`openResolutionStream`); each `resolved` event patches the matching store entry's `slug`/`igdb` in place (and migrates the player store's slug), and a final `done` event reloads the catalog.
 - **`src/stores/player.js`** — Audio player state.
 - **`src/router.js`** — History-mode router at base `/silence/`. The `beforeEach` guard forwards `?reset=` and `?invite=` query params to `/login`, and redirects unauthenticated users to `/login`.
 
