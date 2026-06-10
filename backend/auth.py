@@ -72,15 +72,23 @@ def _make_stream_token(user_id) -> str:
     }, Config.JWT_SECRET, algorithm="HS256")
 
 
+def _bearer_user_claims():
+    """Claims for a valid full-API Bearer token of a still-existing user, else None.
+    Rejects stream-scoped tokens (those are only for the SSE endpoint)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    claims = _decode_jwt(auth[7:])
+    if claims and claims.get("scope") != "stream" and _user_exists(claims):
+        return claims
+    return None
+
+
 def require_auth():
     if Config.DEBUG:
         return
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        claims = _decode_jwt(auth[7:])
-        # Full API token (not a stream-scoped one) for a still-existing user.
-        if claims and claims.get("scope") != "stream" and _user_exists(claims):
-            return
+    if _bearer_user_claims():
+        return
     # EventSource can't set headers → accept a stream-scoped token in the query
     # string, but ONLY on the resolution-stream endpoint.
     if request.path.endswith("/resolution-stream"):
@@ -92,20 +100,14 @@ def require_auth():
 
 @auth_bp.route("/stream-token")
 def stream_token():
-    auth   = request.headers.get("Authorization", "")
-    claims = _decode_jwt(auth[7:]) if auth.startswith("Bearer ") else None
-    if not claims or claims.get("scope") == "stream" or not _user_exists(claims):
-        abort(401, "Not authenticated")
+    claims = _bearer_user_claims() or abort(401, "Not authenticated")
     return jsonify(token=_make_stream_token(claims["sub"]))
 
 
 @auth_bp.route("/refresh", methods=["POST"])
 @limiter.limit("20 per minute")
 def refresh():
-    auth   = request.headers.get("Authorization", "")
-    claims = _decode_jwt(auth[7:]) if auth.startswith("Bearer ") else None
-    if not claims or claims.get("scope") == "stream" or not _user_exists(claims):
-        abort(401, "Not authenticated")
+    claims = _bearer_user_claims() or abort(401, "Not authenticated")
     return jsonify(access_token=_make_jwt(int(claims["sub"]), claims["email"]))
 
 
@@ -231,12 +233,14 @@ def reset_confirm():
             "SELECT user_id, expires_at FROM reset_tokens WHERE token = ?",
             (data["token"],),
         ).fetchone()
-        if not existing:
-            abort(400, "Lien invalide ou déjà utilisé")
-        if existing["expires_at"] < now:
-            with get_db() as conn2:
-                conn2.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
-            abort(410, "Lien expiré")
+    if not existing:
+        abort(400, "Lien invalide ou déjà utilisé")
+    if existing["expires_at"] < now:
+        # Separate transaction so the cleanup survives the abort below.
+        with get_db() as conn:
+            conn.execute("DELETE FROM reset_tokens WHERE token = ?", (data["token"],))
+        abort(410, "Lien expiré")
+    with get_db() as conn:
         row = conn.execute(
             "DELETE FROM reset_tokens WHERE token = ? RETURNING user_id",
             (data["token"],),

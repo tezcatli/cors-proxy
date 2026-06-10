@@ -3,6 +3,7 @@ import datetime
 import pathlib
 import queue as _queue_mod
 import threading
+import time
 
 import requests as http
 from flask import Blueprint, abort, jsonify, request, Response, stream_with_context
@@ -12,9 +13,11 @@ from config import Config
 from limiter import limiter
 from corrections import find_by_podcast
 from db import get_db, utcnow
-from igdb import fetch_by_id, fetch_by_name
-from models import Episode, GameAppearance, IgdbEntry, PodcastGame
-from rss import parse_feed, is_game_catalog_excluded
+from igdb import fetch_by_id, fetch_by_name, fetch_time_to_beat
+import hltb
+import metacritic
+from models import Chapter, Episode, GameAppearance, IgdbEntry, PodcastGame
+from rss import parse_feed, is_game_catalog_excluded, find_chapter_for_game
 from utils import make_slug
 
 import logging
@@ -38,9 +41,21 @@ _episode_index:   dict[str, Episode] = {}      # episode.slug → Episode (same 
 _game_index:      dict[str, PodcastGame] = {}  # name_slug    → PodcastGame
 _cached_at:       datetime.datetime | None = None
 
-# Keyed by date-qualified podcast_slug (make_slug(name) + '-' + YYYYMMDD).
+# Keyed by podcast_slug (make_slug(name) + '-' + episode.slug, the RSS guid).
 # Loaded from DB at startup; written when a new IGDB resolution completes.
 _igdb_cache: dict[str, IgdbEntry] = {}
+
+# Monotonic version of the data the read payloads derive from (episodes + IGDB
+# cache). Bumped under _state_lock on every feed re-parse / IGDB resolution, and
+# used to key the cached responses below so repeated reads (incl. 304
+# revalidations) skip re-serialising and re-hashing the (large) payloads.
+_data_version:  int = 0
+# Serialised-response caches: (key, body_text, etag). Feed key = _data_version;
+# catalog key = (_data_version, pending) since the body carries `pending`.
+_catalog_cache: tuple | None = None
+_feed_cache:    tuple | None = None
+# Pending count memo: (version, minute_bucket, value).
+_pending_cache: tuple[int, int, int] | None = None
 
 # ── SSE subscriber management ─────────────────────────────────────────────────
 
@@ -79,8 +94,6 @@ def _load_ai_chapter_index() -> dict[str, list]:
 
 
 def _inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
-    from rss import find_chapter_for_game
-    from models import Chapter as Ch
     injected = 0
     for episode in episodes:
         # chapters.json is keyed by make_slug(title); episode.slug is now the guid,
@@ -90,7 +103,7 @@ def _inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
             continue
         raw_chapters = ai_index[title_slug]
         chapters = [
-            Ch(
+            Chapter(
                 timestamp=_seconds_to_ts(c['start_s']),
                 timestamp_seconds=int(c['start_s']),
                 title=c['title'],
@@ -127,6 +140,10 @@ def _build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
 
     for episode in episodes:
         episode_index[episode.slug] = episode
+        # Register the pretty url_slug too, so /games/episode resolves either the
+        # guid (legacy/cached links) or the human-readable slug.
+        if episode.url_slug:
+            episode_index[episode.url_slug] = episode
 
         if is_game_catalog_excluded(episode.title):
             continue
@@ -165,7 +182,7 @@ _feed_last_modified: str | None = None
 
 
 def _refresh_feed() -> None:
-    global _cached_episodes, _episode_index, _game_index, _cached_at
+    global _cached_episodes, _episode_index, _game_index, _cached_at, _data_version
     global _feed_etag, _feed_last_modified
 
     headers = {'User-Agent': 'SilenceOnJoue/1.0'}
@@ -190,6 +207,8 @@ def _refresh_feed() -> None:
         _episode_index   = episode_index
         _game_index      = game_index
         _cached_at       = utcnow()
+        _data_version   += 1
+    _prune_igdb_cache()
 
 
 # ── IGDB cache helpers ────────────────────────────────────────────────────────
@@ -215,6 +234,28 @@ def _load_igdb_cache_from_db() -> None:
         _igdb_cache = cache
 
 
+def _prune_igdb_cache() -> None:
+    """Drop igdb_cache rows (memory + DB) whose podcast_slug no longer matches any
+    current appearance, so the cache stays bounded as the feed evolves. No-op when
+    there are no appearances (e.g. an empty/odd parse) so a transient feed can't
+    wipe the cache."""
+    global _data_version
+    with _state_lock:
+        valid = {a.podcast_slug for game in _game_index.values() for a in game.appearances}
+        if not valid:
+            return
+        stale = [slug for slug in _igdb_cache if slug not in valid]
+        for slug in stale:
+            del _igdb_cache[slug]
+        if stale:
+            _data_version += 1
+    if stale:
+        with get_db() as conn:
+            ph = ','.join('?' * len(stale))
+            conn.execute(f'DELETE FROM igdb_cache WHERE slug IN ({ph})', stale)
+        logger.info('Pruned %d orphaned igdb_cache row(s)', len(stale))
+
+
 def _best_igdb_entry(game: PodcastGame) -> IgdbEntry | None:
     """Pick the best resolved IgdbEntry for a game across all its appearances.
 
@@ -233,18 +274,26 @@ def _best_igdb_entry(game: PodcastGame) -> IgdbEntry | None:
     return max(pool, key=lambda e: e.cached_at)
 
 
-def _primary_and_entry(matched_games: list[PodcastGame]) -> tuple[PodcastGame, IgdbEntry | None]:
-    """The representative game for a catalog group (a non-child if any) and its best entry."""
+def _primary_and_entry(
+    matched_games: list[PodcastGame],
+    best_by_game: dict[str, IgdbEntry | None],
+) -> tuple[PodcastGame, IgdbEntry | None]:
+    """The representative game for a catalog group (a non-child if any) and its best entry.
+
+    `best_by_game` maps name_slug → best IgdbEntry, precomputed once per build so
+    `_best_igdb_entry` isn't recomputed here.
+    """
     primary = next(
-        (g for g in matched_games if (e := _best_igdb_entry(g)) and not e.is_child),
+        (g for g in matched_games if (e := best_by_game.get(g.name_slug)) and not e.is_child),
         matched_games[0],
     )
-    return primary, _best_igdb_entry(primary)
+    return primary, best_by_game.get(primary.name_slug)
 
 
 # ── IGDB resolution ───────────────────────────────────────────────────────────
 
 def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None) -> None:
+    global _data_version
     logger.info('Resolving IGDB for slug=%r name=%r', podcast_slug, name)
     correction = find_by_podcast(name, pub_ts)
     try:
@@ -263,6 +312,18 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None) -> None:
         logger.warning('IGDB resolution failed slug=%r name=%r: %s', podcast_slug, name, exc)
         return
 
+    if result and result.data is not None:
+        # Real Metacritic score (overrides the IGDB aggregate already in the blob),
+        # and durée de vie — HowLongToBeat primary, IGDB time-to-beat fallback. Both
+        # best-effort: any failure leaves the IGDB value / hides the stat.
+        mc = metacritic.fetch_metascore(result.name)
+        if mc is not None:
+            result.data['metacritic'] = mc
+        result.data['timeToBeatHours'] = (
+            hltb.fetch_time_to_beat(result.name, result.data.get('released'))
+            or fetch_time_to_beat(result.id)
+        )
+
     igdb_slug = (result.slug or make_slug(result.name)) if result else None
     now       = utcnow().isoformat()
 
@@ -277,6 +338,7 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None) -> None:
     )
     with _state_lock:
         _igdb_cache[podcast_slug] = entry
+        _data_version += 1
 
     with get_db() as conn:
         conn.execute(
@@ -302,9 +364,14 @@ _resolve_stop:   threading.Event  | None = None
 
 
 def _fresh_slugs(cache_items) -> set:
-    """Cache keys resolved within the IGDB TTL window."""
-    cutoff = (utcnow() - datetime.timedelta(hours=Config.IGDB_TTL_HOURS)).isoformat()
-    return {slug for slug, entry in cache_items if entry.cached_at > cutoff}
+    """Cache keys resolved within the IGDB TTL window. Compares parsed datetimes,
+    not ISO strings, so a whole-second timestamp (no fractional part) can't
+    mis-sort against a fractional cutoff."""
+    cutoff = utcnow() - datetime.timedelta(hours=Config.IGDB_TTL_HOURS)
+    return {
+        slug for slug, entry in cache_items
+        if datetime.datetime.fromisoformat(entry.cached_at) > cutoff
+    }
 
 
 def _count_appearances_not_in(excluded: set) -> int:
@@ -364,13 +431,6 @@ def _schedule_resolve(force: bool = False) -> None:
 _periodic_stop: threading.Event | None = None
 
 
-def _count_unresolved() -> int:
-    """Appearances never resolved (uncached) — typically the casualties of a
-    transient upstream failure, which the periodic pass retries."""
-    with _state_lock:
-        return _count_appearances_not_in(set(_igdb_cache.keys()))
-
-
 def _periodic_resolve(stop: threading.Event) -> None:
     interval = Config.RESOLVE_RETRY_MINUTES * 60
     while not stop.wait(interval):
@@ -381,9 +441,12 @@ def _periodic_resolve(stop: threading.Event) -> None:
                     _refresh_feed()
                 except Exception as exc:
                     logger.warning('Periodic feed refresh failed: %s', exc)
-            pending = _count_unresolved()
+            # Use the same TTL-aware notion the catalog/SSE use, so never-cached
+            # AND TTL-expired appearances both get picked up (a resolve refreshes
+            # cached_at, so this self-limits to once per TTL period).
+            pending = _count_pending()
             if pending:
-                logger.info('Periodic re-resolve: %d unresolved appearance(s)', pending)
+                logger.info('Periodic re-resolve: %d pending appearance(s)', pending)
                 _schedule_resolve()
         except Exception:
             logger.exception('Periodic re-resolve tick failed')
@@ -471,6 +534,7 @@ def _serialise_episode(
     return {
         'title':            episode.title,
         'slug':             episode.slug,
+        'urlSlug':          episode.url_slug,
         'audioUrl':         episode.audio_url,
         'pubTs':            episode.pub_ts,
         'imageUrl':         episode.image_url,
@@ -488,15 +552,18 @@ def _build_catalog() -> list[dict]:
     with _state_lock:
         games = dict(_game_index)
 
+    # Resolve each game's best entry exactly once; reused for grouping and below.
+    best_by_game = {name_slug: _best_igdb_entry(game) for name_slug, game in games.items()}
+
     groups: dict[str, list[PodcastGame]] = {}
-    for game in games.values():
-        entry = _best_igdb_entry(game)
+    for name_slug, game in games.items():
+        entry = best_by_game[name_slug]
         slug  = entry.igdb_slug if entry else game.name_slug
         groups.setdefault(slug, []).append(game)
 
     result = []
     for slug, matched_games in groups.items():
-        primary, entry = _primary_and_entry(matched_games)
+        primary, entry = _primary_and_entry(matched_games, best_by_game)
         igdb_slim = {
             'metacritic':   entry.data.get('metacritic'),
             'coverImageId': entry.data.get('coverImageId'),
@@ -519,50 +586,54 @@ def _build_catalog() -> list[dict]:
 def _display_name(game: PodcastGame, entry: IgdbEntry | None) -> str:
     """Resolve the display name: corrections override > IGDB canonical > raw podcast name."""
     if entry and not entry.is_child:
-        # Check if a correction provides a display_name override
+        # A correction may override the display name for a (non-child) resolution.
         first_pub_ts = game.appearances[0].episode.pub_ts if game.appearances else None
         corr         = find_by_podcast(game.name, first_pub_ts)
         if corr and corr.get('display_name'):
             return corr['display_name']
-        if entry.name:
-            return entry.name
-    elif entry and entry.is_child and entry.name:
+    if entry and entry.name:
         return entry.name
     return game.name
 
 
-def _load_game(slug: str) -> tuple[dict, list[dict]]:
-    """Return (game_info dict, episodes list) for a given igdb_slug or name_slug."""
+def _match_games(slug: str) -> tuple[list[PodcastGame], bool]:
+    """Games whose best IGDB entry resolves to `slug` (igdb_slug, resolved=True),
+    or the single name_slug match as a fallback (resolved=False). Aborts 404 when
+    neither matches."""
     with _state_lock:
         games = dict(_game_index)
-
-    # Try to find all podcast games whose best entry matches this igdb_slug
-    matched_games = [
+    matched = [
         game for game in games.values()
         if (entry := _best_igdb_entry(game)) and entry.igdb_slug == slug
     ]
-
-    if matched_games:
-        episodes = [_serialise_appearance(a) for game in matched_games for a in game.appearances]
-        primary, entry = _primary_and_entry(matched_games)
-        return {
-            'display_name': _display_name(primary, entry),
-            'slug':         slug,
-            'igdb_data':    json.dumps(entry.data) if entry and entry.data else None,
-        }, episodes
-
-    # Fall back to name_slug match
+    if matched:
+        return matched, True
     name_slug = make_slug(slug)
     if name_slug in games:
-        game     = games[name_slug]
-        episodes = [_serialise_appearance(a) for a in game.appearances]
-        return {
-            'display_name': game.name,
-            'slug':         name_slug,
-            'igdb_data':    None,
-        }, episodes
-
+        return [games[name_slug]], False
     abort(404, 'Game not found')
+
+
+def _load_game(slug: str) -> dict:
+    """Game-detail response `{name, slug, igdb, episodes}` for an igdb_slug (or a
+    name_slug fallback for an unresolved game). `igdb` is the data dict or None."""
+    matched, resolved = _match_games(slug)
+    episodes = [_serialise_appearance(a) for game in matched for a in game.appearances]
+    if resolved:
+        best_by_game   = {g.name_slug: _best_igdb_entry(g) for g in matched}
+        primary, entry = _primary_and_entry(matched, best_by_game)
+        return {
+            'name':     _display_name(primary, entry),
+            'slug':     slug,
+            'igdb':     entry.data if entry else None,
+            'episodes': episodes,
+        }
+    return {
+        'name':     matched[0].name,
+        'slug':     make_slug(slug),
+        'igdb':     None,
+        'episodes': episodes,
+    }
 
 
 # ── Pending count ─────────────────────────────────────────────────────────────
@@ -570,26 +641,57 @@ def _load_game(slug: str) -> tuple[dict, list[dict]]:
 def _count_pending() -> int:
     """Count appearances the resolver still considers pending — never resolved OR
     resolved longer ago than IGDB_TTL_HOURS. Matches `_resolve_pending`'s notion
-    of "pending" so a catalog with stale entries still opens the SSE stream and
-    gets live updates."""
+    of "pending" so the catalog gate, the SSE endpoint, and the periodic retry all
+    agree.
+
+    Memoised against (data version, minute bucket): it changes only on a version
+    bump or a TTL-boundary crossing, so a full rescan of the cache + appearances
+    runs at most once per minute per version (≤60 s staleness, self-healing)."""
+    global _pending_cache
+    bucket = int(time.monotonic() // 60)
     with _state_lock:
-        return _count_appearances_not_in(_fresh_slugs(_igdb_cache.items()))
+        if _pending_cache and _pending_cache[0] == _data_version and _pending_cache[1] == bucket:
+            return _pending_cache[2]
+        value = _count_appearances_not_in(_fresh_slugs(_igdb_cache.items()))
+        _pending_cache = (_data_version, bucket, value)
+        return value
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-def _conditional(resp):
-    """Attach a content ETag + revalidation header and 304 when If-None-Match matches."""
+def _conditional_cached(cache, key, build_payload):
+    """Conditional JSON response backed by a cached serialised body + ETag.
+
+    `cache` is the current `(key, body_text, etag)` tuple (or None). On a hit the
+    body is neither re-serialised nor re-hashed. Returns `(response, cache_tuple)`;
+    the caller stores the returned tuple back under the lock.
+    """
+    if cache and cache[0] == key:
+        resp = Response(cache[1], mimetype='application/json')
+        resp.set_etag(cache[2])
+    else:
+        resp = jsonify(build_payload())
+        resp.add_etag()
+        cache = (key, resp.get_data(as_text=True), resp.get_etag()[0])
     resp.headers['Cache-Control'] = 'no-cache'
-    resp.add_etag()
-    return resp.make_conditional(request)
+    return resp.make_conditional(request), cache
 
 
 @games_bp.route('/episodes')
 def games_episodes():
+    global _feed_cache
     with _state_lock:
+        version  = _data_version
+        cache    = _feed_cache
         episodes = list(_cached_episodes)
-    return _conditional(jsonify([_serialise_episode(ep, _build_resolved(ep)) for ep in episodes]))
+    resp, new_cache = _conditional_cached(
+        cache, version,
+        lambda: [_serialise_episode(ep, _build_resolved(ep)) for ep in episodes],
+    )
+    if new_cache is not cache:
+        with _state_lock:
+            _feed_cache = new_cache
+    return resp
 
 
 @games_bp.route('/episode')
@@ -616,21 +718,19 @@ def catalog():
             logger.warning('Feed refresh failed; serving cached catalog: %s', exc)
         else:
             _schedule_resolve()
-    return _conditional(jsonify({'games': _build_catalog(), 'pending': _count_pending()}))
-
-
-@games_bp.route('/igdb')
-def games_igdb():
-    slugs = request.args.getlist('slug')
-    if not slugs:
-        return jsonify({})
-    slug_set = set(slugs)
-    result   = {}
+    global _catalog_cache
+    pending = _count_pending()
     with _state_lock:
-        for entry in _igdb_cache.values():
-            if entry.igdb_slug in slug_set and entry.igdb_slug not in result and entry.data:
-                result[entry.igdb_slug] = entry.data
-    return jsonify(result)
+        cache = _catalog_cache
+        key   = (_data_version, pending)
+    resp, new_cache = _conditional_cached(
+        cache, key,
+        lambda: {'games': _build_catalog(), 'pending': pending},
+    )
+    if new_cache is not cache:
+        with _state_lock:
+            _catalog_cache = new_cache
+    return resp
 
 
 @games_bp.route('/refresh', methods=['POST'])
@@ -652,9 +752,16 @@ def resolution_stream():
     q = _queue_mod.Queue()
     with _resolution_subs_lock:
         _resolution_subs.append(q)
-    # If no thread is alive, nothing will broadcast 'done' — send it ourselves
+    # If no resolver is running: start one when there's pending work (it will
+    # broadcast 'resolved' events + a final 'done'), otherwise close out
+    # immediately with our own 'done'. This keeps the stream consistent with the
+    # catalog's `pending` gate — a reopen never returns an instant 'done' while
+    # work remains, which would spin the client.
     if not (_resolve_thread and _resolve_thread.is_alive()):
-        q.put_nowait({'type': 'done'})
+        if _count_pending():
+            _schedule_resolve()
+        else:
+            q.put_nowait({'type': 'done'})
 
     def generate():
         try:
@@ -679,38 +786,22 @@ def resolution_stream():
 
 @games_bp.route('/<string:slug>')
 def game_detail(slug):
-    game_row, episodes = _load_game(slug)
-    return jsonify({
-        'name':     game_row['display_name'],
-        'slug':     game_row['slug'],
-        'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
-        'episodes': episodes,
-    })
+    return jsonify(_load_game(slug))
 
 
 @games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
 @limiter.limit("10 per minute")
 def game_igdb_refresh(slug):
-    with _state_lock:
-        games = dict(_game_index)
-
+    global _data_version
     # Collect all podcast_slugs for this igdb_slug (or name_slug fallback)
-    matched_games = [
-        game for game in games.values()
-        if (entry := _best_igdb_entry(game)) and entry.igdb_slug == slug
-    ]
-    if not matched_games:
-        name_slug = make_slug(slug)
-        if name_slug in games:
-            matched_games = [games[name_slug]]
-        else:
-            abort(404, 'Game not found')
+    matched_games, _ = _match_games(slug)
 
     # Remove stale entries from memory and DB
     podcast_slugs = [a.podcast_slug for game in matched_games for a in game.appearances]
     with _state_lock:
         for ps in podcast_slugs:
             _igdb_cache.pop(ps, None)
+        _data_version += 1
     with get_db() as conn:
         ph = ','.join('?' * len(podcast_slugs))
         conn.execute(f'DELETE FROM igdb_cache WHERE slug IN ({ph})', podcast_slugs)
@@ -724,10 +815,4 @@ def game_igdb_refresh(slug):
     entry    = _best_igdb_entry(matched_games[0])
     new_slug = entry.igdb_slug if entry else make_slug(slug)
 
-    game_row, episodes = _load_game(new_slug)
-    return jsonify({
-        'name':     game_row['display_name'],
-        'slug':     game_row['slug'],
-        'igdb':     json.loads(game_row['igdb_data']) if game_row['igdb_data'] else None,
-        'episodes': episodes,
-    })
+    return jsonify(_load_game(new_slug))

@@ -16,16 +16,19 @@ export function useEpisodePlayer(gameContext = null) {
     const coverId = ctx?.coverImageId
       ?? ep.chapters?.find(ch => ch.slug === slug)?.coverImageId
       ?? null
+
     playerStore.play({
       game:            name,
       slug,
       episode:         ep.title,
       url:             ep.audioUrl,
-      ts:              ep.timestampSeconds || 0,
+      // Resume from saved progress when partway through; untouched/finished restarts.
+      ts:              playerStore.resumeTimeFor(ep.slug, ep.timestampSeconds || 0),
       timestamp:       ep.timestamp || null,
       episodeImageUrl: ep.imageUrl ?? null,
       pubTs:           ep.pubTs,
       episodeSlug:     ep.slug,
+      episodeUrlSlug:  ep.urlSlug ?? null,
       coverImageId:    coverId,
       chapters:        ep.chapters ?? [],
     })

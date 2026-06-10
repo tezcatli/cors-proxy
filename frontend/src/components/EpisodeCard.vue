@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { Play, Pause, VolumeX, Clock, ChevronRight } from 'lucide-vue-next'
-import { formatDate, progressPct } from '../lib/utils.js'
-import { usePlayerStore } from '../stores/player.js'
+import { computed } from 'vue'
+import { Play, Pause, VolumeX, Clock, ChevronRight, Check } from 'lucide-vue-next'
+import { formatDate, PROGRESS_MIN_PCT } from '../lib/utils.js'
+import { useProgress } from '../composables/useProgress.js'
+import Marquee from './Marquee.vue'
 
 const props = defineProps({
   episode:   Object,
@@ -12,24 +13,11 @@ const props = defineProps({
 })
 const emit = defineEmits(['play', 'togglePause', 'view'])
 
-const playerStore = usePlayerStore()
-const titleEl     = ref(null)
-const needsScroll = ref(false)
+const { episodeProgress } = useProgress()
 
-const episodeProgressPct = computed(() => {
-  const chapterTs = props.episode.timestampSeconds ?? 0
-  const live      = playerStore.liveProgress
-  if (live?.episodeSlug === props.episode.slug && live.chapterTs === chapterTs) return live.pct
-
-  const p = playerStore.getEpisodeProgress(props.episode.slug, chapterTs)
-  if (!p || !p.chapterEnd) return 0
-  return progressPct(p.currentTime, p.ts ?? 0, p.chapterEnd)
-})
-
-onMounted(async () => {
-  await nextTick()
-  if (titleEl.value) needsScroll.value = titleEl.value.scrollWidth > titleEl.value.clientWidth
-})
+const progress = computed(() =>
+  episodeProgress(props.episode.slug, props.episode.timestampSeconds ?? 0)
+)
 
 const hasAudio = computed(() => !!props.episode.audioUrl)
 
@@ -47,8 +35,7 @@ function handleClick() {
 
 function handleKey(e) {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick() }
-}
-</script>
+}</script>
 
 <template>
   <div
@@ -62,21 +49,18 @@ function handleKey(e) {
       <component :is="iconComp" :size="14" :fill="hasAudio ? 'currentColor' : 'none'" :stroke-width="hasAudio ? 0 : 2" />
     </div>
     <div class="flex-1 min-w-0" @click="handleClick">
-      <div
-        ref="titleEl"
-        class="ep-title-scroll"
-        :class="{ 'ep-title-scroll--on': needsScroll }"
-      >
-        <span class="ep-title-inner">{{ episode.title }}</span>
-        <span v-if="needsScroll" class="ep-title-inner" aria-hidden="true">{{ episode.title }}</span>
-      </div>
+      <Marquee :text="episode.title" class="mb-[3px]" inner-class="ep-title" />
       <div class="text-[0.7rem] text-white/45 flex gap-2 flex-wrap font-medium">
         <span>{{ formatDate(episode.pubTs) }}</span>
         <span
           v-if="episode.timestamp"
-          class="font-mono font-semibold tabular-nums inline-flex items-center gap-1"
-          style="color: var(--game-accent);"
+          class="text-game-accent font-mono font-semibold tabular-nums inline-flex items-center gap-1"
         ><Clock :size="11" :stroke-width="2.25" /> {{ episode.timestamp }}</span>
+        <span
+          v-if="progress.done"
+          class="text-game-accent font-semibold inline-flex items-center gap-0.5"
+          aria-label="Écouté"
+        ><Check :size="11" :stroke-width="3" /> Écouté</span>
       </div>
     </div>
     <button
@@ -84,8 +68,8 @@ function handleKey(e) {
       aria-label="Détails de l'épisode"
       @click.stop="emit('view', episode)"
     ><ChevronRight :size="18" :stroke-width="2" /></button>
-    <div v-if="episodeProgressPct > 2" class="ep-progress">
-      <div class="ep-progress-fill" :style="{ width: episodeProgressPct + '%' }"></div>
+    <div v-if="progress.pct > PROGRESS_MIN_PCT" class="ep-progress" :class="{ 'ep-progress--done': progress.done }">
+      <div class="ep-progress-fill" :style="{ width: progress.pct + '%' }"></div>
     </div>
   </div>
 </template>

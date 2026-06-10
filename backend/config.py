@@ -13,6 +13,9 @@ class Config:
     IGDB_CLIENT_ID:     str = os.getenv("IGDB_CLIENT_ID", "")
     IGDB_CLIENT_SECRET: str = os.getenv("IGDB_CLIENT_SECRET", "")
 
+    # Scrape the real Metacritic score during IGDB resolution (fallback: IGDB aggregate)
+    METACRITIC_SCRAPE: bool = os.getenv("METACRITIC_SCRAPE", "true").lower() == "true"
+
     # RSS / IGDB refresh
     RSS_TTL_HOURS:  int = int(os.getenv("RSS_TTL_HOURS",  "8"))
     IGDB_TTL_HOURS: int = int(os.getenv("IGDB_TTL_HOURS", "720"))  # 30 days

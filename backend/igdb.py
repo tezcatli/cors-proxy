@@ -97,30 +97,34 @@ class _RateLimiter:
 _rate_limiter = _RateLimiter(4)
 
 
-# ── Platform simplification ───────────────────────────────────────────────────
+# ── Platform brand family ─────────────────────────────────────────────────────
 
-def _simplify_platform(name: str) -> str | None:
+def _platform_family(name: str) -> str | None:
+    """Brand-family key the frontend maps to a monochrome platform icon.
+    Covers a whole brand (every PlayStation/Xbox/Nintendo generation) so the
+    distinct platform labels still share one recognisable glyph. None → generic."""
     n = name.lower()
-    if 'playstation' in n:                        return 'PlayStation'
-    if 'xbox' in n:                               return 'Xbox'
-    if 'switch' in n or 'nintendo' in n:          return 'Switch'
-    if 'windows' in n or re.search(r'\bpc\b', n): return 'PC'
-    if 'mac' in n:                                return 'Mac'
-    if 'ios' in n or 'iphone' in n:               return 'iOS'
-    if 'android' in n:                            return 'Android'
+    if 'playstation' in n:                                    return 'playstation'
+    if 'xbox' in n:                                           return 'xbox'
+    if any(k in n for k in ('switch', 'nintendo', 'wii',
+                            'game boy', 'gamecube')):          return 'nintendo'
+    if 'windows' in n or 'linux' in n or 'steam' in n \
+            or re.search(r'\bpc\b', n):                       return 'pc'
+    if any(k in n for k in ('mac', 'ios', 'iphone', 'ipad', 'apple')): return 'apple'
+    if 'android' in n:                                        return 'android'
     return None
 
 
 # ── IGDB POST ─────────────────────────────────────────────────────────────────
 
-def _post(body: str) -> list[dict]:
+def _post(body: str, endpoint: str = 'games') -> list[dict]:
     token = _get_token()
-    logger.debug('IGDB query: %s', body.strip())
+    logger.debug('IGDB query (%s): %s', endpoint, body.strip())
 
     def do():
         _rate_limiter.wait()   # honor the 4 req/s budget on every attempt
         return _session.post(
-            f'{_IGDB_BASE}/games',
+            f'{_IGDB_BASE}/{endpoint}',
             headers={
                 'Client-ID':     Config.IGDB_CLIENT_ID,
                 'Authorization': f'Bearer {token}',
@@ -180,9 +184,19 @@ def _to_game_data(game: dict) -> dict:
             game['first_release_date'], datetime.timezone.utc).year)
 
     genres    = [x['name'] for x in (game.get('genres') or [])][:3]
-    platforms = list(dict.fromkeys(filter(None,
-        (_simplify_platform(p['name']) for p in (game.get('platforms') or []))
-    )))[:4]
+
+    # One chip per platform/generation: the short IGDB abbreviation as label, plus a
+    # brand-family key the frontend turns into a monochrome icon (None → generic).
+    platforms = []
+    _seen_labels = set()
+    for p in (game.get('platforms') or []):
+        name  = p.get('name', '')
+        label = p.get('abbreviation') or name
+        if not label or label in _seen_labels:
+            continue
+        _seen_labels.add(label)
+        platforms.append({'label': label, 'family': _platform_family(name)})
+    platforms = platforms[:6]
 
     esrb = None
     for age_rating in (game.get('age_ratings') or []):
@@ -200,27 +214,47 @@ def _to_game_data(game: dict) -> dict:
 
     developer = publisher = None
     for company_role in (game.get('involved_companies') or []):
-        if not company_role.get('company'):
+        company = company_role.get('company')
+        if not company:
             continue
-        company_name = company_role['company'].get('name')
+        company_name = company.get('name')
         if company_role.get('developer') and not developer:
             developer = company_name
         if company_role.get('publisher') and not publisher:
             publisher = company_name
 
-    modes = [m['name'] for m in (game.get('game_modes') or [])][:3]
+    modes        = [m['name'] for m in (game.get('game_modes') or [])][:3]
+    themes       = [t['name'] for t in (game.get('themes') or [])][:4]
+    perspectives = [p['name'] for p in (game.get('player_perspectives') or [])][:3]
+    franchise    = ((game.get('collection') or {}).get('name')
+                    or next((f['name'] for f in (game.get('franchises') or []) if f.get('name')), None))
+    storyline    = (game.get('storyline') or '').strip() or None
+    artwork_ids  = [a['image_id'] for a in (game.get('artworks') or []) if a.get('image_id')]
 
-    steam_url = None
+    # Trailer: prefer a video whose name reads like a trailer, else the first video.
+    videos  = game.get('videos') or []
+    trailer = next((v for v in videos if v.get('video_id')
+                    and any(k in (v.get('name') or '').lower() for k in ('trailer', 'bande'))), None) \
+              or next((v for v in videos if v.get('video_id')), None)
+    trailer_id = trailer.get('video_id') if trailer else None
+
+    # Websites — category/type ids: 1 official, 3 wikipedia, 13 steam.
+    steam_url = official_url = wiki_url = None
     for website in (game.get('websites') or []):
-        # Steam is id 13 in both the new `type` and legacy `category` fields.
-        if (website.get('type') == 13 or website.get('category') == 13) and website.get('url'):
-            steam_url = website['url']
-            break
+        cat = website.get('type') if website.get('type') is not None else website.get('category')
+        url = website.get('url')
+        if not url:
+            continue
+        if   cat == 13 and not steam_url:    steam_url    = url
+        elif cat == 1  and not official_url: official_url = url
+        elif cat == 3  and not wiki_url:     wiki_url     = url
 
     return dict(
         coverImageId=cover_image_id,
         bgImageId=bg_image_id,
         screenshotIds=screenshot_ids,
+        artworkIds=artwork_ids,
+        trailerId=trailer_id,
         metacritic=metacritic,
         rating=rating,
         genres=genres,
@@ -228,10 +262,16 @@ def _to_game_data(game: dict) -> dict:
         platforms=platforms,
         esrb=esrb,
         description=description,
+        storyline=storyline,
         developer=developer,
         publisher=publisher,
         modes=modes,
+        themes=themes,
+        perspectives=perspectives,
+        franchise=franchise,
         steamUrl=steam_url,
+        officialUrl=official_url,
+        wikiUrl=wiki_url,
     )
 
 
@@ -280,7 +320,10 @@ _GAME_FIELDS = (
     'genres.name, platforms.name, cover.image_id, screenshots.image_id, '
     'age_ratings.category, age_ratings.rating, age_ratings.organization, age_ratings.rating_category, '
     'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
-    'game_modes.name, websites.category, websites.type, websites.url'
+    'game_modes.name, websites.category, websites.type, websites.url, '
+    'videos.video_id, videos.name, artworks.image_id, themes.name, '
+    'player_perspectives.name, collection.name, franchises.name, storyline, '
+    'platforms.abbreviation'
 )
 
 
@@ -353,3 +396,16 @@ def fetch_by_name(name: str, pub_ts: int | None = None) -> IgdbResult | None:
             results = in_window
 
     return _build_result(_rank_results(results, name)[0])
+
+
+def fetch_time_to_beat(igdb_id: int) -> int | None:
+    """Main-story completion time in hours from IGDB's /game_time_to_beats, or None.
+    Best-effort fallback for HowLongToBeat; never raises."""
+    try:
+        rows = _post(f'fields normally; where game_id = {int(igdb_id)}; limit 1;',
+                     endpoint='game_time_to_beats')
+    except Exception as exc:
+        logger.warning('IGDB time-to-beat failed id=%s: %s', igdb_id, exc)
+        return None
+    secs = rows[0].get('normally') if rows else None
+    return round(secs / 3600) if secs else None

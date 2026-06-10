@@ -37,7 +37,11 @@ export const useGamesStore = defineStore('games', () => {
       if (event.type === 'done') {
         _sse.close(); _sse = null
         resolving.value = false
-        load()
+        // Reconcile the catalog but DON'T re-arm SSE: a 'done' that still reports
+        // pending>0 (e.g. IGDB failures) would otherwise reopen → instant done →
+        // reopen … forever. Background retries are owned by the server's periodic
+        // resolver; the next user-initiated load re-arms.
+        load(false)
       }
     }
     _sse.onerror = () => {
@@ -48,7 +52,7 @@ export const useGamesStore = defineStore('games', () => {
       if (_sse && _sse.readyState === EventSource.CLOSED) {
         _sse = null
         resolving.value = false
-        load()
+        load(false)
       }
     }
   }
@@ -81,7 +85,7 @@ export const useGamesStore = defineStore('games', () => {
   // In-flight guard so concurrent triggers (App onMounted + the route watch)
   // coalesce into a single fetch instead of double-fetching the catalog.
   const _inflight = {}
-  function _populate(key, fetcher) {
+  function _populate(key, fetcher, armSSE = true) {
     if (_inflight[key]) return _inflight[key]
     loading.value = true
     error.value   = null
@@ -90,7 +94,7 @@ export const useGamesStore = defineStore('games', () => {
         const { games, pending } = await fetcher()
         all.value       = games
         lastFetch.value = new Date().toISOString()
-        if (pending > 0) await _startSSE()
+        if (pending > 0 && armSSE) await _startSSE()
       } catch (err) {
         error.value = err.message
       } finally {
@@ -101,7 +105,7 @@ export const useGamesStore = defineStore('games', () => {
     return _inflight[key]
   }
 
-  function load()    { return _populate('load', fetchCatalog) }
+  function load(armSSE = true) { return _populate('load', fetchCatalog, armSSE) }
   function refresh() { return _populate('refresh', refreshCatalog) }
 
   function setSort(mode) {

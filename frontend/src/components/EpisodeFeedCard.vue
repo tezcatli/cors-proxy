@@ -1,7 +1,9 @@
 <script setup>
-import { computed, ref, watch, onUnmounted, nextTick } from 'vue'
+import { computed } from 'vue'
 import { Play, Pause, VolumeX } from 'lucide-vue-next'
-import { formatDate } from '../lib/utils.js'
+import { formatDate, PROGRESS_MIN_PCT } from '../lib/utils.js'
+import { useProgress } from '../composables/useProgress.js'
+import Marquee from './Marquee.vue'
 
 const props = defineProps({
   episode:   Object,
@@ -9,6 +11,11 @@ const props = defineProps({
   isPaused:  Boolean,
 })
 const emit = defineEmits(['play', 'togglePause', 'view'])
+
+const { episodeProgress } = useProgress()
+const progress = computed(() =>
+  episodeProgress(props.episode.slug, props.episode.timestampSeconds ?? 0)
+)
 
 const hasAudio = computed(() => !!props.episode.audioUrl)
 
@@ -35,28 +42,6 @@ const playLabel = computed(() =>
   !hasAudio.value ? 'Pas d’audio'
     : props.isPlaying && !props.isPaused ? 'Mettre en pause' : 'Lire l’épisode'
 )
-
-const marqueeEl   = ref(null)
-const needsScroll = ref(false)
-
-async function checkScroll() {
-  await nextTick()
-  if (!marqueeEl.value) { needsScroll.value = false; return }
-  const inner = marqueeEl.value.firstElementChild
-  needsScroll.value = inner ? inner.offsetWidth > marqueeEl.value.clientWidth : false
-}
-
-let resizeObs = null
-watch(marqueeEl, el => {
-  resizeObs?.disconnect()
-  resizeObs = null
-  if (el) {
-    resizeObs = new ResizeObserver(checkScroll)
-    resizeObs.observe(el)
-    checkScroll()
-  }
-})
-onUnmounted(() => resizeObs?.disconnect())
 </script>
 
 <template>
@@ -84,17 +69,14 @@ onUnmounted(() => resizeObs?.disconnect())
     <div v-else class="w-10 h-10 flex-shrink-0 rounded-lg bg-white/5" />
 
     <div class="flex-1 min-w-0">
-      <div
-        ref="marqueeEl"
-        class="ep-title-scroll"
-        :class="{ 'ep-title-scroll--on': needsScroll }"
-      >
-        <span class="ep-title-inner">{{ episode.title }}</span>
-        <span v-if="needsScroll" class="ep-title-inner" aria-hidden="true">{{ episode.title }}</span>
-      </div>
+      <Marquee :text="episode.title" inner-class="ep-title" />
       <div class="text-[0.7rem] text-white/45 flex gap-1.5 flex-wrap mt-0.5 font-medium">
         <span>{{ formatDate(episode.pubTs) }}</span>
       </div>
+    </div>
+
+    <div v-if="progress.pct > PROGRESS_MIN_PCT" class="ep-progress" :class="{ 'ep-progress--done': progress.done }">
+      <div class="ep-progress-fill" :style="{ width: progress.pct + '%' }"></div>
     </div>
   </div>
 </template>

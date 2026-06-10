@@ -347,4 +347,15 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
             games=mentions,
         ))
 
+    # Assign human-readable URL slugs from the title, de-duplicated so no two
+    # episodes collide. The guid (`slug`) stays the stable internal identity;
+    # `url_slug` is purely cosmetic for routing. Feed order is stable, so the
+    # numeric suffixes on any rare collision are stable across reloads too.
+    seen: dict[str, int] = {}
+    for ep in episodes:
+        base = make_slug(ep.title) or make_slug(ep.slug) or 'episode'
+        n = seen.get(base, 0)
+        seen[base] = n + 1
+        ep.url_slug = base if n == 0 else f'{base}-{n + 1}'
+
     return episodes

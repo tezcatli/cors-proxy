@@ -30,6 +30,7 @@ class Episode:
     description: Optional[str]
     chapters: list[Chapter]
     games: list[GameMention]
+    url_slug: str = ''      # human-readable make_slug(title), de-duplicated — used only for routing/URLs
 
 
 @dataclass
@@ -37,7 +38,7 @@ class GameAppearance:
     """Links one PodcastGame to the Episode it appears in, with the game-specific timestamp."""
     episode: Episode        # reference into _cached_episodes — not a copy
     mention: GameMention
-    podcast_slug: str       # make_slug(name) + '-' + YYYYMMDD; key into _igdb_cache and DB
+    podcast_slug: str       # make_slug(name) + '-' + episode.slug (RSS guid); key into _igdb_cache and DB
 
 
 @dataclass
@@ -52,7 +53,7 @@ class PodcastGame:
 
 @dataclass
 class IgdbEntry:
-    """One resolved IGDB row, keyed by date-qualified podcast_slug."""
+    """One resolved IGDB row, keyed by podcast_slug (make_slug(name) + '-' + episode guid)."""
     podcast_slug: str
     igdb_id: Optional[int]
     igdb_slug: Optional[str]

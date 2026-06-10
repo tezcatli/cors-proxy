@@ -12,7 +12,9 @@ import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { playInto } from '../lib/flipTransition.js'
 import EpisodeCard from './EpisodeCard.vue'
 import ArtworkBackdrop from './ArtworkBackdrop.vue'
-import { ArrowLeft, RotateCw, ExternalLink, ChevronLeft, ChevronRight, X } from 'lucide-vue-next'
+import BackBar from './BackBar.vue'
+import { RotateCw, ExternalLink, ChevronLeft, ChevronRight, X, Play, Clock, Gamepad2 } from 'lucide-vue-next'
+import { platformIconPath } from '../lib/platformIcons.js'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -26,8 +28,26 @@ const game = computed(() => {
 
 const igdb         = computed(() => game.value?.igdb ?? null)
 const coverImageId = computed(() => igdb.value?.coverImageId ?? null)
+
+// Platform chips: each {label, family}. Old cached blobs store plain name
+// strings — normalise those to a family-less chip so they still render.
+const platformChips = computed(() =>
+  (igdb.value?.platforms ?? []).map(p =>
+    typeof p === 'string' ? { label: p, family: null } : p)
+)
 const coverFailed        = ref(false)
 const selectedScreenshot = ref(null)
+const trailerOpen        = ref(false)
+
+// Carousel media = key-art artworks first, then gameplay screenshots.
+const carouselImages = computed(() => [
+  ...(igdb.value?.artworkIds ?? []),
+  ...(igdb.value?.screenshotIds ?? []),
+])
+// Total slides incl. the leading trailer slide (drives arrows/dots).
+const carouselSlideCount = computed(() =>
+  (igdb.value?.trailerId ? 1 : 0) + carouselImages.value.length
+)
 
 const { cssVars } = useArtworkAccent(coverImageId)
 
@@ -49,11 +69,10 @@ function carouselGoTo(i) {
   t.scrollTo({ left: step * i, behavior: 'smooth' })
 }
 function carouselPrev() {
-  const n = igdb.value?.screenshotIds?.length ?? 0
-  if (n) carouselGoTo(Math.max(0, carouselIndex.value - 1))
+  if (carouselSlideCount.value) carouselGoTo(Math.max(0, carouselIndex.value - 1))
 }
 function carouselNext() {
-  const n = igdb.value?.screenshotIds?.length ?? 0
+  const n = carouselSlideCount.value
   if (n) carouselGoTo(Math.min(n - 1, carouselIndex.value + 1))
 }
 function updateCarouselIndex() {
@@ -93,6 +112,7 @@ watch(game, g => {
 onMounted(async () => {
   document.body.style.overflow = 'hidden'
   document.addEventListener('keydown', onKeydown)
+  window.addEventListener('resize', updateCarouselIndex)
   await nextTick()
   if (game.value && heroCoverEl.value) {
     playInto(`cover:${game.value.slug}`, heroCoverEl.value)
@@ -128,7 +148,7 @@ const gameCtx = computed(() => ({
 const { isEpPlaying, playEp, togglePause } = useEpisodePlayer(gameCtx)
 
 function viewEp(ep) {
-  router.push({ path: `/episode/${ep.slug}`, query: game.value.slug ? { game: game.value.slug } : {} })
+  router.push({ path: `/episode/${encodeURIComponent(ep.urlSlug)}`, query: game.value.slug ? { game: game.value.slug } : {} })
 }
 
 function close() {
@@ -137,6 +157,10 @@ function close() {
 }
 
 function onKeydown(e) {
+  if (trailerOpen.value) {
+    if (e.key === 'Escape') trailerOpen.value = false
+    return
+  }
   if (selectedScreenshot.value) {
     if (e.key === 'Escape')     { closeScreenshot(); return }
     if (e.key === 'ArrowLeft')  prevScreenshot()
@@ -148,6 +172,7 @@ function onKeydown(e) {
 onUnmounted(() => {
   document.body.style.overflow = ''
   document.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('resize', updateCarouselIndex)
 })
 
 function openScreenshot(id) { selectedScreenshot.value = id }
@@ -157,15 +182,15 @@ function onScreenshotKey(e, id) {
 }
 
 function prevScreenshot() {
-  const ids = igdb.value?.screenshotIds
-  if (!ids?.length) return
+  const ids = carouselImages.value
+  if (!ids.length) return
   const i = ids.indexOf(selectedScreenshot.value)
   selectedScreenshot.value = ids[(i - 1 + ids.length) % ids.length]
 }
 
 function nextScreenshot() {
-  const ids = igdb.value?.screenshotIds
-  if (!ids?.length) return
+  const ids = carouselImages.value
+  if (!ids.length) return
   const i = ids.indexOf(selectedScreenshot.value)
   selectedScreenshot.value = ids[(i + 1) % ids.length]
 }
@@ -175,13 +200,9 @@ function nextScreenshot() {
   <div class="fixed inset-0 z-[var(--z-detail)] bg-base-100" :style="cssVars">
     <!-- Loading / not found -->
     <div v-if="gamesStore.loading || !game" class="fixed inset-0 z-[var(--z-detail)] bg-base-100 flex flex-col">
-      <div class="flex items-center px-3 h-12 bg-black/35 backdrop-blur-xl border-b border-white/5 flex-shrink-0">
-        <button class="btn btn-sm btn-ghost gap-1.5 text-white/85 hover:text-white" @click="close">
-          <ArrowLeft :size="16" :stroke-width="2.25" /> Retour
-        </button>
-      </div>
+      <BackBar label="Retour" @back="close" />
       <div class="flex flex-1 items-center justify-center">
-        <span v-if="gamesStore.loading" class="loading loading-spinner loading-lg" style="color: var(--game-accent);"></span>
+        <span v-if="gamesStore.loading" class="loading loading-spinner loading-lg text-game-accent"></span>
         <p v-else class="text-base-content/50">Jeu introuvable.</p>
       </div>
     </div>
@@ -196,11 +217,7 @@ function nextScreenshot() {
       <div class="detail-content relative h-full flex flex-col">
 
         <!-- Back bar -->
-        <div class="sticky top-0 z-10 flex items-center px-3 h-12 bg-black/35 backdrop-blur-xl border-b border-white/5 flex-shrink-0">
-          <button class="btn btn-sm btn-ghost gap-1.5 text-white/85 hover:text-white" @click="close">
-            <ArrowLeft :size="16" :stroke-width="2.25" /> Retour
-          </button>
-        </div>
+        <BackBar label="Retour" @back="close" />
 
         <!-- Body -->
         <div class="detail-body">
@@ -213,7 +230,7 @@ function nextScreenshot() {
                 <img
                   :src="coverImageId && !coverFailed ? igdbUrl(coverImageId, 't_cover_big') : placeholderCover"
                   :srcset="coverImageId && !coverFailed
-                    ? `${igdbUrl(coverImageId,'t_cover_big')} 264w 374h , ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w 748h`
+                    ? `${igdbUrl(coverImageId,'t_cover_big')} 1x, ${igdbUrl(coverImageId,'t_cover_big_2x')} 2x`
                     : undefined"
                   :alt="game.name"
                   @error="coverFailed = true"
@@ -236,8 +253,8 @@ function nextScreenshot() {
                 </button>
               </div>
 
-              <!-- Scores -->
-              <div v-if="igdb?.metacritic || igdb?.rating" class="flex gap-2">
+              <!-- Stats strip: Metacritic · IGDB · Durée de vie -->
+              <div v-if="igdb?.metacritic || igdb?.rating || igdb?.timeToBeatHours" class="flex flex-wrap gap-2">
                 <div v-if="igdb?.metacritic" class="score-block" :class="getScoreClass(igdb.metacritic)">
                   <span class="score-number">{{ igdb.metacritic }}</span>
                   <span class="score-label">Metacritic</span>
@@ -246,39 +263,59 @@ function nextScreenshot() {
                   <span class="score-number">{{ igdb.rating }}</span>
                   <span class="score-label">IGDB</span>
                 </div>
+                <div v-if="igdb?.timeToBeatHours" class="score-block stat-block">
+                  <span class="score-number"><Clock :size="15" :stroke-width="2.5" /> {{ igdb.timeToBeatHours }} h</span>
+                  <span class="score-label">Durée de vie</span>
+                </div>
               </div>
 
-              <!-- Metadata chips: year (accent) · first genre (accent) · others (neutral) -->
+              <!-- Tags: year + genres + franchise (accent) · modes/perspectives/themes (neutral) -->
               <div
-                v-if="igdb?.released || igdb?.genres?.length || igdb?.platforms?.length"
+                v-if="igdb?.released || igdb?.genres?.length || igdb?.modes?.length || igdb?.perspectives?.length || igdb?.themes?.length || igdb?.franchise"
                 class="flex flex-wrap gap-1.5"
               >
                 <span v-if="igdb?.released" class="chip chip-accent">{{ igdb.released }}</span>
-                <span
-                  v-for="(g, i) in igdb?.genres ?? []"
-                  :key="g"
-                  class="chip"
-                  :class="{ 'chip-accent': i === 0 }"
-                >{{ g }}</span>
-                <span v-for="p in igdb?.platforms ?? []" :key="p" class="chip">{{ p }}</span>
+                <span v-for="g in igdb?.genres ?? []" :key="'g'+g" class="chip chip-accent">{{ g }}</span>
+                <span v-if="igdb?.franchise" class="chip chip-accent">{{ igdb.franchise }}</span>
+                <span v-for="m in igdb?.modes ?? []" :key="'m'+m" class="chip">{{ m }}</span>
+                <span v-for="pv in igdb?.perspectives ?? []" :key="'pv'+pv" class="chip">{{ pv }}</span>
+                <span v-for="t in igdb?.themes ?? []" :key="'t'+t" class="chip">{{ t }}</span>
               </div>
 
-              <!-- Developer · publisher · ESRB -->
+              <!-- Platforms — monochrome brand glyph + generation label -->
               <div
-                v-if="igdb?.developer || igdb?.esrb"
+                v-if="platformChips.length"
+                class="flex flex-wrap items-center gap-2"
+              >
+                <span v-for="(p, i) in platformChips" :key="'p'+i" class="chip" :title="p.label">
+                  <svg v-if="platformIconPath(p.family)" class="chip__icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="platformIconPath(p.family)" fill="currentColor" />
+                  </svg>
+                  <Gamepad2 v-else class="chip__icon" />
+                  {{ p.label }}
+                </span>
+              </div>
+
+              <!-- Studio · publisher · PEGI -->
+              <div
+                v-if="igdb?.developer || igdb?.publisher || igdb?.esrb"
                 class="flex items-center flex-wrap gap-2 text-[0.78rem]"
               >
-                <span v-if="igdb?.developer" class="text-white/65 font-medium">
-                  {{ igdb.developer }}<template v-if="igdb.publisher && igdb.publisher !== igdb.developer"> · {{ igdb.publisher }}</template>
+                <span v-if="igdb?.developer || igdb?.publisher" class="text-white/65 font-medium">
+                  {{ igdb.developer || igdb.publisher }}<template v-if="igdb.developer && igdb.publisher && igdb.publisher !== igdb.developer"> · {{ igdb.publisher }}</template>
                 </span>
                 <span v-if="igdb?.esrb" class="chip !text-[0.65rem]">{{ igdb.esrb }}</span>
               </div>
 
-              <!-- Description -->
+              <!-- Description + storyline -->
               <p
                 v-if="igdb?.description"
                 class="text-[0.9rem] text-white/82 leading-relaxed"
               >{{ igdb.description }}</p>
+              <p
+                v-if="igdb?.storyline"
+                class="text-[0.84rem] text-white/60 leading-relaxed whitespace-pre-line"
+              >{{ igdb.storyline }}</p>
 
               <!-- Action row -->
               <div class="detail-action-row">
@@ -287,6 +324,16 @@ function nextScreenshot() {
                   :href="igdb.steamUrl" target="_blank" rel="noopener noreferrer"
                   class="steam-pill"
                 >Steam <ExternalLink :size="13" :stroke-width="2.5" /></a>
+                <a
+                  v-if="igdb?.officialUrl"
+                  :href="igdb.officialUrl" target="_blank" rel="noopener noreferrer"
+                  class="link-pill"
+                >Site officiel <ExternalLink :size="12" :stroke-width="2.25" /></a>
+                <a
+                  v-if="igdb?.wikiUrl"
+                  :href="igdb.wikiUrl" target="_blank" rel="noopener noreferrer"
+                  class="link-pill"
+                >Wikipédia <ExternalLink :size="12" :stroke-width="2.25" /></a>
                 <span class="chip chip-accent">{{ epCount }}</span>
               </div>
             </div>
@@ -322,11 +369,27 @@ function nextScreenshot() {
             </div>
           </section>
 
-          <!-- Screenshots carousel -->
-          <section v-if="igdb?.screenshotIds?.length" class="detail-carousel">
+          <!-- Trailer + artwork + screenshots carousel -->
+          <section v-if="igdb?.trailerId || carouselImages.length" class="detail-carousel">
             <div class="detail-carousel__track" ref="carouselTrack" @scroll.passive="updateCarouselIndex">
+              <!-- Lead slide: trailer poster -->
+              <button
+                v-if="igdb?.trailerId"
+                type="button"
+                class="detail-carousel__slide detail-carousel__trailer"
+                aria-label="Lire la bande-annonce"
+                @click="trailerOpen = true"
+              >
+                <img
+                  :src="`https://i.ytimg.com/vi/${igdb.trailerId}/maxresdefault.jpg`"
+                  @error="e => e.target.src = `https://i.ytimg.com/vi/${igdb.trailerId}/hqdefault.jpg`"
+                  alt="" loading="lazy"
+                />
+                <span class="detail-carousel__play"><Play :size="26" fill="currentColor" :stroke-width="0" /></span>
+                <span class="detail-carousel__trailer-label">Bande-annonce</span>
+              </button>
               <img
-                v-for="id in igdb.screenshotIds"
+                v-for="id in carouselImages"
                 :key="id"
                 class="detail-carousel__slide"
                 role="button"
@@ -341,27 +404,27 @@ function nextScreenshot() {
               />
             </div>
             <button
-              v-if="igdb.screenshotIds.length > 1"
+              v-if="carouselSlideCount > 1"
               class="detail-carousel__arrow detail-carousel__arrow--prev"
               :disabled="carouselIndex === 0"
               aria-label="Précédent"
               @click="carouselPrev"
             ><ChevronLeft :size="20" :stroke-width="2.25" /></button>
             <button
-              v-if="igdb.screenshotIds.length > 1"
+              v-if="carouselSlideCount > 1"
               class="detail-carousel__arrow detail-carousel__arrow--next"
-              :disabled="carouselIndex >= igdb.screenshotIds.length - 1"
+              :disabled="carouselIndex >= carouselSlideCount - 1"
               aria-label="Suivant"
               @click="carouselNext"
             ><ChevronRight :size="20" :stroke-width="2.25" /></button>
-            <div v-if="igdb.screenshotIds.length > 1" class="detail-carousel__dots">
+            <div v-if="carouselSlideCount > 1" class="detail-carousel__dots">
               <button
-                v-for="(id, i) in igdb.screenshotIds"
-                :key="id"
+                v-for="i in carouselSlideCount"
+                :key="i"
                 class="detail-carousel__dot"
-                :class="{ 'is-active': i === carouselIndex }"
-                :aria-label="`Image ${i+1}`"
-                @click="carouselGoTo(i)"
+                :class="{ 'is-active': i - 1 === carouselIndex }"
+                :aria-label="`Média ${i}`"
+                @click="carouselGoTo(i - 1)"
               />
             </div>
           </section>
@@ -375,22 +438,38 @@ function nextScreenshot() {
     <Teleport to="body">
       <div v-if="selectedScreenshot" class="screenshot-lightbox" @click.self="closeScreenshot">
         <button class="lightbox-btn lightbox-close" @click="closeScreenshot" aria-label="Fermer"><X :size="20" :stroke-width="2.25" /></button>
-        <button v-if="igdb.screenshotIds.length > 1" class="lightbox-btn lightbox-prev" @click="prevScreenshot" aria-label="Précédent"><ChevronLeft :size="28" :stroke-width="2.25" /></button>
-        <button v-if="igdb.screenshotIds.length > 1" class="lightbox-btn lightbox-next" @click="nextScreenshot" aria-label="Suivant"><ChevronRight :size="28" :stroke-width="2.25" /></button>
+        <button v-if="carouselImages.length > 1" class="lightbox-btn lightbox-prev" @click="prevScreenshot" aria-label="Précédent"><ChevronLeft :size="28" :stroke-width="2.25" /></button>
+        <button v-if="carouselImages.length > 1" class="lightbox-btn lightbox-next" @click="nextScreenshot" aria-label="Suivant"><ChevronRight :size="28" :stroke-width="2.25" /></button>
         <img
           class="lightbox-img"
           :src="igdbUrl(selectedScreenshot, 't_screenshot_huge')"
-          :srcset="`${igdbUrl(selectedScreenshot, 't_screenshot_huge')} 1280w 720h, ${igdbUrl(selectedScreenshot, 't_1080p')} 1920w 1080h`"
+          :srcset="`${igdbUrl(selectedScreenshot, 't_screenshot_huge')} 1280w, ${igdbUrl(selectedScreenshot, 't_1080p')} 1920w`"
           sizes="100vw"
           alt=""
         />
-        <div v-if="igdb.screenshotIds.length > 1" class="lightbox-dots">
+        <div v-if="carouselImages.length > 1" class="lightbox-dots">
           <span
-            v-for="id in igdb.screenshotIds"
+            v-for="id in carouselImages"
             :key="id"
             class="lightbox-dot"
             :class="{ active: id === selectedScreenshot }"
             @click="selectedScreenshot = id"
+          />
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Trailer modal — bare overlay, like the screenshot lightbox -->
+    <Teleport to="body">
+      <div v-if="trailerOpen && igdb?.trailerId" class="trailer-modal" @click.self="trailerOpen = false">
+        <button class="lightbox-btn lightbox-close" @click="trailerOpen = false" aria-label="Fermer"><X :size="20" :stroke-width="2.25" /></button>
+        <div class="trailer-card__frame">
+          <iframe
+            :src="`https://www.youtube-nocookie.com/embed/${igdb.trailerId}?autoplay=1&rel=0`"
+            title="Bande-annonce"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowfullscreen
+            frameborder="0"
           />
         </div>
       </div>

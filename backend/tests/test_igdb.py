@@ -1,4 +1,4 @@
-# /igdb/game HTTP endpoint removed — IGDB data is now served exclusively through
-# GET /games/igdb (DB read) and warmed in the background by games.py.
-# Internal function tests (fetch_by_name, _normalize, etc.) to be added as
-# direct unit tests in a future test_igdb_core.py.
+# IGDB has no public HTTP endpoint — its data is served inline by GET /games and
+# GET /games/<slug>, and warmed in the background by games.py. Direct unit tests
+# for the IGDB client internals (fetch_by_name, ranking, normalisation, etc.)
+# live in test_igdb_core.py.

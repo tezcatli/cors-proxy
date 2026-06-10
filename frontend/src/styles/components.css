@@ -3,13 +3,8 @@
    The DetailView grid additionally reflows at 700 (2-col) and 1100 (3-col);
    these are intentional, content-driven layout breakpoints, not the token scale. */
 
-/* ─── Command bar (floating header) ──────────────────────────────────── */
-.command-bar {
-  position: absolute;
-  inset: 0 0 auto 0;
-  z-index: 100;
-  margin: 8px var(--gutter) 0;
-  padding: 0;
+/* ─── Floating glass chrome (shared by command bar + audio player) ───── */
+.glass-chrome {
   background:
     radial-gradient(140% 120% at 0% 0%, color-mix(in srgb, var(--game-accent) 22%, transparent), transparent 55%),
     radial-gradient(120% 100% at 100% 100%, color-mix(in srgb, #8b5cf6 14%, transparent), transparent 60%),
@@ -17,10 +12,43 @@
   backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
   border: 1px solid var(--border-accent);
+}
+
+/* ─── Command bar (floating header) ──────────────────────────────────── */
+.command-bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  margin: 8px var(--gutter) 0;
+  padding: 0;
   border-radius: var(--radius-2xl);
-  box-shadow: var(--elev-3), 0 0 36px -18px var(--game-accent);
+  box-shadow: var(--elev-3), var(--glow-accent);
 }
 @media (min-width: 600px) { .command-bar { margin-top: 12px; } }
+
+/* ─── Floating back pill (DetailView / EpisodeView) ──────────────────── */
+.back-pill {
+  position: absolute;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: var(--gutter);
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 2 * var(--gutter));
+  padding: 7px 14px 7px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--elev-2), var(--glow-accent);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring),
+              color var(--dur-fast) var(--ease-out-soft);
+}
+.back-pill:hover  { color: #fff; }
+.back-pill:active { transform: scale(0.96); }
+.back-pill__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .command-bar__inner {
   display: flex;
@@ -59,9 +87,7 @@
 @media (min-width: 600px) { .tab-pill { padding: 6px 14px; font-size: 0.82rem; } }
 .tab-pill:not(.is-active):hover { color: rgba(255, 255, 255, 0.92); }
 .tab-pill.is-active {
-  background: linear-gradient(135deg,
-    var(--game-accent),
-    color-mix(in srgb, var(--game-accent) 65%, #ffffff 35%));
+  background: var(--accent-gradient);
   color: var(--game-accent-fg);
   box-shadow:
     0 5px 16px -3px var(--game-accent),
@@ -73,7 +99,6 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  max-width: 520px;
   display: none;
 }
 @media (min-width: 600px) { .search-wrap { display: block; } }
@@ -153,6 +178,25 @@
 }
 .icon-action:active:not(:disabled) { transform: scale(0.94); }
 .icon-action:disabled { opacity: 0.5; cursor: default; }
+
+/* Resume cue: a reload-restored, still-paused track pulses its play button so
+   "tap to resume" reads at a glance. Cleared once the user starts playback. */
+.audio-player.player--resume .icon-action {
+  background: color-mix(in srgb, var(--game-accent) 24%, transparent);
+  border-color: var(--border-accent);
+  color: #fff;
+  animation: resume-pulse 1.8s var(--ease-out-soft) infinite;
+}
+@keyframes resume-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--game-accent) 55%, transparent); }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .audio-player.player--resume .icon-action { animation: none; }
+}
+/* Buffering spinner inside the play button */
+.player-spin { animation: player-spin 0.8s linear infinite; }
+@keyframes player-spin { to { transform: rotate(360deg); } }
 .icon-action.is-active {
   background: color-mix(in srgb, var(--game-accent) 22%, transparent);
   border-color: var(--border-accent);
@@ -351,6 +395,17 @@
   color: #fff;
 }
 
+/* Accent text utility (distinct name — DaisyUI owns .text-accent) */
+.text-game-accent { color: var(--game-accent); }
+
+/* Monochrome leading glyph inside a chip (e.g. platform brand icon) */
+.chip__icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
 /* ─── Score colors ─────────────────────────────────────────────────── */
 .score-high  { background: rgba(var(--rgb-high), 0.18); border-color: rgba(var(--rgb-high), 0.4); color: var(--col-high-text); }
 .score-mid   { background: rgba(var(--rgb-mid),  0.18); border-color: rgba(var(--rgb-mid),  0.4); color: var(--col-mid-text);  }
@@ -455,6 +510,11 @@
   border-radius: 0 3px 3px 0;
   transition: width var(--dur-fast) var(--ease-out-soft);
 }
+/* Listened: solid accent across the full width + faint glow. */
+.game-tile__progress--done .game-tile__progress-fill {
+  width: 100% !important;
+  box-shadow: 0 0 6px var(--game-accent, rgba(255,255,255,0.6));
+}
 
 /* ─── Score arc badge (top-right of tile) ──────────────────────────── */
 .score-arc {
@@ -539,7 +599,7 @@
     "episodes"
     "padding";
   row-gap: 24px;
-  padding: 16px;
+  padding: var(--back-clear) 16px 16px;
   max-width: 1500px;
   margin: 0 auto;
 }
@@ -553,7 +613,7 @@
       "padding  padding";
     column-gap: 32px;
     row-gap: 28px;
-    padding: 24px 28px;
+    padding: var(--back-clear) 28px 24px;
   }
 }
 @media (min-width: 1100px) {
@@ -617,9 +677,7 @@
   font-weight: 700;
   color: #fff;
   text-decoration: none;
-  background: linear-gradient(135deg,
-    var(--game-accent),
-    color-mix(in srgb, var(--game-accent) 65%, #ffffff 35%));
+  background: var(--accent-gradient);
   border: 1px solid var(--border-accent);
   box-shadow:
     0 6px 18px -4px var(--game-accent),
@@ -628,6 +686,49 @@
 }
 .steam-pill:hover { transform: translateY(-1px); filter: brightness(1.08) saturate(1.1); }
 .steam-pill:active { transform: scale(0.97); }
+
+/* Neutral external-link pill (official site, wiki) */
+.link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  transition: background var(--dur-fast) var(--ease-out-soft),
+              color var(--dur-fast) var(--ease-out-soft);
+}
+.link-pill:hover { background: rgba(255, 255, 255, 0.10); color: #fff; }
+
+/* Trailer modal — glass panel (matches the app's floating-glass language) */
+.trailer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-lightbox);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: fadeIn var(--dur-fast) var(--ease-out-soft);
+}
+.trailer-card__frame {
+  width: min(92vw, 1040px);
+  aspect-ratio: 16 / 9;
+  max-height: calc(100dvh - 140px);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--elev-4);
+}
+.trailer-card__frame iframe { width: 100%; height: 100%; border: 0; display: block; }
 
 /* Action row in the hero meta column */
 .detail-action-row {
@@ -686,6 +787,47 @@
     box-shadow: var(--elev-3), 0 0 0 1px var(--border-accent);
     transform: translateY(-2px);
   }
+}
+
+/* Lead trailer slide (a button) — poster + play overlay */
+.detail-carousel__trailer {
+  position: relative;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+.detail-carousel__trailer img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-carousel__play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in srgb, var(--game-accent) 88%, transparent);
+  box-shadow: 0 6px 20px -4px var(--game-accent);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.detail-carousel__trailer:hover .detail-carousel__play,
+.detail-carousel__trailer:focus-visible .detail-carousel__play { transform: scale(1.08); }
+.detail-carousel__trailer-label {
+  position: absolute;
+  left: 10px; bottom: 10px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .detail-carousel__arrow {
@@ -767,6 +909,14 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
 .score-number { font-size: 1.5rem; font-weight: 800; line-height: 1; font-feature-settings: 'tnum'; }
 .score-label  { font-size: 0.6rem; opacity: 0.7; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 
+/* Durée-de-vie stat (accent variant of .score-block) */
+.stat-block {
+  background: color-mix(in srgb, var(--game-accent) 14%, rgba(255, 255, 255, 0.03));
+  border-color: var(--border-accent);
+  color: #fff;
+}
+.stat-block .score-number { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+
 /* ─── Screenshot lightbox ─────────────────────────────────────────── */
 .screenshot-lightbox {
   position: fixed;
@@ -805,13 +955,12 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
 }
 .lightbox-btn:hover { background: rgba(255, 255, 255, 0.22); transform: scale(1.06); }
 
-.lightbox-close { top: 20px; right: 20px; width: 40px; height: 40px; font-size: 1rem; }
+.lightbox-close { top: 20px; right: 20px; width: 40px; height: 40px; }
 
 .lightbox-prev, .lightbox-next {
   top: 50%;
   transform: translateY(-50%);
   width: 48px; height: 48px;
-  font-size: 1.6rem;
 }
 .lightbox-prev { left: 16px; }
 .lightbox-next { right: 16px; }
@@ -921,49 +1070,34 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
     var(--game-accent, rgba(255,255,255,0.9));
   transition: width var(--dur-fast) var(--ease-out-soft);
 }
+/* Listened: solid accent across the full width + faint glow. */
+.ep-progress--done .ep-progress-fill {
+  width: 100% !important;
+  box-shadow: 0 0 6px var(--game-accent, rgba(255,255,255,0.6));
+}
 
-/* ─── Episode card title marquee ─────────────────────────────────── */
-.ep-title-scroll {
+/* ─── Marquee (overflow-scroll text — Marquee.vue) ───────────────── */
+.marquee {
   display: flex;
   overflow: hidden;
   white-space: nowrap;
-  min-width: 0;
-  margin-bottom: 3px;
-}
-.ep-title-inner {
-  display: inline-flex;
-  flex-shrink: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.35;
-  padding-right: 2.5rem;
-  letter-spacing: -0.005em;
-}
-@media (min-width: 600px) {
-  .ep-title-inner { font-size: 0.92rem; }
-}
-.ep-title-scroll--on .ep-title-inner {
-  animation: player-marquee 22s linear infinite;
-}
-
-/* ─── EpisodeView chapter title marquee ──────────────────────────── */
-.ep-ch-scroll {
-  display: flex;
-  overflow: hidden;
-  white-space: nowrap;
-  flex: 1;
+  align-items: center;
   min-width: 0;
 }
-.ep-ch-inner {
+.marquee__inner {
   display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
-  font-size: 0.88rem;
   line-height: 1.35;
   padding-right: 2.5rem;
 }
-.ep-ch-scroll--on .ep-ch-inner {
-  animation: player-marquee 22s linear infinite;
+.marquee--on .marquee__inner {
+  animation: player-marquee var(--marquee-dur, 22s) linear infinite;
 }
+/* Context modifiers (font / colour) */
+.marquee__inner.ep-title { font-size: 0.88rem; font-weight: 600; letter-spacing: -0.005em; }
+@media (min-width: 600px) { .marquee__inner.ep-title { font-size: 0.92rem; } }
+.marquee__inner.ep-ch    { font-size: 0.88rem; }
 
 /* ─── Audio player ───────────────────────────────────────────────── */
 .audio-player { display: none; }
@@ -974,20 +1108,13 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
   left: 0;
   right: 0;
   z-index: var(--z-player);
-  background:
-    radial-gradient(140% 120% at 0% 0%, color-mix(in srgb, var(--game-accent) 22%, transparent), transparent 55%),
-    radial-gradient(120% 100% at 100% 100%, color-mix(in srgb, #8b5cf6 14%, transparent), transparent 60%),
-    linear-gradient(180deg, rgba(10, 10, 22, 0.82), rgba(10, 10, 22, 0.62));
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
-  border: 1px solid var(--border-accent);
   display: flex;
   flex-direction: column;
   padding: 10px 14px;
   animation: slideUpPlayer var(--dur-med) var(--ease-out-soft);
   border-radius: var(--radius-2xl);
   margin: 0 var(--gutter) calc(8px + env(safe-area-inset-bottom, 0px));
-  box-shadow: var(--elev-4), 0 0 36px -18px var(--game-accent);
+  box-shadow: var(--elev-4), var(--glow-accent);
   isolation: isolate;
   overflow: hidden;
   touch-action: none;
@@ -1003,6 +1130,33 @@ body.player-open .grid-area {
 }
 body.player-open.player-expanded .grid-area {
   padding-bottom: calc(164px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ─── Mobile grab handle (tap to expand/collapse) ────────────────── */
+.player-grip {
+  width: 34px;
+  height: 4px;
+  margin: -2px auto 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease-out-soft);
+}
+.player-grip:hover { background: rgba(255, 255, 255, 0.42); }
+
+/* ─── Collapsed-state progress hairline (mobile only) ────────────── */
+.player-hairline {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.10);
+  pointer-events: none;
+}
+.player-hairline__fill {
+  height: 100%;
+  background: var(--game-accent);
+  border-radius: 0 2px 2px 0;
 }
 
 /* ─── Row 1 (always visible) ─────────────────────────────────────── */
@@ -1037,26 +1191,11 @@ body.player-open.player-expanded .grid-area {
   min-width: 0;
 }
 
-.player-marquee {
-  display: flex;
-  overflow: hidden;
-  white-space: nowrap;
-  align-items: center;
-  width: 100%;
-}
-.player-marquee-inner {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding-right: 3rem;
-}
-.player-marquee--on .player-marquee-inner {
-  animation: player-marquee 18s linear infinite;
-}
-
-.player-episode { font-size: 0.86rem; color: rgba(255,255,255,0.92); font-weight: 600; }
-.player-chapter { font-size: 0.86rem; font-weight: 700; color: var(--game-accent); }
+/* Player title marquee — a .marquee (Marquee.vue) with player-specific width,
+   speed, and inner colour/weight modifiers. */
+.player-marquee { width: 100%; --marquee-dur: 18s; }
+.marquee__inner.player-episode { font-size: 0.86rem; color: rgba(255,255,255,0.92); font-weight: 600; }
+.marquee__inner.player-chapter { font-size: 0.86rem; font-weight: 700; color: var(--game-accent); }
 
 /* ─── Play/pause button ──────────────────────────────────────────── */
 /* ─── Control buttons ────────────────────────────────────────────── */
@@ -1070,7 +1209,8 @@ body.player-open.player-expanded .grid-area {
   color: rgba(255, 255, 255, 0.72);
   padding: 7px 8px;
   border-radius: var(--radius-md);
-  transition: color var(--dur-fast), background var(--dur-fast),
+  transition: color var(--dur-fast) var(--ease-out-soft),
+              background var(--dur-fast) var(--ease-out-soft),
               transform var(--dur-fast) var(--ease-spring);
 }
 .player-ctrl-btn:hover  { color: #fff; background: rgba(255, 255, 255, 0.08); }
@@ -1096,7 +1236,8 @@ body.player-open.player-expanded .grid-area {
   padding: 6px;
   border-radius: var(--radius-md);
   flex-shrink: 0;
-  transition: color var(--dur-fast), background var(--dur-fast),
+  transition: color var(--dur-fast) var(--ease-out-soft),
+              background var(--dur-fast) var(--ease-out-soft),
               transform var(--dur-fast) var(--ease-spring);
 }
 .player-close-btn:hover  { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.08); }
@@ -1141,7 +1282,7 @@ body.player-open.player-expanded .grid-area {
 
 /* Expanded: reveal mobile rows */
 .audio-player.active.is-expanded .player-mobile-seek {
-  max-height: 42px;
+  max-height: 52px;
   opacity: 1;
   pointer-events: auto;
 }
@@ -1233,6 +1374,25 @@ body.player-open.player-expanded .grid-area {
   margin: 0;
 }
 
+/* Column wrapper: the interactive bar, then the optional time labels. */
+.seek {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+.seek-times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
 /* ─── Volume slider ──────────────────────────────────────────────── */
 .volume-input {
   -webkit-appearance: none;
@@ -1282,6 +1442,45 @@ body.player-open.player-expanded .grid-area {
   animation: shimmer 1.6s linear infinite;
 }
 
+/* ─── EpisodeView layout ───────────────────────────────────────── */
+.episode-body {
+  display: grid;
+  grid-template-areas: "image" "meta" "chapters";
+  gap: 16px;
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 8px var(--gutter) 128px;   /* 128px clears the audio player */
+}
+.episode-body__image    { grid-area: image; min-width: 0; }
+.episode-body__meta     { grid-area: meta; min-width: 0; }
+.episode-body__chapters { grid-area: chapters; min-width: 0; }
+/* Artwork is a full-width card — matches the meta/chapters panel width. */
+.episode-body__image img {
+  width: 100%;
+  max-height: 340px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Desktop: two columns — [artwork + info] | [chapters] */
+@media (min-width: 700px) {
+  .episode-body {
+    max-width: 1080px;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-areas:
+      "image    chapters"
+      "meta     chapters";
+    align-items: start;
+    column-gap: 28px;
+    row-gap: 20px;
+  }
+  .episode-body__image img { max-height: 260px; }
+  /* No image → info column only, chapters beside it */
+  .episode-body--no-image {
+    grid-template-areas: "meta chapters";
+  }
+}
+
 /* ─── Chapter timeline (EpisodeView) ───────────────────────────── */
 .chapter-timeline {
   position: relative;
@@ -1295,7 +1494,7 @@ body.player-open.player-expanded .grid-area {
   background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
   border-radius: 2px;
 }
-.chapter-row { position: relative; }
+.chapter-row { position: relative; flex-wrap: nowrap; }
 .chapter-row::before {
   content: '';
   position: absolute;
@@ -1340,4 +1539,8 @@ body.player-open.player-expanded .grid-area {
   /* Hide mobile rows */
   .audio-player.active .player-mobile-seek,
   .audio-player.active .player-mobile-controls { display: none !important; }
+
+  /* Mobile-only affordances: desktop has the inline seek bar */
+  .player-grip,
+  .player-hairline { display: none; }
 }

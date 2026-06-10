@@ -68,14 +68,23 @@ def test_steam_url_ignores_other_sites():
 
 # ── _to_game_data: genres / platforms / companies / year ───────────────────────
 
-def test_genres_capped_and_platforms_simplified():
+def test_genres_capped_and_platforms_labelled():
     g = _game(
         genres=[{'name': 'Action'}, {'name': 'RPG'}, {'name': 'Indie'}, {'name': 'Extra'}],
-        platforms=[{'name': 'PlayStation 5'}, {'name': 'PC (Microsoft Windows)'}, {'name': 'Xbox Series X|S'}],
+        platforms=[
+            {'name': 'PlayStation 5',          'abbreviation': 'PS5'},
+            {'name': 'PC (Microsoft Windows)', 'abbreviation': 'PC'},
+            {'name': 'Xbox Series X|S',        'abbreviation': 'Series X|S'},
+        ],
     )
     d = _to_game_data(g)
     assert d['genres'] == ['Action', 'RPG', 'Indie']            # capped at 3
-    assert d['platforms'] == ['PlayStation', 'PC', 'Xbox']      # simplified + deduped
+    # abbreviation label + brand-family key for the frontend icon
+    assert d['platforms'] == [
+        {'label': 'PS5',        'family': 'playstation'},
+        {'label': 'PC',         'family': 'pc'},
+        {'label': 'Series X|S', 'family': 'xbox'},
+    ]
 
 def test_developer_publisher_and_year():
     g = _game(
@@ -167,7 +176,7 @@ def test_fields_generated_set_is_intact():
     # The generated _FIELDS must keep the full field set (bare + both expansions).
     fields = [f.strip() for f in igdb._FIELDS.replace('fields ', '', 1).rstrip('; ').split(',')]
     assert igdb._FIELDS.startswith('fields ') and igdb._FIELDS.endswith('; ')
-    assert len(fields) == len(set(fields)) == 74   # 24 bare + 25 parent + 25 version
+    assert len(fields) == len(set(fields)) == 101  # 33 bare + 34 parent + 34 version
     for f in ('websites.type', 'age_ratings.rating_category'):
         assert f in fields
     for p in ('parent_game', 'version_parent'):

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  formatDate, timeAgo, getScoreClass, formatEpisodeCount, progressPct,
+  formatDate, timeAgo, getScoreClass, formatEpisodeCount, progressPct, formatTime,
 } from '../src/lib/utils.js';
 
 // ── getScoreClass ─────────────────────────────────────────────────────────
@@ -93,5 +93,23 @@ describe('progressPct', () => {
   it('returns 0 for a non-positive span', () => {
     expect(progressPct(150, 200, 200)).toBe(0);
     expect(progressPct(150, 300, 200)).toBe(0);
+  });
+});
+
+describe('formatTime', () => {
+  it('formats sub-hour durations as m:ss', () => {
+    expect(formatTime(0)).toBe('0:00');
+    expect(formatTime(9)).toBe('0:09');
+    expect(formatTime(90)).toBe('1:30');
+    expect(formatTime(599)).toBe('9:59');
+  });
+  it('widens to h:mm:ss past an hour', () => {
+    expect(formatTime(3600)).toBe('1:00:00');
+    expect(formatTime(3661)).toBe('1:01:01');
+  });
+  it('guards NaN/Infinity/negatives to 0:00', () => {
+    expect(formatTime(NaN)).toBe('0:00');
+    expect(formatTime(Infinity)).toBe('0:00');
+    expect(formatTime(-5)).toBe('0:00');
   });
 });

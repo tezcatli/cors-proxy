@@ -45,7 +45,7 @@ const { visibleItems: visibleEpisodes, sentinel } = useInfiniteScroll(
 )
 
 function viewEp(ep) {
-  router.push('/episode/' + encodeURIComponent(ep.slug))
+  router.push('/episode/' + encodeURIComponent(ep.urlSlug))
 }
 </script>
 

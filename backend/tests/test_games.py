@@ -273,6 +273,37 @@ def test_catalog_counts_distinct_episodes():
     assert entry['episodeCount'] == 1
 
 
+def test_count_pending_respects_ttl():
+    """TTL-expired-but-cached appearances are counted as pending (so the catalog
+    gate, SSE endpoint, and periodic retry agree on what needs resolving); freshly
+    cached ones are not. Guards the resolver-trigger unification + datetime compare."""
+    from models import IgdbEntry
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabZelda\xc2\xbb</title>
+    <guid>g1</guid><enclosure url="https://example.com/e.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
+</channel></rss>"""
+    episodes = _parse_feed(rss)
+    _, game_index = games_module._build_indexes(episodes)
+    games_module._game_index = game_index
+    slugs = [a.podcast_slug for g in game_index.values() for a in g.appearances]
+    assert slugs
+
+    def cache_with(cached_at):
+        return {s: IgdbEntry(s, 1, 'zelda', 'Zelda', {'metacritic': 90}, False, cached_at) for s in slugs}
+
+    def recount():
+        games_module._pending_cache = None      # bust the per-minute memo
+        games_module._data_version += 1
+        return games_module._count_pending()
+
+    games_module._igdb_cache = cache_with(games_module.utcnow().isoformat())
+    assert recount() == 0                         # fresh → nothing pending
+
+    games_module._igdb_cache = cache_with('2000-01-01T00:00:00')
+    assert recount() == len(slugs)                # TTL-expired → all pending
+
+
 # ── GET /games ────────────────────────────────────────────────────────────────
 
 def test_no_auth_returns_401(client):
@@ -429,21 +460,9 @@ def test_igdb_refresh_returns_game_detail(client):
     assert isinstance(data['episodes'], list)
 
 
-# ── GET /games/igdb ───────────────────────────────────────────────────────────
-
-def test_igdb_returns_map(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
-        client.get('/silence/games', headers=auth_header())
-    r = client.get('/silence/games/igdb?slug=zelda&slug=mario-kart', headers=auth_header())
-    assert_contract(r, GAMES['igdb']['success'])
-    data = r.get_json()
-    assert isinstance(data, dict)
-
-
 # ── GET /games/episodes ───────────────────────────────────────────────────────
 
-_UNIFIED_EPISODE_KEYS = ('title', 'slug', 'audioUrl', 'pubTs', 'imageUrl',
+_UNIFIED_EPISODE_KEYS = ('title', 'slug', 'urlSlug', 'audioUrl', 'pubTs', 'imageUrl',
                          'description', 'chapters', 'games', 'timestamp', 'timestampSeconds')
 
 def test_episodes_returns_list_with_unified_shape(client):

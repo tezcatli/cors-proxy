@@ -34,6 +34,12 @@
   --game-accent:     rgb(var(--rgb-primary));
   --game-accent-fg:  #ffffff;
   --game-backdrop:   rgb(var(--rgb-surface));
+  /* Shared accent CTA gradient (tab pill, steam pill, …) */
+  --accent-gradient: linear-gradient(135deg,
+    var(--game-accent),
+    color-mix(in srgb, var(--game-accent) 65%, #ffffff 35%));
+  /* Accent glow used on the floating glass chrome */
+  --glow-accent: 0 0 36px -18px var(--game-accent);
 
   /* ─── Elevation ──────────────────────────────────────────────────────── */
   --elev-1: 0 1px  2px rgba(0,0,0,0.30);
@@ -59,6 +65,8 @@
   /* ─── Horizontal gutter (shared by floating chrome + grid content) ─────
      Keeps the command bar, audio player, and grid edges on one line. */
   --gutter: 12px;
+  /* Top clearance under the floating back pill (DetailView / EpisodeView) */
+  --back-clear: 56px;
 
   /* ─── Motion ─────────────────────────────────────────────────────────── */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);

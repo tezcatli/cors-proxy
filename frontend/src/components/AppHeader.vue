@@ -60,7 +60,7 @@ function closeSearch() { searchOpen.value = false }
 </script>
 
 <template>
-  <header class="command-bar">
+  <header class="command-bar glass-chrome">
     <div class="command-bar__inner">
       <!-- Tab pills -->
       <nav class="tab-group" aria-label="Sections">
@@ -159,8 +159,9 @@ function closeSearch() { searchOpen.value = false }
         </Transition>
       </div>
 
-      <!-- Spacer pushes refresh + account to the right -->
-      <div class="flex-1" aria-hidden="true"></div>
+      <!-- Spacer pushes refresh + account right on mobile (search hidden);
+           on desktop the growing search fills the middle, so it's not needed. -->
+      <div class="flex-1 sm:hidden" aria-hidden="true"></div>
 
       <!-- Refresh -->
       <button

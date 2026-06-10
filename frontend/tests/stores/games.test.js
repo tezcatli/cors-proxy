@@ -233,4 +233,18 @@ describe('SSE resolution', () => {
     expect(store.resolving).toBe(false)
     expect(fetchCatalog).toHaveBeenCalledTimes(2)
   })
+
+  it('does not reopen SSE on done even if pending stays > 0 (no reload loop)', async () => {
+    fetchCatalog.mockResolvedValue({ games: GAMES, pending: 2 })   // always pending
+    const store = useGamesStore()
+    await store.load()
+    expect(openResolutionStream).toHaveBeenCalledTimes(1)
+
+    // 'done' while still pending: reconcile, but must NOT re-arm SSE (else loop).
+    fakeSSE.onmessage({ data: JSON.stringify({ type: 'done' }) })
+    await Promise.resolve(); await Promise.resolve()
+
+    expect(openResolutionStream).toHaveBeenCalledTimes(1)
+    expect(store.resolving).toBe(false)
+  })
 })

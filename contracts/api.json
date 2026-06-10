@@ -186,15 +186,6 @@
         "fields": ["error"]
       }
     },
-    "igdb": {
-      "success": {
-        "status": 200
-      },
-      "unauthorized": {
-        "status": 401,
-        "fields": ["error"]
-      }
-    },
     "resolution_stream": {
       "success": {
         "status": 200
@@ -216,7 +207,7 @@
     "episode": {
       "success": {
         "status": 200,
-        "fields": ["title", "slug", "audioUrl", "pubTs", "imageUrl", "description", "chapters", "games", "timestamp", "timestampSeconds"]
+        "fields": ["title", "slug", "urlSlug", "audioUrl", "pubTs", "imageUrl", "description", "chapters", "games", "timestamp", "timestampSeconds"]
       },
       "not_found": {
         "status": 404,

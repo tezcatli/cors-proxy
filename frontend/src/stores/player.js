@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { progressPct } from '../lib/utils.js'
+import { progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PCT } from '../lib/utils.js'
 
 export const usePlayerStore = defineStore('player', () => {
   const current     = ref(null)
@@ -9,13 +9,15 @@ export const usePlayerStore = defineStore('player', () => {
   const currentTime = ref(0)
   const playVersion = ref(0)   // incremented on every play() call, not on metadata updates
   const audioDuration = ref(0)
+  const restored    = ref(false)   // true while a reload-restored track sits paused, awaiting resume
 
-  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, coverImageId = null, chapters = null }) {
+  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, episodeUrlSlug = null, coverImageId = null, chapters = null }) {
     clearTimeout(_progressTimer)
     _updateProgress()
+    restored.value = false
     _playCallVersion = playVersion.value + 1
     playVersion.value++
-    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, coverImageId, chapters: chapters ?? [] }
+    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, chapters: chapters ?? [] }
     visible.value = true
     paused.value  = false
   }
@@ -30,7 +32,7 @@ export const usePlayerStore = defineStore('player', () => {
     audioDuration.value = 0
   }
 
-  function setPaused(v)      { paused.value = v }
+  function setPaused(v)      { paused.value = v; if (!v) restored.value = false }
   function setCurrentTime(t) { currentTime.value = t }
   function setDuration(d)    { audioDuration.value = d }
 
@@ -55,15 +57,32 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime.value = t
     visible.value     = true
     paused.value      = true
+    restored.value    = true
     playVersion.value++
   }
 
   // ── Progress tracking ────────────────────────────────────────────────────────
   let _playCallVersion = 0
-  const PROGRESS_KEY = 'soj-progress'
+  const PROGRESS_KEY      = 'soj-progress'
+  const PROGRESS_MAX_AGE  = 180 * 24 * 3600 * 1000   // 180 days
+  const PROGRESS_MAX_KEYS = 500                       // newest-N cap
+
+  // Keep the map bounded: drop stale entries (by savedAt), then cap to the
+  // newest PROGRESS_MAX_KEYS so localStorage and getGameProgress's scan stay small.
+  function _pruneProgressMap(map) {
+    const now     = Date.now()
+    const entries = Object.entries(map)
+      .filter(([, v]) => !v.savedAt || now - v.savedAt < PROGRESS_MAX_AGE)
+    if (entries.length > PROGRESS_MAX_KEYS) {
+      entries.sort((a, b) => (b[1].savedAt ?? 0) - (a[1].savedAt ?? 0))
+      entries.length = PROGRESS_MAX_KEYS
+    }
+    return Object.fromEntries(entries)
+  }
 
   function _loadProgressMap() {
-    try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') } catch { return {} }
+    try { return _pruneProgressMap(JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}')) }
+    catch { return {} }
   }
   const progressMap = ref(_loadProgressMap())
 
@@ -81,7 +100,7 @@ export const usePlayerStore = defineStore('player', () => {
     const chIdx      = chapters.findIndex(ch => ch.timestampSeconds === chapterTs)
     const nextCh     = chIdx >= 0 ? chapters[chIdx + 1] : null
     const chapterEnd = nextCh ? nextCh.timestampSeconds : audioDuration.value
-    progressMap.value = {
+    progressMap.value = _pruneProgressMap({
       ...progressMap.value,
       [key]: {
         currentTime: ct,
@@ -90,7 +109,7 @@ export const usePlayerStore = defineStore('player', () => {
         ts:       chapterTs,
         savedAt:  Date.now(),
       },
-    }
+    })
     _saveProgressMap()
   }
 
@@ -147,6 +166,26 @@ export const usePlayerStore = defineStore('player', () => {
     return entries.sort((a, b) => b.savedAt - a.savedAt)[0]
   }
 
+  // The time to start playback at for a given chapter/episode start: the saved
+  // position when partway through (>= MIN, < DONE), else the start (restart).
+  function resumeTimeFor(episodeSlug, startTs = 0) {
+    const saved = getEpisodeProgress(episodeSlug, startTs)
+    if (saved?.chapterEnd) {
+      const pct = progressPct(saved.currentTime, startTs, saved.chapterEnd)
+      if (pct >= PROGRESS_MIN_PCT && pct < PROGRESS_DONE_PCT) return saved.currentTime
+    }
+    return startTs
+  }
+
+  // The most-recently-saved progress entry for this episode (any chapter), or null.
+  function getEpisodeLatestProgress(episodeSlug) {
+    const prefix  = `${episodeSlug}|`
+    const entries = Object.entries(progressMap.value)
+      .filter(([k]) => k.startsWith(prefix)).map(([, v]) => v)
+    if (!entries.length) return null
+    return entries.sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))[0]
+  }
+
   // ── Persistence ─────────────────────────────────────────────────────────────
   const STORAGE_KEY = 'soj-player'
 
@@ -172,8 +211,9 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     current, visible, paused, currentTime, playVersion, currentChapter,
-    audioDuration,
+    audioDuration, restored,
     play, close, restore, setPaused, setCurrentTime, setDuration, setEpisodeImageUrl,
     updateGameSlug, liveProgress, getEpisodeProgress, getGameProgress,
+    resumeTimeFor, getEpisodeLatestProgress,
   }
 })

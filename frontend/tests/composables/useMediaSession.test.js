@@ -47,6 +47,47 @@ describe('useMediaSession', () => {
     expect(safePause).toHaveBeenCalled()
   })
 
+  it('shows the chapter title even when the chapter has no artwork', () => {
+    const store = usePlayerStore()
+    store.play({
+      game: 'Multi', episode: 'Ep 1', url: 'u', episodeImageUrl: 'ep.jpg',
+      chapters: [
+        { title: 'Chapter A', timestampSeconds: 0,   slug: 'a', coverImageId: 111 },
+        { title: 'Chapter B', timestampSeconds: 100, slug: 'b', coverImageId: null },
+      ],
+    })
+    const audioEl = ref({ duration: 200, currentTime: 0, playbackRate: 1 })
+    const { initMediaSession, syncMediaSessionMeta } =
+      useMediaSession(store, audioEl, { safePlay: vi.fn(), safePause: vi.fn() })
+
+    initMediaSession(store.current)
+    store.setCurrentTime(120)          // now in chapter B (no dedicated cover)
+    syncMediaSessionMeta()
+
+    const meta = navigator.mediaSession.metadata
+    expect(meta.title).toBe('Chapter B')        // chapter title, not the episode
+    expect(meta.artist).toBe('Ep 1')
+    expect(meta.artwork[0].src).toBe('ep.jpg')  // episode-image fallback
+  })
+
+  it('uses the chapter cover when the chapter has one', () => {
+    const store = usePlayerStore()
+    store.play({
+      game: 'Multi', episode: 'Ep 1', url: 'u', episodeImageUrl: 'ep.jpg',
+      chapters: [{ title: 'Chapter A', timestampSeconds: 0, slug: 'a', coverImageId: 111 }],
+    })
+    const audioEl = ref({ duration: 200, currentTime: 0, playbackRate: 1 })
+    const { syncMediaSessionMeta } =
+      useMediaSession(store, audioEl, { safePlay: vi.fn(), safePause: vi.fn() })
+
+    store.setCurrentTime(10)
+    syncMediaSessionMeta()
+
+    const meta = navigator.mediaSession.metadata
+    expect(meta.title).toBe('Chapter A')
+    expect(meta.artwork[0].src).toContain('111')
+  })
+
   it('updatePositionState reports the audio element position', () => {
     const store = usePlayerStore()
     const audioEl = ref({ duration: 120, currentTime: 30, playbackRate: 1 })

@@ -6,13 +6,13 @@ import { igdbUrl } from '../lib/igdbCdn.js'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { useMediaSession } from '../composables/useMediaSession.js'
 import { useBottomSheetDrag } from '../composables/useBottomSheetDrag.js'
-import { useMarquee } from '../composables/useMarquee.js'
-import { Play, Pause, SkipBack, RotateCw, RotateCcw, ChevronRight, Volume2, VolumeX, Gamepad2, X } from 'lucide-vue-next'
+import Marquee from './Marquee.vue'
+import SeekBar from './SeekBar.vue'
+import { Play, Pause, SkipBack, RotateCw, RotateCcw, ChevronRight, Volume2, VolumeX, Gamepad2, X, Loader2 } from 'lucide-vue-next'
 
 const router      = useRouter()
 const playerStore = usePlayerStore()
 const audioEl     = ref(null)
-const marqueeEl   = ref(null)
 const playerEl    = ref(null)
 
 // ── Per-track accent ────────────────────────────────────────────────────────
@@ -34,6 +34,10 @@ const playerCoverSrc = computed(() => {
 const collapsed = ref(true)
 const duration  = ref(0)
 const volume    = ref(1)
+const buffering = ref(false)
+
+// Spinner shows only when we intend to play but audio isn't ready yet.
+const showSpinner = computed(() => buffering.value && !playerStore.paused)
 
 const seekProgress = computed(() =>
   duration.value > 0 ? (playerStore.currentTime / duration.value) * 100 : 0
@@ -83,7 +87,7 @@ function jumpBack() {
   if (!audioEl.value) return
   audioEl.value.currentTime = Math.max(0, audioEl.value.currentTime - 30)
 }
-function onSeek(e)   { if (audioEl.value) audioEl.value.currentTime = parseFloat(e.target.value) }
+function onSeek(time) { if (audioEl.value) audioEl.value.currentTime = time }
 function onVolume(e) { if (audioEl.value) audioEl.value.volume = parseFloat(e.target.value) }
 
 function onArtInfoClick() {
@@ -99,7 +103,7 @@ function navigateToEpisode() {
   const cur = playerStore.current
   if (!cur) return
   if (cur.episodeSlug)
-    router.push({ path: `/episode/${encodeURIComponent(cur.episodeSlug)}`, query: cur.slug ? { game: cur.slug } : {} })
+    router.push({ path: `/episode/${encodeURIComponent(cur.episodeUrlSlug ?? cur.episodeSlug)}`, query: cur.slug ? { game: cur.slug } : {} })
   else if (cur.slug)
     router.push('/game/' + encodeURIComponent(cur.slug))
 }
@@ -128,9 +132,6 @@ const currentLabel = computed(() => {
 
 const tickKey          = computed(() => showEpisode.value ? 'ep' : 'ch')
 const isShowingChapter = computed(() => !showEpisode.value && !!playerStore.currentChapter)
-
-// ── Marquee overflow detection ───────────────────────────────────────────────
-const { needsScroll } = useMarquee(marqueeEl, currentLabel)
 
 // ── Bottom-sheet swipe (mobile only) ─────────────────────────────────────────
 const {
@@ -169,6 +170,23 @@ function onDurChange() {
 }
 function onVolChange() { volume.value = audioEl.value?.volume ?? 1 }
 
+// Buffering feedback
+function onWaiting() { buffering.value = true  }
+function onPlaying() { buffering.value = false }
+function onCanPlay() { buffering.value = false }
+
+// Persistent metadata handler: seek to the per-track target, then play if the
+// store wants playback. Replaces the per-play one-shot listener (which leaked
+// and null-deref'd on teardown).
+let _seekTarget = 0
+function onLoadedMeta() {
+  if (!audioEl.value) return
+  duration.value = audioEl.value.duration || 0
+  playerStore.setDuration(duration.value)
+  audioEl.value.currentTime = _seekTarget
+  if (!playerStore.paused) safePlay()
+}
+
 onMounted(() => {
   const el = audioEl.value
   el.addEventListener('timeupdate',    onTimeUpdate)
@@ -178,6 +196,10 @@ onMounted(() => {
   el.addEventListener('ended',         onEnded)
   el.addEventListener('durationchange',onDurChange)
   el.addEventListener('volumechange',  onVolChange)
+  el.addEventListener('loadedmetadata',onLoadedMeta)
+  el.addEventListener('waiting',       onWaiting)
+  el.addEventListener('playing',       onPlaying)
+  el.addEventListener('canplay',       onCanPlay)
 })
 
 onUnmounted(() => {
@@ -189,6 +211,10 @@ onUnmounted(() => {
   el?.removeEventListener('ended',         onEnded)
   el?.removeEventListener('durationchange',onDurChange)
   el?.removeEventListener('volumechange',  onVolChange)
+  el?.removeEventListener('loadedmetadata',onLoadedMeta)
+  el?.removeEventListener('waiting',       onWaiting)
+  el?.removeEventListener('playing',       onPlaying)
+  el?.removeEventListener('canplay',       onCanPlay)
   stopFlip()
   document.body.classList.remove('player-expanded')
 })
@@ -203,18 +229,10 @@ watch(() => playerStore.playVersion, () => {
   cur.chapters?.length ? startFlip() : stopFlip()
   initMediaSession(cur)
 
+  _seekTarget     = cur.ts ?? 0
+  buffering.value = true
   audioEl.value.src = cur.url
   audioEl.value.load()
-
-  const ts              = cur.ts ?? 0
-  const capturedVersion = playerStore.playVersion
-
-  audioEl.value.addEventListener('loadedmetadata', () => {
-    duration.value = audioEl.value.duration || 0
-    if (playerStore.playVersion !== capturedVersion) return
-    audioEl.value.currentTime = ts
-    if (!playerStore.paused) safePlay()
-  }, { once: true })
 })
 
 watch(() => playerStore.visible, visible => {
@@ -231,8 +249,8 @@ watch(() => playerStore.visible, visible => {
 <template>
   <div
     ref="playerEl"
-    class="audio-player"
-    :class="{ active: playerStore.visible, 'is-expanded': !collapsed }"
+    class="audio-player glass-chrome"
+    :class="{ active: playerStore.visible, 'is-expanded': !collapsed, 'player--resume': playerStore.restored && playerStore.paused }"
     :style="[cssVars, sheetStyle]"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
@@ -240,6 +258,9 @@ watch(() => playerStore.visible, visible => {
     @pointercancel="onPointerCancel"
   >
     <template v-if="playerStore.current">
+      <!-- Mobile grab handle: tap toggles expand/collapse (drag still works) -->
+      <div class="player-grip" @click="toggleCollapsed" :aria-label="collapsed ? 'Développer le lecteur' : 'Réduire le lecteur'" role="button"></div>
+
       <!-- Row 1: always visible -->
       <div class="player-row1">
         <!-- Cover thumb -->
@@ -253,24 +274,12 @@ watch(() => playerStore.visible, visible => {
         <!-- Info -->
         <div class="player-info" @click="onArtInfoClick">
           <Transition name="player-tick">
-            <div
+            <Marquee
               :key="tickKey"
-              ref="marqueeEl"
+              :text="currentLabel"
               class="player-marquee"
-              :class="{ 'player-marquee--on': needsScroll }"
-              style="line-height: 1.2; padding: 0; margin: 0;"
-            >
-              <div
-                class="player-marquee-inner"
-                :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
-              >{{ currentLabel }}</div>
-              <div
-                v-if="needsScroll"
-                class="player-marquee-inner"
-                :class="isShowingChapter ? 'player-chapter' : 'player-episode'"
-                aria-hidden="true"
-              >{{ currentLabel }}</div>
-            </div>
+              :inner-class="isShowingChapter ? 'player-chapter' : 'player-episode'"
+            />
           </Transition>
         </div>
 
@@ -292,31 +301,14 @@ watch(() => playerStore.visible, visible => {
 
         <!-- Desktop-only seek -->
         <div class="player-desktop-seek">
-          <div class="seek-wrap">
-            <div class="seek-track">
-              <div class="seek-fill" :style="{ width: seekProgress + '%' }"></div>
-              <span
-                v-for="ch in visibleChapters"
-                :key="ch.timestampSeconds"
-                class="seek-marker"
-                :style="{ left: (ch.timestampSeconds / (duration || 1) * 100) + '%' }"
-              />
-            </div>
-            <div class="seek-thumb" :style="{ left: seekProgress + '%' }"></div>
-            <input
-              type="range" class="seek-input"
-              min="0" :max="duration || 100"
-              :value="playerStore.currentTime"
-              @input="onSeek"
-              aria-label="Position"
-            />
-          </div>
+          <SeekBar :progress="seekProgress" :duration="duration" :chapters="visibleChapters" :current-time="playerStore.currentTime" @seek="onSeek" />
         </div>
 
         <!-- Play/pause: always visible -->
-        <button class="icon-action" @click.stop="togglePlay" :aria-label="playerStore.paused ? 'Lire' : 'Pause'">
-          <Pause v-if="!playerStore.paused" :size="18" :stroke-width="2" />
-          <Play  v-else                     :size="18" :stroke-width="2" />
+        <button class="icon-action" @click.stop="togglePlay" :aria-label="playerStore.restored && playerStore.paused ? 'Reprendre' : (playerStore.paused ? 'Lire' : 'Pause')">
+          <Loader2 v-if="showSpinner"       :size="18" :stroke-width="2" class="player-spin" />
+          <Pause   v-else-if="!playerStore.paused" :size="18" :stroke-width="2" />
+          <Play    v-else                   :size="18" :stroke-width="2" />
         </button>
 
         <!-- Desktop-only volume -->
@@ -339,26 +331,8 @@ watch(() => playerStore.visible, visible => {
 
       <!-- Mobile seek bar (hidden when collapsed) -->
       <div class="player-mobile-seek"
-        :style="dragExpand !== null ? { maxHeight: Math.round(42 * dragExpand) + 'px', opacity: dragExpand, ...(isDragging ? { transition: 'none' } : {}) } : {}">
-        <div class="seek-wrap">
-          <div class="seek-track">
-            <div class="seek-fill" :style="{ width: seekProgress + '%' }"></div>
-            <span
-              v-for="ch in visibleChapters"
-              :key="ch.timestampSeconds"
-              class="seek-marker"
-              :style="{ left: (ch.timestampSeconds / (duration || 1) * 100) + '%' }"
-            />
-          </div>
-          <div class="seek-thumb" :style="{ left: seekProgress + '%' }"></div>
-          <input
-            type="range" class="seek-input"
-            min="0" :max="duration || 100"
-            :value="playerStore.currentTime"
-            @input="onSeek"
-            aria-label="Position"
-          />
-        </div>
+        :style="dragExpand !== null ? { maxHeight: Math.round(52 * dragExpand) + 'px', opacity: dragExpand, ...(isDragging ? { transition: 'none' } : {}) } : {}">
+        <SeekBar :progress="seekProgress" :duration="duration" :chapters="visibleChapters" :current-time="playerStore.currentTime" @seek="onSeek" />
       </div>
 
       <!-- Mobile controls row (hidden when collapsed) -->
@@ -378,6 +352,10 @@ watch(() => playerStore.visible, visible => {
             <ChevronRight :size="18" :stroke-width="2" />
           </button>
         </div>
+      </div>
+      <!-- Collapsed-state progress hairline (mobile only) -->
+      <div v-if="collapsed" class="player-hairline">
+        <div class="player-hairline__fill" :style="{ width: seekProgress + '%' }"></div>
       </div>
     </template>
 

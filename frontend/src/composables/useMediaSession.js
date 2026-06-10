@@ -15,10 +15,18 @@ import { igdbUrl } from '../lib/igdbCdn.js'
 export function useMediaSession(playerStore, audioEl, { safePlay, safePause }) {
   const hasMS = 'mediaSession' in navigator
 
-  function buildArtwork(cur) {
-    if (cur.coverImageId)    return [{ src: igdbUrl(cur.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
-    if (cur.episodeImageUrl) return [{ src: cur.episodeImageUrl,                         sizes: '512x512', type: 'image/jpeg' }]
+  function imageArtwork(id, fallbackUrl) {
+    if (id)          return [{ src: igdbUrl(id, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
+    if (fallbackUrl) return [{ src: fallbackUrl,                   sizes: '512x512', type: 'image/jpeg' }]
     return []
+  }
+
+  // In a chapter: chapter cover → episode image (matches AudioPlayer's playerCoverSrc).
+  // No chapter:   launch game cover → episode image.
+  function currentArtwork() {
+    const cur = playerStore.current
+    const ch  = playerStore.currentChapter
+    return imageArtwork(ch ? ch.coverImageId : cur.coverImageId, cur.episodeImageUrl)
   }
 
   function setMSState(state) {
@@ -37,47 +45,36 @@ export function useMediaSession(playerStore, audioEl, { safePlay, safePause }) {
     } catch (_) {}
   }
 
+  function buildMetadata() {
+    const cur = playerStore.current
+    const ch  = playerStore.currentChapter
+    const md  = new MediaMetadata({
+      title:   ch?.title || cur.episode,   // chapter title whenever in a chapter, art or not
+      artist:  ch ? cur.episode : '',      // episode shown as the subtitle under the chapter
+      album:   'Silence on Joue',
+      artwork: currentArtwork(),
+    })
+    try {
+      if (cur.chapters?.length) {
+        md.chapterInformation = cur.chapters.map(c => ({
+          title:     c.title,
+          startTime: c.timestampSeconds,
+          artwork:   imageArtwork(c.coverImageId, cur.episodeImageUrl),
+        }))
+      }
+    } catch (_) {}
+    return md
+  }
+
   function syncMediaSessionMeta() {
-    if (!hasMS) return
-    const meta = navigator.mediaSession.metadata
-    if (!meta || !playerStore.current) return
-    const cur     = playerStore.current
-    const chapter = playerStore.currentChapter
-    if (chapter?.coverImageId) {
-      meta.title   = chapter.title
-      meta.artist  = cur.episode
-      meta.artwork = [{ src: igdbUrl(chapter.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
-    } else {
-      meta.title   = cur.episode
-      meta.artist  = ''
-      meta.artwork = buildArtwork(cur)
-    }
+    if (!hasMS || !playerStore.current) return
+    navigator.mediaSession.metadata = buildMetadata()   // reassign → reliable repaint
   }
 
   function initMediaSession(cur) {
     if (!hasMS) return
 
-    const episodeArt = buildArtwork(cur)
-
-    const metadata = new MediaMetadata({
-      title:   cur.episode,
-      album:   'Silence on Joue',
-      artwork: episodeArt,
-    })
-
-    try {
-      if (cur.chapters?.length) {
-        metadata.chapterInformation = cur.chapters.map(ch => ({
-          title:     ch.title,
-          startTime: ch.timestampSeconds,
-          artwork:   ch.coverImageId
-            ? [{ src: igdbUrl(ch.coverImageId, 't_cover_big_2x'), sizes: '512x512', type: 'image/jpeg' }]
-            : episodeArt,
-        }))
-      }
-    } catch (_) {}
-
-    navigator.mediaSession.metadata = metadata
+    syncMediaSessionMeta()
 
     navigator.mediaSession.setActionHandler('play',  () => safePlay())
     navigator.mediaSession.setActionHandler('pause', () => safePause())
@@ -120,17 +117,15 @@ export function useMediaSession(playerStore, audioEl, { safePlay, safePause }) {
       navigator.mediaSession.setActionHandler('previoustrack', null)
       navigator.mediaSession.setActionHandler('nexttrack', null)
     }
-
-    syncMediaSessionMeta()
   }
 
   watch(() => playerStore.currentChapter, () => {
-    if (!hasMS || !navigator.mediaSession.metadata) return
+    if (!hasMS || !playerStore.current) return
     syncMediaSessionMeta()
   })
 
   watch(() => playerStore.current?.episodeImageUrl, url => {
-    if (url && playerStore.current) initMediaSession(playerStore.current)
+    if (url && playerStore.current) syncMediaSessionMeta()
   })
 
   return { initMediaSession, syncMediaSessionMeta, setMSState, updatePositionState }

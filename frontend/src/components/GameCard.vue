@@ -1,33 +1,27 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getScoreClass, progressPct } from '../lib/utils.js'
+import { getScoreClass, PROGRESS_MIN_PCT } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import placeholderCover from '../assets/placeholder-cover.svg'
-import { usePlayerStore } from '../stores/player.js'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
+import { useProgress } from '../composables/useProgress.js'
 import { captureSource } from '../lib/flipTransition.js'
 
 const props       = defineProps({ game: Object })
 const router      = useRouter()
-const playerStore = usePlayerStore()
 const el          = ref(null)
 const imgEl       = ref(null)
 const inView      = ref(false)
+
+const { gameProgress } = useProgress()
 
 const igdb         = computed(() => props.game?.igdb ?? null)
 const coverImageId = computed(() => igdb.value?.coverImageId ?? null)
 const score        = computed(() => igdb.value?.metacritic ?? null)
 const scoreClass   = computed(() => score.value ? getScoreClass(score.value) : '')
 
-const gameTileProgressPct = computed(() => {
-  const live = playerStore.liveProgress
-  if (live && (live.chapterSlug === props.game.slug || live.gameSlug === props.game.slug)) return live.pct
-
-  const p = playerStore.getGameProgress(props.game.slug)
-  if (!p || !p.chapterEnd) return 0
-  return progressPct(p.currentTime, p.ts ?? 0, p.chapterEnd)
-})
+const progress = computed(() => gameProgress(props.game.slug))
 
 // Only run Vibrant palette extraction once the tile has scrolled into view —
 // avoids spawning thousands of idle callbacks for off-screen cards. (Covers
@@ -82,8 +76,8 @@ onUnmounted(() => {
       decoding="async"
     />
 
-    <div v-if="gameTileProgressPct > 2" class="game-tile__progress">
-      <div class="game-tile__progress-fill" :style="{ width: gameTileProgressPct + '%' }"></div>
+    <div v-if="progress.pct > PROGRESS_MIN_PCT" class="game-tile__progress" :class="{ 'game-tile__progress--done': progress.done }">
+      <div class="game-tile__progress-fill" :style="{ width: progress.pct + '%' }"></div>
     </div>
 
     <div v-if="!coverImageId" class="game-tile__title-fallback">

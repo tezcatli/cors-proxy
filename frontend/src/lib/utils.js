@@ -33,3 +33,20 @@ export function progressPct(currentTime, start, end) {
   if (span <= 0) return 0;
   return Math.min(100, Math.max(0, ((currentTime - start) / span) * 100));
 }
+
+// Progress-bar thresholds (shared by useProgress + the views).
+export const PROGRESS_MIN_PCT  = 2;    // below this we hide the bar (noise)
+export const PROGRESS_DONE_PCT = 95;   // at/above this it reads as "listened"
+
+/**
+ * Seconds → `m:ss`, widening to `h:mm:ss` past an hour. Guards NaN/Infinity
+ * (an unloaded <audio> reports those) → '0:00'.
+ */
+export function formatTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
+  const s = Math.floor(seconds % 60);
+  const m = Math.floor(seconds / 60) % 60;
+  const h = Math.floor(seconds / 3600);
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
