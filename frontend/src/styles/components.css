@@ -1454,11 +1454,10 @@ body.player-open.player-expanded .grid-area {
 .episode-body__image    { grid-area: image; min-width: 0; }
 .episode-body__meta     { grid-area: meta; min-width: 0; }
 .episode-body__chapters { grid-area: chapters; min-width: 0; }
-/* Artwork is a full-width card — matches the meta/chapters panel width. */
+/* Artwork: full-width card, shown uncropped (natural aspect, no object-fit crop). */
 .episode-body__image img {
   width: 100%;
-  max-height: 340px;
-  object-fit: cover;
+  height: auto;
   display: block;
 }
 
@@ -1474,7 +1473,6 @@ body.player-open.player-expanded .grid-area {
     column-gap: 28px;
     row-gap: 20px;
   }
-  .episode-body__image img { max-height: 260px; }
   /* No image → info column only, chapters beside it */
   .episode-body--no-image {
     grid-template-areas: "meta chapters";
