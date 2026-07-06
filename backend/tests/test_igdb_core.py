@@ -131,6 +131,17 @@ def test_build_result_is_child_flag():
     own = _build_result({'id': 3, 'name': 'Standalone'})
     assert own.id == 3 and own.is_child is False
 
+def test_build_result_canonical_false_skips_redirect():
+    # A pinned id must NOT be redirected to its parent (e.g. a remake IGDB models
+    # as a "port" of an earlier version — the 7th Guest Remake → 7th Guest VR case).
+    game = {'id': 394668, 'name': 'The 7th Guest Remake', 'slug': 'the-7th-guest-remake',
+            'game_type': {'id': 11}, 'parent_game': {'id': 251565, 'name': 'The 7th Guest VR'}}
+    # Default still redirects via parent_game (game_type 11 = port).
+    assert _build_result(game).name == 'The 7th Guest VR'
+    # canonical=False keeps the exact game.
+    exact = _build_result(game, canonical=False)
+    assert exact.id == 394668 and exact.name == 'The 7th Guest Remake' and exact.is_child is False
+
 
 # ── fetch_by_name: date-window selection ───────────────────────────────────────
 

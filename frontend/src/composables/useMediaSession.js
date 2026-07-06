@@ -51,7 +51,7 @@ export function useMediaSession(playerStore, audioEl, { safePlay, safePause }) {
     const md  = new MediaMetadata({
       title:   ch?.title || cur.episode,   // chapter title whenever in a chapter, art or not
       artist:  ch ? cur.episode : '',      // episode shown as the subtitle under the chapter
-      album:   'Silence on Joue',
+      album:   cur.podcast?.name || 'Ludothèque',
       artwork: currentArtwork(),
     })
     try {

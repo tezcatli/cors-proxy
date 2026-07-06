@@ -11,7 +11,7 @@ export function useEpisodePlayer(gameContext = null) {
 
   function playEp(ep) {
     const ctx     = gameContext?.value
-    const name    = ctx?.name  ?? ep.games?.[0]?.name ?? 'Silence on Joue'
+    const name    = ctx?.name  ?? ep.games?.[0]?.name ?? ep.podcast?.name ?? 'Ludothèque'
     const slug    = ctx?.slug  ?? ep.games?.[0]?.slug ?? null
     const coverId = ctx?.coverImageId
       ?? ep.chapters?.find(ch => ch.slug === slug)?.coverImageId
@@ -31,6 +31,7 @@ export function useEpisodePlayer(gameContext = null) {
       episodeUrlSlug:  ep.urlSlug ?? null,
       coverImageId:    coverId,
       chapters:        ep.chapters ?? [],
+      podcast:         ep.podcast ?? null,
     })
   }
 

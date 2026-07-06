@@ -6,7 +6,8 @@ import pytest
 import games as games_module
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
-from rss import extract_game_names as _extract_game_names, extract_legacy_names as _extract_legacy_names, parse_feed as _parse_feed, sanitize_html as _sanitize_html
+from rss import extract_game_names as _extract_game_names, extract_legacy_names as _extract_legacy_names, extract_fdg_names as _extract_fdg_names, parse_feed as _parse_feed, assign_url_slugs as _assign_url_slugs, sanitize_html as _sanitize_html
+from podcasts import PODCAST_BY_ID
 
 GAMES = CONTRACT['games']
 
@@ -83,6 +84,32 @@ def test_extract_legacy_names(title, expected):
 ])
 def test_extract_legacy_names_skipped(title):
     assert _extract_legacy_names(title) == []
+
+# ── _extract_fdg_names (Fin du Game title format) ─────────────────────────────
+
+@pytest.mark.parametrize('title,expected', [
+    ('Episode 167 - Ghost of Tsushima (feat. Julie le Baron)', ['Ghost of Tsushima']),
+    ('Episode 163 - Tony Hawk\'s Underground 2',                ['Tony Hawk\'s Underground 2']),
+    ('Episode 166 - Castlevania: Symphony of the Night (feat. Théo Arbogast)',
+     ['Castlevania: Symphony of the Night']),                       # colon inside name kept
+    ('Episode 89 : StarCraft II',                              ['StarCraft II']),  # colon separator
+    ('Episode 22 - Resident Evil 2 (Remake)',                 ['Resident Evil 2 (Remake)']),  # non-feat paren kept
+    ('Episode 142 - Les Sims (Feat. Héloïse Linossier & Margorito)', ['Les Sims']),  # capital Feat + &
+    ('Episode 01 - Celeste',                                  ['Celeste']),  # zero-padded number
+])
+def test_extract_fdg_names(title, expected):
+    assert _extract_fdg_names(title) == expected
+
+
+@pytest.mark.parametrize('title', [
+    'L\'avenir de Fin du Game',
+    'Annonce Saison Six de Fin du Game',
+    'Episode Bonus - Lancement du Patreon',   # non-numbered bonus → excluded
+    '',
+])
+def test_extract_fdg_names_non_game(title):
+    assert _extract_fdg_names(title) == []
+
 
 def test_extract_game_names_falls_back_to_legacy():
     names = _extract_game_names('Silence, on joue ! Gears of War 3, Resistance 3')
@@ -205,6 +232,63 @@ def test_same_day_episodes_both_kept():
     zelda = game_index[games_module.make_slug('Zelda')]
     assert zelda.episode_count == 2
     assert {a.episode.slug for a in zelda.appearances} == {'day-a', 'day-b'}
+
+def test_multi_feed_merges_same_game_across_podcasts():
+    # A game covered by BOTH podcasts merges into one PodcastGame with two
+    # appearances tagged with their distinct podcast_ids; url_slugs stay unique.
+    soj_rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabZelda\xc2\xbb</title>
+    <guid>soj-zelda</guid><enclosure url="https://example.com/soj.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 09:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
+</channel></rss>"""
+    fdg_rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>Episode 50 - Zelda</title>
+    <guid>fdg-zelda</guid><enclosure url="https://example.com/fdg.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Fri, 10 Jan 2025 09:00:00 +0000</pubDate><description>Analyse complete</description></item>
+</channel></rss>"""
+    soj = PODCAST_BY_ID['silence-on-joue']
+    fdg = PODCAST_BY_ID['fin-du-game']
+    episodes = (
+        _parse_feed(soj_rss, extractor=soj.extractor, podcast_id=soj.id)
+        + _parse_feed(fdg_rss, extractor=fdg.extractor, podcast_id=fdg.id)
+    )
+    _assign_url_slugs(episodes)
+    assert len({ep.url_slug for ep in episodes}) == len(episodes)  # globally unique
+
+    _, game_index = games_module._build_indexes(episodes)
+    zelda = game_index[games_module.make_slug('Zelda')]
+    assert zelda.episode_count == 2
+    assert {a.episode.podcast_id for a in zelda.appearances} == {'silence-on-joue', 'fin-du-game'}
+
+
+def test_multi_feed_episodes_interleave_by_date():
+    # The combined feed must be newest-first across BOTH podcasts, so a recent FDG
+    # episode sorts above older SOJ episodes instead of all SOJ coming first.
+    soj_rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>Vieux \xc2\xabZelda\xc2\xbb</title>
+    <guid>soj-old</guid><enclosure url="https://example.com/o.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 09:00:00 +0000</pubDate><description>x</description></item>
+  <item><title>Recent \xc2\xabMario\xc2\xbb</title>
+    <guid>soj-new</guid><enclosure url="https://example.com/n.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Wed, 01 Jan 2025 09:00:00 +0000</pubDate><description>x</description></item>
+</channel></rss>"""
+    fdg_rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>Episode 50 - Balatro</title>
+    <guid>fdg-mid</guid><enclosure url="https://example.com/m.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Fri, 10 May 2024 09:00:00 +0000</pubDate><description>x</description></item>
+</channel></rss>"""
+    soj = PODCAST_BY_ID['silence-on-joue']
+    fdg = PODCAST_BY_ID['fin-du-game']
+    episodes = (
+        _parse_feed(soj_rss, extractor=soj.extractor, podcast_id=soj.id)
+        + _parse_feed(fdg_rss, extractor=fdg.extractor, podcast_id=fdg.id)
+    )
+    episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
+    order = [e.slug for e in episodes]
+    assert order == ['soj-new', 'fdg-mid', 'soj-old']     # interleaved, newest-first
+    pts = [e.pub_ts or 0 for e in episodes]
+    assert pts == sorted(pts, reverse=True)
+
 
 def test_intra_episode_duplicate_deduped():
     # Same game mentioned twice in ONE episode → a single appearance.
@@ -463,9 +547,13 @@ def test_igdb_refresh_returns_game_detail(client):
 # ── GET /games/episodes ───────────────────────────────────────────────────────
 
 _UNIFIED_EPISODE_KEYS = ('title', 'slug', 'urlSlug', 'audioUrl', 'pubTs', 'imageUrl',
-                         'description', 'chapters', 'games', 'timestamp', 'timestampSeconds')
+                         'description', 'chapters', 'games', 'podcast', 'timestamp', 'timestampSeconds')
 
-def test_episodes_returns_list_with_unified_shape(client):
+# The feed *list* is a slim shape: `description` and `chapters` are omitted (they're
+# served by the single-episode detail) to keep the payload small.
+_SLIM_EPISODE_KEYS = tuple(k for k in _UNIFIED_EPISODE_KEYS if k not in ('description', 'chapters'))
+
+def test_episodes_returns_list_with_slim_shape(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
         client.get('/silence/games', headers=auth_header())
@@ -473,8 +561,11 @@ def test_episodes_returns_list_with_unified_shape(client):
     assert_contract(r, GAMES['episodes']['success'])
     data = r.get_json()
     assert isinstance(data, list) and len(data) > 0
-    for key in _UNIFIED_EPISODE_KEYS:
+    for key in _SLIM_EPISODE_KEYS:
         assert key in data[0], f"missing '{key}' in feed episode"
+    # Heavy fields must NOT be in the list payload — they belong to the detail endpoint.
+    assert 'description' not in data[0]
+    assert 'chapters'    not in data[0]
 
 
 # ── GET /games/episode ────────────────────────────────────────────────────────
@@ -486,6 +577,10 @@ def test_episode_detail_returns_unified_shape(client):
     slug = client.get('/silence/games/episodes', headers=auth_header()).get_json()[0]['slug']
     r = client.get(f'/silence/games/episode?slug={slug}', headers=auth_header())
     assert_contract(r, GAMES['episode']['success'])
+    # The single-episode endpoint keeps the FULL shape (incl. description + chapters).
+    body = r.get_json()
+    for key in _UNIFIED_EPISODE_KEYS:
+        assert key in body, f"missing '{key}' in episode detail"
 
 def test_episode_missing_slug_returns_400(client):
     r = client.get('/silence/games/episode', headers=auth_header())

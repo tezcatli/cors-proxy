@@ -5,14 +5,19 @@ import { usePlayerStore } from './player.js'
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
 
+// One reusable collator — `String.localeCompare(s, 'fr', {…})` rebuilds a collator
+// per call, which is costly when sorting ~1600 names on each keystroke.
+const collator = new Intl.Collator('fr', { sensitivity: 'base' })
+
 export const useGamesStore = defineStore('games', () => {
-  const all       = ref([])
-  const lastFetch = ref(null)
-  const sortMode  = ref(localStorage.getItem('soj-sort-mode') || 'alpha')
-  const sortAsc   = ref(localStorage.getItem('soj-sort-asc') !== 'false')
-  const loading   = ref(false)
-  const resolving = ref(false)
-  const error     = ref(null)
+  const all             = ref([])
+  const lastFetch       = ref(null)
+  const sortMode        = ref(localStorage.getItem('soj-sort-mode') || 'alpha')
+  const sortAsc         = ref(localStorage.getItem('soj-sort-asc') !== 'false')
+  const selectedPodcast = ref(localStorage.getItem('soj-podcast-filter') || 'all')
+  const loading         = ref(false)
+  const resolving       = ref(false)
+  const error           = ref(null)
 
   let _sse = null
 
@@ -66,19 +71,21 @@ export const useGamesStore = defineStore('games', () => {
         const ma = a.igdb?.metacritic ?? null
         const mb = b.igdb?.metacritic ?? null
         if (ma === null && mb === null)
-          return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+          return collator.compare(a.name, b.name)
         if (ma === null) return 1
         if (mb === null) return -1
         return dir * (ma - mb)
       }
-      return dir * a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+      return dir * collator.compare(a.name, b.name)
     })
   }
 
   function filtered(query = '') {
-    const games = query
-      ? all.value.filter(g => g.name.toLowerCase().includes(query.toLowerCase()))
-      : all.value
+    let games = all.value
+    if (selectedPodcast.value !== 'all')
+      games = games.filter(g => g.podcasts?.includes(selectedPodcast.value))
+    if (query)
+      games = games.filter(g => g.name.toLowerCase().includes(query.toLowerCase()))
     return _sort(games)
   }
 
@@ -119,5 +126,10 @@ export const useGamesStore = defineStore('games', () => {
     localStorage.setItem('soj-sort-asc', String(sortAsc.value))
   }
 
-  return { all, lastFetch, sortMode, sortAsc, loading, resolving, error, filtered, load, refresh, setSort }
+  function setPodcast(id) {
+    selectedPodcast.value = id
+    localStorage.setItem('soj-podcast-filter', id)
+  }
+
+  return { all, lastFetch, sortMode, sortAsc, selectedPodcast, loading, resolving, error, filtered, load, refresh, setSort, setPodcast }
 })

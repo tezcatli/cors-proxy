@@ -89,14 +89,23 @@ watch(searchQuery, q => {
 
 const hideUnresolved = ref(true)
 
+// Debounce the query that drives the (filter + locale-sort of ~1600 games) so fast
+// typing doesn't re-run it on every keystroke. Separate from the 350 ms URL sync.
+const debouncedQuery = ref(searchQuery.value)
+let filterTimer
+watch(searchQuery, q => {
+  clearTimeout(filterTimer)
+  filterTimer = setTimeout(() => { debouncedQuery.value = q }, 140)
+})
+
 const displayedGames = computed(() => {
-  let games = gamesStore.filtered(searchQuery.value.trim())
+  let games = gamesStore.filtered(debouncedQuery.value.trim())
   if (hideUnresolved.value) games = games.filter(g => g.igdb !== null)
   return games
 })
 
 const gridResetKey = computed(() =>
-  `${searchQuery.value.trim()}|${hideUnresolved.value}|${gamesStore.sortMode}|${gamesStore.sortAsc}`
+  `${debouncedQuery.value.trim()}|${hideUnresolved.value}|${gamesStore.sortMode}|${gamesStore.sortAsc}|${gamesStore.selectedPodcast}`
 )
 
 watch(
@@ -180,9 +189,11 @@ onUnmounted(() => _barObserver?.disconnect())
       :resolving="gamesStore.resolving"
       :last-fetch="gamesStore.lastFetch"
       :hide-unresolved="hideUnresolved"
+      :selected-podcast="gamesStore.selectedPodcast"
       :is-episodes="isEpisodes"
       @update:searchQuery="handleSearchUpdate"
       @set-sort="gamesStore.setSort"
+      @set-podcast="gamesStore.setPodcast"
       @refresh="handleRefresh"
       @toggle-hide-unresolved="hideUnresolved = !hideUnresolved"
     >

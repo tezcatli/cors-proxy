@@ -31,6 +31,7 @@ class Episode:
     chapters: list[Chapter]
     games: list[GameMention]
     url_slug: str = ''      # human-readable make_slug(title), de-duplicated — used only for routing/URLs
+    podcast_id: str = ''    # source podcast id (e.g. 'silence-on-joue', 'fin-du-game')
 
 
 @dataclass

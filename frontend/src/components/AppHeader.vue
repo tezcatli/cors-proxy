@@ -3,18 +3,22 @@ import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Search, RotateCw, X, ArrowUp, ArrowDown, SlidersHorizontal, Check } from 'lucide-vue-next'
 import { timeAgo } from '../lib/utils.js'
+import { PODCASTS } from '../lib/podcasts.js'
 
 const props = defineProps({
-  searchQuery:    String,
-  sortMode:       String,
-  sortAsc:        Boolean,
-  loading:        Boolean,
-  resolving:      Boolean,
-  lastFetch:      String,
-  hideUnresolved: Boolean,
-  isEpisodes:     Boolean,
+  searchQuery:     String,
+  sortMode:        String,
+  sortAsc:         Boolean,
+  loading:         Boolean,
+  resolving:       Boolean,
+  lastFetch:       String,
+  hideUnresolved:  Boolean,
+  selectedPodcast: String,
+  isEpisodes:      Boolean,
 })
-const emit = defineEmits(['update:searchQuery', 'setSort', 'refresh', 'toggle-hide-unresolved'])
+const emit = defineEmits(['update:searchQuery', 'setSort', 'setPodcast', 'refresh', 'toggle-hide-unresolved'])
+
+const podcastOptions = [{ id: 'all', name: 'Tous les podcasts' }, ...PODCASTS]
 
 const searchPlaceholder = computed(() =>
   props.isEpisodes ? 'Rechercher un épisode…' : 'Rechercher un jeu…'
@@ -27,7 +31,7 @@ const sortOptions = [
 ]
 
 const lastFetchLabel = computed(() => props.lastFetch ? timeAgo(props.lastFetch) : null)
-const filtersActive  = computed(() => props.hideUnresolved || props.sortMode !== 'alpha' || !props.sortAsc)
+const filtersActive  = computed(() => props.hideUnresolved || props.sortMode !== 'alpha' || !props.sortAsc || props.selectedPodcast !== 'all')
 
 // ── Filters popover ─────────────────────────────────────────────────
 const popoverOpen = ref(false)
@@ -137,6 +141,24 @@ function closeSearch() { searchOpen.value = false }
                   :stroke-width="2.5"
                   class="popover__dir"
                 />
+              </button>
+            </div>
+
+            <div class="popover__divider"></div>
+
+            <div class="popover__title">Podcast</div>
+            <div class="flex flex-col gap-1 mb-3">
+              <button
+                v-for="opt in podcastOptions"
+                :key="opt.id"
+                class="popover__row"
+                :class="{ 'is-active': selectedPodcast === opt.id }"
+                @click="emit('setPodcast', opt.id)"
+              >
+                <span class="popover__row-label">
+                  <Check v-if="selectedPodcast === opt.id" :size="14" :stroke-width="2.5" class="popover__check" />
+                  {{ opt.name }}
+                </span>
               </button>
             </div>
 

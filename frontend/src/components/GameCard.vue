@@ -7,6 +7,7 @@ import placeholderCover from '../assets/placeholder-cover.svg'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { useProgress } from '../composables/useProgress.js'
 import { captureSource } from '../lib/flipTransition.js'
+import PodcastBadge from './PodcastBadge.vue'
 
 const props       = defineProps({ game: Object })
 const router      = useRouter()
@@ -67,10 +68,11 @@ onUnmounted(() => {
     <img
       ref="imgEl"
       class="game-tile__img"
-      :src="coverImageId ? igdbUrl(coverImageId, 't_cover_big_2x') : placeholderCover"
+      :src="coverImageId ? igdbUrl(coverImageId, 't_cover_big') : placeholderCover"
       :srcset="coverImageId
-        ? `${igdbUrl(coverImageId,'t_cover_small')} 90w 128h, ${igdbUrl(coverImageId,'t_cover_big')} 264w 374h, ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w 748h`
+        ? `${igdbUrl(coverImageId,'t_cover_small')} 90w, ${igdbUrl(coverImageId,'t_cover_big')} 264w, ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w`
         : undefined"
+      sizes="(min-width:1024px) 176px, (min-width:640px) 23vw, 33vw"
       :alt="game.name"
       loading="lazy"
       decoding="async"
@@ -82,6 +84,10 @@ onUnmounted(() => {
 
     <div v-if="!coverImageId" class="game-tile__title-fallback">
       <span class="line-clamp-4">{{ game.name }}</span>
+    </div>
+
+    <div v-if="game.podcasts?.length" class="game-tile__podcasts">
+      <PodcastBadge v-for="p in game.podcasts" :key="p" :id="p" />
     </div>
 
     <div v-if="score" class="score-arc" :class="scoreClass">{{ score }}</div>

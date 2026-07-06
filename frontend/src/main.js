@@ -13,6 +13,12 @@ if ('serviceWorker' in navigator && import.meta.env.MODE !== 'development') {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (prevController) window.location.reload()
   })
+} else if ('serviceWorker' in navigator) {
+  // Dev: a SW left over from a prior prod build on this origin would keep serving
+  // stale cached API responses (dev never re-registers to update it). Tear it down
+  // and drop its caches so dev always hits the live backend.
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))
+  if (window.caches) caches.keys().then(ks => ks.forEach(k => k.startsWith('soj-') && caches.delete(k)))
 }
 
 const app = createApp(App)

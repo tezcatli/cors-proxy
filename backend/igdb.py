@@ -298,14 +298,18 @@ def _resolve_canonical(game: dict) -> dict:
     return game
 
 
-def _build_result(game: dict) -> IgdbResult:
-    canonical = _resolve_canonical(game)
+def _build_result(game: dict, canonical: bool = True) -> IgdbResult:
+    # `canonical=False` builds the fetched game verbatim, skipping the
+    # parent/version redirect — used when a human correction pins an exact
+    # igdb_id and that choice must not be overridden (e.g. IGDB modelling a
+    # standalone remake as a "port" of an earlier version).
+    target = _resolve_canonical(game) if canonical else game
     return IgdbResult(
-        id=canonical['id'],
-        name=canonical['name'],
-        slug=canonical.get('slug'),
-        data=_to_game_data(canonical),
-        is_child=(canonical is not game),
+        id=target['id'],
+        name=target['name'],
+        slug=target.get('slug'),
+        data=_to_game_data(target),
+        is_child=(target is not game),
     )
 
 
@@ -368,12 +372,15 @@ def _search_candidates(safe: str, safe_base: str | None, pub_ts: int | None) -> 
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def fetch_by_id(igdb_id: int) -> IgdbResult | None:
-    """Direct lookup by IGDB id. Returns IgdbResult or None. Raises RequestException on failure."""
+def fetch_by_id(igdb_id: int, canonical: bool = True) -> IgdbResult | None:
+    """Direct lookup by IGDB id. Returns IgdbResult or None. Raises RequestException on failure.
+
+    `canonical=False` returns the exact id without parent/version redirection — for
+    correction-pinned ids a curator chose deliberately."""
     results = _post(f'{_FIELDS}where id = {int(igdb_id)}; limit 1;')
     if not results:
         return None
-    return _build_result(results[0])
+    return _build_result(results[0], canonical=canonical)
 
 
 def fetch_by_name(name: str, pub_ts: int | None = None) -> IgdbResult | None:

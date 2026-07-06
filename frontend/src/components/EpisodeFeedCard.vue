@@ -4,6 +4,7 @@ import { Play, Pause, VolumeX } from 'lucide-vue-next'
 import { formatDate, PROGRESS_MIN_PCT } from '../lib/utils.js'
 import { useProgress } from '../composables/useProgress.js'
 import Marquee from './Marquee.vue'
+import PodcastBadge from './PodcastBadge.vue'
 
 const props = defineProps({
   episode:   Object,
@@ -70,7 +71,8 @@ const playLabel = computed(() =>
 
     <div class="flex-1 min-w-0">
       <Marquee :text="episode.title" inner-class="ep-title" />
-      <div class="text-[0.7rem] text-white/45 flex gap-1.5 flex-wrap mt-0.5 font-medium">
+      <div class="text-[0.7rem] text-white/45 flex gap-1.5 flex-wrap mt-0.5 font-medium items-center">
+        <PodcastBadge v-if="episode.podcast" :id="episode.podcast.id" />
         <span>{{ formatDate(episode.pubTs) }}</span>
       </div>
     </div>

@@ -11,13 +11,13 @@ export const usePlayerStore = defineStore('player', () => {
   const audioDuration = ref(0)
   const restored    = ref(false)   // true while a reload-restored track sits paused, awaiting resume
 
-  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, episodeUrlSlug = null, coverImageId = null, chapters = null }) {
+  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, episodeUrlSlug = null, coverImageId = null, chapters = null, podcast = null }) {
     clearTimeout(_progressTimer)
     _updateProgress()
     restored.value = false
     _playCallVersion = playVersion.value + 1
     playVersion.value++
-    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, chapters: chapters ?? [] }
+    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, podcast, chapters: chapters ?? [] }
     visible.value = true
     paused.value  = false
   }

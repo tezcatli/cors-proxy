@@ -280,6 +280,29 @@ def extract_game_names(title: str) -> list[str]:
     return guillemet_names if guillemet_names else extract_legacy_names(title)
 
 
+# ── "Fin du Game" title format ────────────────────────────────────────────────
+# Titles are "Episode <N> - <Game>" (N may be zero-padded), one game per episode.
+# A few use a colon separator ("Episode 89 : StarCraft II"); the separator is
+# anchored right after the number, so a colon *inside* a game name (e.g.
+# "Castlevania: Symphony of the Night") is preserved by the dash matching first.
+# Parentheticals that are part of the name ("(Remake)", "(2016)", "(Saison 1)")
+# are kept; only a trailing guest credit ("(feat. …)" / "(avec …)") is stripped.
+# Meta/announcement episodes lack the numbered prefix → no game (excluded).
+_FDG_PREFIX      = re.compile(r'^\s*(?:Episode|Épisode)\s+\d+\s*[-–—:]\s*', re.IGNORECASE)
+_FDG_FEAT_SUFFIX = re.compile(r'\s*\((?:feat\.?|avec)\b[^)]*\)\s*$',        re.IGNORECASE)
+
+
+def extract_fdg_names(title: str) -> list[str]:
+    """Extract the single game name from a 'Fin du Game' episode title."""
+    if not title:
+        return []
+    m = _FDG_PREFIX.match(title)
+    if not m:
+        return []
+    name = _FDG_FEAT_SUFFIX.sub('', title[m.end():]).strip()
+    return [name] if len(name) >= 2 else []
+
+
 # ── Feed parser ───────────────────────────────────────────────────────────────
 
 def is_game_catalog_excluded(title: str) -> bool:
@@ -287,8 +310,31 @@ def is_game_catalog_excluded(title: str) -> bool:
     return any(p.search(title) for p in _SKIP_TITLE)
 
 
-def parse_feed(xml_bytes: bytes) -> list[Episode]:
-    """Parse an RSS feed and return one Episode per RSS item."""
+def assign_url_slugs(episodes: list[Episode]) -> None:
+    """Assign human-readable, de-duplicated url_slugs in place.
+
+    The guid (`slug`) stays the stable internal identity; `url_slug` is purely
+    cosmetic for routing. Called once over the *combined* episode list of all
+    feeds so slugs are unique globally, not just within a single feed. Feed order
+    is stable, so the numeric suffixes on any rare collision are stable too.
+    """
+    seen: dict[str, int] = {}
+    for ep in episodes:
+        base = make_slug(ep.title) or make_slug(ep.slug) or 'episode'
+        n = seen.get(base, 0)
+        seen[base] = n + 1
+        ep.url_slug = base if n == 0 else f'{base}-{n + 1}'
+
+
+def parse_feed(xml_bytes: bytes, extractor=extract_game_names,
+               podcast_id: str = '') -> list[Episode]:
+    """Parse an RSS feed and return one Episode per RSS item.
+
+    `extractor` maps an episode title to its raw game names (podcast-specific).
+    `podcast_id` stamps the source podcast onto every Episode. url_slugs are NOT
+    assigned here — call `assign_url_slugs` over the combined multi-feed list so
+    they stay globally unique.
+    """
     root    = ET.fromstring(xml_bytes)
     channel = root.find('channel')
     if channel is None:
@@ -298,7 +344,7 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
     for item in channel.findall('item'):
         title = (item.findtext('title') or '').strip() or 'Episode sans titre'
 
-        game_names = extract_game_names(title)
+        game_names = extractor(title)
 
         audio_url = _get_audio_url(item)
 
@@ -345,17 +391,7 @@ def parse_feed(xml_bytes: bytes) -> list[Episode]:
             description=clean_desc or None,
             chapters=chapters,
             games=mentions,
+            podcast_id=podcast_id,
         ))
-
-    # Assign human-readable URL slugs from the title, de-duplicated so no two
-    # episodes collide. The guid (`slug`) stays the stable internal identity;
-    # `url_slug` is purely cosmetic for routing. Feed order is stable, so the
-    # numeric suffixes on any rare collision are stable across reloads too.
-    seen: dict[str, int] = {}
-    for ep in episodes:
-        base = make_slug(ep.title) or make_slug(ep.slug) or 'episode'
-        n = seen.get(base, 0)
-        seen[base] = n + 1
-        ep.url_slug = base if n == 0 else f'{base}-{n + 1}'
 
     return episodes

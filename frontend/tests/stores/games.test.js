@@ -44,6 +44,45 @@ describe('filtered', () => {
   })
 })
 
+// ── podcast filter ──────────────────────────────────────────────────────────
+
+const MULTI = [
+  { name: 'Zelda',  slug: 'zelda',  podcasts: ['silence-on-joue', 'fin-du-game'], igdb: null },
+  { name: 'Mario',  slug: 'mario',  podcasts: ['silence-on-joue'],                igdb: null },
+  { name: 'Balatro', slug: 'balatro', podcasts: ['fin-du-game'],                  igdb: null },
+]
+
+describe('podcast filter', () => {
+  it('defaults to all podcasts', () => {
+    const store = useGamesStore()
+    store.all = MULTI
+    expect(store.selectedPodcast).toBe('all')
+    expect(store.filtered('')).toHaveLength(3)
+  })
+
+  it('filters to a single podcast', () => {
+    const store = useGamesStore()
+    store.all = MULTI
+    store.setPodcast('fin-du-game')
+    const names = store.filtered('').map(g => g.name).sort()
+    expect(names).toEqual(['Balatro', 'Zelda'])   // Zelda is in both → still included
+  })
+
+  it('combines podcast filter with a name query', () => {
+    const store = useGamesStore()
+    store.all = MULTI
+    store.setPodcast('silence-on-joue')
+    expect(store.filtered('zelda')).toHaveLength(1)
+    expect(store.filtered('balatro')).toHaveLength(0)   // FDG-only, excluded by SoJ filter
+  })
+
+  it('persists the selection to localStorage', () => {
+    const store = useGamesStore()
+    store.setPodcast('fin-du-game')
+    expect(localStorage.getItem('soj-podcast-filter')).toBe('fin-du-game')
+  })
+})
+
 // ── setSort ───────────────────────────────────────────────────────────────
 
 describe('setSort', () => {

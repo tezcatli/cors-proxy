@@ -22,7 +22,7 @@ describe('play', () => {
     store.play({ game: 'Zelda', episode: 'Ep 1', url: 'https://ex.com/ep1.mp3', ts: 90, timestamp: '1:30' })
     expect(store.current).toEqual({
       game: 'Zelda', slug: 'Zelda', episode: 'Ep 1', url: 'https://ex.com/ep1.mp3',
-      ts: 90, timestamp: '1:30', episodeImageUrl: null, pubTs: null, episodeSlug: null, episodeUrlSlug: null, coverImageId: null, chapters: [],
+      ts: 90, timestamp: '1:30', episodeImageUrl: null, pubTs: null, episodeSlug: null, episodeUrlSlug: null, coverImageId: null, podcast: null, chapters: [],
     })
     expect(store.visible).toBe(true)
     expect(store.paused).toBe(false)

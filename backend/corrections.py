@@ -142,6 +142,10 @@ CORRECTIONS = [
         "hint_date": "2024-05-10",
     },
     {
+        "podcast_name": "The 7th Guest Remake",
+        "igdb_id":      394668,
+    },
+    {
         "podcast_name": "civilization 6",
         "search_name":  "Sid Meier's Civilization VI"
     },

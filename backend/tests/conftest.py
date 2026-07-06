@@ -20,6 +20,7 @@ import pytest
 from app import create_app
 from config import Config
 import games as _games
+from podcasts import PODCAST_BY_ID as _PODCAST_BY_ID
 
 
 def auth_header(email='user@example.com'):
@@ -42,6 +43,19 @@ def app():
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture(autouse=True)
+def single_podcast():
+    """Default tests to a single-feed registry so the blanket `http.get` mock
+    (one static response) isn't fetched once per registered podcast. Multi-feed
+    tests opt in by re-patching `games.PODCASTS` within the test."""
+    saved = _games.PODCASTS
+    _games.PODCASTS = [_PODCAST_BY_ID['silence-on-joue']]
+    yield
+    _games.PODCASTS = saved
+    _games._feed_meta     = {}
+    _games._feed_episodes = {}
 
 
 @pytest.fixture(autouse=True)

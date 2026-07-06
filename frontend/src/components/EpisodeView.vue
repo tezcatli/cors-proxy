@@ -8,6 +8,7 @@ import { formatDate, formatTime, progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PC
 import ArtworkBackdrop from './ArtworkBackdrop.vue'
 import Marquee from './Marquee.vue'
 import BackBar from './BackBar.vue'
+import PodcastBadge from './PodcastBadge.vue'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { useProgress } from '../composables/useProgress.js'
 import { Play, Pause, ExternalLink, Check } from 'lucide-vue-next'
@@ -84,6 +85,7 @@ function playFrom(ts, timestamp) {
     episodeUrlSlug:  episode.value.urlSlug,
     coverImageId:    gameCoverImageId.value,
     chapters:        episode.value.chapters ?? [],
+    podcast:         episode.value.podcast ?? null,
   })
 }
 
@@ -167,7 +169,8 @@ const resumeEntry = computed(() => {
             <h1 class="text-[1.25rem] font-extrabold leading-tight tracking-[-0.015em] mb-1 sm:text-[1.4rem]">
               {{ episode.title }}
             </h1>
-            <p class="text-[0.72rem] text-white/45 mb-4 font-medium">
+            <p class="text-[0.72rem] text-white/45 mb-4 font-medium flex items-center gap-2">
+              <PodcastBadge v-if="episode.podcast" :id="episode.podcast.id" />
               {{ formatDate(episode.pubTs) }}
             </p>
 

@@ -90,8 +90,8 @@ onMounted(() => {
 
       <div class="text-center mb-7">
         <div class="text-5xl mb-2 drop-shadow-[0_4px_16px_rgba(233,69,96,0.5)]">🎮</div>
-        <h1 class="text-2xl font-extrabold tracking-[-0.02em]">Silence on Joue</h1>
-        <p class="text-xs text-white/45 mt-1 font-medium">Catalogue des jeux du podcast</p>
+        <h1 class="text-2xl font-extrabold tracking-[-0.02em]">Ludothèque</h1>
+        <p class="text-xs text-white/45 mt-1 font-medium">Les jeux de vos podcasts</p>
       </div>
 
       <div class="panel p-7 shadow-e4">

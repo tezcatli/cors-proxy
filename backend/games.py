@@ -17,7 +17,8 @@ from igdb import fetch_by_id, fetch_by_name, fetch_time_to_beat
 import hltb
 import metacritic
 from models import Chapter, Episode, GameAppearance, IgdbEntry, PodcastGame
-from rss import parse_feed, is_game_catalog_excluded, find_chapter_for_game
+from podcasts import PODCASTS, podcast_meta
+from rss import parse_feed, assign_url_slugs, is_game_catalog_excluded, find_chapter_for_game
 from utils import make_slug
 
 import logging
@@ -26,8 +27,6 @@ logger = logging.getLogger(__name__)
 
 games_bp = Blueprint('games', __name__, url_prefix='/silence/games')
 games_bp.before_request(require_auth)
-
-_RSS_URL = 'https://feeds.acast.com/public/shows/silence-on-joue'
 
 
 # ── In-memory state ───────────────────────────────────────────────────────────
@@ -177,31 +176,72 @@ def _build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
     return episode_index, game_index
 
 
-_feed_etag:          str | None = None
-_feed_last_modified: str | None = None
+# Per-podcast HTTP cache validators and last-parsed episode lists. The cached
+# episode lists let a 304 ("unchanged") keep that feed's episodes while another
+# feed is re-parsed — every refresh recombines all feeds into one catalog.
+_feed_meta:     dict[str, dict] = {}            # podcast_id -> {etag, last_modified}
+_feed_episodes: dict[str, list[Episode]] = {}   # podcast_id -> last parsed episodes
+
+
+def _fetch_feed(podcast) -> bool:
+    """Fetch one podcast's feed; (re)parse it into `_feed_episodes` on a 200.
+
+    Returns True when the feed changed (200, re-parsed), False on 304/unchanged.
+    Raises on network/HTTP/parse errors — caller decides how to handle.
+    """
+    headers = {'User-Agent': 'PodcastCatalog/1.0'}
+    meta = _feed_meta.get(podcast.id, {})
+    if meta.get('etag'):          headers['If-None-Match']    = meta['etag']
+    if meta.get('last_modified'): headers['If-Modified-Since'] = meta['last_modified']
+
+    resp = http.get(podcast.feed_url, timeout=Config.REQUEST_TIMEOUT, headers=headers)
+    if resp.status_code == 304 and podcast.id in _feed_episodes:
+        logger.info('Feed %s unchanged (304); keeping cached episodes', podcast.id)
+        return False
+    resp.raise_for_status()
+    _feed_meta[podcast.id] = {
+        'etag':          resp.headers.get('ETag'),
+        'last_modified': resp.headers.get('Last-Modified'),
+    }
+    _feed_episodes[podcast.id] = parse_feed(
+        resp.content, extractor=podcast.extractor, podcast_id=podcast.id)
+    return True
 
 
 def _refresh_feed() -> None:
+    """Fetch every registered podcast, then recombine all feeds into one catalog.
+
+    Each feed is fetched independently (per-feed ETag); a single feed failing
+    doesn't abort the others as long as we already have cached episodes for it.
+    If *no* feed yields any episodes, the whole refresh raises so the caller can
+    keep serving the previous cache rather than blanking it.
+    """
     global _cached_episodes, _episode_index, _game_index, _cached_at, _data_version
-    global _feed_etag, _feed_last_modified
 
-    headers = {'User-Agent': 'SilenceOnJoue/1.0'}
-    if _feed_etag:          headers['If-None-Match']     = _feed_etag
-    if _feed_last_modified: headers['If-Modified-Since']  = _feed_last_modified
+    errors: list[str] = []
+    for podcast in PODCASTS:
+        try:
+            _fetch_feed(podcast)
+        except Exception as exc:
+            errors.append(f'{podcast.id}: {exc}')
+            logger.warning('Feed fetch failed for %s: %s', podcast.id, exc)
 
-    resp = http.get(_RSS_URL, timeout=Config.REQUEST_TIMEOUT, headers=headers)
-    if resp.status_code == 304:
-        logger.info('RSS feed unchanged (304); skipping re-parse')
-        with _state_lock:
-            _cached_at = utcnow()
-        return
-    resp.raise_for_status()
-    _feed_etag          = resp.headers.get('ETag')
-    _feed_last_modified = resp.headers.get('Last-Modified')
-    episodes                        = parse_feed(resp.content)
-    ai_index                        = _load_ai_chapter_index()
+    # Combine every feed's episodes (cached lists survive a 304 or a failed fetch).
+    episodes = [ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])]
+    if not episodes:
+        raise RuntimeError('No episodes from any feed: ' + '; '.join(errors) if errors
+                           else 'No episodes from any feed')
+
+    # Interleave both feeds newest-first; otherwise each feed's block would stay
+    # contiguous (e.g. all SOJ before any FDG) and the second podcast would be
+    # buried at the bottom of the episodes feed. Stable sort keeps ties/undated
+    # items in their existing intra-feed order.
+    episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
+
+    assign_url_slugs(episodes)
+    ai_index = _load_ai_chapter_index()
     _inject_ai_chapters(episodes, ai_index)
-    episode_index, game_index       = _build_indexes(episodes)
+    episode_index, game_index = _build_indexes(episodes)
     with _state_lock:
         _cached_episodes = episodes
         _episode_index   = episode_index
@@ -298,7 +338,9 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None) -> None:
     correction = find_by_podcast(name, pub_ts)
     try:
         if correction and correction.get('igdb_id'):
-            result = fetch_by_id(correction['igdb_id'])
+            # A pinned id is authoritative — don't let canonical resolution redirect
+            # it (e.g. a remake IGDB models as a "port" of an earlier version).
+            result = fetch_by_id(correction['igdb_id'], canonical=False)
         else:
             search_name = (correction or {}).get('search_name') or name
             hint_date   = (correction or {}).get('hint_date')
@@ -541,8 +583,33 @@ def _serialise_episode(
         'description':      episode.description,
         'chapters':         chapters,
         'games':            games,
+        'podcast':          podcast_meta(episode.podcast_id),
         'timestamp':        mention.timestamp        if mention else None,
         'timestampSeconds': mention.timestamp_seconds if mention else 0,
+    }
+
+
+def _serialise_episode_slim(episode: Episode) -> dict:
+    """Lightweight episode shape for the feed *list* (`GET /games/episodes`).
+
+    Omits `description` and `chapters` — together ~70% of the full feed payload —
+    since the list cards (EpisodeFeedCard) never read them; they're served by the
+    single-episode endpoint instead. Also skips the per-episode `_build_resolved`
+    IGDB scan (run for every episode otherwise). `games` is kept (names power the
+    feed's client-side search)."""
+    return {
+        'title':            episode.title,
+        'slug':             episode.slug,
+        'urlSlug':          episode.url_slug,
+        'audioUrl':         episode.audio_url,
+        'pubTs':            episode.pub_ts,
+        'imageUrl':         episode.image_url,
+        'games':            [{'name': g.name, 'timestamp': g.timestamp,
+                              'timestampSeconds': g.timestamp_seconds}
+                             for g in episode.games],
+        'podcast':          podcast_meta(episode.podcast_id),
+        'timestamp':        None,
+        'timestampSeconds': 0,
     }
 
 
@@ -572,12 +639,17 @@ def _build_catalog() -> list[dict]:
         # episode must not double-count it.
         episode_slugs = {a.episode.slug for g in matched_games for a in g.appearances}
         pub_tss       = [g.latest_pub_ts for g in matched_games if g.latest_pub_ts is not None]
+        # Source podcasts that cover this game (drives badges + the header filter).
+        podcasts = sorted({a.episode.podcast_id
+                           for g in matched_games for a in g.appearances
+                           if a.episode.podcast_id})
         result.append({
             'slug':         slug,
             'name':         _display_name(primary, entry),
             'igdb':         igdb_slim,
             'episodeCount': len(episode_slugs),
             'latestPubTs':  max(pub_tss) if pub_tss else None,
+            'podcasts':     podcasts,
         })
 
     return sorted(result, key=lambda g: g['name'].lower())
@@ -686,7 +758,7 @@ def games_episodes():
         episodes = list(_cached_episodes)
     resp, new_cache = _conditional_cached(
         cache, version,
-        lambda: [_serialise_episode(ep, _build_resolved(ep)) for ep in episodes],
+        lambda: [_serialise_episode_slim(ep) for ep in episodes],
     )
     if new_cache is not cache:
         with _state_lock:
