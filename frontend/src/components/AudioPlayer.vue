@@ -66,12 +66,44 @@ function safePause() {
   }
 }
 
+// ── Wedge recovery (Android drops buffered audio on background/stall) ────────
+// A wedged element is errored or has no current data: play() on it never yields
+// a `playing` event, so the only recovery is to re-fetch the source.
+function isWedged() {
+  const el = audioEl.value
+  return !!el && (!!el.error || el.readyState < 2 /* HAVE_CURRENT_DATA */)
+}
+
+// Attach a source and let onLoadedMeta seek to `seekTo` (and play if intended).
+function loadSource(url, seekTo) {
+  if (!audioEl.value) return
+  _seekTarget     = seekTo ?? 0
+  buffering.value = true
+  audioEl.value.src = url
+  audioEl.value.load()
+}
+
+// Reload the current track at the last-known-good position and resume. The
+// store's currentTime survives even when the element's data was released.
+let _recovering = false
+function hardResume() {
+  const el = audioEl.value
+  if (!el || !playerStore.current) return
+  playerStore.setPaused(false)   // intent = play; onLoadedMeta will safePlay()
+  loadSource(playerStore.current.url, playerStore.currentTime || el.currentTime || 0)
+}
+
+function resumePlayback() { isWedged() ? hardResume() : safePlay() }
+
 // ── MediaSession (lock-screen / OS controls) ─────────────────────────────────
 const { initMediaSession, setMSState, updatePositionState } =
-  useMediaSession(playerStore, audioEl, { safePlay, safePause })
+  useMediaSession(playerStore, audioEl, { safePlay, safePause, resumePlayback })
 
 // ── Controls ────────────────────────────────────────────────────────────────
-function togglePlay()      { playerStore.paused ? safePlay() : safePause() }
+function togglePlay() {
+  if (playerStore.paused || isWedged()) resumePlayback()
+  else safePause()
+}
 function toggleCollapsed() { collapsed.value = !collapsed.value }
 function closePlayer()     { safePause(); playerStore.close() }
 
@@ -172,8 +204,31 @@ function onVolChange() { volume.value = audioEl.value?.volume ?? 1 }
 
 // Buffering feedback
 function onWaiting() { buffering.value = true  }
-function onPlaying() { buffering.value = false }
+function onStalled() { buffering.value = true  }
+function onPlaying() { buffering.value = false; _recovering = false }
 function onCanPlay() { buffering.value = false }
+
+// The element's resource broke (Android release, decode/network error). If we
+// still intend to play, re-fetch once — guarded so a genuinely dead source can't
+// loop (cleared on the next successful `playing`).
+function onError() {
+  buffering.value = true
+  if (!playerStore.paused && !_recovering && playerStore.current) {
+    _recovering = true
+    hardResume()
+  }
+}
+
+// Auto-recovery triggers: network came back, or the tab returned to foreground
+// (Android suspends background media). Only act when playback was intended and
+// the element is actually wedged.
+function onOnline() {
+  if (!playerStore.paused && (buffering.value || isWedged())) hardResume()
+}
+function onVisible() {
+  if (document.visibilityState === 'visible' && !playerStore.paused && isWedged())
+    hardResume()
+}
 
 // Persistent metadata handler: seek to the per-track target, then play if the
 // store wants playback. Replaces the per-play one-shot listener (which leaked
@@ -198,8 +253,12 @@ onMounted(() => {
   el.addEventListener('volumechange',  onVolChange)
   el.addEventListener('loadedmetadata',onLoadedMeta)
   el.addEventListener('waiting',       onWaiting)
+  el.addEventListener('stalled',       onStalled)
+  el.addEventListener('error',         onError)
   el.addEventListener('playing',       onPlaying)
   el.addEventListener('canplay',       onCanPlay)
+  window.addEventListener('online',    onOnline)
+  document.addEventListener('visibilitychange', onVisible)
 })
 
 onUnmounted(() => {
@@ -213,8 +272,12 @@ onUnmounted(() => {
   el?.removeEventListener('volumechange',  onVolChange)
   el?.removeEventListener('loadedmetadata',onLoadedMeta)
   el?.removeEventListener('waiting',       onWaiting)
+  el?.removeEventListener('stalled',       onStalled)
+  el?.removeEventListener('error',         onError)
   el?.removeEventListener('playing',       onPlaying)
   el?.removeEventListener('canplay',       onCanPlay)
+  window.removeEventListener('online',    onOnline)
+  document.removeEventListener('visibilitychange', onVisible)
   stopFlip()
   document.body.classList.remove('player-expanded')
 })
@@ -229,10 +292,8 @@ watch(() => playerStore.playVersion, () => {
   cur.chapters?.length ? startFlip() : stopFlip()
   initMediaSession(cur)
 
-  _seekTarget     = cur.ts ?? 0
-  buffering.value = true
-  audioEl.value.src = cur.url
-  audioEl.value.load()
+  _recovering = false
+  loadSource(cur.url, cur.ts ?? 0)
 })
 
 watch(() => playerStore.visible, visible => {

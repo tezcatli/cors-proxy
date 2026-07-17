@@ -47,6 +47,21 @@ describe('useMediaSession', () => {
     expect(safePause).toHaveBeenCalled()
   })
 
+  it('routes the lock-screen play action through resumePlayback when provided', () => {
+    const store = usePlayerStore()
+    store.play({ game: 'Zelda', episode: 'Ep 1', url: 'u', chapters: [] })
+    const safePlay = vi.fn()
+    const resumePlayback = vi.fn()
+    const audioEl = ref({ duration: 100, currentTime: 0, playbackRate: 1 })
+    const { initMediaSession } =
+      useMediaSession(store, audioEl, { safePlay, safePause: vi.fn(), resumePlayback })
+
+    initMediaSession(store.current)
+    handlers.play()
+    expect(resumePlayback).toHaveBeenCalled()
+    expect(safePlay).not.toHaveBeenCalled()   // recovery-aware path wins
+  })
+
   it('shows the chapter title even when the chapter has no artwork', () => {
     const store = usePlayerStore()
     store.play({

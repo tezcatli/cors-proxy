@@ -8,11 +8,12 @@ import { igdbUrl } from '../lib/igdbCdn.js'
  *
  * @param playerStore  the Pinia player store.
  * @param audioEl      template ref to the <audio> element.
- * @param controls     `{ safePlay, safePause }` — play/pause that tolerate the
- *                     in-flight play() promise (owned by the component).
+ * @param controls     `{ safePlay, safePause, resumePlayback }` — play/pause that
+ *                     tolerate the in-flight play() promise (owned by the
+ *                     component); resumePlayback also recovers a wedged element.
  * @returns `{ initMediaSession, syncMediaSessionMeta, setMSState, updatePositionState }`
  */
-export function useMediaSession(playerStore, audioEl, { safePlay, safePause }) {
+export function useMediaSession(playerStore, audioEl, { safePlay, safePause, resumePlayback }) {
   const hasMS = 'mediaSession' in navigator
 
   function imageArtwork(id, fallbackUrl) {
@@ -76,7 +77,7 @@ export function useMediaSession(playerStore, audioEl, { safePlay, safePause }) {
 
     syncMediaSessionMeta()
 
-    navigator.mediaSession.setActionHandler('play',  () => safePlay())
+    navigator.mediaSession.setActionHandler('play',  () => (resumePlayback ?? safePlay)())
     navigator.mediaSession.setActionHandler('pause', () => safePause())
     navigator.mediaSession.setActionHandler('seekto', details => {
       if (details.seekTime == null || !audioEl.value) return
