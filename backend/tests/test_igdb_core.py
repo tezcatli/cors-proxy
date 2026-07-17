@@ -206,3 +206,43 @@ def test_post_raises_after_exhausting_retries():
             assert False, 'expected an error'
         except requests.HTTPError:
             pass
+
+
+# ── _rank_results: earliest-release tie-break (undated search) ─────────────────
+
+def test_rank_prefers_earliest_release_on_a_name_tie():
+    # IGDB lists ports/re-releases under the identical name. With no date hint the
+    # original is the canonical answer (Chrono Trigger 1995, not its 2018 port).
+    port     = _game(id=2, name='Chrono Trigger', first_release_date=1519862400)   # 2018
+    original = _game(id=1, name='Chrono Trigger', first_release_date=793065600)    # 1995
+    ranked = _rank_results([port, original], 'Chrono Trigger', prefer_earliest=True)
+    assert [g['id'] for g in ranked] == [1, 2]
+
+
+def test_rank_still_puts_name_match_above_an_older_unrelated_game():
+    old_unrelated = _game(id=2, name='Astrobotanica', first_release_date=793065600)
+    exact         = _game(id=1, name='Astro Bot',     first_release_date=1725408000)
+    ranked = _rank_results([old_unrelated, exact], 'Astrobot', prefer_earliest=True)
+    assert ranked[0]['id'] == 1     # name score dominates the date tie-break
+
+
+def test_rank_sorts_undated_results_last_among_ties():
+    undated = _game(id=2, name='Chrono Trigger')
+    dated   = _game(id=1, name='Chrono Trigger', first_release_date=793065600)
+    ranked = _rank_results([undated, dated], 'Chrono Trigger', prefer_earliest=True)
+    assert [g['id'] for g in ranked] == [1, 2]
+
+
+def test_rank_without_prefer_earliest_is_unchanged():
+    # The dated-search (Silence on Joue) path must keep IGDB's own ordering on ties.
+    a = _game(id=1, name='Chrono Trigger', first_release_date=1519862400)
+    b = _game(id=2, name='Chrono Trigger', first_release_date=793065600)
+    assert [g['id'] for g in _rank_results([a, b], 'Chrono Trigger')] == [1, 2]
+
+
+def test_fetch_by_name_undated_prefers_the_earliest_same_name_game():
+    rows = [_game(id=2, name='Chrono Trigger', first_release_date=1519862400),
+            _game(id=1, name='Chrono Trigger', first_release_date=793065600)]
+    with patch('igdb._post', return_value=rows), patch('igdb._get_token', return_value='t'):
+        result = fetch_by_name('Chrono Trigger')
+    assert result.id == 1

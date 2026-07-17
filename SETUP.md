@@ -149,6 +149,48 @@ The script reads `$ADMIN_KEY` and `$RESET_BASE_URL` from the environment if
 `--key` / `--url` are not passed. It prints the invite URL and exits non-zero if
 any invitation fails.
 
+### Promoting an admin
+
+Admins get the « Résolution des noms » dashboard (`/silence/admin/resolution`):
+per-podcast resolution figures, plus the review queues and the correction picker.
+There is no self-service promotion — flip the flag in SQLite:
+
+```bash
+# Prod (inside the container)
+docker compose -f docker-compose.prod.yml exec backend \
+  python -c "import db; conn=db.get_db().__enter__(); conn.execute(\"UPDATE users SET is_admin=1 WHERE email=?\", ('alice@example.com',)); conn.commit()"
+
+# Or directly against the DB file
+sqlite3 backend/data/users.db "UPDATE users SET is_admin = 1 WHERE email = 'alice@example.com';"
+```
+
+The flag is read from the DB on every admin request, so a promotion (or demotion)
+takes effect immediately — no re-login needed. The JWT also carries an `admin`
+claim, but only to decide whether to *show* the UI; it is never trusted for access.
+
+`ADMIN_KEY` is unrelated: it guards `POST /auth/invite` only.
+
+### Correcting a name→IGDB resolution
+
+`backend/corrections.json` is the **single source of truth** — git-tracked, so a fix
+is reviewed, survives a database wipe, and applies to every deployment. Corrections
+are therefore curated **in dev**, where the repo is bind-mounted into the container:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+# open http://localhost:5173/silence/admin/resolution, fix what's wrong, then:
+git diff backend/corrections.json     # review what the dashboard wrote
+git add backend/corrections.json && git commit -m "corrections: ..."
+```
+
+Deploy to apply. In prod the dashboard is **read-only** (the file ships inside the
+image, owned by root while the app runs as `appuser`), and the write endpoints answer
+409 — the stats page shows the read-only notice instead of the Corriger buttons.
+
+The file can equally be hand-edited: `podcast_name` plus either `igdb_id` (pin) or
+`search_name`, with optional `display_name`, `hint_date` and `podcast_id` scopes. It
+is validated on load, so a malformed entry fails the tests rather than production.
+
 ---
 
 ## Environment variable reference

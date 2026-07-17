@@ -33,6 +33,14 @@ def auth_header(email='user@example.com'):
     return {'Authorization': f'Bearer {token}'}
 
 
+def admin_header(email='admin@example.com'):
+    """Header for the same fixture user, promoted to admin. `require_admin` reads
+    the flag from the DB (not the token), so the promotion has to be persisted."""
+    with _db.get_db() as conn:
+        conn.execute('UPDATE users SET is_admin = 1 WHERE id = 1')
+    return auth_header(email)
+
+
 @pytest.fixture(scope='session')
 def app():
     application = create_app(testing=True)
@@ -58,6 +66,21 @@ def single_podcast():
     _games._feed_episodes = {}
 
 
+@pytest.fixture
+def tmp_corrections(tmp_path, monkeypatch):
+    """Point corrections.json at an empty temp file, so tests that exercise the
+    write path can't touch the repo's real (git-tracked) corrections."""
+    import json as _json
+    import corrections as _corr
+    path = tmp_path / 'corrections.json'
+    path.write_text(_json.dumps({'corrections': []}), encoding='utf-8')
+    monkeypatch.setattr(_corr, '_PATH', path)
+    _corr.load()
+    yield path
+    monkeypatch.undo()
+    _corr.load()          # restore the real file into memory for other tests
+
+
 @pytest.fixture(autouse=True)
 def clean_db():
     # Seed the user that auth_header()'s token (sub='1') refers to, so the
@@ -79,3 +102,8 @@ def clean_db():
     _games._game_index      = {}
     _games._igdb_cache      = {}
     _games._cached_at       = None
+    # Response caches are keyed by a version that is monotonic across the whole
+    # pytest session, so they must be dropped alongside the state they derive from.
+    _games._catalog_cache   = None
+    _games._feed_cache      = None
+    _games._pending_cache   = None

@@ -31,7 +31,11 @@ const sortOptions = [
 ]
 
 const lastFetchLabel = computed(() => props.lastFetch ? timeAgo(props.lastFetch) : null)
-const filtersActive  = computed(() => props.hideUnresolved || props.sortMode !== 'alpha' || !props.sortAsc || props.selectedPodcast !== 'all')
+// Sorting and the resolved-only toggle are catalog-only concepts; the podcast
+// choice applies to both tabs, so only it counts as "active" on Épisodes.
+const filtersActive  = computed(() =>
+  props.selectedPodcast !== 'all' ||
+  (!props.isEpisodes && (props.hideUnresolved || props.sortMode !== 'alpha' || !props.sortAsc)))
 
 // ── Filters popover ─────────────────────────────────────────────────
 const popoverOpen = ref(false)
@@ -106,12 +110,13 @@ function closeSearch() { searchOpen.value = false }
         <span v-if="searchQuery" class="icon-action__dot"></span>
       </button>
 
-      <!-- Sort/filter popover (Jeux only) -->
-      <div v-if="!isEpisodes" ref="popoverRoot" class="popover-wrap">
+      <!-- Sort/filter popover. Both tabs get the podcast filter; sorting and the
+           resolved-only toggle are catalog-only and hidden on Épisodes. -->
+      <div ref="popoverRoot" class="popover-wrap">
         <button
           class="icon-action"
           :class="{ 'is-active': popoverOpen || filtersActive }"
-          aria-label="Trier et filtrer"
+          :aria-label="isEpisodes ? 'Filtrer' : 'Trier et filtrer'"
           :aria-expanded="popoverOpen"
           @click="togglePopover"
         >
@@ -120,34 +125,36 @@ function closeSearch() { searchOpen.value = false }
         </button>
 
         <Transition name="popover">
-          <div v-if="popoverOpen" class="popover" role="dialog" aria-label="Trier et filtrer">
-            <div class="popover__title">Trier par</div>
-            <div class="flex flex-col gap-1 mb-3">
-              <button
-                v-for="opt in sortOptions"
-                :key="opt.mode"
-                class="popover__row"
-                :class="{ 'is-active': sortMode === opt.mode }"
-                @click="emit('setSort', opt.mode)"
-              >
-                <span class="popover__row-label">
-                  <Check v-if="sortMode === opt.mode" :size="14" :stroke-width="2.5" class="popover__check" />
-                  {{ opt.label }}
-                </span>
-                <component
-                  v-if="sortMode === opt.mode"
-                  :is="sortAsc ? ArrowUp : ArrowDown"
-                  :size="13"
-                  :stroke-width="2.5"
-                  class="popover__dir"
-                />
-              </button>
-            </div>
+          <div v-if="popoverOpen" class="popover" role="dialog" :aria-label="isEpisodes ? 'Filtrer' : 'Trier et filtrer'">
+            <template v-if="!isEpisodes">
+              <div class="popover__title">Trier par</div>
+              <div class="flex flex-col gap-1 mb-3">
+                <button
+                  v-for="opt in sortOptions"
+                  :key="opt.mode"
+                  class="popover__row"
+                  :class="{ 'is-active': sortMode === opt.mode }"
+                  @click="emit('setSort', opt.mode)"
+                >
+                  <span class="popover__row-label">
+                    <Check v-if="sortMode === opt.mode" :size="14" :stroke-width="2.5" class="popover__check" />
+                    {{ opt.label }}
+                  </span>
+                  <component
+                    v-if="sortMode === opt.mode"
+                    :is="sortAsc ? ArrowUp : ArrowDown"
+                    :size="13"
+                    :stroke-width="2.5"
+                    class="popover__dir"
+                  />
+                </button>
+              </div>
 
-            <div class="popover__divider"></div>
+              <div class="popover__divider"></div>
+            </template>
 
             <div class="popover__title">Podcast</div>
-            <div class="flex flex-col gap-1 mb-3">
+            <div class="flex flex-col gap-1" :class="isEpisodes ? '' : 'mb-3'">
               <button
                 v-for="opt in podcastOptions"
                 :key="opt.id"
@@ -162,21 +169,23 @@ function closeSearch() { searchOpen.value = false }
               </button>
             </div>
 
-            <div class="popover__divider"></div>
+            <template v-if="!isEpisodes">
+              <div class="popover__divider"></div>
 
-            <div class="popover__title">Filtres</div>
-            <button
-              class="popover__row"
-              :class="{ 'is-active': hideUnresolved }"
-              @click="emit('toggle-hide-unresolved')"
-            >
-              <span class="popover__row-label">
-                <span class="popover__toggle" :class="{ 'is-on': hideUnresolved }">
-                  <span class="popover__toggle-knob" />
+              <div class="popover__title">Filtres</div>
+              <button
+                class="popover__row"
+                :class="{ 'is-active': hideUnresolved }"
+                @click="emit('toggle-hide-unresolved')"
+              >
+                <span class="popover__row-label">
+                  <span class="popover__toggle" :class="{ 'is-on': hideUnresolved }">
+                    <span class="popover__toggle-knob" />
+                  </span>
+                  Jeux résolus uniquement
                 </span>
-                Jeux résolus uniquement
-              </span>
-            </button>
+              </button>
+            </template>
           </div>
         </Transition>
       </div>

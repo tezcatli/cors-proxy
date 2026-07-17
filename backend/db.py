@@ -40,6 +40,7 @@ def init_db():
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
                 email         TEXT    UNIQUE NOT NULL COLLATE NOCASE,
                 password_hash TEXT    NOT NULL,
+                is_admin      INTEGER  DEFAULT 0,
                 created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS reset_tokens (
@@ -61,7 +62,8 @@ def init_db():
                 name      TEXT,
                 igdb_data TEXT,
                 is_child  INTEGER DEFAULT 0,
-                cached_at TEXT NOT NULL
+                cached_at TEXT NOT NULL,
+                correction_sig TEXT
             );
             CREATE INDEX IF NOT EXISTS igdb_cache_igdb_slug
                 ON igdb_cache(igdb_slug) WHERE igdb_slug IS NOT NULL;
@@ -71,3 +73,10 @@ def init_db():
             conn.execute("ALTER TABLE igdb_cache ADD COLUMN igdb_slug TEXT")
         if 'is_child' not in cols and cols:
             conn.execute("ALTER TABLE igdb_cache ADD COLUMN is_child INTEGER DEFAULT 0")
+        if 'correction_sig' not in cols and cols:
+            # NULL on legacy rows reads as '' ("resolved with no correction"), so on
+            # first deploy any entry a current correction applies to re-resolves once.
+            conn.execute("ALTER TABLE igdb_cache ADD COLUMN correction_sig TEXT")
+        user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+        if 'is_admin' not in user_cols and user_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")

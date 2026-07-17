@@ -62,3 +62,4 @@ class IgdbEntry:
     data: Optional[dict]    # normalised IGDB data blob (JSON-serialisable)
     is_child: bool          # True when resolved to a parent/version_parent
     cached_at: str          # ISO-8601 UTC timestamp
+    correction_sig: str = ''  # fingerprint of the correction in force when resolved

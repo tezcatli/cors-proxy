@@ -7,13 +7,15 @@ import placeholderCover from '../assets/placeholder-cover.svg'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
 import { fetchGameDetail, refreshGameIgdb } from '../lib/games.js'
+import { isAdmin } from '../lib/auth.js'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { playInto } from '../lib/flipTransition.js'
 import EpisodeCard from './EpisodeCard.vue'
 import ArtworkBackdrop from './ArtworkBackdrop.vue'
 import BackBar from './BackBar.vue'
-import { RotateCw, ExternalLink, ChevronLeft, ChevronRight, X, Play, Clock, Gamepad2 } from 'lucide-vue-next'
+import IgdbPickerModal from './IgdbPickerModal.vue'
+import { RotateCw, ExternalLink, ChevronLeft, ChevronRight, X, Play, Clock, Gamepad2, Wrench } from 'lucide-vue-next'
 import { platformIconPath } from '../lib/platformIcons.js'
 
 const route       = useRoute()
@@ -85,13 +87,20 @@ function updateCarouselIndex() {
 const episodes         = ref([])
 const episodesLoading  = ref(false)
 const igdbRefreshing   = ref(false)
+// The podcast name(s) behind this entry — what the corrections API keys on.
+const nameSlugs        = ref([])
+const corrected        = ref(false)
+const pickerOpen       = ref(false)
+const admin            = isAdmin()
 
 async function _loadEpisodes(g) {
   if (!g) { episodes.value = []; return }
   episodesLoading.value = true
   try {
     const detail = await fetchGameDetail(g.slug)
-    episodes.value = detail.episodes
+    episodes.value   = detail.episodes
+    nameSlugs.value  = detail.nameSlugs ?? []
+    corrected.value  = !!detail.corrected
     if (detail.igdb) {
       const idx = gamesStore.all.findIndex(x => x.slug === g.slug)
       if (idx !== -1) gamesStore.all[idx].igdb = detail.igdb
@@ -100,6 +109,34 @@ async function _loadEpisodes(g) {
     episodes.value = []
   } finally {
     episodesLoading.value = false
+  }
+}
+
+// The picker corrects ONE podcast name. An entry merging several names (variant
+// spellings) has no single target, so offer it only when there's exactly one.
+const pickerTarget = computed(() => {
+  if (nameSlugs.value.length !== 1 || !game.value) return null
+  return {
+    name:      game.value.name,
+    nameSlug:  nameSlugs.value[0],
+    nameSlugs: nameSlugs.value,
+    podcasts:  game.value.podcasts ?? [],
+    igdbName:  game.value.name,
+    igdbSlug:  game.value.slug,
+  }
+})
+
+async function onCorrectionSaved(detail) {
+  pickerOpen.value = false
+  await gamesStore.load(false)
+  // Pinning a different game moves the entry to a new igdb_slug — follow it,
+  // or we'd sit on a route that no longer exists in the catalog.
+  if (detail?.slug && detail.slug !== route.params.slug) {
+    router.replace(`/game/${encodeURIComponent(detail.slug)}`)
+  } else {
+    episodes.value   = detail?.episodes ?? episodes.value
+    nameSlugs.value  = detail?.nameSlugs ?? nameSlugs.value
+    corrected.value  = !!detail?.corrected
   }
 }
 
@@ -243,14 +280,25 @@ function nextScreenshot() {
               <!-- Title row -->
               <div class="flex items-start justify-between gap-3">
                 <h2 class="detail-title">{{ game.name }}</h2>
-                <button
-                  class="btn btn-xs btn-ghost text-white/35 hover:text-white/70 px-1 min-h-0 h-6 mt-1"
-                  :disabled="igdbRefreshing"
-                  :aria-label="igdbRefreshing ? 'Actualisation IGDB…' : 'Rafraîchir IGDB'"
-                  @click="refreshIgdb"
-                >
-                  <RotateCw :size="13" :stroke-width="2.25" :class="{ 'animate-spin': igdbRefreshing }" />
-                </button>
+                <div class="flex items-center gap-0.5 mt-1">
+                  <button
+                    v-if="admin && pickerTarget"
+                    class="btn btn-xs btn-ghost text-white/35 hover:text-white/70 px-1 min-h-0 h-6"
+                    aria-label="Corriger la fiche IGDB"
+                    title="Corriger la fiche IGDB"
+                    @click="pickerOpen = true"
+                  >
+                    <Wrench :size="13" :stroke-width="2.25" />
+                  </button>
+                  <button
+                    class="btn btn-xs btn-ghost text-white/35 hover:text-white/70 px-1 min-h-0 h-6"
+                    :disabled="igdbRefreshing"
+                    :aria-label="igdbRefreshing ? 'Actualisation IGDB…' : 'Rafraîchir IGDB'"
+                    @click="refreshIgdb"
+                  >
+                    <RotateCw :size="13" :stroke-width="2.25" :class="{ 'animate-spin': igdbRefreshing }" />
+                  </button>
+                </div>
               </div>
 
               <!-- Stats strip: Metacritic · IGDB · Durée de vie -->
@@ -457,6 +505,17 @@ function nextScreenshot() {
           />
         </div>
       </div>
+    </Teleport>
+
+    <!-- Admin: pin the IGDB game this podcast name resolves to -->
+    <Teleport to="body">
+      <IgdbPickerModal
+        v-if="pickerOpen && pickerTarget"
+        :game="pickerTarget"
+        :has-correction="corrected"
+        @close="pickerOpen = false"
+        @saved="onCorrectionSaved"
+      />
     </Teleport>
 
     <!-- Trailer modal — bare overlay, like the screenshot lightbox -->

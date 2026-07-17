@@ -27,6 +27,18 @@ export function isLoggedIn() {
   }
 }
 
+// Cosmetic only — decides whether to *show* the admin UI. Every admin endpoint
+// re-checks the flag server-side, so a forged claim buys nothing.
+export function isAdmin() {
+  const token = getToken()
+  if (!token) return false
+  try {
+    return JSON.parse(atob(token.split('.')[1])).admin === true
+  } catch {
+    return false
+  }
+}
+
 export const loggedIn = ref(isLoggedIn())
 
 export function logout() {

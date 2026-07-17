@@ -1,327 +1,294 @@
 """
 Corrections for games whose podcast name doesn't find the right IGDB entry.
 
+**`corrections.json` is the single source of truth.** It is git-tracked, so a fix
+is reviewed in a PR, survives a database wipe, and applies to every deployment.
+This module only loads, validates and looks it up — plus writes it back for the
+admin dashboard, which is a *dev-time* curation tool: in prod the file lives in
+the read-only image layer (see `is_writable`), and corrections are curated
+locally and committed.
+
 Each entry requires:
-  podcast_name  — the raw name extracted from the RSS (matched normalised)
-  search_name   — search IGDB with this instead of podcast_name (None = use podcast_name)
-  igdb_id       — direct IGDB numeric ID; bypasses name search when set
-                  (None = do a name search using search_name or podcast_name)
+  podcast_name  — the raw name extracted from the RSS. Matched on make_slug(),
+                  so it must match the feed's exact wording ("MakeWay", not
+                  "make way") or it silently matches nothing — `unmatched_slugs`
+                  reports those at each feed re-parse.
 
-Optional fields:
-  hint_date     — ISO date string (YYYY-MM-DD). Dual purpose:
-                  1. Selects this correction only when the episode's pub_ts falls on
-                     the same UTC calendar date (exact day match).
-                  2. Passed to IGDB as the date hint for the search window.
-                  Corrections without hint_date are undated fallbacks.
-  display_name  — Override the display_name stored in the DB after IGDB resolution,
-                  instead of using the IGDB result name.
+Exactly one resolution strategy:
+  igdb_id       — pin this IGDB id; bypasses the name search entirely
+  search_name   — search IGDB with this instead of podcast_name
+  (both is rejected: a pinned id short-circuits the search, so the search_name
+  would be dead config.)
 
-Multiple entries may share the same podcast_name (differentiated by hint_date).
-Dated corrections take priority over undated ones; undated ones are the fallback.
+Optional scopes — an entry applies only where every scope it declares matches,
+and the most specific matching entry wins:
+  hint_date     — ISO date (YYYY-MM-DD). Applies only to an episode published on
+                  that UTC day, and is passed to IGDB as the search date hint.
+  podcast_id    — applies only to that podcast (e.g. the two shows covering
+                  different games under one name).
 
-Once IGDB resolves a game, its display_name is updated to the IGDB name unless
-a display_name override is set in the correction.
+Optional display:
+  display_name  — override the shown name. Applied at response time in games.py,
+                  independent of how the game resolved, so it composes with a pin.
 """
 import datetime
+import json
+import os
+import pathlib
+import stat
+import tempfile
+import threading
+
 from utils import make_slug
 
-CORRECTIONS = [
-    {
-        "podcast_name": "artic eggs",
-        "search_name":  "Arctic Eggs",
-    },
-    {
-        "podcast_name": "l'ordre des géants",
-        "search_name":  "Indiana Jones and the Great Circle: The Order of Giants",
-        "display_name": "Indiana Jones et le Cercle Ancien: L'Ordre des Géants",
-    },
-    {
-        "podcast_name": "indiana jones et le cercle ancien",
-        "search_name":  "Indiana Jones and the Great Circle",
-        "display_name": "Indiana Jones et le Cercle Ancien",
-    },
-    {
-        "podcast_name": "1348: ex-voto",
-        "search_name":  "1348: Ex Voto",
-    },
-    {
-        "podcast_name": "elden ring nightrein",
-        "search_name":  "Elden Ring Nightreign",
-    },
-    {
-        "podcast_name": "vendran las aves",
-        "search_name":  "Vendrán las aves",
-    },
-    {
-        "podcast_name": "shogun shodown",
-        "search_name":  "Shogun Showdown",
-    },
-    {
-        "podcast_name": "eté",
-        "search_name":  "Été",
-    },
-    {
-        "podcast_name": "beyond good and evil remastered",
-        "search_name":  "Beyond Good & Evil: 20th Anniversary Edition",
-    },
-    {
-        "podcast_name": "top spin 2k25",
-        "search_name":  "Top Spin 2K 25",
-        "igdb_id":      282959,
-    },
-    {
-        "podcast_name": "zach & wiki",
-        "search_name":  "Zack & Wiki",
-    },
-    {
-        "podcast_name": "Les Chevalier de Baphomet",
-        "search_name":  "Broken Sword: The Shadow of the Templars",
-        "display_name": "Les Chevalier de Baphomet",
-    },
-    {
-        "podcast_name": "Process of Elimination: Deluxe Edition",
-        "search_name":  "Process of Elimination",
-    },
-    {
-        "podcast_name": "Darksiders2",
-        "search_name":  "Darksiders 2",
-    },
-     {
-        "podcast_name": "Little Big Planet",
-        "search_name":  "LittleBigPlanet",
-    },
-    {
-        "podcast_name": "LittleBigPlanet2",
-        "search_name":  "LittleBigPlanet 2",
-    },
-    {
-        "podcast_name": "Little Big Planet 3",
-        "search_name":  "LittleBigPlanet 3",
-    },
-    {
-        "podcast_name": "Kirby et le monde oublié",
-        "search_name":  "Kirby and the Forgotten World",
-        "display_name": "Kirby et le monde oublié",
-    },
-    {
-        "podcast_name": "Farming Simulator 2022",
-        "search_name":  "Farming Simulator 22"
-    },
-    {
-        "podcast_name": "Pokémon Perle & Diamant",
-        "search_name":  "Pokémon Pearl Version",
-        "display_name": "Pokémon Perle & Diamant",
-    },
-    {
-        "podcast_name": "Les gardiens de la galaxie",
-        "search_name":  "Marvel's Guardians of the Galaxy",
-        "display_name": "Les gardiens de la galaxie",
-    },
-    {
-        "podcast_name": "NBA 2K21 next-gen",
-        "search_name":  "NBA 2K21"
-    },
-    {
-        "podcast_name": "Pokémon Epée et Bouclier",
-        "search_name":  "Pokémon Sword & Pokémon Shield Double Pack",
-        "display_name": "Pokémon Epée et Bouclier"
-    },
-    {
-        "podcast_name": "Enterre-moi mon amour",
-        "search_name":  "Bury me, my Love",
-        "display_name": "Enterre-moi mon amour",
-    },
-    {
-        "podcast_name": "star wars",
-        "search_name":  "Star Wars: The Force Unleashed",
-        "display_name": "Star Wars: Le Reveil de la Force",
-    },
-    {
-        "podcast_name": "hades 2",
-        "search_name":  "Hades II",
-        "hint_date": "2024-05-10",
-    },
-    {
-        "podcast_name": "The 7th Guest Remake",
-        "igdb_id":      394668,
-    },
-    {
-        "podcast_name": "civilization 6",
-        "search_name":  "Sid Meier's Civilization VI"
-    },
-    {
-        "podcast_name": "Heroes of the Storm",
-        "igdb_id":      7313,
-    },
-    {
-        "podcast_name": "Mario + Lapins Crétins : Sparks of Hope",
-        "search_name":  "Mario + Rabbids Sparks of Hope",
-        "display_name": "Mario + Lapins Crétins : Sparks of Hope",
-    },
-    {
-        "podcast_name": "Mario et les Lapins Crétins",
-        "search_name":  "Mario + Rabbids Kingdom Battle",
-        "display_name": "Mario et les Lapins Crétins",
-    },
-    {
-        "podcast_name": "Mario et Luigi",
-        "hint_date": "2015-12-17",
-        "search_name":  "Mario & Luigi: Paper Jam",
-    },
-    {
-        "podcast_name": "MGS 4",
-        "search_name":  "Metal Gear Solid 4: Guns of the Patriots",
-    },
-    {
-        "podcast_name": "Pokémon Ecarlate et Violet",
-        "search_name":  "Pokémon Scarlet and Pokémon Violet Double Pack",
-        "display_name": "Pokémon Ecarlate et Violet",
-    },
-    {
-        "podcast_name": "Les tortues ninja",
-        "search_name":  "Teenage Mutant Ninja Turtles: Shredder's Revenge",
-        "display_name": "Les Tortues Ninja : La revenche de Shredder",
-        "hint_date": "2022-06-24",
-    },
-    {
-        "podcast_name": "xcom2",
-        "search_name":  "xcom 2",
-    },
-    {
-        "podcast_name": "l'ombre de Mordor",
-        "search_name":  "Middle-earth: Shadow of Mordor",
-    },
-    {
-        "podcast_name": "l'orange box",
-        "search_name":  "The Orange Box",
-    },
-    {
-        "podcast_name": "rhythm Paradise megamix",
-        "search_name":  "Rhythm Heaven Megamix",
-        "display_name": "Rhythm Paradise Megamix",
-    },
-    {
-        "podcast_name": "rhythm Paradise",
-        "search_name":  "Rhythm Heaven",
-        "display_name": "Rhythm Paradise",
-    },
-    {
-        "podcast_name": "forza motosport",
-        "search_name":  "Forza Motorsport 4",
-        "hint_date": "2011-10-20",
-    },
-    {
-        "podcast_name": "Pokémon X & Y",
-        "search_name":  "Pokémon X",
-        "display_name": "Pokémon X & Y",
-    },
-    {
-        "podcast_name": "Bayonetta est-elle sexy?",
-        "search_name":  "Bayonetta",    
-    },
-    {
-        "podcast_name": "la rentrée avec Batman",
-        "search_name":  "Batman: Arkham Asylum",
-    },  
-    {
-        "podcast_name": "Street Fighter IV sur iPhone",
-        "search_name":  "Street Fighter IV",
-    }, 
-    {
-        "podcast_name": "PixelJunk Shooter2",
-        "search_name":  "PixelJunk Shooter 2",
-    },
-    {
-        "podcast_name": "la légende de Pac-man",
-        "igdb_id":  2750,
-    },
-    {
-        "podcast_name": "Danganrompa",
-        "hint_date": "2014-03-27",
-        "igdb_id":  9708,
-    },
-    {
-        "podcast_name": "elec head",
-        "search_name":  "elechead",
-    },
-    {
-        "podcast_name": "Fortnite Battle Royale",
-        "igdb_id":  1905,
-    },
-    {
-        "podcast_name": "Broken Age acte 2",
-        "igdb_id":  3087
-    },
-    {
-        "podcast_name": "Might & Magic sur DS",
-        "search_name":  "Might & Magic: Clash of Heroes",
-    },
-    {
-        "podcast_name": "Lego City 3DS",
-        "search_name":  "LEGO City Undercover",
-    },
-    {
-        "podcast_name": "L'histoire de Tomb Raider",
-        "igdb_id":  912,
-    },
-    {
-        "podcast_name": "La ferme des animaux",
-        "search_name":  "Orwell's Animal Farm",
-    },
-    {
-        "podcast_name": "Soldats inconnus",
-        "search_name":  "Valiant Hearts: The Great War",
-        "display_name": "Soldats inconnus : Mémoires de la Grande Guerre",
-    },
-    {
-        "podcast_name": "la chance du locataire",
-        "search_name":  "Luck be a Landlord",
-        "display_name": "La chance du locataire",
-    },
-    {
-        "podcast_name": "La fin des Samouraïs",
-        "search_name":  "Total War: Shogun 2 - Fall of the Samurai",
-    },
-    {
-        "podcast_name": "make way",
-        "search_name":  None,
-        "igdb_id":      258230,
-    },
-]
+_PATH = pathlib.Path(__file__).parent / 'corrections.json'
 
-_BY_SLUG: dict = {}
-for _c in CORRECTIONS:
-    hd    = _c.get('hint_date')
-    entry = {**_c, '_date': datetime.date.fromisoformat(hd) if hd else None}
-    _BY_SLUG.setdefault(make_slug(_c['podcast_name']), []).append(entry)
+_SCOPES  = ('hint_date', 'podcast_id')
+_ALLOWED = {'podcast_name', 'search_name', 'igdb_id', 'display_name', *_SCOPES}
+
+_lock: threading.Lock = threading.Lock()
+
+CORRECTIONS: list[dict] = []
+_BY_SLUG:    dict[str, list[dict]] = {}
 
 
-def _hint_date_matches(c: dict, pub_ts) -> bool:
-    parsed = c.get('_date')
-    if parsed is None:
-        hd = c.get('hint_date')
-        if not hd:
+# ── Load & validate ───────────────────────────────────────────────────────────
+
+def _key(entry: dict) -> tuple:
+    """An entry's identity: what it resolves for, at what scope. Keyed on the
+    *slug*, not the raw name, so write-identity matches how lookup finds it — two
+    spellings that slugify the same are one entry, and can't both land in the file
+    to shadow each other by position."""
+    return (make_slug(entry['podcast_name']), entry.get('hint_date') or '',
+            entry.get('podcast_id') or '')
+
+
+def _validate(entry: dict, index: int) -> None:
+    """Reject an entry that can't mean what it says. The file is reviewed and
+    test-covered, so failing loudly here beats silently ignoring a curator's
+    intent at 3am six months later."""
+    where = f'corrections.json[{index}]'
+    if not isinstance(entry, dict):
+        raise ValueError(f'{where}: entry must be an object')
+    unknown = set(entry) - _ALLOWED
+    if unknown:
+        raise ValueError(f'{where}: unknown field(s) {sorted(unknown)}')
+    if not entry.get('podcast_name'):
+        raise ValueError(f'{where}: podcast_name is required')
+    name = entry['podcast_name']
+    if entry.get('igdb_id') and entry.get('search_name'):
+        raise ValueError(
+            f'{where} ({name!r}): igdb_id and search_name are mutually exclusive — '
+            'a pinned id bypasses the search, so the search_name would never be read')
+    if not entry.get('igdb_id') and not entry.get('search_name') and not entry.get('display_name'):
+        raise ValueError(f'{where} ({name!r}): entry does nothing — needs igdb_id, '
+                         'search_name or display_name')
+    if entry.get('igdb_id') is not None and not isinstance(entry['igdb_id'], int):
+        raise ValueError(f'{where} ({name!r}): igdb_id must be an integer')
+    if entry.get('hint_date'):
+        try:
+            datetime.date.fromisoformat(entry['hint_date'])
+        except ValueError as exc:
+            raise ValueError(f'{where} ({name!r}): bad hint_date — {exc}') from None
+
+
+def load() -> None:
+    """(Re)read corrections.json into memory. Raises on a malformed file."""
+    global CORRECTIONS, _BY_SLUG
+    with _PATH.open(encoding='utf-8') as f:
+        raw = json.load(f)
+    entries = raw.get('corrections', [])
+    by_slug: dict[str, list[dict]] = {}
+    seen: dict[tuple, str] = {}
+    for i, entry in enumerate(entries):
+        _validate(entry, i)
+        key = _key(entry)
+        if key in seen:
+            # Two entries for the same name at the same scope: lookup would pick
+            # one by file position and silently ignore the other.
+            raise ValueError(
+                f'corrections.json[{i}] ({entry["podcast_name"]!r}): duplicate of '
+                f'{seen[key]!r} — same name and scope, so one would never apply')
+        seen[key] = entry['podcast_name']
+        parsed = dict(entry)
+        hd = entry.get('hint_date')
+        parsed['_date'] = datetime.date.fromisoformat(hd) if hd else None
+        by_slug.setdefault(make_slug(entry['podcast_name']), []).append(parsed)
+    CORRECTIONS, _BY_SLUG = entries, by_slug
+
+
+load()
+
+
+# ── Lookup ────────────────────────────────────────────────────────────────────
+
+def _scope_matches(c: dict, pub_ts, podcast_id: str) -> bool:
+    """An entry applies when every scope it declares matches. An undeclared scope
+    is a wildcard, so a bare entry is the fallback for the name."""
+    # `_date` is derived by load(); parse on the fly for a dict that didn't come
+    # through it (tests inject entries into _BY_SLUG directly).
+    hint = c.get('_date') or (datetime.date.fromisoformat(c['hint_date'])
+                              if c.get('hint_date') else None)
+    if hint is not None:
+        if pub_ts is None:
             return False
-        parsed = datetime.date.fromisoformat(hd)
-    if pub_ts is None:
+        if datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc).date() != hint:
+            return False
+    if c.get('podcast_id') and c['podcast_id'] != podcast_id:
         return False
-    return datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc).date() == parsed
+    return True
 
 
-def _find(slug: str, pub_ts):
-    candidates = _BY_SLUG.get(slug, [])
-    for c in candidates:
-        if _hint_date_matches(c, pub_ts):
-            return c
-    for c in candidates:
-        if not c.get('hint_date'):
-            return c
-    return None
+def _specificity(c: dict) -> int:
+    return sum(1 for s in _SCOPES if c.get(s))
 
 
-def find_by_podcast(podcast_name: str, pub_ts=None):
-    return _find(make_slug(podcast_name), pub_ts)
+def _find(slug: str, pub_ts, podcast_id: str = ''):
+    matching = [c for c in _BY_SLUG.get(slug, [])
+                if _scope_matches(c, pub_ts, podcast_id)]
+    if not matching:
+        return None
+    # Most specific wins: a dated, podcast-scoped entry beats a bare fallback.
+    return max(matching, key=_specificity)
 
 
-def find_by_slug(slug: str, pub_ts=None):
-    return _find(slug, pub_ts)
+# Fields that change how an appearance resolves. display_name is deliberately
+# excluded: it's applied at response time in games.py, so a rename must not
+# trigger a re-resolution.
+_SIG_FIELDS = ('igdb_id', 'search_name', 'hint_date')
+
+
+def fingerprint(correction: dict | None) -> str:
+    """Canonical signature of the resolution-affecting part of an entry.
+
+    Stored on each cached IGDB row so a deployed instance can tell that a shipped
+    corrections.json now rules differently on an appearance than when it was last
+    resolved — and re-resolve exactly those. '' when no correction applies (or a
+    display-only entry, which resolves identically to no correction at all)."""
+    if not correction:
+        return ''
+    sig = {k: correction[k] for k in _SIG_FIELDS if correction.get(k)}
+    return json.dumps(sig, sort_keys=True) if sig else ''
+
+
+def find_by_podcast(podcast_name: str, pub_ts=None, podcast_id: str = ''):
+    return _find(make_slug(podcast_name), pub_ts, podcast_id)
+
+
+def find_by_slug(slug: str, pub_ts=None, podcast_id: str = ''):
+    return _find(slug, pub_ts, podcast_id)
+
+
+def unmatched_slugs(known_slugs) -> list[str]:
+    """Correction name_slugs that match no game name in the feed.
+
+    A correction is matched by `make_slug(podcast_name)`, so a spelling that
+    doesn't match the feed's exact wording (e.g. "make way" vs the feed's
+    "MakeWay") silently does nothing. Surfaced at startup so the typo is visible
+    instead of looking like an IGDB miss.
+    """
+    known = set(known_slugs)
+    return sorted(slug for slug in _BY_SLUG if slug not in known)
+
+
+# ── Write (dev-time curation) ─────────────────────────────────────────────────
+
+def is_writable() -> bool:
+    """Whether this deployment can curate corrections at all.
+
+    True in dev, where the repo is bind-mounted into the container. False in prod:
+    the image layer is root-owned and the app runs as `appuser`, and a write would
+    be discarded by the next build anyway. Callers surface this rather than
+    letting the admin hit an opaque permission error.
+    """
+    return os.access(_PATH, os.W_OK)
+
+
+def _write(entries: list[dict]) -> None:
+    """Rewrite corrections.json atomically, sorted for a reviewable diff."""
+    entries = sorted(entries, key=_key)
+    body    = json.dumps({'corrections': entries}, indent=2, ensure_ascii=False) + '\n'
+    try:
+        before = os.stat(_PATH)
+    except FileNotFoundError:
+        before = None
+    # Same directory so os.replace is atomic (no cross-device rename), and a
+    # crash mid-write can't leave a truncated corrections file behind.
+    fd, tmp = tempfile.mkstemp(dir=_PATH.parent, prefix='.corrections-', suffix='.json')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(body)
+        if before is not None:
+            # os.replace swaps in the temp file's inode wholesale, and mkstemp made
+            # that 0600 owned by whoever is writing. Carry the original's mode and
+            # owner over or the dev container (root) leaves corrections.json
+            # root:root 0600 — unreadable to the human who has to `git diff` and
+            # commit it, which is the point of keeping it in the repo at all.
+            os.chmod(tmp, stat.S_IMODE(before.st_mode))
+            try:
+                os.chown(tmp, before.st_uid, before.st_gid)
+            except OSError:
+                pass    # not privileged to chown; the mode above still keeps it readable
+        os.replace(tmp, _PATH)
+    except BaseException:
+        pathlib.Path(tmp).unlink(missing_ok=True)
+        raise
+    load()
+
+
+_UNSET = object()
+
+
+def upsert(podcast_name: str, podcast_id: str = '', *,
+           igdb_id: int | None = None, display_name=_UNSET) -> dict:
+    """Set the pin and/or the display name for a name at one scope.
+
+    A *merge*, not a replace: pinning a game and renaming it are independent
+    decisions, so neither may silently discard the other. `display_name=''`
+    removes the override; omit it to leave it alone. Returns the written entry.
+    Raises OSError if the file is read-only.
+    """
+    if igdb_id is None and display_name is _UNSET:
+        raise ValueError('nothing to write — pass igdb_id and/or display_name')
+    entry: dict = {'podcast_name': podcast_name}
+    if podcast_id:
+        entry['podcast_id'] = podcast_id
+
+    with _lock:
+        raw   = _read_raw()
+        prior = next((c for c in raw if _key(c) == _key(entry)), None)
+        if prior:
+            entry = {**prior, **entry}
+        if igdb_id is not None:
+            entry['igdb_id'] = int(igdb_id)
+            # A pin bypasses the search, so a search_name alongside it would be
+            # dead config — _validate rejects the pair outright.
+            entry.pop('search_name', None)
+        if display_name is not _UNSET:
+            if display_name:
+                entry['display_name'] = display_name
+            else:
+                entry.pop('display_name', None)
+        _validate(entry, -1)
+        _write([c for c in raw if _key(c) != _key(entry)] + [entry])
+    return entry
+
+
+def remove(podcast_name: str, podcast_id: str = '') -> bool:
+    """Drop the entry at this exact scope. Returns whether one was removed."""
+    target = {'podcast_name': podcast_name}
+    if podcast_id:
+        target['podcast_id'] = podcast_id
+    with _lock:
+        raw  = _read_raw()
+        kept = [c for c in raw if _key(c) != _key(target)]
+        if len(kept) == len(raw):
+            return False
+        _write(kept)
+    return True
+
+
+def _read_raw() -> list[dict]:
+    """The file's entries as written (no derived `_date` key)."""
+    with _PATH.open(encoding='utf-8') as f:
+        return json.load(f).get('corrections', [])

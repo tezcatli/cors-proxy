@@ -147,8 +147,16 @@ def _strip_subtitle(name: str) -> str:
 
 # ── Result ranking ────────────────────────────────────────────────────────────
 
-def _rank_results(results: list[dict], query: str) -> list[dict]:
-    """Sort results by how closely they match query; best match first."""
+def _rank_results(results: list[dict], query: str,
+                  prefer_earliest: bool = False) -> list[dict]:
+    """Sort results by how closely they match query; best match first.
+
+    `prefer_earliest` breaks name-score ties toward the oldest release. Used when
+    there's no date hint to rank with (retrospective podcasts): IGDB lists ports
+    and re-releases under the identical name, so the earliest entry is the
+    canonical original (e.g. Chrono Trigger 1995, not its 2018 PC port).
+    Undated results sort last among ties rather than counting as "earliest".
+    """
     q    = norm_key(query)
     base = norm_key(_strip_subtitle(query))
 
@@ -160,7 +168,13 @@ def _rank_results(results: list[dict], query: str) -> list[dict]:
         if name.startswith(base) or base.startswith(name): return 1
         return 0
 
-    return sorted(results, key=score, reverse=True)
+    def key(game: dict):
+        if not prefer_earliest:
+            return (score(game), 0)
+        released = game.get('first_release_date')
+        return (score(game), -(released if released is not None else float('inf')))
+
+    return sorted(results, key=key, reverse=True)
 
 
 # ── Normalise IGDB result → frontend shape ────────────────────────────────────
@@ -402,7 +416,36 @@ def fetch_by_name(name: str, pub_ts: int | None = None) -> IgdbResult | None:
         if in_window:
             results = in_window
 
-    return _build_result(_rank_results(results, name)[0])
+    return _build_result(_rank_results(results, name, prefer_earliest=pub_ts is None)[0])
+
+
+_SEARCH_FIELDS = 'fields name, slug, first_release_date, cover.image_id; '
+
+
+def search_games(query: str, limit: int = 10) -> list[dict]:
+    """Free-text IGDB search for the admin correction picker.
+
+    Deliberately unlike `fetch_by_name`: no date window, no canonical redirect and
+    no ranking — a human is choosing, so show IGDB's own matches (ports, remakes
+    and versions included) with the release year to tell them apart.
+    """
+    safe = query.replace('\\', '').replace('"', '').strip()
+    if not safe:
+        return []
+    rows = _post(f'{_SEARCH_FIELDS}search "{safe}"; where game_type != 5; limit {int(limit)};')
+    out = []
+    for game in rows:
+        released = game.get('first_release_date')
+        out.append({
+            'id':           game['id'],
+            'name':         game.get('name'),
+            'slug':         game.get('slug'),
+            'released':     (str(datetime.datetime.fromtimestamp(
+                                released, datetime.timezone.utc).year)
+                             if released else None),
+            'coverImageId': (game.get('cover') or {}).get('image_id'),
+        })
+    return out
 
 
 def fetch_time_to_beat(igdb_id: int) -> int | None:

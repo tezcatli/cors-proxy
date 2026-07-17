@@ -44,6 +44,18 @@ def _user_exists(claims) -> bool:
         return conn.execute("SELECT 1 FROM users WHERE id = ?", (uid,)).fetchone() is not None
 
 
+def _is_admin_user(user_id) -> bool:
+    """Read the admin flag from the DB, not from the token: a demotion must take
+    effect immediately rather than when the (7-day) JWT expires."""
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError):
+        return False
+    with get_db() as conn:
+        row = conn.execute("SELECT is_admin FROM users WHERE id = ?", (uid,)).fetchone()
+    return bool(row and row["is_admin"])
+
+
 def _validate_password(password: str):
     if len(password) < 8:
         abort(400, "Le mot de passe doit contenir au moins 8 caractères")
@@ -54,6 +66,9 @@ def _make_jwt(user_id: int, email: str) -> str:
     payload = {
         "sub":   str(user_id),
         "email": email,
+        # Cosmetic only — lets the SPA show/hide admin UI without an extra call.
+        # Every admin route re-checks the DB (see `require_admin`).
+        "admin": _is_admin_user(user_id),
         "iat":   now,
         "exp":   now + datetime.timedelta(seconds=Config.JWT_TTL_SECONDS),
     }
@@ -96,6 +111,18 @@ def require_auth():
         if claims and _user_exists(claims):
             return
     abort(401, "Not authenticated")
+
+
+def require_admin():
+    """Gate for routes that mutate the shared catalog. Called explicitly by admin
+    views (the blueprint-wide `require_auth` has already run)."""
+    if Config.DEBUG:
+        return
+    claims = _bearer_user_claims()
+    if not claims:
+        abort(401, "Not authenticated")
+    if not _is_admin_user(claims.get("sub")):
+        abort(403, "Accès réservé aux administrateurs")
 
 
 @auth_bp.route("/stream-token")

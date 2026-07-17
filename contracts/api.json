@@ -133,57 +133,212 @@
     "catalog": {
       "success": {
         "status": 200,
-        "fields": ["games", "pending"]
+        "fields": [
+          "games",
+          "pending"
+        ]
       },
       "unauthorized": {
         "status": 401,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       },
       "upstream_error": {
         "status": 502,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       }
     },
     "game_detail": {
       "success": {
         "status": 200,
-        "fields": ["name", "slug", "igdb", "episodes"]
+        "fields": [
+          "name",
+          "slug",
+          "igdb",
+          "episodes",
+          "nameSlugs",
+          "corrected"
+        ]
       },
       "not_found": {
         "status": 404,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       },
       "unauthorized": {
         "status": 401,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       }
     },
     "refresh": {
       "success": {
         "status": 200,
-        "fields": ["games", "pending"]
+        "fields": [
+          "games",
+          "pending"
+        ]
       },
       "upstream_error": {
         "status": 502,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       },
       "unauthorized": {
         "status": 401,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       }
     },
     "igdb_refresh": {
       "success": {
         "status": 200,
-        "fields": ["name", "slug", "igdb", "episodes"]
+        "fields": [
+          "name",
+          "slug",
+          "igdb",
+          "episodes",
+          "nameSlugs",
+          "corrected"
+        ]
       },
       "not_found": {
         "status": 404,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       },
       "unauthorized": {
         "status": 401,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "resolution_stats": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "podcasts",
+          "games",
+          "writable",
+          "pending",
+          "resolving"
+        ]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": [
+          "error"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "igdb_search": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "results"
+        ]
+      },
+      "bad_request": {
+        "status": 400,
+        "fields": [
+          "error"
+        ]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": [
+          "error"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "corrections": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "name",
+          "slug",
+          "igdb",
+          "episodes",
+          "nameSlugs",
+          "corrected"
+        ]
+      },
+      "bad_request": {
+        "status": 400,
+        "fields": [
+          "error"
+        ]
+      },
+      "not_found": {
+        "status": 404,
+        "fields": [
+          "error"
+        ]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": [
+          "error"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
+      },
+      "read_only": {
+        "status": 409,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "podcast_igdb_refresh": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "purged"
+        ]
+      },
+      "not_found": {
+        "status": 404,
+        "fields": [
+          "error"
+        ]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": [
+          "error"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
       }
     },
     "resolution_stream": {
@@ -192,7 +347,9 @@
       },
       "unauthorized": {
         "status": 401,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       }
     },
     "episodes": {
@@ -201,25 +358,46 @@
       },
       "unauthorized": {
         "status": 401,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       }
     },
     "episode": {
       "success": {
         "status": 200,
-        "fields": ["title", "slug", "urlSlug", "audioUrl", "pubTs", "imageUrl", "description", "chapters", "games", "podcast", "timestamp", "timestampSeconds"]
+        "fields": [
+          "title",
+          "slug",
+          "urlSlug",
+          "audioUrl",
+          "pubTs",
+          "imageUrl",
+          "description",
+          "chapters",
+          "games",
+          "podcast",
+          "timestamp",
+          "timestampSeconds"
+        ]
       },
       "not_found": {
         "status": 404,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       },
       "bad_request": {
         "status": 400,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       },
       "unauthorized": {
         "status": 401,
-        "fields": ["error"]
+        "fields": [
+          "error"
+        ]
       }
     }
   }

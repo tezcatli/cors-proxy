@@ -24,6 +24,11 @@ class Podcast:
     name:  str                       # human-readable display name
     feed_url: str
     extractor: Callable[[str], list[str]]   # title -> list of raw game names
+    # Whether the episode's publication date is a useful hint for *when the game
+    # came out*. True for a news show covering new releases; False for a
+    # retrospective show, where the episode date says nothing about the game's
+    # release year and the date window would actively mis-resolve it.
+    use_date_hint: bool = True
 
 
 def _feed_url(podcast_id: str, default: str) -> str:
@@ -46,6 +51,9 @@ PODCASTS: list[Podcast] = [
         feed_url=_feed_url('fin-du-game',
                            'https://feeds.acast.com/public/shows/fin-du-game'),
         extractor=rss.extract_fdg_names,
+        # Retrospective show: a 2026 episode on Symphony of the Night (1997) must
+        # not search IGDB around 2026, or it lands on an unrelated recent game.
+        use_date_hint=False,
     ),
 ]
 

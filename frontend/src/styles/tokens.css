@@ -68,6 +68,13 @@
   /* Top clearance under the floating back pill (DetailView / EpisodeView) */
   --back-clear: 56px;
 
+  /* ─── Utility face for data ──────────────────────────────────────────
+     Tabular figures, slugs, ids — anything read as a column rather than as
+     prose. Mirrors tailwind.config.js `fontFamily.mono`; the face is already
+     loaded in base.css. Pair it with `font-variant-numeric: tabular-nums`. */
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace,
+               SFMono-Regular, monospace;
+
   /* ─── Motion ─────────────────────────────────────────────────────────── */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-soft:  cubic-bezier(0.4, 0, 1, 1);

@@ -13,7 +13,9 @@ services:
       - path: ./backend_secrets.env
         required: true
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000 || exit 1"]
+      # curl is not in the python image, so probe /healthz with the stdlib — the
+      # curl version failed every time and left the container marked unhealthy.
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/healthz').status==200 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn } from './lib/auth.js'
+import { isAdmin, isLoggedIn } from './lib/auth.js'
 import DetailView  from './components/DetailView.vue'
 import EpisodeView from './components/EpisodeView.vue'
 import LoginPage   from './pages/LoginPage.vue'
@@ -14,6 +14,10 @@ const router = createRouter({
     { path: '/game/:slug',                        component: DetailView,  meta: { depth: 1 } },
     { path: '/episode/:episodeSlug',              component: EpisodeView, meta: { depth: 1 } },
     { path: '/login',                             component: LoginPage,   meta: { depth: 1 } },
+    // Admin-only, and lazily loaded — no reason to ship the dashboard to the
+    // readers who make up every ordinary session.
+    { path: '/admin/resolution', meta: { depth: 1, admin: true },
+      component: () => import('./pages/ResolutionStatsPage.vue') },
     { path: '/:pathMatch(.*)*',                   redirect: '/' },
   ],
 })
@@ -31,6 +35,10 @@ router.beforeEach((to) => {
     const redirect = to.fullPath !== '/' ? { redirect: to.fullPath } : {}
     return { path: '/login', query: redirect }
   }
+
+  // Admin routes: hide the UI from non-admins. Cosmetic — the endpoints behind
+  // it enforce the real check, so this only avoids showing a page that 403s.
+  if (to.meta.admin && !isAdmin()) return { path: '/' }
 })
 
 export default router

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getToken, getUserEmail, isLoggedIn, logout, login, register, resetRequest, resetConfirm, apiFetch } from '../src/lib/auth.js';
+import { getToken, getUserEmail, isLoggedIn, isAdmin, logout, login, register, resetRequest, resetConfirm, apiFetch } from '../src/lib/auth.js';
 import { AUTH, mockResponse } from './contract.js';
 
 // Stub the router so apiFetch's lazy redirect-to-login import is inert in tests.
@@ -188,5 +188,30 @@ describe('resetConfirm', () => {
       mockResponse(AUTH.reset_confirm.expired_token, { error: 'Ce lien a expiré' })
     ));
     await expect(resetConfirm('old-token', 'newpassword')).rejects.toThrow('Ce lien a expiré');
+  });
+});
+
+// ── isAdmin ───────────────────────────────────────────────────────────────
+
+describe('isAdmin', () => {
+  it('is false without a token', () => {
+    expect(isAdmin()).toBe(false);
+  });
+
+  it('is false for a token without the claim', () => {
+    localStorage.setItem(TOKEN_KEY, makeToken());
+    expect(isAdmin()).toBe(false);
+  });
+
+  it('is true when the admin claim is set', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const payload = { sub: '1', email: 'a@b.c', admin: true, iat: now, exp: now + 3600 };
+    localStorage.setItem(TOKEN_KEY, `x.${btoa(JSON.stringify(payload))}.y`);
+    expect(isAdmin()).toBe(true);
+  });
+
+  it('is false for a malformed token rather than throwing', () => {
+    localStorage.setItem(TOKEN_KEY, 'not-a-jwt');
+    expect(isAdmin()).toBe(false);
   });
 });

@@ -1,9 +1,19 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
-import { X, LogOut } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { isAdmin } from '../lib/auth.js'
+import { X, LogOut, SlidersHorizontal } from 'lucide-vue-next'
 
 defineProps({ userEmail: String })
 const emit = defineEmits(['close', 'logout'])
+
+const router = useRouter()
+const admin  = isAdmin()
+
+function openResolution() {
+  emit('close')
+  router.push('/admin/resolution')
+}
 
 function onKeydown(e) { if (e.key === 'Escape') emit('close') }
 onMounted(() => document.addEventListener('keydown', onKeydown))
@@ -32,6 +42,14 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
           </div>
           <p class="text-sm text-white/75 truncate flex-1 min-w-0">{{ userEmail }}</p>
         </div>
+        <button
+          v-if="admin"
+          class="btn btn-outline w-full font-semibold gap-2 mb-2 border-white/15 hover:bg-white/10"
+          @click="openResolution"
+        >
+          <SlidersHorizontal :size="16" :stroke-width="2.25" />
+          Résolution des noms
+        </button>
         <button class="btn btn-outline btn-error w-full font-semibold gap-2" @click="emit('logout')">
           <LogOut :size="16" :stroke-width="2.25" />
           Se déconnecter

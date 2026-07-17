@@ -28,6 +28,12 @@ services:
       DEBUG: "true"
     volumes:
       - ./backend:/backend
+    # db.py resolves DB_PATH to /backend/data/users.db, which the bind mount above
+    # points straight at the developer's real dev database — every integration run
+    # was registering its throwaway accounts there. Shadow the directory with a
+    # tmpfs so the suite gets a fresh, in-memory DB that dies with the container.
+    tmpfs:
+      - /backend/data
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(); s.connect(('localhost', 5000)); s.close()\""]
       interval: 2s

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { fetchEpisodes } from '../lib/games.js'
 import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
+import { useGamesStore } from '../stores/games.js'
 import EpisodeFeedCard from './EpisodeFeedCard.vue'
 import { Mic } from 'lucide-vue-next'
 
@@ -12,7 +13,8 @@ const props = defineProps({
   refreshSignal: { type: Number, default: 0 },
 })
 
-const router = useRouter()
+const router     = useRouter()
+const gamesStore = useGamesStore()
 const { playerStore, isEpPlaying, playEp, togglePause } = useEpisodePlayer()
 
 const episodes = ref([])
@@ -29,13 +31,20 @@ onMounted(load)
 // Reload when the pull-to-refresh signal bumps (keeps the existing list visible).
 watch(() => props.refreshSignal, (v, prev) => { if (v !== prev) load() })
 
+// Shares `selectedPodcast` with the games tab: one podcast choice, applied
+// wherever the user is — an episode belongs to exactly one show.
 const filteredEpisodes = computed(() => {
-  const q = props.searchQuery?.trim().toLowerCase()
-  if (!q) return episodes.value
-  return episodes.value.filter(ep =>
-    ep.title.toLowerCase().includes(q) ||
-    ep.games?.some(g => g.name.toLowerCase().includes(q))
-  )
+  const q       = props.searchQuery?.trim().toLowerCase()
+  const podcast = gamesStore.selectedPodcast
+  let list = episodes.value
+  if (podcast !== 'all')
+    list = list.filter(ep => ep.podcast?.id === podcast)
+  if (q)
+    list = list.filter(ep =>
+      ep.title.toLowerCase().includes(q) ||
+      ep.games?.some(g => g.name.toLowerCase().includes(q))
+    )
+  return list
 })
 
 // ── Incremental rendering ────────────────────────────────────────────────────

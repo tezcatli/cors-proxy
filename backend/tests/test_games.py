@@ -6,6 +6,7 @@ import pytest
 import games as games_module
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
+import db as _db
 from rss import extract_game_names as _extract_game_names, extract_legacy_names as _extract_legacy_names, extract_fdg_names as _extract_fdg_names, parse_feed as _parse_feed, assign_url_slugs as _assign_url_slugs, sanitize_html as _sanitize_html
 from podcasts import PODCAST_BY_ID
 
@@ -592,3 +593,706 @@ def test_episode_unknown_slug_returns_404(client):
         client.get('/silence/games', headers=auth_header())
     r = client.get('/silence/games/episode?slug=does-not-exist', headers=auth_header())
     assert_contract(r, GAMES['episode']['not_found'])
+
+
+# ── Per-appearance catalog grouping ───────────────────────────────────────────
+
+def _seed(rss, cache, podcast_id='silence-on-joue'):
+    """Parse an RSS blob into the module's in-memory state with a given IGDB cache."""
+    podcast  = PODCAST_BY_ID[podcast_id]
+    episodes = _parse_feed(rss, extractor=podcast.extractor, podcast_id=podcast.id)
+    _assign_url_slugs(episodes)
+    episode_index, game_index = games_module._build_indexes(episodes)
+    games_module._cached_episodes = episodes
+    games_module._episode_index   = episode_index
+    games_module._game_index      = game_index
+    games_module._igdb_cache      = cache
+    games_module._data_version   += 1
+    games_module._catalog_cache   = None
+    return episodes
+
+
+_NOW = '2999-01-01T00:00:00'
+
+
+def _entry(podcast_slug, igdb_id, igdb_slug, name, **data):
+    from models import IgdbEntry
+    return IgdbEntry(podcast_slug, igdb_id, igdb_slug, name, dict(data), False, _NOW)
+
+
+_TWO_EPISODES_SAME_NAME = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabSilent Hill 2\xc2\xbb</title>
+    <guid>remake</guid><enclosure url="https://example.com/a.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Tue, 15 Oct 2024 00:00:00 +0000</pubDate><description>00:30 Silent Hill 2</description></item>
+  <item><title>On a joue a \xc2\xabSilent Hill 2\xc2\xbb</title>
+    <guid>original</guid><enclosure url="https://example.com/b.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2001 00:00:00 +0000</pubDate><description>00:30 Silent Hill 2</description></item>
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+
+
+def test_same_name_resolving_to_two_games_splits_into_two_entries():
+    # One podcast name covering two distinct IGDB games (the 2001 original and the
+    # 2024 remake) must yield two catalog entries — not one absorbing the other.
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-remake':   _entry(f'{ns}-remake',   2, 'silent-hill-2--1', 'Silent Hill 2', released='2024'),
+        f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2',    'Silent Hill 2', released='2001'),
+    })
+    catalog = games_module._build_catalog()
+    slugs   = {g['slug'] for g in catalog}
+    assert {'silent-hill-2', 'silent-hill-2--1'} <= slugs
+
+    # …and each detail page lists only its own episode.
+    original = games_module._load_game('silent-hill-2')
+    remake   = games_module._load_game('silent-hill-2--1')
+    assert [e['slug'] for e in original['episodes']] == ['original']
+    assert [e['slug'] for e in remake['episodes']]   == ['remake']
+    assert original['igdb']['released'] == '2001'
+    assert remake['igdb']['released']   == '2024'
+
+
+def test_name_variants_resolving_to_one_game_still_merge():
+    # The converse of the split: two spellings landing on one igdb_slug stay merged.
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabZelda\xc2\xbb</title>
+    <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
+  <item><title>On a joue a \xc2\xabZelda BOTW\xc2\xbb</title>
+    <guid>g2</guid><enclosure url="https://example.com/2.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda BOTW</description></item>
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+    _seed(rss, {
+        f"{games_module.make_slug('Zelda')}-g1":      _entry('a', 1, 'zelda-botw', 'Zelda BOTW'),
+        f"{games_module.make_slug('Zelda BOTW')}-g2": _entry('b', 1, 'zelda-botw', 'Zelda BOTW'),
+    })
+    catalog = [g for g in games_module._build_catalog() if g['slug'] == 'zelda-botw']
+    assert len(catalog) == 1
+    assert catalog[0]['episodeCount'] == 2
+    assert len(games_module._load_game('zelda-botw')['episodes']) == 2
+
+
+def test_unresolved_appearances_group_under_name_slug():
+    ns = games_module.make_slug('Silent Hill 2')
+    # Only the remake episode is resolved; the other is still pending.
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2--1', 'Silent Hill 2', released='2024'),
+    })
+    catalog = {g['slug']: g for g in games_module._build_catalog()}
+    assert catalog[ns]['igdb'] is None                       # unresolved bucket
+    assert catalog['silent-hill-2--1']['igdb'] is not None
+    # The name_slug entry carries only the unresolved appearance.
+    assert [e['slug'] for e in games_module._load_game(ns)['episodes']] == ['original']
+
+
+def test_name_slug_that_is_also_an_igdb_slug_serves_the_resolved_group():
+    # make_slug('Silent Hill 2') == the original's igdb_slug. The resolved group
+    # must win, so /game/silent-hill-2 is the 2001 game, not a mixed bag.
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-remake':   _entry(f'{ns}-remake',   2, 'silent-hill-2--1', 'Silent Hill 2', released='2024'),
+        f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2',    'Silent Hill 2', released='2001'),
+    })
+    detail = games_module._load_game(ns)
+    assert [e['slug'] for e in detail['episodes']] == ['original']
+    assert detail['igdb']['released'] == '2001'
+
+
+def test_detail_falls_back_to_all_appearances_for_a_fully_resolved_name_slug():
+    # A stale /game/<name_slug> link, for a name that is NOT itself an igdb_slug
+    # and whose appearances have all resolved, must still render rather than 404.
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabZelda BOTW\xc2\xbb</title>
+    <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda BOTW</description></item>
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+    ns = games_module.make_slug('Zelda BOTW')       # 'zelda-botw' ≠ igdb slug below
+    _seed(rss, {f'{ns}-g1': _entry(f'{ns}-g1', 1, 'the-legend-of-zelda-breath-of-the-wild', 'Zelda')})
+    detail = games_module._load_game(ns)
+    assert len(detail['episodes']) == 1
+    assert detail['igdb'] is None      # unresolved fallback shape
+
+
+def test_detail_episodes_are_newest_first():
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    pts = [e['pubTs'] for e in games_module._load_game(ns)['episodes']]
+    assert pts == sorted(pts, reverse=True)
+
+
+def test_unknown_slug_still_404s():
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    with pytest.raises(Exception):
+        games_module._load_game('no-such-game')
+
+
+# ── Resolution: per-podcast date hint + corrections ───────────────────────────
+
+_FDG_RSS = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>Episode 166 - Chrono Trigger</title>
+    <guid>fdg1</guid><enclosure url="https://example.com/f.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Fri, 05 Jun 2026 00:00:00 +0000</pubDate><description>00:30 Chrono Trigger</description></item>
+</channel></rss>"""
+
+_SOJ_RSS = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabChrono Trigger\xc2\xbb</title>
+    <guid>soj1</guid><enclosure url="https://example.com/s.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Fri, 05 Jun 2026 00:00:00 +0000</pubDate><description>00:30 Chrono Trigger</description></item>
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+
+
+def _resolve_capturing(rss, podcast_id):
+    """Run _resolve_one for the single appearance of `rss` and report what
+    fetch_by_name was called with."""
+    podcast  = PODCAST_BY_ID[podcast_id]
+    episodes = _parse_feed(rss, extractor=podcast.extractor, podcast_id=podcast.id)
+    _, game_index = games_module._build_indexes(episodes)
+    games_module._game_index = game_index
+    game       = next(iter(game_index.values()))
+    appearance = game.appearances[0]
+    with patch('games.fetch_by_name', return_value=None) as by_name:
+        games_module._resolve_one(appearance.podcast_slug, game.name,
+                                  appearance.episode.pub_ts, appearance.episode.podcast_id)
+    return by_name
+
+
+def test_retrospective_podcast_resolves_without_the_date_window():
+    # Fin du Game covers old games from recent episodes: passing the episode date
+    # would search IGDB around 2026 and land on an unrelated new release.
+    by_name = _resolve_capturing(_FDG_RSS, 'fin-du-game')
+    assert by_name.call_args.args == ('Chrono Trigger', None)
+
+
+def test_news_podcast_still_uses_the_episode_date_as_a_hint():
+    by_name = _resolve_capturing(_SOJ_RSS, 'silence-on-joue')
+    name, pub_ts = by_name.call_args.args
+    assert name == 'Chrono Trigger'
+    assert pub_ts is not None
+
+
+def test_a_pinned_correction_beats_the_name_search(tmp_corrections):
+    from igdb import IgdbResult
+    import corrections
+    ns = games_module.make_slug('Chrono Trigger')
+    corrections.upsert('Chrono Trigger', igdb_id=4242)
+    result = IgdbResult(id=4242, name='Chrono Trigger', slug='chrono-trigger',
+                        data={'metacritic': 92}, is_child=False)
+    with patch('games.fetch_by_id', return_value=result) as by_id, \
+         patch('games.fetch_by_name') as by_name, \
+         patch('games.metacritic.fetch_metascore', return_value=None), \
+         patch('games.hltb.fetch_time_to_beat', return_value=None), \
+         patch('games.fetch_time_to_beat', return_value=None):
+        games_module._resolve_one(f'{ns}-fdg1', 'Chrono Trigger', 0, 'fin-du-game')
+    by_name.assert_not_called()
+    # canonical=False: a human's pin must not be redirected to a parent game.
+    assert by_id.call_args == ((4242,), {'canonical': False})
+    assert games_module._igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
+
+
+def test_podcast_scoped_correction_beats_the_all_podcasts_one(tmp_corrections):
+    import corrections
+    corrections.upsert('Chrono Trigger', igdb_id=1)
+    corrections.upsert('Chrono Trigger', 'fin-du-game', igdb_id=2)
+    find = corrections.find_by_podcast
+    assert find('Chrono Trigger', None, 'fin-du-game')['igdb_id']   == 2
+    assert find('Chrono Trigger', None, 'silence-on-joue')['igdb_id'] == 1
+    assert find('Chrono Trigger', None, '')['igdb_id']              == 1
+    assert find('Other Game', None, 'fin-du-game') is None
+
+
+# ── Re-resolve when a corrections.json ships to a deployed instance ────────────
+
+def _single_soj_game():
+    """Build a one-game index from an SOJ episode; return (game, appearance)."""
+    podcast  = PODCAST_BY_ID['silence-on-joue']
+    episodes = _parse_feed(_SOJ_RSS, extractor=podcast.extractor, podcast_id=podcast.id)
+    _, game_index = games_module._build_indexes(episodes)
+    games_module._game_index = game_index
+    game = next(iter(game_index.values()))
+    return game, game.appearances[0]
+
+
+def _fresh_entry(appearance, sig):
+    """A freshly-cached (not TTL-stale) entry, so pending depends only on `sig`."""
+    from models import IgdbEntry
+    return IgdbEntry(appearance.podcast_slug, 1, 'chrono-trigger', 'Chrono Trigger',
+                     {'metacritic': 90}, False, games_module.utcnow().isoformat(),
+                     correction_sig=sig)
+
+
+def _sig_for(appearance, game):
+    import corrections
+    return corrections.fingerprint(corrections.find_by_podcast(
+        game.name, appearance.episode.pub_ts, appearance.episode.podcast_id))
+
+
+def test_shipped_pin_makes_a_previously_uncorrected_entry_pending(tmp_corrections):
+    import corrections
+    game, appearance = _single_soj_game()
+    cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}   # resolved with no correction
+    fresh = games_module._fresh_slugs(cache.items())
+    assert not games_module._appearance_pending(game, appearance, cache, fresh)
+    corrections.upsert('Chrono Trigger', igdb_id=4242)               # ship a pin
+    assert games_module._appearance_pending(game, appearance, cache, fresh)
+
+
+def test_removed_correction_makes_a_pinned_entry_pending(tmp_corrections):
+    import corrections
+    game, appearance = _single_soj_game()
+    corrections.upsert('Chrono Trigger', igdb_id=4242)
+    cache = {appearance.podcast_slug: _fresh_entry(appearance, _sig_for(appearance, game))}
+    fresh = games_module._fresh_slugs(cache.items())
+    assert not games_module._appearance_pending(game, appearance, cache, fresh)
+    corrections.remove('Chrono Trigger')                            # ship its removal
+    assert games_module._appearance_pending(game, appearance, cache, fresh)
+
+
+def test_shipped_display_name_does_not_make_an_entry_pending(tmp_corrections):
+    import corrections
+    game, appearance = _single_soj_game()
+    cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
+    fresh = games_module._fresh_slugs(cache.items())
+    corrections.upsert('Chrono Trigger', display_name='Chrono Trigger (SNES)')
+    assert not games_module._appearance_pending(game, appearance, cache, fresh)
+
+
+def test_count_pending_flags_a_stale_correction_signature(tmp_corrections):
+    import corrections
+    game, appearance = _single_soj_game()
+    games_module._igdb_cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
+
+    def recount():
+        games_module._pending_cache = None      # bust the per-minute memo
+        games_module._data_version += 1
+        return games_module._count_pending()
+
+    assert recount() == 0
+    corrections.upsert('Chrono Trigger', igdb_id=4242)
+    assert recount() == 1
+
+
+def test_legacy_null_correction_sig_loads_as_blank():
+    # A row written before this column existed has NULL; it must read as "resolved
+    # with no correction", not crash or mismatch every fingerprint spuriously.
+    with games_module.get_db() as conn:
+        conn.execute(
+            'INSERT INTO igdb_cache (slug, igdb_id, igdb_slug, name, igdb_data, '
+            'is_child, cached_at, correction_sig) VALUES (?,?,?,?,?,?,?,?)',
+            ('zelda-g1', 1, 'zelda', 'Zelda', None, 0, '2099-01-01', None))
+    games_module._load_igdb_cache_from_db()
+    assert games_module._igdb_cache['zelda-g1'].correction_sig == ''
+
+
+def test_resolve_one_stores_the_correction_fingerprint(tmp_corrections):
+    from igdb import IgdbResult
+    import corrections
+    ns = games_module.make_slug('Chrono Trigger')
+    corrections.upsert('Chrono Trigger', igdb_id=4242)
+    result = IgdbResult(id=4242, name='Chrono Trigger', slug='chrono-trigger',
+                        data={'metacritic': 92}, is_child=False)
+    with patch('games.fetch_by_id', return_value=result), \
+         patch('games.metacritic.fetch_metascore', return_value=None), \
+         patch('games.hltb.fetch_time_to_beat', return_value=None), \
+         patch('games.fetch_time_to_beat', return_value=None):
+        games_module._resolve_one(f'{ns}-fdg1', 'Chrono Trigger', 0, 'fin-du-game')
+    entry    = games_module._igdb_cache[f'{ns}-fdg1']
+    expected = corrections.fingerprint(
+        corrections.find_by_podcast('Chrono Trigger', 0, 'fin-du-game'))
+    assert entry.correction_sig == expected != ''
+
+
+# ── Admin gating ──────────────────────────────────────────────────────────────
+
+from conftest import admin_header   # noqa: E402
+
+_ADMIN_GETS  = ['/silence/games/resolution-stats', '/silence/games/igdb-search?q=zelda']
+
+
+@pytest.mark.parametrize('path', _ADMIN_GETS)
+def test_admin_endpoints_reject_anonymous(client, path):
+    assert client.get(path).status_code == 401
+
+
+@pytest.mark.parametrize('path', _ADMIN_GETS)
+def test_admin_endpoints_reject_non_admin(client, path):
+    assert client.get(path, headers=auth_header()).status_code == 403
+
+
+def test_correction_write_rejects_non_admin(client):
+    r = client.put('/silence/games/corrections', headers=auth_header(),
+                   json={'nameSlug': 'zelda', 'igdbId': 1})
+    assert_contract(r, GAMES['corrections']['forbidden'])
+
+
+def test_podcast_refresh_rejects_non_admin(client):
+    r = client.post('/silence/games/podcasts/fin-du-game/igdb-refresh', headers=auth_header())
+    assert_contract(r, GAMES['podcast_igdb_refresh']['forbidden'])
+
+
+def test_igdb_search_requires_a_query(client):
+    r = client.get('/silence/games/igdb-search', headers=admin_header())
+    assert_contract(r, GAMES['igdb_search']['bad_request'])
+
+
+def test_igdb_search_returns_results(client):
+    rows = [{'id': 1, 'name': 'Chrono Trigger', 'slug': 'chrono-trigger',
+             'released': '1995', 'coverImageId': 'co1'}]
+    with patch('games.search_games', return_value=rows):
+        r = client.get('/silence/games/igdb-search?q=chrono', headers=admin_header())
+    assert_contract(r, GAMES['igdb_search']['success'])
+    assert r.get_json()['results'] == rows
+
+
+def test_correction_rejects_an_unknown_podcast(client, tmp_corrections):
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    r = client.put('/silence/games/corrections', headers=admin_header(),
+                   json={'nameSlug': games_module.make_slug('Silent Hill 2'),
+                         'igdbId': 1, 'podcastId': 'nope'})
+    assert_contract(r, GAMES['corrections']['bad_request'])
+
+
+def test_correction_rejects_an_unknown_game(client, tmp_corrections):
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    r = client.put('/silence/games/corrections', headers=admin_header(),
+                   json={'nameSlug': 'no-such-game', 'igdbId': 1})
+    assert_contract(r, GAMES['corrections']['not_found'])
+
+
+def test_correction_write_pins_purges_and_reresolves(client, tmp_corrections):
+    import json as _json
+    from igdb import IgdbResult
+    ns = games_module.make_slug('Silent Hill 2')
+    # Start from a wrong resolution, as the FDG date-window bug produced.
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-original': _entry(f'{ns}-original', 9, 'astrobotanica', 'Astrobotanica'),
+    })
+    fixed = IgdbResult(id=1, name='Silent Hill 2', slug='silent-hill-2',
+                       data={'released': '2001'}, is_child=False)
+    with patch('games.fetch_by_id', return_value=fixed), \
+         patch('games.metacritic.fetch_metascore', return_value=None), \
+         patch('games.hltb.fetch_time_to_beat', return_value=None), \
+         patch('games.fetch_time_to_beat', return_value=None):
+        r = client.put('/silence/games/corrections', headers=admin_header(),
+                       json={'nameSlug': ns, 'igdbId': 1})
+    assert_contract(r, GAMES['corrections']['success'])
+    body = r.get_json()
+    assert body['slug'] == 'silent-hill-2'
+    assert body['igdb']['released'] == '2001'
+    assert body['corrected'] is True
+    # The stale 'astrobotanica' cache row is gone…
+    assert games_module._igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
+    # …and the pin landed in the git-tracked file, keyed on the feed's wording.
+    written = _json.loads(tmp_corrections.read_text())['corrections']
+    assert written == [{'podcast_name': 'Silent Hill 2', 'igdb_id': 1}]
+
+
+def test_correction_scoped_to_one_podcast_leaves_the_other_alone(client, tmp_corrections):
+    from igdb import IgdbResult
+    ns  = games_module.make_slug('Chrono Trigger')
+    soj = _parse_feed(_SOJ_RSS, extractor=PODCAST_BY_ID['silence-on-joue'].extractor,
+                      podcast_id='silence-on-joue')
+    fdg = _parse_feed(_FDG_RSS, extractor=PODCAST_BY_ID['fin-du-game'].extractor,
+                      podcast_id='fin-du-game')
+    episodes = soj + fdg
+    _assign_url_slugs(episodes)
+    episode_index, game_index = games_module._build_indexes(episodes)
+    games_module._cached_episodes = episodes
+    games_module._episode_index   = episode_index
+    games_module._game_index      = game_index
+    games_module._igdb_cache      = {
+        f'{ns}-soj1': _entry(f'{ns}-soj1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
+        f'{ns}-fdg1': _entry(f'{ns}-fdg1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
+    }
+    games_module._data_version += 1
+
+    fixed = IgdbResult(id=1, name='Chrono Trigger', slug='chrono-trigger',
+                       data={'released': '1995'}, is_child=False)
+    with patch('games.fetch_by_id', return_value=fixed), \
+         patch('games.metacritic.fetch_metascore', return_value=None), \
+         patch('games.hltb.fetch_time_to_beat', return_value=None), \
+         patch('games.fetch_time_to_beat', return_value=None):
+        r = client.put('/silence/games/corrections', headers=admin_header(),
+                       json={'nameSlug': ns, 'igdbId': 1, 'podcastId': 'fin-du-game'})
+    assert r.status_code == 200
+    # Only the FDG appearance moved; the SOJ one keeps its own resolution — the
+    # split the per-appearance grouping exists to allow.
+    assert games_module._igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
+    assert games_module._igdb_cache[f'{ns}-soj1'].igdb_slug == 'chrono-trigger--3'
+    assert [e['slug'] for e in r.get_json()['episodes']] == ['fdg1']
+
+
+def test_delete_correction_reverts_to_the_name_search(client, tmp_corrections):
+    import corrections
+    from igdb import IgdbResult
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    corrections.upsert('Silent Hill 2', igdb_id=1)
+
+    searched = IgdbResult(id=7, name='Silent Hill 2', slug='silent-hill-2',
+                          data={'released': '2001'}, is_child=False)
+    with patch('games.fetch_by_name', return_value=searched) as by_name, \
+         patch('games.fetch_by_id') as by_id, \
+         patch('games.metacritic.fetch_metascore', return_value=None), \
+         patch('games.hltb.fetch_time_to_beat', return_value=None), \
+         patch('games.fetch_time_to_beat', return_value=None):
+        r = client.delete('/silence/games/corrections', headers=admin_header(),
+                          json={'nameSlug': ns})
+    assert r.status_code == 200
+    by_id.assert_not_called()      # no longer pinned
+    assert by_name.called
+    assert corrections.CORRECTIONS == []
+
+
+def test_delete_correction_that_does_not_exist_404s(client, tmp_corrections):
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    r = client.delete('/silence/games/corrections', headers=admin_header(),
+                      json={'nameSlug': games_module.make_slug('Silent Hill 2')})
+    assert_contract(r, GAMES['corrections']['not_found'])
+
+
+def test_corrections_write_is_refused_when_the_file_is_read_only(client, tmp_corrections):
+    # Stands in for prod, where corrections.json ships in the read-only image layer.
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    with patch('games.corrections.is_writable', return_value=False):
+        r = client.put('/silence/games/corrections', headers=admin_header(),
+                       json={'nameSlug': games_module.make_slug('Silent Hill 2'), 'igdbId': 1})
+    assert_contract(r, GAMES['corrections']['read_only'])
+    assert 'dev' in r.get_json()['error']
+
+
+def test_podcast_igdb_refresh_purges_only_that_podcast(client):
+    ns  = games_module.make_slug('Chrono Trigger')
+    soj = _parse_feed(_SOJ_RSS, extractor=PODCAST_BY_ID['silence-on-joue'].extractor,
+                      podcast_id='silence-on-joue')
+    fdg = _parse_feed(_FDG_RSS, extractor=PODCAST_BY_ID['fin-du-game'].extractor,
+                      podcast_id='fin-du-game')
+    _, game_index = games_module._build_indexes(soj + fdg)
+    games_module._game_index = game_index
+    games_module._igdb_cache = {
+        f'{ns}-soj1': _entry(f'{ns}-soj1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
+        f'{ns}-fdg1': _entry(f'{ns}-fdg1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
+    }
+    with patch('games._schedule_resolve') as sched:
+        r = client.post('/silence/games/podcasts/fin-du-game/igdb-refresh',
+                        headers=admin_header())
+    assert_contract(r, GAMES['podcast_igdb_refresh']['success'])
+    assert r.get_json()['purged'] == 1
+    assert f'{ns}-fdg1' not in games_module._igdb_cache      # purged
+    assert f'{ns}-soj1' in games_module._igdb_cache          # untouched
+    sched.assert_called_once()
+
+
+def test_podcast_igdb_refresh_unknown_podcast_404s(client):
+    r = client.post('/silence/games/podcasts/nope/igdb-refresh', headers=admin_header())
+    assert_contract(r, GAMES['podcast_igdb_refresh']['not_found'])
+
+
+def test_resolution_stats_shape(client):
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        # 'Silent Hill 2' → 'Astrobotanica' is exactly the kind of miss to surface.
+        f'{ns}-remake':   _entry(f'{ns}-remake', 9, 'astrobotanica', 'Astrobotanica'),
+        f'{ns}-original': games_module.IgdbEntry(f'{ns}-original', None, None, None, None, False, _NOW),
+    })
+    r = client.get('/silence/games/resolution-stats', headers=admin_header())
+    assert_contract(r, GAMES['resolution_stats']['success'])
+    body = r.get_json()
+
+    soj = next(p for p in body['podcasts'] if p['id'] == 'silence-on-joue')
+    assert soj['appearances'] == 2
+    assert soj['resolved']    == 1     # the astrobotanica row
+    assert soj['failed']      == 1     # negatively cached (igdb_id NULL)
+
+    by_status = {g['status']: g for g in body['games']}
+    assert by_status['suspect']['igdbSlug'] == 'astrobotanica'
+    assert by_status['unresolved']['nameSlug'] == ns
+
+
+@pytest.mark.parametrize('podcast_name,igdb_name', [
+    ('Kirby',             'Kirby and the Forgotten World'),   # subtitle
+    ('Astrobot',          'Astro Bot'),                       # spacing only
+    ('Zelda BOTW',        'Zelda BOTW'),                      # identical
+    ('Hades 2',           'Hades II'),                        # roman numerals
+    ('Crusader Kings 3',  'Crusader Kings III'),
+    ('Planet of Lana 2',  'Planet of Lana II: Children of the Leaf'),  # roman + subtitle
+    ('Little Nightmare 3', 'Little Nightmares III'),          # roman + plural
+    ('Still Wake The Deep', 'Still Wakes the Deep'),          # typo in the feed
+    ('Senua’s Saga Hellblade II', 'Hellblade II: Senua’s Saga'),  # reordered
+])
+def test_is_suspect_passes_benign_differences(podcast_name, igdb_name):
+    assert not games_module._is_suspect(podcast_name, igdb_name)
+
+
+@pytest.mark.parametrize('podcast_name,igdb_name', [
+    ('Astrobot',                           'Astrobotanica'),   # mid-word prefix
+    ('Silent Hill 2',                      'Resident Evil'),
+    ('Myst',                               'Mystery of the Malign'),
+    ('Castlevania: Symphony of the Night', "Castlevania: Belmont's Curse"),
+])
+def test_is_suspect_flags_unrelated_names(podcast_name, igdb_name):
+    assert games_module._is_suspect(podcast_name, igdb_name)
+
+
+def test_suspects_exclude_names_a_human_already_ruled_on(client):
+    # «Les gardiens de la galaxie» → «Marvel's Guardians of the Galaxy» is a
+    # curated correction: intentional, however unalike the names look. Flagging it
+    # every time would bury the real misses.
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabLes gardiens de la galaxie\xc2\xbb</title>
+    <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 x</description></item>
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+    ns = games_module.make_slug('Les gardiens de la galaxie')
+    _seed(rss, {f'{ns}-g1': _entry(f'{ns}-g1', 1, 'guardians', "Marvel's Guardians of the Galaxy")})
+    # The heuristic alone would flag it…
+    assert games_module._is_suspect('Les gardiens de la galaxie',
+                                    "Marvel's Guardians of the Galaxy")
+    # …but the curated correction rules it out: it reads as resolved, not suspect.
+    r = client.get('/silence/games/resolution-stats', headers=admin_header())
+    row = next(g for g in r.get_json()['games'] if g['nameSlug'] == ns)
+    assert row['status'] == 'resolved'
+    assert row['corrected'] is True
+
+
+def test_stats_reports_a_merged_group_under_its_resolving_name(client):
+    # Two spellings merged into one entry. The summary must name the variant that
+    # actually resolved (not whichever sorts first) and list every name behind it,
+    # so a correction can't silently pin only one of them.
+    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>On a joue a \xc2\xabZelda BOTW\xc2\xbb</title>
+    <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda BOTW</description></item>
+  <item><title>On a joue a \xc2\xabAstrobot\xc2\xbb</title>
+    <guid>g2</guid><enclosure url="https://example.com/2.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Astrobot</description></item>
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
+    botw, astro = games_module.make_slug('Zelda BOTW'), games_module.make_slug('Astrobot')
+    _seed(rss, {
+        # Both land on the same (wrong) igdb_slug → one group, two name variants.
+        f'{botw}-g1':  games_module.IgdbEntry(f'{botw}-g1', 9, 'astrobotanica', 'Astrobotanica',
+                                              {}, False, '2000-01-01T00:00:00'),
+        f'{astro}-g2': games_module.IgdbEntry(f'{astro}-g2', 9, 'astrobotanica', 'Astrobotanica',
+                                              {}, False, _NOW),   # newest → representative
+    })
+    r = client.get('/silence/games/resolution-stats', headers=admin_header())
+    suspect = next(g for g in r.get_json()['games'] if g['slug'] == 'astrobotanica')
+    assert suspect['status']    == 'suspect'
+    assert suspect['nameSlug']  == astro                  # the newest-cached variant
+    assert suspect['nameSlugs'] == sorted([astro, botw])  # both surfaced
+
+
+def test_detail_reports_whether_a_correction_applies(client, tmp_corrections):
+    import corrections
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    assert games_module._load_game(ns)['corrected'] is False
+
+    corrections.upsert('Silent Hill 2', igdb_id=1)
+    assert games_module._load_game(ns)['corrected'] is True
+
+
+def test_detail_corrected_flag_respects_podcast_scope(client, tmp_corrections):
+    # A correction scoped to a podcast this entry has no episodes from must not
+    # light up the "remove the correction" affordance.
+    import corrections
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {})          # seeded as silence-on-joue
+    corrections.upsert('Silent Hill 2', 'fin-du-game', igdb_id=1)
+    assert games_module._load_game(ns)['corrected'] is False
+
+
+def test_stats_marks_rows_a_correction_already_rules_on(client, tmp_corrections):
+    import corrections
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-original': _entry(f'{ns}-original', 9, 'astrobotanica', 'Astrobotanica'),
+    })
+    # Unruled: the heuristic flags the bad match for review.
+    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    assert [g['igdbSlug'] for g in body['games'] if g['status'] == 'suspect'] == ['astrobotanica']
+    assert body['writable'] is True
+
+    # Once a human has ruled on it, nothing is suspect and every row is marked.
+    corrections.upsert('Silent Hill 2', igdb_id=1)
+    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    assert [g for g in body['games'] if g['status'] == 'suspect'] == []
+    soj = next(p for p in body['podcasts'] if p['id'] == 'silence-on-joue')
+    assert soj['corrected'] == 2          # both appearances of the name
+    assert all(g['corrected'] for g in body['games'])
+
+
+def test_stats_reports_read_only_deployments(client, tmp_corrections):
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    with patch('games.corrections.is_writable', return_value=False):
+        body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    assert body['writable'] is False
+
+
+# ── Admin console: row shape + display-name edits ─────────────────────────────
+
+def test_stats_row_carries_what_the_console_renders(client, tmp_corrections):
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2--1', 'Silent Hill 2',
+                               released='2024', coverImageId='co42'),
+    })
+    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    row  = next(g for g in body['games'] if g['slug'] == 'silent-hill-2--1')
+    assert row['coverImageId'] == 'co42'
+    assert row['released']     == '2024'
+    # The episode a reviewer opens to judge the match: the newest appearance.
+    assert row['episodeSlug']  == 'on-a-joue-a-silent-hill-2'
+    assert row['episodeTitle'] == 'On a joue a «Silent Hill 2»'
+    assert row['displayName'] is None
+
+
+def test_stats_rows_are_newest_first(client, tmp_corrections):
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    pts = [g['latestPubTs'] or 0 for g in body['games']]
+    assert pts == sorted(pts, reverse=True)
+
+
+def test_stats_surfaces_the_current_display_name(client, tmp_corrections):
+    import corrections
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    corrections.upsert('Silent Hill 2', display_name='Silent Hill 2 (2001)')
+    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    row  = next(g for g in body['games'] if g['nameSlug'] == ns)
+    assert row['displayName'] == 'Silent Hill 2 (2001)'
+    assert row['corrected'] is True
+
+
+def test_renaming_does_not_re_resolve(client, tmp_corrections):
+    # display_name is applied at response time, so a rename must not burn a round
+    # of IGDB + Metacritic + HLTB calls to arrive at the same entry.
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2', 'Silent Hill 2'),
+    })
+    before = games_module._data_version
+    with patch('games.fetch_by_id') as by_id, patch('games.fetch_by_name') as by_name:
+        r = client.put('/silence/games/corrections', headers=admin_header(),
+                       json={'nameSlug': ns, 'displayName': 'Silent Hill 2 (2001)'})
+    assert_contract(r, GAMES['corrections']['success'])
+    by_id.assert_not_called()
+    by_name.assert_not_called()
+    # The cached resolution survives…
+    assert games_module._igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
+    # …but the derived caches are invalidated so the new name is served.
+    assert games_module._data_version > before
+    assert r.get_json()['name'] == 'Silent Hill 2 (2001)'
+
+
+def test_correction_requires_a_pin_or_a_name(client, tmp_corrections):
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    r = client.put('/silence/games/corrections', headers=admin_header(),
+                   json={'nameSlug': games_module.make_slug('Silent Hill 2')})
+    assert_contract(r, GAMES['corrections']['bad_request'])
+
+
+def test_correction_rejects_a_non_integer_pin(client, tmp_corrections):
+    _seed(_TWO_EPISODES_SAME_NAME, {})
+    r = client.put('/silence/games/corrections', headers=admin_header(),
+                   json={'nameSlug': games_module.make_slug('Silent Hill 2'), 'igdbId': 'nope'})
+    assert_contract(r, GAMES['corrections']['bad_request'])
