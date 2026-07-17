@@ -6,37 +6,34 @@ export function getToken() {
   return localStorage.getItem(TOKEN_KEY) || ''
 }
 
-export function getUserEmail() {
+// JWT payloads are base64url-encoded UTF-8 — atob only accepts standard base64
+// (`-`/`_` throw, and only non-ASCII claim bytes can produce them), and returns
+// a byte string that still needs UTF-8 decoding for accented emails.
+function _claims() {
   const token = getToken()
   if (!token) return null
   try {
-    return JSON.parse(atob(token.split('.')[1])).email || null
+    const b64   = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(bytes))
   } catch {
     return null
   }
 }
 
+export function getUserEmail() {
+  return _claims()?.email || null
+}
+
 export function isLoggedIn() {
-  const token = getToken()
-  if (!token) return false
-  try {
-    const { exp } = JSON.parse(atob(token.split('.')[1]))
-    return exp * 1000 > Date.now()
-  } catch {
-    return false
-  }
+  const exp = _claims()?.exp
+  return !!exp && exp * 1000 > Date.now()
 }
 
 // Cosmetic only — decides whether to *show* the admin UI. Every admin endpoint
 // re-checks the flag server-side, so a forged claim buys nothing.
 export function isAdmin() {
-  const token = getToken()
-  if (!token) return false
-  try {
-    return JSON.parse(atob(token.split('.')[1])).admin === true
-  } catch {
-    return false
-  }
+  return _claims()?.admin === true
 }
 
 export const loggedIn = ref(isLoggedIn())

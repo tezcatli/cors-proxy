@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { usePlayerStore } from '../../src/stores/player.js'
 
@@ -114,6 +115,45 @@ describe('resumeTimeFor', () => {
 
   it('returns the start when no progress is saved', () => {
     expect(usePlayerStore().resumeTimeFor('ep-1', 100)).toBe(100)
+  })
+})
+
+describe('chapter-change progress finalization', () => {
+  const chapters = [
+    { timestampSeconds: 0,   title: 'Intro' },
+    { timestampSeconds: 100, title: 'Jeu A' },
+    { timestampSeconds: 200, title: 'Jeu B' },
+  ]
+
+  it('finalizes the old chapter when playback crosses a boundary after play()', async () => {
+    const store = usePlayerStore()
+    store.play({ game: 'Zelda', slug: 'zelda', episode: 'Ep 1', url: 'u',
+                 episodeSlug: 'ep-1', chapters })
+    store.setDuration(300)
+    store.setCurrentTime(50)          // inside chapter 0
+    await nextTick()
+    store.setCurrentTime(150)         // crosses into the 100s chapter
+    await nextTick()
+    const saved = store.getEpisodeProgress('ep-1', 0)
+    expect(saved).not.toBeNull()
+    expect(saved.currentTime).toBe(150)
+  })
+
+  it('never writes the new episode under the previous track\'s chapter key', async () => {
+    const store = usePlayerStore()
+    store.play({ game: 'Zelda', slug: 'zelda', episode: 'Ep 1', url: 'u1',
+                 episodeSlug: 'ep-1', chapters })
+    store.setDuration(300)
+    store.setCurrentTime(150)         // chapter 100 of ep-1
+    await nextTick()
+    // Swap tracks mid-chapter: the watcher firing sees oldCh from ep-1.
+    store.play({ game: 'Mario', slug: 'mario', episode: 'Ep 2', url: 'u2',
+                 episodeSlug: 'ep-2', chapters: [{ timestampSeconds: 0, title: 'Intro' }] })
+    await nextTick()
+    // play() itself finalized ep-1 at the old position…
+    expect(store.getEpisodeProgress('ep-1', 100).currentTime).toBe(150)
+    // …but no entry may mix ep-2 with ep-1's chapter timestamp.
+    expect(store.getEpisodeProgress('ep-2', 100)).toBeNull()
   })
 })
 

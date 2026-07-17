@@ -11,7 +11,7 @@ from collections import namedtuple
 
 import requests
 from config import Config
-from utils import norm_key
+from utils import RateLimiter, norm_key
 
 import logging
 
@@ -79,22 +79,7 @@ def _get_token() -> str:
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
 
-class _RateLimiter:
-    def __init__(self, rate: float):
-        self._interval = 1.0 / rate
-        self._last     = 0.0
-        self._lock     = threading.Lock()
-
-    def wait(self):
-        with self._lock:
-            now  = time.monotonic()
-            wait = self._interval - (now - self._last)
-            if wait > 0:
-                time.sleep(wait)
-            self._last = time.monotonic()
-
-
-_rate_limiter = _RateLimiter(4)
+_rate_limiter = RateLimiter(4)   # honor IGDB's 4 req/s budget
 
 
 # ── Platform brand family ─────────────────────────────────────────────────────

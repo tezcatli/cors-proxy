@@ -231,7 +231,6 @@ def test_same_day_episodes_both_kept():
 </channel></rss>"""
     _, game_index = games_module._build_indexes(_parse_feed(rss))
     zelda = game_index[games_module.make_slug('Zelda')]
-    assert zelda.episode_count == 2
     assert {a.episode.slug for a in zelda.appearances} == {'day-a', 'day-b'}
 
 def test_multi_feed_merges_same_game_across_podcasts():
@@ -258,7 +257,7 @@ def test_multi_feed_merges_same_game_across_podcasts():
 
     _, game_index = games_module._build_indexes(episodes)
     zelda = game_index[games_module.make_slug('Zelda')]
-    assert zelda.episode_count == 2
+    assert len(zelda.appearances) == 2
     assert {a.episode.podcast_id for a in zelda.appearances} == {'silence-on-joue', 'fin-du-game'}
 
 
@@ -520,6 +519,23 @@ def test_game_detail_returns_episodes(client):
     assert data['episodes'][0]['audioUrl'] == 'https://example.com/ep1.mp3'
 
 
+def test_game_detail_surfaces_display_name_and_igdb_name(client, tmp_corrections):
+    # displayName pre-fills the picker's « Nom affiché »; igdbName is the true
+    # resolution behind the entry (top-level `name` is already the override).
+    import corrections
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2', 'Silent Hill 2'),
+    })
+    corrections.upsert('Silent Hill 2', display_name='Silent Hill 2 (2001)')
+    r = client.get('/silence/games/silent-hill-2', headers=auth_header())
+    assert_contract(r, GAMES['game_detail']['success'])
+    data = r.get_json()
+    assert data['name']        == 'Silent Hill 2 (2001)'
+    assert data['displayName'] == 'Silent Hill 2 (2001)'
+    assert data['igdbName']    == 'Silent Hill 2'
+
+
 # ── POST /games/refresh ───────────────────────────────────────────────────────
 
 def test_refresh_always_fetches(client):
@@ -527,6 +543,36 @@ def test_refresh_always_fetches(client):
         r = client.post('/silence/games/refresh', headers=auth_header())
     assert_contract(r, GAMES['refresh']['success'])
     mock_get.assert_called_once()
+
+
+def test_concurrent_refreshes_coalesce():
+    # Two threads refreshing at once must fetch each feed once: the waiter sees
+    # _cached_at moved while it was queued on _refresh_lock and piggybacks.
+    import threading
+    import time as _time
+    gate  = threading.Event()
+    calls = []
+
+    def slow_get(url, **kwargs):
+        calls.append(url)
+        gate.wait(5)
+        return mock_rss_response()
+
+    with patch('games.http.get', side_effect=slow_get):
+        t1 = threading.Thread(target=games_module._refresh_feed)
+        t2 = threading.Thread(target=games_module._refresh_feed)
+        t1.start()
+        for _ in range(200):                    # until t1 is inside the fetch
+            if calls:
+                break
+            _time.sleep(0.01)
+        t2.start()
+        _time.sleep(0.05)                       # t2 now queued on the lock
+        gate.set()
+        t1.join(2)
+        t2.join(2)
+    assert len(calls) == 1
+    assert games_module._cached_at is not None
 
 
 # ── POST /games/<slug>/igdb-refresh ──────────────────────────────────────────
@@ -1261,6 +1307,21 @@ def test_stats_surfaces_the_current_display_name(client, tmp_corrections):
     row  = next(g for g in body['games'] if g['nameSlug'] == ns)
     assert row['displayName'] == 'Silent Hill 2 (2001)'
     assert row['corrected'] is True
+
+
+def test_catalog_applies_a_podcast_scoped_display_name(tmp_corrections):
+    # _group_display_name must look the correction up at the appearance's own
+    # podcast scope, or a podcast_id-scoped rename would show in the admin
+    # console (which passes podcast_id) but never in the catalog.
+    import corrections
+    ns = games_module.make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2-remake', 'Silent Hill 2 Remake'),
+    })
+    corrections.upsert('Silent Hill 2', 'silence-on-joue',
+                       display_name='Silent Hill 2 (renommé)')
+    names = {g['slug']: g['name'] for g in games_module._build_catalog()}
+    assert names['silent-hill-2-remake'] == 'Silent Hill 2 (renommé)'
 
 
 def test_renaming_does_not_re_resolve(client, tmp_corrections):

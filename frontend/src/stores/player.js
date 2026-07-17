@@ -15,7 +15,6 @@ export const usePlayerStore = defineStore('player', () => {
     clearTimeout(_progressTimer)
     _updateProgress()
     restored.value = false
-    _playCallVersion = playVersion.value + 1
     playVersion.value++
     current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, podcast, chapters: chapters ?? [] }
     visible.value = true
@@ -62,7 +61,6 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   // ── Progress tracking ────────────────────────────────────────────────────────
-  let _playCallVersion = 0
   const PROGRESS_KEY      = 'soj-progress'
   const PROGRESS_MAX_AGE  = 180 * 24 * 3600 * 1000   // 180 days
   const PROGRESS_MAX_KEYS = 500                       // newest-N cap
@@ -121,7 +119,10 @@ export const usePlayerStore = defineStore('player', () => {
 
   watch(currentChapter, (newCh, oldCh) => {
     if (!oldCh || !current.value) return
-    if (playVersion.value === _playCallVersion) return
+    // When play() swapped tracks, this firing's oldCh belongs to the *previous*
+    // track — writing it would mix the new episode's slug with the old chapter's
+    // timestamp. Only a chapter of the current track may be finalized here.
+    if (!current.value.chapters?.includes(oldCh)) return
     _updateProgress(oldCh.timestampSeconds, currentTime.value)
   })
 

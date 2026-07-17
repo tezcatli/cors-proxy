@@ -164,15 +164,11 @@ def _build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
                     logger.info('Duplicate mention %r in episode %r, skipping', podcast_slug, episode.title)
                     continue
 
-            game = game_index[name_slug]
-            game.appearances.append(GameAppearance(
+            game_index[name_slug].appearances.append(GameAppearance(
                 episode=episode,
                 mention=mention,
                 podcast_slug=podcast_slug,
             ))
-            if episode.pub_ts and (game.latest_pub_ts is None or episode.pub_ts > game.latest_pub_ts):
-                game.latest_pub_ts = episode.pub_ts
-            game.episode_count += 1
 
     return episode_index, game_index
 
@@ -209,6 +205,9 @@ def _fetch_feed(podcast) -> bool:
     return True
 
 
+_refresh_lock = threading.Lock()
+
+
 def _refresh_feed() -> None:
     """Fetch every registered podcast, then recombine all feeds into one catalog.
 
@@ -216,44 +215,54 @@ def _refresh_feed() -> None:
     doesn't abort the others as long as we already have cached episodes for it.
     If *no* feed yields any episodes, the whole refresh raises so the caller can
     keep serving the previous cache rather than blanking it.
+
+    Serialized: a caller that waited on the lock while another thread refreshed
+    piggybacks on that result instead of re-fetching (the concurrent callers are
+    a stale-catalog request, the periodic thread, and POST /refresh — all of
+    which just want "fresh now").
     """
     global _cached_episodes, _episode_index, _game_index, _cached_at, _data_version
 
-    errors: list[str] = []
-    for podcast in PODCASTS:
-        try:
-            _fetch_feed(podcast)
-        except Exception as exc:
-            errors.append(f'{podcast.id}: {exc}')
-            logger.warning('Feed fetch failed for %s: %s', podcast.id, exc)
+    before = _cached_at
+    with _refresh_lock:
+        if _cached_at is not before:
+            return
 
-    # Combine every feed's episodes (cached lists survive a 304 or a failed fetch).
-    episodes = [ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])]
-    if not episodes:
-        raise RuntimeError('No episodes from any feed: ' + '; '.join(errors) if errors
-                           else 'No episodes from any feed')
+        errors: list[str] = []
+        for podcast in PODCASTS:
+            try:
+                _fetch_feed(podcast)
+            except Exception as exc:
+                errors.append(f'{podcast.id}: {exc}')
+                logger.warning('Feed fetch failed for %s: %s', podcast.id, exc)
 
-    # Interleave both feeds newest-first; otherwise each feed's block would stay
-    # contiguous (e.g. all SOJ before any FDG) and the second podcast would be
-    # buried at the bottom of the episodes feed. Stable sort keeps ties/undated
-    # items in their existing intra-feed order.
-    episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
+        # Combine every feed's episodes (cached lists survive a 304 or a failed fetch).
+        episodes = [ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])]
+        if not episodes:
+            raise RuntimeError('No episodes from any feed: ' + '; '.join(errors) if errors
+                               else 'No episodes from any feed')
 
-    assign_url_slugs(episodes)
-    ai_index = _load_ai_chapter_index()
-    _inject_ai_chapters(episodes, ai_index)
-    episode_index, game_index = _build_indexes(episodes)
-    with _state_lock:
-        _cached_episodes = episodes
-        _episode_index   = episode_index
-        _game_index      = game_index
-        _cached_at       = utcnow()
-        _data_version   += 1
-    dead = unmatched_slugs(game_index.keys())
-    if dead:
-        logger.warning('%d correction(s) match no game name in the feed: %s',
-                       len(dead), ', '.join(dead))
-    _prune_igdb_cache()
+        # Interleave both feeds newest-first; otherwise each feed's block would stay
+        # contiguous (e.g. all SOJ before any FDG) and the second podcast would be
+        # buried at the bottom of the episodes feed. Stable sort keeps ties/undated
+        # items in their existing intra-feed order.
+        episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
+
+        assign_url_slugs(episodes)
+        ai_index = _load_ai_chapter_index()
+        _inject_ai_chapters(episodes, ai_index)
+        episode_index, game_index = _build_indexes(episodes)
+        with _state_lock:
+            _cached_episodes = episodes
+            _episode_index   = episode_index
+            _game_index      = game_index
+            _cached_at       = utcnow()
+            _data_version   += 1
+        dead = unmatched_slugs(game_index.keys())
+        if dead:
+            logger.warning('%d correction(s) match no game name in the feed: %s',
+                           len(dead), ', '.join(dead))
+        _prune_igdb_cache()
 
 
 # ── IGDB cache helpers ────────────────────────────────────────────────────────
@@ -715,7 +724,8 @@ def _group_display_name(members: list[Member],
     if best:
         (game, appearance), entry = best
         if not entry.is_child:
-            corr = find_by_podcast(appearance.mention.name, appearance.episode.pub_ts)
+            corr = find_by_podcast(appearance.mention.name, appearance.episode.pub_ts,
+                                   appearance.episode.podcast_id)
             if corr and corr.get('display_name'):
                 return corr['display_name']
         if entry.name:
@@ -754,18 +764,24 @@ def _load_game(slug: str) -> dict:
     members, cache, resolved = _match_appearances(slug)
     # Newest first: a group can mix appearances from several name variants and
     # both podcasts, whose per-name order says nothing about the group's.
-    ordered = sorted(members, key=lambda m: m[1].episode.pub_ts or 0, reverse=True)
+    ordered    = sorted(members, key=lambda m: m[1].episode.pub_ts or 0, reverse=True)
+    correction = _correction_for(members)
     payload = {
         'episodes':  [_serialise_appearance(a) for _, a in ordered],
         'nameSlugs': sorted({g.name_slug for g, _ in members}),
-        # Lets the admin UI offer "remove the correction" without a second call.
-        'corrected': _correction_for(members) is not None,
+        # Lets the admin UI offer "remove the correction" without a second call,
+        # and pre-fill the picker's « Nom affiché » field with the current
+        # override (top-level `name` may already *be* that override).
+        'corrected':   correction is not None,
+        'displayName': (correction or {}).get('display_name'),
     }
     # `resolved` guarantees a member entry carries this igdb_slug, so best is set.
     if resolved and (best := _best_member(members, cache)):
-        return {**payload, 'slug': slug,
+        # igdbName is the entry's true IGDB name — what the picker shows as the
+        # current resolution, unaffected by a display_name override.
+        return {**payload, 'slug': slug, 'igdbName': best[1].name,
                 'name': _group_display_name(members, best), 'igdb': best[1].data}
-    return {**payload, 'slug': make_slug(slug),
+    return {**payload, 'slug': make_slug(slug), 'igdbName': None,
             'name': members[0][0].name, 'igdb': None}
 
 

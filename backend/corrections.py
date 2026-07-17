@@ -175,10 +175,6 @@ def find_by_podcast(podcast_name: str, pub_ts=None, podcast_id: str = ''):
     return _find(make_slug(podcast_name), pub_ts, podcast_id)
 
 
-def find_by_slug(slug: str, pub_ts=None, podcast_id: str = ''):
-    return _find(slug, pub_ts, podcast_id)
-
-
 def unmatched_slugs(known_slugs) -> list[str]:
     """Correction name_slugs that match no game name in the feed.
 

@@ -272,6 +272,10 @@ def reset_confirm():
             "DELETE FROM reset_tokens WHERE token = ? RETURNING user_id",
             (data["token"],),
         ).fetchone()
+        if row is None:
+            # A concurrent request consumed the token between the SELECT above
+            # and this DELETE (double-submit).
+            abort(400, "Lien invalide ou déjà utilisé")
         conn.execute(
             "UPDATE users SET password_hash = ? WHERE id = ?",
             (pw_hash, row["user_id"]),

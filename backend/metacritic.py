@@ -7,34 +7,22 @@ error) returns None and the caller falls back to IGDB's aggregate.
 """
 
 import re
-import time
-import threading
 import logging
 import unicodedata
 
 import requests
 from config import Config
+from utils import RateLimiter
 
 logger = logging.getLogger(__name__)
 
 _UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
        '(KHTML, like Gecko) Chrome/124.0 Safari/537.36')
 _BASE = 'https://www.metacritic.com/game/'
-_MIN_INTERVAL = 1.4                     # gentle — keeps Cloudflare clear
 _session = requests.Session()
-_lock = threading.Lock()
-_last = 0.0
+_rate_limiter = RateLimiter(1 / 1.4)    # gentle — keeps Cloudflare clear
 _RATING_RE = re.compile(r'"ratingValue"\s*:\s*"?(\d{1,3})')
 _BLOCK_MARKERS = ('challenge-platform', 'Just a moment', 'cf-mitigated')
-
-
-def _throttle() -> None:
-    global _last
-    with _lock:
-        wait = _MIN_INTERVAL - (time.monotonic() - _last)
-        if wait > 0:
-            time.sleep(wait)
-        _last = time.monotonic()
 
 
 def _slug_candidates(name: str) -> list[str]:
@@ -46,7 +34,7 @@ def _slug_candidates(name: str) -> list[str]:
     n = re.sub(r"['’\"]", '', n)
     def slug(s): return re.sub(r'-+', '-', re.sub(r'[^a-z0-9]+', '-', s)).strip('-')
     full = slug(n)
-    base = slug(re.split(r'[:–-]| - ', n, 1)[0])
+    base = slug(re.split(r'[:–-]| - ', n, maxsplit=1)[0])
     return [s for s in dict.fromkeys((full, base)) if s]
 
 
@@ -56,7 +44,7 @@ def fetch_metascore(name: str) -> int | None:
         return None
     for slug in _slug_candidates(name):
         try:
-            _throttle()
+            _rate_limiter.wait()
             r = _session.get(
                 f'{_BASE}{slug}/',
                 headers={'User-Agent': _UA, 'Accept': 'text/html',

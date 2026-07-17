@@ -90,6 +90,11 @@ const igdbRefreshing   = ref(false)
 // The podcast name(s) behind this entry — what the corrections API keys on.
 const nameSlugs        = ref([])
 const corrected        = ref(false)
+// Current display_name override and true IGDB name — pre-fill the picker so an
+// existing rename isn't shown as empty (and « Actuellement » shows the real
+// resolution, not the override).
+const displayName      = ref(null)
+const igdbName         = ref(null)
 const pickerOpen       = ref(false)
 const admin            = isAdmin()
 
@@ -98,9 +103,11 @@ async function _loadEpisodes(g) {
   episodesLoading.value = true
   try {
     const detail = await fetchGameDetail(g.slug)
-    episodes.value   = detail.episodes
-    nameSlugs.value  = detail.nameSlugs ?? []
-    corrected.value  = !!detail.corrected
+    episodes.value    = detail.episodes
+    nameSlugs.value   = detail.nameSlugs ?? []
+    corrected.value   = !!detail.corrected
+    displayName.value = detail.displayName ?? null
+    igdbName.value    = detail.igdbName ?? null
     if (detail.igdb) {
       const idx = gamesStore.all.findIndex(x => x.slug === g.slug)
       if (idx !== -1) gamesStore.all[idx].igdb = detail.igdb
@@ -117,12 +124,13 @@ async function _loadEpisodes(g) {
 const pickerTarget = computed(() => {
   if (nameSlugs.value.length !== 1 || !game.value) return null
   return {
-    name:      game.value.name,
-    nameSlug:  nameSlugs.value[0],
-    nameSlugs: nameSlugs.value,
-    podcasts:  game.value.podcasts ?? [],
-    igdbName:  game.value.name,
-    igdbSlug:  game.value.slug,
+    name:        game.value.name,
+    nameSlug:    nameSlugs.value[0],
+    nameSlugs:   nameSlugs.value,
+    podcasts:    game.value.podcasts ?? [],
+    igdbName:    igdbName.value,
+    igdbSlug:    game.value.slug,
+    displayName: displayName.value,
   }
 })
 
@@ -133,10 +141,12 @@ async function onCorrectionSaved(detail) {
   // or we'd sit on a route that no longer exists in the catalog.
   if (detail?.slug && detail.slug !== route.params.slug) {
     router.replace(`/game/${encodeURIComponent(detail.slug)}`)
-  } else {
-    episodes.value   = detail?.episodes ?? episodes.value
-    nameSlugs.value  = detail?.nameSlugs ?? nameSlugs.value
-    corrected.value  = !!detail?.corrected
+  } else if (detail) {
+    episodes.value    = detail.episodes ?? episodes.value
+    nameSlugs.value   = detail.nameSlugs ?? nameSlugs.value
+    corrected.value   = !!detail.corrected
+    displayName.value = detail.displayName ?? null
+    igdbName.value    = detail.igdbName ?? null
   }
 }
 
@@ -161,6 +171,13 @@ async function refreshIgdb() {
   igdbRefreshing.value = true
   try {
     const result = await refreshGameIgdb(game.value.slug)
+    // Re-resolution can move the entry to a different igdb_slug — follow it
+    // (same as onCorrectionSaved), or we'd sit on a route with no catalog entry.
+    if (result.slug && result.slug !== route.params.slug) {
+      await gamesStore.load(false)
+      router.replace(`/game/${encodeURIComponent(result.slug)}`)
+      return
+    }
     const idx = gamesStore.all.findIndex(g => g.slug === result.slug)
     if (idx !== -1) gamesStore.all[idx].igdb = result.igdb
     episodes.value = result.episodes

@@ -48,8 +48,6 @@ class PodcastGame:
     name_slug: str          # make_slug(name); key in _game_index
     name: str               # raw podcast name as written in the episode title
     appearances: list[GameAppearance] = field(default_factory=list)
-    latest_pub_ts: Optional[int] = None   # None when no appearance has a pub_ts
-    episode_count: int = 0
 
 
 @dataclass

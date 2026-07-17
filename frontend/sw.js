@@ -27,6 +27,11 @@ self.addEventListener('fetch', e => {
   // SSE resolution stream — must never be buffered or cached
   if (url.pathname === '/silence/games/resolution-stream') return;
 
+  // Admin endpoints — resolution-stats is ~860 KB and meant to be uncached;
+  // igdb-search results are per-keystroke and useless offline.
+  if (url.pathname === '/silence/games/resolution-stats' ||
+      url.pathname === '/silence/games/igdb-search') return;
+
   // Hashed assets (content-addressed) — cache-first, safe indefinitely
   if (url.pathname.startsWith('/silence/assets/')) {
     e.respondWith(

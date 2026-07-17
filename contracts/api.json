@@ -160,7 +160,9 @@
           "igdb",
           "episodes",
           "nameSlugs",
-          "corrected"
+          "corrected",
+          "displayName",
+          "igdbName"
         ]
       },
       "not_found": {
@@ -206,7 +208,9 @@
           "igdb",
           "episodes",
           "nameSlugs",
-          "corrected"
+          "corrected",
+          "displayName",
+          "igdbName"
         ]
       },
       "not_found": {
@@ -281,7 +285,9 @@
           "igdb",
           "episodes",
           "nameSlugs",
-          "corrected"
+          "corrected",
+          "displayName",
+          "igdbName"
         ]
       },
       "bad_request": {

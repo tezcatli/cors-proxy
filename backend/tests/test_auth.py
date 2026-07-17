@@ -203,6 +203,30 @@ def test_reset_confirm_token_consumed(client):
     assert_contract(r, AUTH['reset_confirm']['invalid_token'])
 
 
+def test_reset_confirm_race_between_select_and_delete(client, monkeypatch):
+    # A concurrent request can consume the token between the initial SELECT and
+    # the DELETE...RETURNING — that must be a 400, not a 500 on a None row.
+    from contextlib import contextmanager
+    register(client, 'race@example.com', 'oldpassword')
+    token = _insert_reset_token('race@example.com', 3600)
+    real_get_db = db.get_db
+    calls = []
+
+    @contextmanager
+    def racy_get_db():
+        calls.append(1)
+        if len(calls) == 2:   # entering the DELETE block: token already consumed
+            with real_get_db() as conn:
+                conn.execute("DELETE FROM reset_tokens WHERE token = ?", (token,))
+        with real_get_db() as conn:
+            yield conn
+
+    monkeypatch.setattr('auth.get_db', racy_get_db)
+    r = client.post('/silence/auth/reset-confirm',
+                    json={'token': token, 'new_password': 'newpassword1'})
+    assert_contract(r, AUTH['reset_confirm']['invalid_token'])
+
+
 # ── POST /auth/refresh ────────────────────────────────────────────────────────
 
 def test_refresh_success(client):

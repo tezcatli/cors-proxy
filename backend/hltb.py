@@ -6,9 +6,9 @@ falls back to IGDB. Rate-limited gently since it runs across the catalog on the
 resolution sweep.
 """
 
-import threading
-import time
 import logging
+
+from utils import RateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -17,18 +17,7 @@ try:
 except Exception:                       # lib missing / import error
     HowLongToBeat = None
 
-_MIN_INTERVAL = 1.2                      # seconds between calls (gentle)
-_lock = threading.Lock()
-_last = 0.0
-
-
-def _throttle() -> None:
-    global _last
-    with _lock:
-        wait = _MIN_INTERVAL - (time.monotonic() - _last)
-        if wait > 0:
-            time.sleep(wait)
-        _last = time.monotonic()
+_rate_limiter = RateLimiter(1 / 1.2)    # gentle — runs across the whole catalog
 
 
 def fetch_time_to_beat(name: str, year=None) -> int | None:
@@ -40,7 +29,7 @@ def fetch_time_to_beat(name: str, year=None) -> int | None:
     if HowLongToBeat is None or not name:
         return None
     try:
-        _throttle()
+        _rate_limiter.wait()
         results = HowLongToBeat().search(name)
     except Exception as exc:
         logger.warning('HLTB lookup failed for %r: %s', name, exc)

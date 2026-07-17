@@ -2,7 +2,7 @@ import datetime
 import os
 import stat
 import pytest
-from corrections import find_by_podcast, find_by_slug, _find, _BY_SLUG
+from corrections import find_by_podcast, _find, _BY_SLUG
 from utils import make_slug
 
 
@@ -46,18 +46,18 @@ def test_unmatched_slugs_flags_corrections_absent_from_the_feed():
     assert 'makeway' in unmatched_slugs(['artic-eggs'])
 
 
-# ── find_by_slug ───────────────────────────────────────────────────────────────
+# ── _find (slug-level lookup) ─────────────────────────────────────────────────
 
 def test_find_by_slug_match():
-    c = find_by_slug(make_slug('artic eggs'))
+    c = _find(make_slug('artic eggs'), None)
     assert c is not None
     assert c['search_name'] == 'Arctic Eggs'
 
 def test_find_by_slug_no_match():
-    assert find_by_slug('completely-unknown-game') is None
+    assert _find('completely-unknown-game', None) is None
 
 def test_find_by_slug_same_as_find_by_podcast():
-    assert find_by_slug(make_slug('shogun shodown')) == find_by_podcast('shogun shodown')
+    assert _find(make_slug('shogun shodown'), None) == find_by_podcast('shogun shodown')
 
 
 # ── hint_date exact-date matching ─────────────────────────────────────────────

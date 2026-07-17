@@ -6,7 +6,7 @@ No I/O, no global state, no imports from other app modules.
 import re
 from calendar import timegm
 from email.utils import parsedate
-from html import escape as _html_escape
+from html import escape as _html_escape, unescape as _html_unescape
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 
@@ -70,8 +70,9 @@ def _strip_html(html: str) -> str:
     html = re.sub(r'</p>', '\n', html, flags=re.IGNORECASE)
     html = re.sub(r'<br\s*/?>', '\n', html, flags=re.IGNORECASE)
     html = re.sub(r'<[^>]*>', '', html)
-    html = (html.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
-                .replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' '))
+    # unescape handles every named/numeric entity; &nbsp; becomes U+00A0, which
+    # the whitespace normalisation below must fold like a regular space.
+    html = _html_unescape(html).replace(' ', ' ')
     html = re.sub(r'[ \t]+', ' ', html)
     html = re.sub(r'\n[ \t]+', '\n', html)
     return html.strip()

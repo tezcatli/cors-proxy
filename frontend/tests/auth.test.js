@@ -43,6 +43,20 @@ describe('getUserEmail', () => {
     localStorage.setItem(TOKEN_KEY, 'not.a.token');
     expect(getUserEmail()).toBeNull();
   });
+
+  it('decodes a base64url payload with a non-ASCII email', () => {
+    // Real JWTs are base64url-encoded UTF-8; accented claim bytes can yield
+    // `-`/`_`, which plain atob rejects. Encode exactly like a JWT library.
+    const email = 'xrenïé@exemple.fr';
+    const payload = { sub: '1', email, iat: 0, exp: Math.floor(Date.now() / 1000) + 3600 };
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    const b64url = btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    expect(b64url).toMatch(/[-_]/);   // the payload must actually exercise base64url
+    localStorage.setItem(TOKEN_KEY, `x.${b64url}.y`);
+    expect(getUserEmail()).toBe(email);
+    expect(isLoggedIn()).toBe(true);
+  });
 });
 
 // ── isLoggedIn ────────────────────────────────────────────────────────────

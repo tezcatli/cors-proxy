@@ -65,8 +65,6 @@ def init_db():
                 cached_at TEXT NOT NULL,
                 correction_sig TEXT
             );
-            CREATE INDEX IF NOT EXISTS igdb_cache_igdb_slug
-                ON igdb_cache(igdb_slug) WHERE igdb_slug IS NOT NULL;
         """)
         cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
         if 'igdb_slug' not in cols and cols:
@@ -80,3 +78,9 @@ def init_db():
         user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
         if 'is_admin' not in user_cols and user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
+        # After the column migrations: a legacy table gains igdb_slug above, so
+        # creating the index earlier (in the executescript) would fail on it.
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS igdb_cache_igdb_slug
+                ON igdb_cache(igdb_slug) WHERE igdb_slug IS NOT NULL
+        """)
