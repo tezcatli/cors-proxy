@@ -18,6 +18,8 @@ const router = createRouter({
     // readers who make up every ordinary session.
     { path: '/admin/resolution', meta: { depth: 1, admin: true },
       component: () => import('./pages/ResolutionStatsPage.vue') },
+    { path: '/admin/users', meta: { depth: 1, admin: true },
+      component: () => import('./pages/AdminUsersPage.vue') },
     { path: '/:pathMatch(.*)*',                   redirect: '/' },
   ],
 })

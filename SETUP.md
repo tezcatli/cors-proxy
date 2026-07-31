@@ -132,11 +132,23 @@ ADMIN_KEY=<your key> RESET_BASE_URL=https://your-domain.com \
 
 ---
 
-## Sending invitations
+## Managing accounts
+
+Day to day this happens in the app: an administrator opens **« Comptes »** from the
+account menu (`/silence/admin/users`) to send invitations, see which ones are still
+pending (with their link, and a revoke button), promote or demote accounts, and
+delete them. Two things the console will refuse, in the server and not just the UI:
+removing or demoting **yourself**, and leaving the instance with **no administrator**.
+
+`invite.py` is the way in before that console exists — an empty database has no
+admin to log in as.
 
 ```bash
 # Single user
 python invite.py alice@example.com
+
+# The account this invitation creates is an administrator (bootstrap)
+python invite.py --admin alice@example.com
 
 # Multiple users
 python invite.py alice@example.com bob@example.com
@@ -151,9 +163,12 @@ any invitation fails.
 
 ### Promoting an admin
 
-Admins get the « Résolution des noms » dashboard (`/silence/admin/resolution`):
-per-podcast resolution figures, plus the review queues and the correction picker.
-There is no self-service promotion — flip the flag in SQLite:
+Admins get « Comptes » (above) and the « Résolution des noms » dashboard
+(`/silence/admin/resolution`): per-podcast resolution figures, plus the review
+queues and the correction picker.
+
+Normally you promote from the console. The SQL below stays the escape hatch — a
+first admin on an existing database, or an instance whose last admin was lost:
 
 ```bash
 # Prod (inside the container)
@@ -167,8 +182,11 @@ sqlite3 backend/data/users.db "UPDATE users SET is_admin = 1 WHERE email = 'alic
 The flag is read from the DB on every admin request, so a promotion (or demotion)
 takes effect immediately — no re-login needed. The JWT also carries an `admin`
 claim, but only to decide whether to *show* the UI; it is never trusted for access.
+(A user promoted while logged in sees the admin UI once their token is refreshed;
+doing it to yourself from the console refreshes it for you.)
 
-`ADMIN_KEY` is unrelated: it guards `POST /auth/invite` only.
+`ADMIN_KEY` is a second, independent credential for `POST /auth/invite`, so that
+`invite.py` and CI can send invitations without a user session.
 
 ### Correcting a name→IGDB resolution
 

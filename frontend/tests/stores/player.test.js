@@ -1,12 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { usePlayerStore } from '../../src/stores/player.js'
+import { setMediaFactory, resetMediaFactory } from '../../src/lib/audioEngine.js'
+import { createFakeMedia } from '../helpers/fakeMedia.js'
+
+// The store drives a real audio engine; give it an element it can actually use.
+let media
 
 beforeEach(() => {
   localStorage.clear()
   setActivePinia(createPinia())
+  media = createFakeMedia()
+  setMediaFactory(() => media)
 })
+
+afterEach(() => resetMediaFactory())
 
 describe('initial state', () => {
   it('starts with no current episode', () => {
@@ -55,14 +64,32 @@ describe('close', () => {
   })
 })
 
-describe('setPaused', () => {
-  it('updates paused flag', () => {
+describe('playback commands', () => {
+  it('toggles between the play and pause intents', () => {
     const store = usePlayerStore()
     store.play({ game: 'Zelda', episode: 'Ep 1', url: 'url1' })
-    store.setPaused(true)
-    expect(store.paused).toBe(true)
-    store.setPaused(false)
     expect(store.paused).toBe(false)
+    store.togglePlayback()
+    expect(store.paused).toBe(true)
+    store.togglePlayback()
+    expect(store.paused).toBe(false)
+  })
+
+  it('reports buffering until the element confirms playback, then clears it', () => {
+    const store = usePlayerStore()
+    store.play({ game: 'Zelda', episode: 'Ep 1', url: 'url1' })
+    expect(store.buffering).toBe(true)     // intent play, nothing playing yet
+    media.startPlaying(0)
+    expect(store.buffering).toBe(false)
+    expect(store.failed).toBe(false)
+  })
+
+  it('seek moves the position through the engine', () => {
+    const store = usePlayerStore()
+    store.play({ game: 'Zelda', episode: 'Ep 1', url: 'url1' })
+    store.seek(42)
+    expect(store.currentTime).toBe(42)
+    expect(media.currentTime).toBe(42)
   })
 })
 
@@ -76,9 +103,9 @@ describe('restored flag (resume cue)', () => {
     expect(store.paused).toBe(true)
     expect(store.currentTime).toBe(120)
 
-    store.setPaused(true)            // still paused → cue stays
+    store.pauseAudio()               // still paused → cue stays
     expect(store.restored).toBe(true)
-    store.setPaused(false)           // user resumes → cue clears
+    store.resume()                   // user resumes → cue clears
     expect(store.restored).toBe(false)
   })
 
@@ -129,10 +156,10 @@ describe('chapter-change progress finalization', () => {
     const store = usePlayerStore()
     store.play({ game: 'Zelda', slug: 'zelda', episode: 'Ep 1', url: 'u',
                  episodeSlug: 'ep-1', chapters })
-    store.setDuration(300)
-    store.setCurrentTime(50)          // inside chapter 0
+    media.emit('durationchange', { duration: 300 })
+    media.emit('timeupdate', { currentTime: 50 })    // inside chapter 0
     await nextTick()
-    store.setCurrentTime(150)         // crosses into the 100s chapter
+    media.emit('timeupdate', { currentTime: 150 })   // crosses into the 100s chapter
     await nextTick()
     const saved = store.getEpisodeProgress('ep-1', 0)
     expect(saved).not.toBeNull()
@@ -143,8 +170,8 @@ describe('chapter-change progress finalization', () => {
     const store = usePlayerStore()
     store.play({ game: 'Zelda', slug: 'zelda', episode: 'Ep 1', url: 'u1',
                  episodeSlug: 'ep-1', chapters })
-    store.setDuration(300)
-    store.setCurrentTime(150)         // chapter 100 of ep-1
+    media.emit('durationchange', { duration: 300 })
+    media.emit('timeupdate', { currentTime: 150 })   // chapter 100 of ep-1
     await nextTick()
     // Swap tracks mid-chapter: the watcher firing sees oldCh from ep-1.
     store.play({ game: 'Mario', slug: 'mario', episode: 'Ep 2', url: 'u2',

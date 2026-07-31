@@ -1,39 +1,64 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PCT } from '../lib/utils.js'
+import { createAudioEngine } from '../lib/audioEngine.js'
 
 export const usePlayerStore = defineStore('player', () => {
   const current     = ref(null)
   const visible     = ref(false)
-  const paused      = ref(true)
   const currentTime = ref(0)
-  const playVersion = ref(0)   // incremented on every play() call, not on metadata updates
   const audioDuration = ref(0)
   const restored    = ref(false)   // true while a reload-restored track sits paused, awaiting resume
+
+  // Mirrored from the engine — the element's truth, read-only from here out.
+  const status = ref('idle')
+  const intent = ref('pause')
+  const volume = ref(1)
+
+  const engine = createAudioEngine({
+    onState(s) {
+      status.value        = s.status
+      intent.value        = s.intent
+      currentTime.value   = s.position
+      audioDuration.value = s.duration
+      volume.value        = s.volume
+      if (s.status === 'playing') restored.value = false
+    },
+  })
+
+  // `paused` follows *intent*, so a tap flips the icon immediately; `buffering`
+  // is the gap between intent and reality, and `failed` is where that gap stops
+  // being temporary (see lib/audioEngine.js).
+  const paused    = computed(() => intent.value !== 'play')
+  const buffering = computed(() => intent.value === 'play' && status.value !== 'playing')
+  const failed    = computed(() => status.value === 'failed')
 
   function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, episodeUrlSlug = null, coverImageId = null, chapters = null, podcast = null }) {
     clearTimeout(_progressTimer)
     _updateProgress()
     restored.value = false
-    playVersion.value++
     current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, podcast, chapters: chapters ?? [] }
     visible.value = true
-    paused.value  = false
+    engine.load({ url, at: ts }, { autoplay: true })
   }
 
   function close() {
     clearTimeout(_progressTimer)
     _updateProgress()           // save final position before clearing
+    engine.stop()
     current.value       = null
     visible.value       = false
-    paused.value        = true
     currentTime.value   = 0
     audioDuration.value = 0
   }
 
-  function setPaused(v)      { paused.value = v; if (!v) restored.value = false }
-  function setCurrentTime(t) { currentTime.value = t }
-  function setDuration(d)    { audioDuration.value = d }
+  // ── Playback commands (the only way components touch the audio) ─────────────
+  function resume()         { restored.value = false; engine.play() }
+  function pauseAudio()     { engine.pause() }
+  function togglePlayback() { paused.value ? resume() : pauseAudio() }
+  function seek(t)          { engine.seek(t) }
+  function retry()          { restored.value = false; engine.retry() }
+  function setVolume(v)     { engine.setVolume(v) }
 
   const currentChapter = computed(() => {
     const chs = current.value?.chapters
@@ -50,14 +75,15 @@ export const usePlayerStore = defineStore('player', () => {
     if (current.value) current.value = { ...current.value, episodeImageUrl: url }
   }
 
+  // Reload resume: bring the track back *paused*, with the cue, so the user's
+  // tap is the gesture that starts playback.
   function restore(savedState) {
     const t           = savedState.currentTime ?? 0
     current.value     = { ...savedState.current, ts: t }
-    currentTime.value = t
     visible.value     = true
-    paused.value      = true
     restored.value    = true
-    playVersion.value++
+    engine.load({ url: current.value.url, at: t }, { autoplay: false })
+    currentTime.value = t
   }
 
   // ── Progress tracking ────────────────────────────────────────────────────────
@@ -211,9 +237,10 @@ export const usePlayerStore = defineStore('player', () => {
   })
 
   return {
-    current, visible, paused, currentTime, playVersion, currentChapter,
-    audioDuration, restored,
-    play, close, restore, setPaused, setCurrentTime, setDuration, setEpisodeImageUrl,
+    current, visible, currentTime, currentChapter, audioDuration, restored,
+    status, paused, buffering, failed, volume,
+    play, close, restore, setEpisodeImageUrl,
+    resume, pauseAudio, togglePlayback, seek, retry, setVolume,
     updateGameSlug, liveProgress, getEpisodeProgress, getGameProgress,
     resumeTimeFor, getEpisodeLatestProgress,
   }

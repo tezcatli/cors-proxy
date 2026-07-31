@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
@@ -8,11 +8,10 @@ import { useMediaSession } from '../composables/useMediaSession.js'
 import { useBottomSheetDrag } from '../composables/useBottomSheetDrag.js'
 import Marquee from './Marquee.vue'
 import SeekBar from './SeekBar.vue'
-import { Play, Pause, SkipBack, RotateCw, RotateCcw, ChevronRight, Volume2, VolumeX, Gamepad2, X, Loader2 } from 'lucide-vue-next'
+import { Play, Pause, SkipBack, RotateCw, RotateCcw, ChevronRight, Volume2, VolumeX, Gamepad2, X, Loader2, AlertTriangle, RefreshCw } from 'lucide-vue-next'
 
 const router      = useRouter()
 const playerStore = usePlayerStore()
-const audioEl     = ref(null)
 const playerEl    = ref(null)
 
 // ── Per-track accent ────────────────────────────────────────────────────────
@@ -30,14 +29,14 @@ const playerCoverSrc = computed(() => {
   return id ? igdbUrl(id, 't_cover_small') : (playerStore.current?.episodeImageUrl ?? null)
 })
 
-// ── Player state ────────────────────────────────────────────────────────────
+// ── Player state (audio itself lives in the store's engine) ─────────────────
 const collapsed = ref(true)
-const duration  = ref(0)
-const volume    = ref(1)
-const buffering = ref(false)
+const duration  = computed(() => playerStore.audioDuration)
+const volume    = computed(() => playerStore.volume)
 
-// Spinner shows only when we intend to play but audio isn't ready yet.
-const showSpinner = computed(() => buffering.value && !playerStore.paused)
+// Spinner shows while playback is wanted but hasn't started; once the engine
+// gives up, the retry affordance takes over instead of spinning forever.
+const showSpinner = computed(() => playerStore.buffering && !playerStore.failed)
 
 const seekProgress = computed(() =>
   duration.value > 0 ? (playerStore.currentTime / duration.value) * 100 : 0
@@ -47,80 +46,24 @@ const visibleChapters = computed(() =>
   (playerStore.current?.chapters ?? []).filter(c => c.timestampSeconds > 0)
 )
 
-// ── Audio play/pause (tolerant of the in-flight play() promise) ──────────────
-let playPromise = null
-let _lastHandledVersion = 0
-
-function safePlay() {
-  playPromise = audioEl.value?.play() ?? null
-  playPromise
-    ?.catch(err => { if (err.name !== 'AbortError') console.error(err) })
-    .finally(() => { playPromise = null })
-}
-
-function safePause() {
-  if (playPromise) {
-    playPromise.then(() => { try { audioEl.value?.pause() } catch (_) {} }).catch(() => {})
-  } else {
-    try { audioEl.value?.pause() } catch (_) {}
-  }
-}
-
-// ── Wedge recovery (Android drops buffered audio on background/stall) ────────
-// A wedged element is errored or has no current data: play() on it never yields
-// a `playing` event, so the only recovery is to re-fetch the source.
-function isWedged() {
-  const el = audioEl.value
-  return !!el && (!!el.error || el.readyState < 2 /* HAVE_CURRENT_DATA */)
-}
-
-// Attach a source and let onLoadedMeta seek to `seekTo` (and play if intended).
-function loadSource(url, seekTo) {
-  if (!audioEl.value) return
-  _seekTarget     = seekTo ?? 0
-  buffering.value = true
-  audioEl.value.src = url
-  audioEl.value.load()
-}
-
-// Reload the current track at the last-known-good position and resume. The
-// store's currentTime survives even when the element's data was released.
-let _recovering = false
-function hardResume() {
-  const el = audioEl.value
-  if (!el || !playerStore.current) return
-  playerStore.setPaused(false)   // intent = play; onLoadedMeta will safePlay()
-  loadSource(playerStore.current.url, playerStore.currentTime || el.currentTime || 0)
-}
-
-function resumePlayback() { isWedged() ? hardResume() : safePlay() }
-
 // ── MediaSession (lock-screen / OS controls) ─────────────────────────────────
-const { initMediaSession, setMSState, updatePositionState } =
-  useMediaSession(playerStore, audioEl, { safePlay, safePause, resumePlayback })
+const { initMediaSession, setMSState, updatePositionState } = useMediaSession(playerStore)
 
 // ── Controls ────────────────────────────────────────────────────────────────
 function togglePlay() {
-  if (playerStore.paused || isWedged()) resumePlayback()
-  else safePause()
+  playerStore.failed ? playerStore.retry() : playerStore.togglePlayback()
 }
 function toggleCollapsed() { collapsed.value = !collapsed.value }
-function closePlayer()     { safePause(); playerStore.close() }
+function onGripKey(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapsed() }
+}
+function closePlayer() { playerStore.close() }
 
-function goToChapterStart() {
-  if (!audioEl.value) return
-  audioEl.value.currentTime = playerStore.currentChapter?.timestampSeconds ?? 0
-}
-function jumpForward() {
-  if (!audioEl.value) return
-  audioEl.value.currentTime = Math.min(duration.value, audioEl.value.currentTime + 30)
-}
-function jumpBack() {
-  if (!audioEl.value) return
-  audioEl.value.currentTime = Math.max(0, audioEl.value.currentTime - 30)
-}
-function onSeek(time) { if (audioEl.value) audioEl.value.currentTime = time }
-function onVolume(e) { if (audioEl.value) audioEl.value.volume = parseFloat(e.target.value) }
+function goToChapterStart() { playerStore.seek(playerStore.currentChapter?.timestampSeconds ?? 0) }
+function jumpForward() { playerStore.seek(Math.min(duration.value || Infinity, playerStore.currentTime + 30)) }
+function jumpBack()    { playerStore.seek(Math.max(0, playerStore.currentTime - 30)) }
+function onSeek(time)  { playerStore.seek(time) }
+function onVolume(e)   { playerStore.setVolume(parseFloat(e.target.value)) }
 
 function onArtInfoClick() {
   const chapter = playerStore.currentChapter
@@ -171,134 +114,38 @@ const {
   onPointerDown, onPointerMove, onPointerUp, onPointerCancel,
 } = useBottomSheetDrag(playerEl, collapsed, closePlayer)
 
-// ── Audio element ↔ store sync ───────────────────────────────────────────────
-watch(() => playerStore.paused, paused => {
-  if (!audioEl.value || !playerStore.current) return
-  if (playerStore.playVersion !== _lastHandledVersion) return
-  if (paused && !audioEl.value.paused) safePause()
-  else if (!paused && audioEl.value.paused) safePlay()
-})
-
+// ── Store-driven side effects ────────────────────────────────────────────────
 watch(collapsed, v => {
   document.body.classList.toggle('player-expanded', !v)
 }, { immediate: true })
 
-function onTimeUpdate() {
-  playerStore.setCurrentTime(audioEl.value?.currentTime ?? 0)
-  updatePositionState()
-}
-function onSeeked() {
-  playerStore.setCurrentTime(audioEl.value?.currentTime ?? 0)
-  updatePositionState()
-}
+// New track: restart the title flip and rebuild the OS media card.
+watch(() => playerStore.current?.url, () => {
+  const cur = playerStore.current
+  if (!cur) { stopFlip(); return }
+  resetDrag()
+  cur.chapters?.length ? startFlip() : stopFlip()
+  initMediaSession(cur)
+}, { immediate: true })
 
-// Named handlers for clean removal in onUnmounted
-function onPlay()      { playerStore.setPaused(false); setMSState('playing'); if (playerStore.current) initMediaSession(playerStore.current) }
-function onPause()     { playerStore.setPaused(true);  setMSState('paused')  }
-function onEnded()     { playerStore.setPaused(true);  setMSState('none')    }
-function onDurChange() {
-  duration.value = audioEl.value?.duration || 0
-  playerStore.setDuration(duration.value)
-}
-function onVolChange() { volume.value = audioEl.value?.volume ?? 1 }
-
-// Buffering feedback
-function onWaiting() { buffering.value = true  }
-function onStalled() { buffering.value = true  }
-function onPlaying() { buffering.value = false; _recovering = false }
-function onCanPlay() { buffering.value = false }
-
-// The element's resource broke (Android release, decode/network error). If we
-// still intend to play, re-fetch once — guarded so a genuinely dead source can't
-// loop (cleared on the next successful `playing`).
-function onError() {
-  buffering.value = true
-  if (!playerStore.paused && !_recovering && playerStore.current) {
-    _recovering = true
-    hardResume()
+watch(() => playerStore.status, s => {
+  if (s === 'playing') {
+    setMSState('playing')
+    if (playerStore.current) initMediaSession(playerStore.current)
+  } else {
+    setMSState(s === 'idle' ? 'none' : 'paused')
   }
-}
-
-// Auto-recovery triggers: network came back, or the tab returned to foreground
-// (Android suspends background media). Only act when playback was intended and
-// the element is actually wedged.
-function onOnline() {
-  if (!playerStore.paused && (buffering.value || isWedged())) hardResume()
-}
-function onVisible() {
-  if (document.visibilityState === 'visible' && !playerStore.paused && isWedged())
-    hardResume()
-}
-
-// Persistent metadata handler: seek to the per-track target, then play if the
-// store wants playback. Replaces the per-play one-shot listener (which leaked
-// and null-deref'd on teardown).
-let _seekTarget = 0
-function onLoadedMeta() {
-  if (!audioEl.value) return
-  duration.value = audioEl.value.duration || 0
-  playerStore.setDuration(duration.value)
-  audioEl.value.currentTime = _seekTarget
-  if (!playerStore.paused) safePlay()
-}
-
-onMounted(() => {
-  const el = audioEl.value
-  el.addEventListener('timeupdate',    onTimeUpdate)
-  el.addEventListener('seeked',        onSeeked)
-  el.addEventListener('play',          onPlay)
-  el.addEventListener('pause',         onPause)
-  el.addEventListener('ended',         onEnded)
-  el.addEventListener('durationchange',onDurChange)
-  el.addEventListener('volumechange',  onVolChange)
-  el.addEventListener('loadedmetadata',onLoadedMeta)
-  el.addEventListener('waiting',       onWaiting)
-  el.addEventListener('stalled',       onStalled)
-  el.addEventListener('error',         onError)
-  el.addEventListener('playing',       onPlaying)
-  el.addEventListener('canplay',       onCanPlay)
-  window.addEventListener('online',    onOnline)
-  document.addEventListener('visibilitychange', onVisible)
 })
 
+watch(() => playerStore.currentTime, () => updatePositionState())
+
 onUnmounted(() => {
-  const el = audioEl.value
-  el?.removeEventListener('timeupdate',    onTimeUpdate)
-  el?.removeEventListener('seeked',        onSeeked)
-  el?.removeEventListener('play',          onPlay)
-  el?.removeEventListener('pause',         onPause)
-  el?.removeEventListener('ended',         onEnded)
-  el?.removeEventListener('durationchange',onDurChange)
-  el?.removeEventListener('volumechange',  onVolChange)
-  el?.removeEventListener('loadedmetadata',onLoadedMeta)
-  el?.removeEventListener('waiting',       onWaiting)
-  el?.removeEventListener('stalled',       onStalled)
-  el?.removeEventListener('error',         onError)
-  el?.removeEventListener('playing',       onPlaying)
-  el?.removeEventListener('canplay',       onCanPlay)
-  window.removeEventListener('online',    onOnline)
-  document.removeEventListener('visibilitychange', onVisible)
   stopFlip()
   document.body.classList.remove('player-expanded')
 })
 
-watch(() => playerStore.playVersion, () => {
-  resetDrag()
-  _lastHandledVersion = playerStore.playVersion
-  const cur = playerStore.current
-  if (!cur || !audioEl.value) return
-
-  playerStore.setCurrentTime(cur.ts ?? 0)
-  cur.chapters?.length ? startFlip() : stopFlip()
-  initMediaSession(cur)
-
-  _recovering = false
-  loadSource(cur.url, cur.ts ?? 0)
-})
-
 watch(() => playerStore.visible, visible => {
   if (!visible) {
-    safePause()
     stopFlip()
     collapsed.value = true
     resetDrag()
@@ -320,7 +167,7 @@ watch(() => playerStore.visible, visible => {
   >
     <template v-if="playerStore.current">
       <!-- Mobile grab handle: tap toggles expand/collapse (drag still works) -->
-      <div class="player-grip" @click="toggleCollapsed" :aria-label="collapsed ? 'Développer le lecteur' : 'Réduire le lecteur'" role="button"></div>
+      <div class="player-grip" @click="toggleCollapsed" @keydown="onGripKey" :aria-label="collapsed ? 'Développer le lecteur' : 'Réduire le lecteur'" role="button" tabindex="0"></div>
 
       <!-- Row 1: always visible -->
       <div class="player-row1">
@@ -333,7 +180,7 @@ watch(() => playerStore.visible, visible => {
         </div>
 
         <!-- Info -->
-        <div class="player-info" @click="onArtInfoClick">
+        <div class="player-info" @click="onArtInfoClick" @keydown="onArtKey" role="button" tabindex="0" :aria-label="`Voir : ${playerStore.current.episode}`">
           <Transition name="player-tick">
             <Marquee
               :key="tickKey"
@@ -365,11 +212,18 @@ watch(() => playerStore.visible, visible => {
           <SeekBar :progress="seekProgress" :duration="duration" :chapters="visibleChapters" :current-time="playerStore.currentTime" @seek="onSeek" />
         </div>
 
-        <!-- Play/pause: always visible -->
-        <button class="icon-action" @click.stop="togglePlay" :aria-label="playerStore.restored && playerStore.paused ? 'Reprendre' : (playerStore.paused ? 'Lire' : 'Pause')">
-          <Loader2 v-if="showSpinner"       :size="18" :stroke-width="2" class="player-spin" />
-          <Pause   v-else-if="!playerStore.paused" :size="18" :stroke-width="2" />
-          <Play    v-else                   :size="18" :stroke-width="2" />
+        <!-- Play/pause: always visible. Becomes « Réessayer » once the engine
+             has exhausted its recovery attempts. -->
+        <button
+          class="icon-action"
+          :class="{ 'is-failed': playerStore.failed }"
+          @click.stop="togglePlay"
+          :aria-label="playerStore.failed ? 'Réessayer' : (playerStore.restored && playerStore.paused ? 'Reprendre' : (playerStore.paused ? 'Lire' : 'Pause'))"
+        >
+          <RefreshCw v-if="playerStore.failed" :size="18" :stroke-width="2" />
+          <Loader2  v-else-if="showSpinner"   :size="18" :stroke-width="2" class="player-spin" />
+          <Pause    v-else-if="!playerStore.paused" :size="18" :stroke-width="2" />
+          <Play     v-else                    :size="18" :stroke-width="2" />
         </button>
 
         <!-- Desktop-only volume -->
@@ -389,6 +243,12 @@ watch(() => playerStore.visible, visible => {
           <X :size="14" :stroke-width="2" />
         </button>
       </div>
+
+      <!-- Playback gave up: say so and offer the retry (never a stuck spinner) -->
+      <button v-if="playerStore.failed" class="player-error" @click.stop="playerStore.retry()">
+        <AlertTriangle :size="13" :stroke-width="2" />
+        <span>Lecture interrompue — touchez pour réessayer</span>
+      </button>
 
       <!-- Mobile seek bar (hidden when collapsed) -->
       <div class="player-mobile-seek"
@@ -419,7 +279,5 @@ watch(() => playerStore.visible, visible => {
         <div class="player-hairline__fill" :style="{ width: seekProgress + '%' }"></div>
       </div>
     </template>
-
-    <audio ref="audioEl" style="display:none"></audio>
   </div>
 </template>

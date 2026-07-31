@@ -3,7 +3,11 @@
 
 Usage:
   python invite.py alice@example.com bob@example.com
+  python invite.py --admin alice@example.com          # account is created as administrator
   python invite.py --url https://tezcat.fr --key MY_ADMIN_KEY alice@example.com
+
+--admin is how the *first* administrator is bootstrapped; afterwards invitations
+(and promotions) can be sent from the in-app console at /silence/admin/users.
 """
 
 import argparse
@@ -14,8 +18,8 @@ import urllib.error
 import json
 
 
-def invite(base_url: str, admin_key: str, email: str) -> str:
-    payload = json.dumps({"email": email}).encode()
+def invite(base_url: str, admin_key: str, email: str, is_admin: bool = False) -> str:
+    payload = json.dumps({"email": email, "is_admin": is_admin}).encode()
     req = urllib.request.Request(
         f"{base_url.rstrip('/')}/auth/invite",
         data=payload,
@@ -41,6 +45,8 @@ def main():
                         help="Base URL of the backend (default: $RESET_BASE_URL or http://localhost:5000)")
     parser.add_argument("--key", default=os.getenv("ADMIN_KEY", ""),
                         help="Admin key (default: $ADMIN_KEY)")
+    parser.add_argument("--admin", action="store_true",
+                        help="Grant the administrator role to the accounts these invitations create")
     args = parser.parse_args()
 
     if not args.key:
@@ -48,9 +54,9 @@ def main():
 
     ok = err = 0
     for email in args.emails:
-        print(f"Inviting {email} … ", end="", flush=True)
+        print(f"Inviting {email}{' as admin' if args.admin else ''} … ", end="", flush=True)
         try:
-            url = invite(args.url, args.key, email)
+            url = invite(args.url, args.key, email, args.admin)
             print(f"OK\n  {url}")
             ok += 1
         except SystemExit as e:

@@ -127,6 +127,11 @@ function handleLogout() {
   router.push('/login')
 }
 
+// The player floats above the login page (z 300 vs 200) and would keep playing
+// after logout. Watching `loggedIn` covers both the account-modal logout and
+// apiFetch's 401 auto-logout; close() also clears the resume snapshot.
+watch(loggedIn, v => { if (!v) playerStore.close() })
+
 // Bumped on every pull-to-refresh so the (separately-mounted) EpisodesFeed
 // reloads in step with the games catalog — a pull on either tab refreshes both.
 const episodesRefreshSignal = ref(0)

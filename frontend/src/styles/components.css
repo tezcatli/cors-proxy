@@ -19,12 +19,16 @@
   position: absolute;
   inset: 0 0 auto 0;
   z-index: 100;
-  margin: 8px var(--gutter) 0;
+  /* Safe-area aware like .back-pill: viewport-fit=cover + a translucent status
+     bar would otherwise put the notch on top of the bar in standalone mode. */
+  margin: calc(8px + env(safe-area-inset-top, 0px)) var(--gutter) 0;
   padding: 0;
   border-radius: var(--radius-2xl);
   box-shadow: var(--elev-3), var(--glow-accent);
 }
-@media (min-width: 600px) { .command-bar { margin-top: 12px; } }
+@media (min-width: 600px) {
+  .command-bar { margin-top: calc(12px + env(safe-area-inset-top, 0px)); }
+}
 
 /* ─── Floating back pill (DetailView / EpisodeView) ──────────────────── */
 .back-pill {
@@ -197,6 +201,30 @@
 /* Buffering spinner inside the play button */
 .player-spin { animation: player-spin 0.8s linear infinite; }
 @keyframes player-spin { to { transform: rotate(360deg); } }
+
+/* Playback gave up (see lib/audioEngine.js): the button turns into a retry, and
+   a one-line banner says why — a stuck spinner never explains itself. */
+.icon-action.is-failed {
+  background: color-mix(in srgb, var(--col-low-text) 22%, transparent);
+  border-color: color-mix(in srgb, var(--col-low-text) 45%, transparent);
+  color: var(--col-low-text);
+}
+.player-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--col-low-text) 10%, transparent);
+  color: var(--col-low-text);
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+.player-error:active { background: color-mix(in srgb, var(--col-low-text) 16%, transparent); }
 .icon-action.is-active {
   background: color-mix(in srgb, var(--game-accent) 22%, transparent);
   border-color: var(--border-accent);
@@ -369,7 +397,7 @@
   background: var(--panel-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   box-shadow: var(--elev-2);
 }
@@ -977,8 +1005,10 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
 .lightbox-close { top: 20px; right: 20px; width: 40px; height: 40px; }
 
 .lightbox-prev, .lightbox-next {
-  top: 50%;
-  transform: translateY(-50%);
+  /* Center with `top` math, not translateY — .lightbox-btn:hover's scale()
+     would replace the translate and make the button jump (same trap the
+     carousel arrows document). */
+  top: calc(50% - 24px);
   width: 48px; height: 48px;
 }
 .lightbox-prev { left: 16px; }
@@ -995,6 +1025,8 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
 
 .lightbox-dot {
   width: 8px; height: 8px;
+  border: none;                 /* real <button> — reset UA chrome */
+  padding: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
   cursor: pointer;
@@ -1013,7 +1045,6 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.025);
-  cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -1023,6 +1054,9 @@ body.player-open.player-expanded .detail-bottom-pad { height: calc(164px + env(s
   min-height: 56px;
   position: relative;
 }
+/* Only rows that actually respond to a click invite one. (EpisodeFeedCard rows
+   are always clickable for "view" and set cursor:pointer inline.) */
+.episode-card.has-audio { cursor: pointer; }
 .episode-card.has-audio:hover  {
   background: rgba(255, 255, 255, 0.06);
   border-color: var(--border-strong);
@@ -1357,7 +1391,7 @@ body.player-open.player-expanded .grid-area {
   transform: translateX(-50%);
   width: 2px;
   height: 8px;
-  background: rgb(8, 8, 15);
+  background: rgb(var(--rgb-base));
   border-radius: 0;
   pointer-events: none;
   z-index: 1;
@@ -1468,7 +1502,16 @@ body.player-open.player-expanded .grid-area {
   gap: 16px;
   max-width: 768px;
   margin: 0 auto;
-  padding: 8px var(--gutter) 128px;   /* 128px clears the audio player */
+  padding: 8px var(--gutter) calc(32px + env(safe-area-inset-bottom, 0px));
+}
+/* Bottom clearance tracks the audio player like .detail-bottom-pad does
+   (88 collapsed / 164 expanded) — a fixed value hides the last chapter rows
+   behind the expanded player. */
+body.player-open .episode-body {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+body.player-open.player-expanded .episode-body {
+  padding-bottom: calc(164px + env(safe-area-inset-bottom, 0px));
 }
 .episode-body__image    { grid-area: image; min-width: 0; }
 .episode-body__meta     { grid-area: meta; min-width: 0; }

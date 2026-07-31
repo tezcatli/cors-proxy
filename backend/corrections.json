@@ -50,6 +50,10 @@
       "search_name": "Darksiders 2"
     },
     {
+      "podcast_name": "Donkey Kong",
+      "igdb_id": 85576
+    },
+    {
       "podcast_name": "Drawful 2",
       "igdb_id": 19083
     },
@@ -302,6 +306,10 @@
     {
       "podcast_name": "Street Fighter IV sur iPhone",
       "search_name": "Street Fighter IV"
+    },
+    {
+      "podcast_name": "Summer of Arcade",
+      "igdb_id": 3160
     },
     {
       "podcast_name": "The 7th Guest Remake",

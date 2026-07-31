@@ -513,11 +513,13 @@ function nextScreenshot() {
           alt=""
         />
         <div v-if="carouselImages.length > 1" class="lightbox-dots">
-          <span
-            v-for="id in carouselImages"
+          <button
+            v-for="(id, i) in carouselImages"
             :key="id"
+            type="button"
             class="lightbox-dot"
             :class="{ active: id === selectedScreenshot }"
+            :aria-label="`Capture ${i + 1}`"
             @click="selectedScreenshot = id"
           />
         </div>

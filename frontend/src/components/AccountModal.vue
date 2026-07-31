@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { isAdmin } from '../lib/auth.js'
-import { X, LogOut, SlidersHorizontal } from 'lucide-vue-next'
+import { X, LogOut, SlidersHorizontal, Users } from 'lucide-vue-next'
 
 defineProps({ userEmail: String })
 const emit = defineEmits(['close', 'logout'])
@@ -10,9 +10,9 @@ const emit = defineEmits(['close', 'logout'])
 const router = useRouter()
 const admin  = isAdmin()
 
-function openResolution() {
+function openAdmin(path) {
   emit('close')
-  router.push('/admin/resolution')
+  router.push(path)
 }
 
 function onKeydown(e) { if (e.key === 'Escape') emit('close') }
@@ -35,7 +35,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
             @click="emit('close')"
           ><X :size="16" :stroke-width="2.25" /></button>
         </div>
-        <div class="flex items-center gap-3 mb-5 p-3 bg-white/4 rounded-xl border border-white/5">
+        <div class="flex items-center gap-3 mb-5 p-3 bg-white/[0.04] rounded-xl border border-white/5">
           <div class="size-10 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0"
                style="background: color-mix(in srgb, var(--game-accent) 22%, transparent); color: var(--game-accent);">
             {{ userEmail?.[0]?.toUpperCase() || '?' }}
@@ -45,10 +45,18 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
         <button
           v-if="admin"
           class="btn btn-outline w-full font-semibold gap-2 mb-2 border-white/15 hover:bg-white/10"
-          @click="openResolution"
+          @click="openAdmin('/admin/resolution')"
         >
           <SlidersHorizontal :size="16" :stroke-width="2.25" />
           Résolution des noms
+        </button>
+        <button
+          v-if="admin"
+          class="btn btn-outline w-full font-semibold gap-2 mb-2 border-white/15 hover:bg-white/10"
+          @click="openAdmin('/admin/users')"
+        >
+          <Users :size="16" :stroke-width="2.25" />
+          Comptes
         </button>
         <button class="btn btn-outline btn-error w-full font-semibold gap-2" @click="emit('logout')">
           <LogOut :size="16" :stroke-width="2.25" />

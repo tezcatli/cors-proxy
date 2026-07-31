@@ -92,7 +92,7 @@ function playFrom(ts, timestamp) {
 function togglePlay() {
   if (!episode.value?.audioUrl) return
   if (isPlaying.value) {
-    playerStore.setPaused(!playerStore.paused)
+    playerStore.togglePlayback()
     return
   }
   playFrom(episode.value.timestampSeconds || 0, episode.value.timestamp)

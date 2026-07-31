@@ -4,7 +4,8 @@
       "success": {
         "status": 201,
         "fields": [
-          "invite_url"
+          "invite_url",
+          "is_admin"
         ]
       },
       "forbidden": {
@@ -35,6 +36,119 @@
       },
       "used": {
         "status": 410,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "list_users": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "users"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
+      },
+      "unauthorized": {
+        "status": 401,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "update_user": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "id",
+          "is_admin"
+        ]
+      },
+      "not_found": {
+        "status": 404,
+        "fields": [
+          "error"
+        ]
+      },
+      "last_admin": {
+        "status": 409,
+        "fields": [
+          "error"
+        ]
+      },
+      "self_demote": {
+        "status": 409,
+        "fields": [
+          "error"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
+      },
+      "missing_fields": {
+        "status": 400,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "delete_user": {
+      "success": {
+        "status": 204
+      },
+      "not_found": {
+        "status": 404,
+        "fields": [
+          "error"
+        ]
+      },
+      "last_admin": {
+        "status": 409,
+        "fields": [
+          "error"
+        ]
+      },
+      "self_delete": {
+        "status": 409,
+        "fields": [
+          "error"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "list_invitations": {
+      "success": {
+        "status": 200,
+        "fields": [
+          "invitations"
+        ]
+      },
+      "forbidden": {
+        "status": 403,
+        "fields": [
+          "error"
+        ]
+      }
+    },
+    "revoke_invitation": {
+      "success": {
+        "status": 204
+      },
+      "forbidden": {
+        "status": 403,
         "fields": [
           "error"
         ]

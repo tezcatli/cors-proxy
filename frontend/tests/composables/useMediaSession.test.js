@@ -1,14 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { ref } from 'vue'
 import { usePlayerStore } from '../../src/stores/player.js'
 import { useMediaSession } from '../../src/composables/useMediaSession.js'
+import { setMediaFactory, resetMediaFactory } from '../../src/lib/audioEngine.js'
+import { createFakeMedia } from '../helpers/fakeMedia.js'
 
-let handlers
+let handlers, media
 
 beforeEach(() => {
   setActivePinia(createPinia())
   localStorage.clear()
+  media = createFakeMedia()
+  setMediaFactory(() => media)
   handlers = {}
   globalThis.MediaMetadata = class { constructor(init) { Object.assign(this, init) } }
   vi.stubGlobal('navigator', {
@@ -20,12 +23,12 @@ beforeEach(() => {
     },
   })
 })
-afterEach(() => { vi.unstubAllGlobals() })
+afterEach(() => { vi.unstubAllGlobals(); resetMediaFactory() })
 
 describe('useMediaSession', () => {
   it('setMSState updates the playbackState', () => {
     const store = usePlayerStore()
-    const { setMSState } = useMediaSession(store, ref(null), { safePlay: vi.fn(), safePause: vi.fn() })
+    const { setMSState } = useMediaSession(store)
     setMSState('playing')
     expect(navigator.mediaSession.playbackState).toBe('playing')
   })
@@ -33,33 +36,49 @@ describe('useMediaSession', () => {
   it('initMediaSession sets metadata and wires play/pause handlers', () => {
     const store = usePlayerStore()
     store.play({ game: 'Zelda', episode: 'Ep 1', url: 'u', chapters: [] })
-    const safePlay = vi.fn()
-    const safePause = vi.fn()
-    const audioEl = ref({ duration: 100, currentTime: 0, playbackRate: 1 })
-    const { initMediaSession } = useMediaSession(store, audioEl, { safePlay, safePause })
+    const { initMediaSession } = useMediaSession(store)
 
     initMediaSession(store.current)
     expect(navigator.mediaSession.metadata.title).toBe('Ep 1')
 
-    handlers.play()
-    expect(safePlay).toHaveBeenCalled()
     handlers.pause()
-    expect(safePause).toHaveBeenCalled()
+    expect(store.paused).toBe(true)
+    handlers.play()
+    expect(store.paused).toBe(false)
   })
 
-  it('routes the lock-screen play action through resumePlayback when provided', () => {
+  // The lock-screen button is a resume like any other: it must go through the
+  // store, so a wedged element gets the engine's recovery ladder.
+  it('routes the lock-screen play action through the store command', () => {
     const store = usePlayerStore()
     store.play({ game: 'Zelda', episode: 'Ep 1', url: 'u', chapters: [] })
-    const safePlay = vi.fn()
-    const resumePlayback = vi.fn()
-    const audioEl = ref({ duration: 100, currentTime: 0, playbackRate: 1 })
-    const { initMediaSession } =
-      useMediaSession(store, audioEl, { safePlay, safePause: vi.fn(), resumePlayback })
+    store.pauseAudio()
+    const { initMediaSession } = useMediaSession(store)
 
     initMediaSession(store.current)
+    media.play.mockClear()
     handlers.play()
-    expect(resumePlayback).toHaveBeenCalled()
-    expect(safePlay).not.toHaveBeenCalled()   // recovery-aware path wins
+
+    expect(store.paused).toBe(false)
+    expect(media.play).toHaveBeenCalled()
+  })
+
+  it('seeks chapters through the store rather than the element', () => {
+    const store = usePlayerStore()
+    store.play({
+      game: 'Multi', episode: 'Ep 1', url: 'u',
+      chapters: [
+        { title: 'A', timestampSeconds: 0,   slug: 'a' },
+        { title: 'B', timestampSeconds: 100, slug: 'b' },
+      ],
+    })
+    const { initMediaSession } = useMediaSession(store)
+    initMediaSession(store.current)
+
+    handlers.nexttrack()
+    expect(store.currentTime).toBe(100)
+    handlers.previoustrack()
+    expect(store.currentTime).toBe(0)     // at the chapter start → jump to the previous one
   })
 
   it('shows the chapter title even when the chapter has no artwork', () => {
@@ -71,12 +90,11 @@ describe('useMediaSession', () => {
         { title: 'Chapter B', timestampSeconds: 100, slug: 'b', coverImageId: null },
       ],
     })
-    const audioEl = ref({ duration: 200, currentTime: 0, playbackRate: 1 })
     const { initMediaSession, syncMediaSessionMeta } =
-      useMediaSession(store, audioEl, { safePlay: vi.fn(), safePause: vi.fn() })
+      useMediaSession(store)
 
     initMediaSession(store.current)
-    store.setCurrentTime(120)          // now in chapter B (no dedicated cover)
+    media.emit('timeupdate', { currentTime: 120 })          // now in chapter B (no dedicated cover)
     syncMediaSessionMeta()
 
     const meta = navigator.mediaSession.metadata
@@ -91,11 +109,10 @@ describe('useMediaSession', () => {
       game: 'Multi', episode: 'Ep 1', url: 'u', episodeImageUrl: 'ep.jpg',
       chapters: [{ title: 'Chapter A', timestampSeconds: 0, slug: 'a', coverImageId: 111 }],
     })
-    const audioEl = ref({ duration: 200, currentTime: 0, playbackRate: 1 })
     const { syncMediaSessionMeta } =
-      useMediaSession(store, audioEl, { safePlay: vi.fn(), safePause: vi.fn() })
+      useMediaSession(store)
 
-    store.setCurrentTime(10)
+    media.emit('timeupdate', { currentTime: 10 })
     syncMediaSessionMeta()
 
     const meta = navigator.mediaSession.metadata
@@ -103,11 +120,13 @@ describe('useMediaSession', () => {
     expect(meta.artwork[0].src).toContain('111')
   })
 
-  it('updatePositionState reports the audio element position', () => {
+  it('updatePositionState reports the mirrored engine position', () => {
     const store = usePlayerStore()
-    const audioEl = ref({ duration: 120, currentTime: 30, playbackRate: 1 })
-    const { updatePositionState } = useMediaSession(store, audioEl, { safePlay: vi.fn(), safePause: vi.fn() })
+    store.play({ game: 'Zelda', episode: 'Ep 1', url: 'u', chapters: [] })
+    const { updatePositionState } = useMediaSession(store)
 
+    media.emit('durationchange', { duration: 120 })
+    media.emit('timeupdate', { currentTime: 30 })
     updatePositionState()
     expect(navigator.mediaSession.setPositionState).toHaveBeenCalledWith({
       duration: 120, playbackRate: 1, position: 30,

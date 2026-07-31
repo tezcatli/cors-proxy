@@ -125,6 +125,31 @@ def require_admin():
         abort(403, "Accès réservé aux administrateurs")
 
 
+def _current_user_id() -> int | None:
+    """The session's user id, or None when there is no usable session — which is
+    the normal case under DEBUG (auth is bypassed) and in `invite.py`'s admin-key
+    flow. Callers use it for self-protection guards, which must degrade rather
+    than crash when nobody is identified."""
+    claims = _bearer_user_claims()
+    try:
+        return int(claims["sub"])
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
+def _admin_key_ok() -> bool:
+    """The shared-secret credential used by `invite.py` and CI."""
+    return bool(Config.ADMIN_KEY) and secrets.compare_digest(
+        request.headers.get("X-Admin-Key", ""), Config.ADMIN_KEY)
+
+
+def _admin_session_ok() -> bool:
+    if Config.DEBUG:
+        return True
+    claims = _bearer_user_claims()
+    return bool(claims and _is_admin_user(claims.get("sub")))
+
+
 @auth_bp.route("/stream-token")
 def stream_token():
     claims = _bearer_user_claims() or abort(401, "Not authenticated")
@@ -156,16 +181,18 @@ def register():
     pw_hash = _hash(password)
     with get_db() as conn:
         inv = conn.execute(
-            "SELECT email, used_at FROM invitations WHERE token = ?", (invite,)
+            "SELECT email, used_at, is_admin FROM invitations WHERE token = ?", (invite,)
         ).fetchone()
         # One generic message for missing / used / mismatched invites (no enumeration).
         if not inv or inv["used_at"] or inv["email"].lower() != email:
             abort(400, "Invitation invalide")
         if conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
             abort(409, "Cette adresse e-mail est déjà utilisée")
+        # The invitation carries the admin grant: that decision was made (and
+        # authenticated) when it was sent, not here.
         cur = conn.execute(
-            "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-            (email, pw_hash),
+            "INSERT INTO users (email, password_hash, is_admin) VALUES (?, ?, ?)",
+            (email, pw_hash, 1 if inv["is_admin"] else 0),
         )
         user_id = cur.lastrowid
         conn.execute(
@@ -175,25 +202,32 @@ def register():
     return jsonify(access_token=_make_jwt(user_id, email)), 201
 
 
+def _invite_url(token: str) -> str:
+    return f"{Config.RESET_BASE_URL}/silence/?invite={token}"
+
+
 @auth_bp.route("/invite", methods=["POST"])
 @limiter.limit("10 per minute")
 def invite():
     from mail import send_invite_email
 
-    if not Config.ADMIN_KEY or not secrets.compare_digest(
-            request.headers.get("X-Admin-Key", ""), Config.ADMIN_KEY):
+    # Two credentials, one endpoint: the shared key for `invite.py` and CI, an
+    # admin session for the in-app console.
+    if not _admin_key_ok() and not _admin_session_ok():
         abort(403, "Accès refusé")
     data = request.get_json(silent=True) or {}
     _require_fields(data, "email")
-    email = data["email"].strip().lower()
-    token = secrets.token_urlsafe(32)
+    email    = data["email"].strip().lower()
+    is_admin = 1 if data.get("is_admin") else 0
+    token    = secrets.token_urlsafe(32)
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO invitations (token, email) VALUES (?, ?)", (token, email)
+            "INSERT INTO invitations (token, email, is_admin) VALUES (?, ?, ?)",
+            (token, email, is_admin),
         )
-    invite_url = f"{Config.RESET_BASE_URL}/silence/?invite={token}"
+    invite_url = _invite_url(token)
     send_invite_email(email, invite_url)
-    return jsonify(invite_url=invite_url), 201
+    return jsonify(invite_url=invite_url, is_admin=bool(is_admin)), 201
 
 
 @auth_bp.route("/invite-info/<token>", methods=["GET"])
@@ -207,6 +241,108 @@ def invite_info(token):
     if inv["used_at"]:
         abort(410, "Cette invitation a déjà été utilisée")
     return jsonify(email=inv["email"])
+
+
+# ── Admin: accounts & pending invitations ───────────────────────────────────
+# All session-gated by `require_admin()` (which reads `users.is_admin` from the
+# DB, so a demotion applies immediately). Two invariants are enforced here and
+# only mirrored by the UI: an admin may not remove or demote *themselves*, and
+# the last admin may not disappear — either would lock everyone out of this very
+# console, with no in-app way back.
+
+def _admin_count(conn) -> int:
+    return conn.execute("SELECT COUNT(*) AS n FROM users WHERE is_admin = 1").fetchone()["n"]
+
+
+def _load_user(conn, user_id: int):
+    row = conn.execute(
+        "SELECT id, email, is_admin FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
+    if row is None:
+        abort(404, "Compte introuvable")
+    return row
+
+
+def _reject_self(user_id: int, message: str):
+    if _current_user_id() == user_id:
+        abort(409, message)
+
+
+@auth_bp.route("/users", methods=["GET"])
+def list_users():
+    require_admin()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, email, is_admin, created_at FROM users ORDER BY created_at, id"
+        ).fetchall()
+    return jsonify(users=[{
+        "id":         r["id"],
+        "email":      r["email"],
+        "is_admin":   bool(r["is_admin"]),
+        "created_at": r["created_at"],
+    } for r in rows])
+
+
+@auth_bp.route("/users/<int:user_id>", methods=["PATCH"])
+@limiter.limit("30 per minute")
+def update_user(user_id):
+    require_admin()
+    data = request.get_json(silent=True) or {}
+    if "is_admin" not in data:
+        abort(400, "Champ manquant : is_admin")
+    is_admin = bool(data["is_admin"])
+    if not is_admin:
+        _reject_self(user_id, "Vous ne pouvez pas retirer votre propre rôle d'administrateur")
+    with get_db() as conn:
+        user = _load_user(conn, user_id)
+        if not is_admin and user["is_admin"] and _admin_count(conn) <= 1:
+            abort(409, "Il doit rester au moins un administrateur")
+        conn.execute("UPDATE users SET is_admin = ? WHERE id = ?", (1 if is_admin else 0, user_id))
+    return jsonify(id=user_id, is_admin=is_admin)
+
+
+@auth_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@limiter.limit("30 per minute")
+def delete_user(user_id):
+    require_admin()
+    _reject_self(user_id, "Vous ne pouvez pas supprimer votre propre compte")
+    with get_db() as conn:
+        user = _load_user(conn, user_id)
+        if user["is_admin"] and _admin_count(conn) <= 1:
+            abort(409, "Il doit rester au moins un administrateur")
+        # reset_tokens cascade (FK ON DELETE CASCADE), and the deleted user's
+        # JWTs stop working at once — `_bearer_user_claims` re-checks existence.
+        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    return "", 204
+
+
+@auth_bp.route("/invitations", methods=["GET"])
+def list_invitations():
+    require_admin()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT token, email, is_admin, created_at FROM invitations "
+            "WHERE used_at IS NULL ORDER BY created_at DESC"
+        ).fetchall()
+    # The token travels in this admin-only body on purpose: it is what makes the
+    # copy-link and revoke actions possible when SMTP isn't configured.
+    return jsonify(invitations=[{
+        "token":      r["token"],
+        "email":      r["email"],
+        "is_admin":   bool(r["is_admin"]),
+        "created_at": r["created_at"],
+        "invite_url": _invite_url(r["token"]),
+    } for r in rows])
+
+
+@auth_bp.route("/invitations/<token>", methods=["DELETE"])
+@limiter.limit("30 per minute")
+def revoke_invitation(token):
+    require_admin()
+    with get_db() as conn:
+        # Only pending ones: a used invitation is history, not a live grant.
+        conn.execute("DELETE FROM invitations WHERE token = ? AND used_at IS NULL", (token,))
+    return "", 204
 
 
 @auth_bp.route("/login", methods=["POST"])

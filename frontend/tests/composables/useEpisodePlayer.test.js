@@ -1,12 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { usePlayerStore } from '../../src/stores/player.js'
 import { useEpisodePlayer } from '../../src/composables/useEpisodePlayer.js'
+import { setMediaFactory, resetMediaFactory } from '../../src/lib/audioEngine.js'
+import { createFakeMedia } from '../helpers/fakeMedia.js'
 
 beforeEach(() => {
   localStorage.clear()
   setActivePinia(createPinia())
+  setMediaFactory(() => createFakeMedia())   // jsdom's <audio> implements nothing
 })
+
+afterEach(() => resetMediaFactory())
 
 // A chapter that starts at 100s and runs to 200s (chapterEnd).
 const ep = {

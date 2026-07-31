@@ -35,7 +35,7 @@ export function useEpisodePlayer(gameContext = null) {
     })
   }
 
-  function togglePause() { playerStore.setPaused(!playerStore.paused) }
+  function togglePause() { playerStore.togglePlayback() }
 
   return { playerStore, isEpPlaying, playEp, togglePause }
 }

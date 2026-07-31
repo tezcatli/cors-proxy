@@ -232,7 +232,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div v-if="hasCorrection && writable" class="pt-3 mt-1 border-t border-white/8">
+        <div v-if="hasCorrection && writable" class="pt-3 mt-1 border-t border-white/[0.08]">
           <button class="btn btn-ghost btn-sm gap-2 text-white/60 hover:text-white" :disabled="saving" @click="clearCorrection">
             <Undo2 :size="14" :stroke-width="2.25" />
             Retirer la correction

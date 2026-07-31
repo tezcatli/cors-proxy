@@ -4,7 +4,7 @@ import pytest
 from config import Config
 import db
 from contract import assert_contract, AUTH
-from conftest import auth_header
+from conftest import auth_header, admin_header
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -293,3 +293,182 @@ def test_token_for_deleted_user_is_rejected(client):
         conn.execute('DELETE FROM users WHERE id = 1')
     r = client.get('/silence/games', headers=auth_header())
     assert r.status_code == 401
+
+
+# ── Admin console: accounts & invitations ──────────────────────────────────
+# `admin_header()` promotes the fixture user (id 1) and returns its Bearer
+# header, so it doubles as "the caller" for the self-protection guards.
+
+def _make_user(client, email, password='password123', is_admin=False):
+    """Register a second account through the real invite → register flow."""
+    r = client.post('/silence/auth/invite',
+                    json={'email': email, 'is_admin': is_admin},
+                    headers={'X-Admin-Key': Config.ADMIN_KEY})
+    token = r.get_json()['invite_url'].split('?invite=')[1]
+    register(client, email=email, password=password, invite_token=token)
+    with db.get_db() as conn:
+        return conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()['id']
+
+
+def _session(uid, email='someone@example.com'):
+    """A Bearer header for an arbitrary user id (conftest's `auth_header` is
+    hard-wired to the fixture user, sub=1)."""
+    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    token = jwt.encode({'sub': str(uid), 'email': email, 'iat': now,
+                        'exp': now + datetime.timedelta(hours=1)},
+                       Config.JWT_SECRET, algorithm='HS256')
+    return {'Authorization': f'Bearer {token}'}
+
+
+def _is_admin(email):
+    with db.get_db() as conn:
+        return bool(conn.execute("SELECT is_admin FROM users WHERE email = ?",
+                                 (email,)).fetchone()['is_admin'])
+
+
+# invite: two credentials, one endpoint
+
+def test_invite_accepts_an_admin_session(client):
+    r = client.post('/silence/auth/invite', json={'email': 'a@b.com'},
+                    headers=admin_header())
+    assert_contract(r, AUTH['invite']['success'])
+
+def test_invite_rejects_a_non_admin_session(client):
+    r = client.post('/silence/auth/invite', json={'email': 'a@b.com'}, headers=auth_header())
+    assert_contract(r, AUTH['invite']['forbidden'])
+
+def test_invited_admin_becomes_an_admin_account(client):
+    _make_user(client, 'boss@example.com', is_admin=True)
+    assert _is_admin('boss@example.com')
+    # …and the SPA sees it: the (cosmetic) claim is set at login.
+    claims = jwt.decode(login(client, 'boss@example.com').get_json()['access_token'],
+                        Config.JWT_SECRET, algorithms=['HS256'])
+    assert claims['admin'] is True
+
+def test_invitation_without_the_flag_creates_an_ordinary_account(client):
+    _make_user(client, 'plain@example.com')
+    assert not _is_admin('plain@example.com')
+
+
+# GET /auth/users
+
+def test_list_users_requires_authentication(client):
+    assert_contract(client.get('/silence/auth/users'), AUTH['list_users']['unauthorized'])
+
+def test_list_users_requires_admin(client):
+    assert_contract(client.get('/silence/auth/users', headers=auth_header()),
+                    AUTH['list_users']['forbidden'])
+
+def test_list_users_returns_accounts(client):
+    headers = admin_header()
+    _make_user(client, 'someone@example.com')
+    r = client.get('/silence/auth/users', headers=headers)
+    assert_contract(r, AUTH['list_users']['success'])
+    emails = {u['email'] for u in r.get_json()['users']}
+    assert 'someone@example.com' in emails
+    assert all({'id', 'email', 'is_admin', 'created_at'} <= set(u) for u in r.get_json()['users'])
+
+
+# PATCH /auth/users/<id>
+
+def test_promote_and_demote_another_account(client):
+    headers = admin_header()
+    uid = _make_user(client, 'other@example.com')
+
+    # Their own session can't reach the console before the promotion…
+    assert client.get('/silence/auth/users', headers=_session(uid)).status_code == 403
+
+    r = client.patch(f'/silence/auth/users/{uid}', json={'is_admin': True}, headers=headers)
+    assert_contract(r, AUTH['update_user']['success'])
+    assert _is_admin('other@example.com')
+    # …and immediately after it, with the same token: `require_admin` re-reads
+    # the DB rather than trusting the JWT's `admin` claim.
+    assert client.get('/silence/auth/users', headers=_session(uid)).status_code == 200
+
+    r = client.patch(f'/silence/auth/users/{uid}', json={'is_admin': False}, headers=headers)
+    assert r.get_json()['is_admin'] is False
+    assert not _is_admin('other@example.com')
+    assert client.get('/silence/auth/users', headers=_session(uid)).status_code == 403
+
+def test_update_user_requires_the_field(client):
+    assert_contract(client.patch('/silence/auth/users/1', json={}, headers=admin_header()),
+                    AUTH['update_user']['missing_fields'])
+
+def test_update_unknown_user(client):
+    assert_contract(client.patch('/silence/auth/users/9999', json={'is_admin': True},
+                                 headers=admin_header()),
+                    AUTH['update_user']['not_found'])
+
+def test_admin_cannot_demote_themselves(client):
+    headers = admin_header()
+    assert_contract(client.patch('/silence/auth/users/1', json={'is_admin': False}, headers=headers),
+                    AUTH['update_user']['self_demote'])
+    assert _is_admin('__auth_fixture__@test')
+
+def test_update_user_requires_admin(client):
+    assert_contract(client.patch('/silence/auth/users/1', json={'is_admin': True},
+                                 headers=auth_header()),
+                    AUTH['update_user']['forbidden'])
+
+
+# DELETE /auth/users/<id>
+
+def test_delete_account_revokes_its_access(client):
+    headers = admin_header()
+    uid = _make_user(client, 'gone@example.com')
+    assert client.delete(f'/silence/auth/users/{uid}', headers=headers).status_code == 204
+    assert login(client, 'gone@example.com').status_code == 401
+
+def test_admin_cannot_delete_themselves(client):
+    assert_contract(client.delete('/silence/auth/users/1', headers=admin_header()),
+                    AUTH['delete_user']['self_delete'])
+
+def test_delete_unknown_user(client):
+    assert_contract(client.delete('/silence/auth/users/9999', headers=admin_header()),
+                    AUTH['delete_user']['not_found'])
+
+def test_delete_user_requires_admin(client):
+    assert_contract(client.delete('/silence/auth/users/1', headers=auth_header()),
+                    AUTH['delete_user']['forbidden'])
+
+def test_the_last_admin_cannot_be_removed(client, monkeypatch):
+    """Reachable when the caller isn't identified — i.e. a DEBUG dev session,
+    where `require_admin` is bypassed and the self-guard has nobody to compare
+    against. It is the only thing standing between dev and an admin-less DB."""
+    admin_header()                       # user 1 is now the sole admin
+    monkeypatch.setattr(Config, 'DEBUG', True)
+    assert_contract(client.delete('/silence/auth/users/1'), AUTH['delete_user']['last_admin'])
+    assert_contract(client.patch('/silence/auth/users/1', json={'is_admin': False}),
+                    AUTH['update_user']['last_admin'])
+    assert _is_admin('__auth_fixture__@test')
+
+
+# GET/DELETE /auth/invitations
+
+def test_list_invitations_shows_only_pending_ones(client):
+    headers = admin_header()
+    make_invite(client, 'waiting@example.com')
+    _make_user(client, 'used@example.com')          # its invitation is consumed
+    r = client.get('/silence/auth/invitations', headers=headers)
+    assert_contract(r, AUTH['list_invitations']['success'])
+    emails = {i['email'] for i in r.get_json()['invitations']}
+    assert emails == {'waiting@example.com'}
+    assert 'invite=' in r.get_json()['invitations'][0]['invite_url']
+
+def test_list_invitations_requires_admin(client):
+    assert_contract(client.get('/silence/auth/invitations', headers=auth_header()),
+                    AUTH['list_invitations']['forbidden'])
+
+def test_revoking_an_invitation_kills_the_registration(client):
+    headers = admin_header()
+    token = make_invite(client, 'nope@example.com')
+    r = client.delete(f'/silence/auth/invitations/{token}', headers=headers)
+    assert_contract(r, AUTH['revoke_invitation']['success'])
+    assert_contract(register(client, email='nope@example.com', invite_token=token),
+                    AUTH['register']['invalid_invite'])
+    # Idempotent: revoking again is not an error.
+    assert client.delete(f'/silence/auth/invitations/{token}', headers=headers).status_code == 204
+
+def test_revoke_invitation_requires_admin(client):
+    assert_contract(client.delete('/silence/auth/invitations/whatever', headers=auth_header()),
+                    AUTH['revoke_invitation']['forbidden'])

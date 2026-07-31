@@ -3,17 +3,17 @@ import { igdbUrl } from '../lib/igdbCdn.js'
 
 /**
  * Wires the browser MediaSession API (lock-screen / OS media controls) to the
- * player store and a backing <audio> element. All calls are feature-guarded so
- * this is inert where MediaSession is unavailable.
+ * player store. All calls are feature-guarded so this is inert where
+ * MediaSession is unavailable.
+ *
+ * Commands go through the store (and therefore the audio engine's recovery
+ * ladder) — the lock-screen play button is a resume like any other, and must
+ * not bypass it.
  *
  * @param playerStore  the Pinia player store.
- * @param audioEl      template ref to the <audio> element.
- * @param controls     `{ safePlay, safePause, resumePlayback }` — play/pause that
- *                     tolerate the in-flight play() promise (owned by the
- *                     component); resumePlayback also recovers a wedged element.
  * @returns `{ initMediaSession, syncMediaSessionMeta, setMSState, updatePositionState }`
  */
-export function useMediaSession(playerStore, audioEl, { safePlay, safePause, resumePlayback }) {
+export function useMediaSession(playerStore) {
   const hasMS = 'mediaSession' in navigator
 
   function imageArtwork(id, fallbackUrl) {
@@ -35,13 +35,13 @@ export function useMediaSession(playerStore, audioEl, { safePlay, safePause, res
   }
 
   function updatePositionState() {
-    const el = audioEl.value
-    if (!hasMS || !el || !isFinite(el.duration) || el.duration <= 0) return
+    const duration = playerStore.audioDuration
+    if (!hasMS || !isFinite(duration) || duration <= 0) return
     try {
       navigator.mediaSession.setPositionState({
-        duration:     el.duration,
-        playbackRate: el.playbackRate,
-        position:     el.currentTime,
+        duration,
+        playbackRate: 1,
+        position:     Math.min(playerStore.currentTime, duration),
       })
     } catch (_) {}
   }
@@ -77,42 +77,38 @@ export function useMediaSession(playerStore, audioEl, { safePlay, safePause, res
 
     syncMediaSessionMeta()
 
-    navigator.mediaSession.setActionHandler('play',  () => (resumePlayback ?? safePlay)())
-    navigator.mediaSession.setActionHandler('pause', () => safePause())
+    navigator.mediaSession.setActionHandler('play',  () => playerStore.resume())
+    navigator.mediaSession.setActionHandler('pause', () => playerStore.pauseAudio())
     navigator.mediaSession.setActionHandler('seekto', details => {
-      if (details.seekTime == null || !audioEl.value) return
-      if (details.fastSeek && 'fastSeek' in audioEl.value) {
-        audioEl.value.fastSeek(details.seekTime)
-      } else {
-        audioEl.value.currentTime = details.seekTime
-      }
+      if (details.seekTime == null) return
+      playerStore.seek(details.seekTime)
       updatePositionState()
     })
 
     if (cur.chapters?.length) {
       navigator.mediaSession.setActionHandler('previoustrack', () => {
         const chapters = playerStore.current?.chapters
-        const t = audioEl.value?.currentTime ?? 0
-        if (!chapters?.length) { if (audioEl.value) audioEl.value.currentTime = 0; return }
+        const t = playerStore.currentTime
+        if (!chapters?.length) { playerStore.seek(0); return }
         let idx = -1
         for (let i = 0; i < chapters.length; i++) {
           if (chapters[i].timestampSeconds <= t) idx = i
           else break
         }
         if (idx >= 0 && t - chapters[idx].timestampSeconds > 3) {
-          audioEl.value.currentTime = chapters[idx].timestampSeconds
+          playerStore.seek(chapters[idx].timestampSeconds)
         } else if (idx > 0) {
-          audioEl.value.currentTime = chapters[idx - 1].timestampSeconds
+          playerStore.seek(chapters[idx - 1].timestampSeconds)
         } else {
-          audioEl.value.currentTime = 0
+          playerStore.seek(0)
         }
       })
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         const chapters = playerStore.current?.chapters
-        const t = audioEl.value?.currentTime ?? 0
+        const t = playerStore.currentTime
         if (!chapters?.length) return
         const next = chapters.find(ch => ch.timestampSeconds > t)
-        if (next && audioEl.value) audioEl.value.currentTime = next.timestampSeconds
+        if (next) playerStore.seek(next.timestampSeconds)
       })
     } else {
       navigator.mediaSession.setActionHandler('previoustrack', null)

@@ -14,7 +14,7 @@ defineProps({ errorMsg: String, infoMsg: String })
   </div>
   <div
     v-if="infoMsg"
-    role="alert"
+    role="status"
     class="flex items-start gap-2 py-2 px-3 text-sm mb-3 rounded-lg border-l-4 border-success bg-success/10 text-success"
   >
     <CheckCircle2 :size="16" :stroke-width="2.25" class="mt-0.5 flex-shrink-0" />

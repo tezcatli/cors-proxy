@@ -51,6 +51,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS invitations (
                 token      TEXT     PRIMARY KEY,
                 email      TEXT     NOT NULL COLLATE NOCASE,
+                is_admin   INTEGER  DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 used_at    DATETIME
             );
@@ -78,6 +79,10 @@ def init_db():
         user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
         if 'is_admin' not in user_cols and user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
+        # Carries the admin grant from the invitation to the account it creates.
+        inv_cols = {row[1] for row in conn.execute("PRAGMA table_info(invitations)")}
+        if 'is_admin' not in inv_cols and inv_cols:
+            conn.execute("ALTER TABLE invitations ADD COLUMN is_admin INTEGER DEFAULT 0")
         # After the column migrations: a legacy table gains igdb_slug above, so
         # creating the index earlier (in the executescript) would fail on it.
         conn.execute("""
