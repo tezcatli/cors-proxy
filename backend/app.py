@@ -39,12 +39,14 @@ def create_app(testing=False):
         # blueprints and /healthz still win — but a routing surprise here would
         # silently answer an API call with index.html, which is a miserable thing
         # to debug from the browser. Fail loudly instead.
-        API_PREFIXES = ("auth/", "games/", "healthz")
+        API_PREFIXES = ("auth/", "games/")
 
         @_app.route("/", defaults={"path": ""})
         @_app.route("/<path:path>")
         def spa(path):
-            if path.startswith(API_PREFIXES):
+            # Prefixes need the slash and healthz needs to be exact, or a future
+            # SPA route like /authors or /healthzcheck would 404 for no reason.
+            if path.startswith(API_PREFIXES) or path == "healthz":
                 abort(404)
 
             if Config.DEBUG and os.environ.get("VITE_DEV_SERVER", "false").lower() == "true":

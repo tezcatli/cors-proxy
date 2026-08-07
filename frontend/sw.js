@@ -66,7 +66,11 @@ self.addEventListener('fetch', e => {
           if (res.ok) caches.open(CACHE).then(c => c.put(request, res.clone()));
           return res;
         })
-        .catch(() => caches.match('/') || caches.match(request))
+        // caches.match returns a promise, which is always truthy — an `||` chain
+        // here would always take the first branch and resolve to undefined when
+        // the entry is missing, and respondWith(undefined) is a network error.
+        // So the offline fallback has to be chained on the resolved value.
+        .catch(() => caches.match('/').then(r => r ?? caches.match(request)))
     );
     return;
   }
