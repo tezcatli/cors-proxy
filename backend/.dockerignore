@@ -1,0 +1,12 @@
+# Context for backend/Dockerfile.prod and Dockerfile.test. The repository-root
+# .dockerignore is not consulted for a ./backend context, so the exclusions that
+# matter here are repeated.
+
+__pycache__/
+*.pyc
+# The dev database. It is a named volume in production and must never be baked
+# into an image layer.
+data/*.db
+data/*.db-shm
+data/*.db-wal
+*.env

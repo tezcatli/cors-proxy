@@ -12,7 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---|---|
 | Backend | Flask (Python), SQLite, Gunicorn (prod) |
 | Frontend | Vue 3 + Pinia + Vue Router, Vite, Tailwind + DaisyUI |
-| Reverse proxy | Nginx (prod only) |
+| Reverse proxy | Nginx — a shared edge (prod only), owned by the separate `tezcat-edge` repo |
+| Delivery | GitHub Actions → images on GHCR → the host pulls; nothing is built in prod |
 | Runtime | Docker Compose for all environments |
 
 ## Commands
@@ -49,8 +50,14 @@ cd frontend && npx vitest run tests/auth.test.js
 
 ### Production
 
+Deployment is CI-only — there is no manual build step, and nothing is built on the host.
+Push to `main` and `.github/workflows/ci.yml` runs tests → pushes images to GHCR → calls
+the reusable deploy workflow in the separate **`tezcat-edge`** repo. See `SETUP.md`.
+
 ```bash
-docker compose -f docker-compose.prod.yml up --build -d
+# Roll back to a previous commit's images (seconds, no rebuild)
+ssh user@tezcat.fr "cd ~/opt/silence && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<old-sha>/' .env \
+  && docker compose -f compose.yml up -d"
 ```
 
 ### User management
@@ -65,10 +72,22 @@ python invite.py alice@example.com
 ### Request flow
 
 ```
-Browser → Nginx (443) → /silence/*       → static files (built Vue SPA)
-                      → /silence/auth/*  → backend:8000 (Flask)
-                      → /silence/games/* → backend:8000 (Flask)
+Browser → edge-nginx (443, ludo.tezcat.fr) → /silence/*       → silence-web (static SPA)
+          shared with other apps           → /silence/auth/*  → silence-backend:8000
+                                           → /silence/games/* → silence-backend:8000
 ```
+
+The edge is a **shared** reverse proxy owned by the `tezcat-edge` repo; it fronts every app
+on the host, one subdomain each. This repo owns only `deploy/silence.conf`, the fragment
+that the pipeline drops into the edge's `conf.d/` as `10-silence.conf`. Two consequences
+worth knowing before editing it:
+
+- **Upstreams must go through a variable** (`set $up …; proxy_pass http://$up;`) so Docker
+  DNS resolves per request. With a literal name nginx resolves at startup and refuses to
+  start when this app is down — taking every *other* app on the host with it.
+- **Aliases must stay app-prefixed** (`silence-backend`, `silence-web`). Compose also
+  publishes the bare service name on the shared network, so a second app with a `backend`
+  service would make `backend` resolve round-robin across both.
 
 In dev, Flask handles everything directly on port 5000 (no Nginx).
 

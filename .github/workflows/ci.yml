@@ -1,0 +1,99 @@
+name: CI/CD
+
+# test → build → deploy.
+#
+# Nothing is built on the production host any more: CI pushes images to GHCR and
+# the host pulls them. That makes the deployed artifact immutable, identical to
+# the one the tests ran against, and rollback-able by re-pinning a tag.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Not cancel-in-progress: interrupting a job that is halfway through starting
+# containers on the host is the failure mode this exists to prevent.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/silence
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Backend tests
+        run: ./test-backend.sh
+
+      - name: Frontend unit tests
+        run: ./test-frontend.sh
+
+      - name: Integration tests
+        run: ./test-integration.sh
+
+  build:
+    needs: test
+    # Pull requests get the test signal only; they must not publish images.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: ./backend
+            file: ./backend/Dockerfile.prod
+          - name: web
+            # Repo root: the image builds the SPA from frontend/ as well as
+            # taking nginx/web.conf. See .dockerignore.
+            context: .
+            file: ./nginx/Dockerfile.web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:latest
+          # Links the GHCR package to this repository, so it inherits the repo's
+          # access. That is what lets the host pull with a repo-scoped token
+          # instead of a long-lived PAT.
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    # Shared with every other app behind the edge. Requires DEPLOY_SSH_KEY,
+    # DEPLOY_HOST, DEPLOY_USER and DEPLOY_KNOWN_HOSTS in this repo's secrets.
+    uses: tezcatli/tezcat-edge/.github/workflows/deploy-app.yml@main
+    with:
+      app: silence
+      image_tag: ${{ github.sha }}
+      health_service: backend
+      compose_file: deploy/compose.yml
+      nginx_conf: deploy/silence.conf
+      smoke_url: https://ludo.tezcat.fr/silence/
+    secrets: inherit

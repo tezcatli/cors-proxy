@@ -1,0 +1,66 @@
+# Production stack. Deployed to ~/opt/silence/compose.yml on the host, where the
+# compose project name comes from the directory basename — it must stay
+# `silence`, or the backend_data volume is renamed and the live users.db is
+# orphaned.
+#
+# Images are built and pushed by CI; nothing is built on the host. IMAGE_TAG is
+# written to a sibling .env by the deploy pipeline and records what is deployed.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  backend:
+    image: ghcr.io/tezcatli/silence-backend:${IMAGE_TAG:?IMAGE_TAG is required — set it in .env}
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: production
+    env_file:
+      - path: ./backend_secrets.env
+        required: true
+    volumes:
+      - backend_data:/backend/data
+    healthcheck:
+      # curl is not in the python-alpine image and the backend listens on 8000,
+      # so probe /healthz with the stdlib instead.
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging: *logging
+    networks:
+      # `default` keeps intra-app traffic off the shared network.
+      default:
+      # The prefixed alias is not cosmetic: compose also publishes the bare
+      # service name, so a second app with a `backend` service would make
+      # `backend` resolve round-robin across both apps. The edge routes to
+      # silence-backend and only that.
+      edge:
+        aliases: [silence-backend]
+
+  web:
+    image: ghcr.io/tezcatli/silence-web:${IMAGE_TAG:?IMAGE_TAG is required — set it in .env}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging: *logging
+    networks:
+      edge:
+        aliases: [silence-web]
+
+volumes:
+  backend_data:
+
+networks:
+  default:
+  edge:
+    name: edge
+    external: true
