@@ -85,7 +85,10 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name != 'pull_request'
+    # Only main deploys. A workflow_dispatch on a branch still builds and pushes
+    # images — useful for staging a cutover, or for having an artifact ready
+    # before merging — but must never touch the host.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     # Shared with every other app behind the edge. Requires DEPLOY_SSH_KEY,
     # DEPLOY_HOST, DEPLOY_USER and DEPLOY_KNOWN_HOSTS in this repo's secrets.
     uses: tezcatli/tezcat-edge/.github/workflows/deploy-app.yml@main
