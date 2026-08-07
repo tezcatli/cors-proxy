@@ -98,5 +98,5 @@ jobs:
       health_service: backend
       compose_file: deploy/compose.yml
       nginx_conf: deploy/silence.conf
-      smoke_url: https://ludo.tezcat.fr/silence/
+      smoke_url: https://ludo.tezcat.fr/
     secrets: inherit

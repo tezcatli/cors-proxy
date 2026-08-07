@@ -25,25 +25,30 @@ def create_app(testing=False):
                 "Set the JWT_SECRET environment variable before starting in production."
             )
         if not Config.ADMIN_KEY:
-            logger.warning("ADMIN_KEY is not set — POST /silence/auth/invite will always return 403")
+            logger.warning("ADMIN_KEY is not set — POST /auth/invite will always return 403")
 
     if Config.DEBUG:
         import pathlib
-        from flask import send_from_directory, redirect
+        from flask import send_from_directory, abort
 
         _app = Flask(__name__, static_folder="static")
         logger.warning("DEBUG mode is ON — authentication is DISABLED for all /games routes")
 
-        @_app.route("/silence")
-        def silence_redirect():
-            qs = request.query_string.decode()
-            return redirect(f"/silence/?{qs}" if qs else "/silence/")
+        # The SPA is served from the root, so this is a catch-all. Werkzeug sorts
+        # rules without converters ahead of `<path:path>`, so the auth and games
+        # blueprints and /healthz still win — but a routing surprise here would
+        # silently answer an API call with index.html, which is a miserable thing
+        # to debug from the browser. Fail loudly instead.
+        API_PREFIXES = ("auth/", "games/", "healthz")
 
-        @_app.route("/silence/", defaults={"path": ""})
-        @_app.route("/silence/<path:path>")
-        def silence_spa(path):
+        @_app.route("/", defaults={"path": ""})
+        @_app.route("/<path:path>")
+        def spa(path):
+            if path.startswith(API_PREFIXES):
+                abort(404)
+
             if Config.DEBUG and os.environ.get("VITE_DEV_SERVER", "false").lower() == "true":
-                vite_url = f"http://frontend:5173/silence/{path}" if path else "http://frontend:5173/silence/"
+                vite_url = f"http://frontend:5173/{path}" if path else "http://frontend:5173/"
                 # Forward the raw query string. Re-serializing via requests' `params` from
                 # request.args drops the distinction between `?foo` and `?foo=`, which Vite
                 # uses to recognise virtual extensions like `&lang.css`.

@@ -6,7 +6,7 @@ import App from './App.vue'
 
 if ('serviceWorker' in navigator && import.meta.env.MODE !== 'development') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/silence/sw.js', { scope: '/silence/' })
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .catch(err => console.warn('SW registration failed:', err))
   })
   const prevController = navigator.serviceWorker.controller

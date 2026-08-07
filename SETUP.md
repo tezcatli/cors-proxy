@@ -75,7 +75,7 @@ of being sent.
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-The frontend is served at **http://localhost:5000/silence** and the API at
+The frontend is served at **http://localhost:5000** and the API at
 **http://localhost:5000**. In dev, frontend asset requests are proxied to Vite's
 hot-reload server on port `5173`.
 
@@ -87,7 +87,7 @@ ADMIN_KEY=<your key> RESET_BASE_URL=http://localhost:5000 \
 
 The invite URL is also printed in the `backend` container logs:
 ```
-INVITE LINK for alice@example.com → http://localhost:5000/silence/?invite=…&email=…
+INVITE LINK for alice@example.com → http://localhost:5000/?invite=…&email=…
 ```
 
 Open the link in a browser to complete registration.
@@ -96,7 +96,7 @@ Open the link in a browser to complete registration.
 
 ## Production
 
-The app is served at **https://ludo.tezcat.fr/silence/**, behind the shared nginx edge
+The app is served at **https://ludo.tezcat.fr/**, behind the shared nginx edge
 defined in the separate **`tezcat-edge`** repository. Nothing is built on the host:
 `.github/workflows/ci.yml` builds images, pushes them to GHCR, and the host pulls them.
 
@@ -130,7 +130,7 @@ Required repository secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_USER`,
 whatever answers DNS on every run and then hand it the deploy key).
 
 The deploy fails if the backend does not report healthy within 150 s, or if the smoke test
-against `https://ludo.tezcat.fr/silence/` does not return 2xx.
+against `https://ludo.tezcat.fr/` does not return 2xx.
 
 ### Rollback
 
@@ -169,7 +169,7 @@ ADMIN_KEY=<your key> RESET_BASE_URL=https://ludo.tezcat.fr \
 ## Managing accounts
 
 Day to day this happens in the app: an administrator opens **« Comptes »** from the
-account menu (`/silence/admin/users`) to send invitations, see which ones are still
+account menu (`/admin/users`) to send invitations, see which ones are still
 pending (with their link, and a revoke button), promote or demote accounts, and
 delete them. Two things the console will refuse, in the server and not just the UI:
 removing or demoting **yourself**, and leaving the instance with **no administrator**.
@@ -198,7 +198,7 @@ any invitation fails.
 ### Promoting an admin
 
 Admins get « Comptes » (above) and the « Résolution des noms » dashboard
-(`/silence/admin/resolution`): per-podcast resolution figures, plus the review
+(`/admin/resolution`): per-podcast resolution figures, plus the review
 queues and the correction picker.
 
 Normally you promote from the console. The SQL below stays the escape hatch — a
@@ -230,7 +230,7 @@ are therefore curated **in dev**, where the repo is bind-mounted into the contai
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
-# open http://localhost:5173/silence/admin/resolution, fix what's wrong, then:
+# open http://localhost:5173/admin/resolution, fix what's wrong, then:
 git diff backend/corrections.json     # review what the dashboard wrote
 git add backend/corrections.json && git commit -m "corrections: ..."
 ```

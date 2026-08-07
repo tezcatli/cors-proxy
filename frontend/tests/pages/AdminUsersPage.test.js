@@ -8,14 +8,14 @@ const USERS = [
 ]
 const INVITATIONS = [
   { token: 'tok-1', email: 'waiting@example.com', is_admin: true,
-    created_at: '2026-07-01 09:00:00', invite_url: 'http://x/silence/?invite=tok-1' },
+    created_at: '2026-07-01 09:00:00', invite_url: 'http://x/?invite=tok-1' },
 ]
 
 const fetchUsers       = vi.fn(() => Promise.resolve(structuredClone(USERS)))
 const fetchInvitations = vi.fn(() => Promise.resolve(structuredClone(INVITATIONS)))
 const setUserAdmin     = vi.fn((id, isAdmin) => Promise.resolve({ id, is_admin: isAdmin }))
 const deleteUser       = vi.fn(() => Promise.resolve())
-const sendInvitation   = vi.fn(() => Promise.resolve({ invite_url: 'http://x/silence/?invite=new', is_admin: true }))
+const sendInvitation   = vi.fn(() => Promise.resolve({ invite_url: 'http://x/?invite=new', is_admin: true }))
 const revokeInvitation = vi.fn(() => Promise.resolve())
 
 vi.mock('../../src/lib/admin.js', () => ({
@@ -65,7 +65,7 @@ describe('AdminUsersPage', () => {
     await flushPromises()
 
     expect(sendInvitation).toHaveBeenCalledWith('new@example.com', true)
-    expect(wrapper.text()).toContain('http://x/silence/?invite=new')
+    expect(wrapper.text()).toContain('http://x/?invite=new')
     expect(wrapper.text()).toContain('(administrateur)')
     expect(fetchInvitations).toHaveBeenCalledTimes(2)   // list refreshed after sending
   })

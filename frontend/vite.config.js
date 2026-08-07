@@ -26,7 +26,7 @@ function stampServiceWorker() {
 
 export default defineConfig({
   plugins: [vue(), stampServiceWorker()],
-  base: '/silence/',
+  base: '/',
   server: {
     host: true,
     allowedHosts: ['frontend', 'localhost'],
@@ -38,8 +38,8 @@ export default defineConfig({
     // dev server to the Flask backend container. (When developing via Flask on
     // :5000 instead, Flask serves the API itself and this proxy is unused.)
     proxy: {
-      '/silence/auth':  'http://backend:5000',
-      '/silence/games': 'http://backend:5000',
+      '/auth':  'http://backend:5000',
+      '/games': 'http://backend:5000',
     },
   },
 })

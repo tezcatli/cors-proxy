@@ -50,7 +50,7 @@ function _redirectToLogin() {
       if (router.currentRoute.value.path !== '/login') router.push('/login')
     })
     .catch(() => {
-      if (!location.pathname.endsWith('/login')) location.assign('/silence/login')
+      if (!location.pathname.endsWith('/login')) location.assign('/login')
     })
 }
 
@@ -65,7 +65,7 @@ export async function apiFetch(path, opts = {}) {
     // A 401 on a protected endpoint means the session expired — drop the token
     // and bounce to login. Auth endpoints (login/register/reset) legitimately
     // return 401 for bad credentials, so those surface the error normally.
-    if (res.status === 401 && !path.startsWith('/silence/auth/')) {
+    if (res.status === 401 && !path.startsWith('/auth/')) {
       logout()
       _redirectToLogin()
     }
@@ -77,7 +77,7 @@ export async function apiFetch(path, opts = {}) {
 }
 
 async function post(path, body) {
-  const res = await apiFetch('/silence/auth' + path, {
+  const res = await apiFetch('/auth' + path, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
@@ -107,6 +107,6 @@ export async function resetConfirm(token, newPassword) {
 }
 
 export async function refresh() {
-  const res = await apiFetch('/silence/auth/refresh', { method: 'POST' })
+  const res = await apiFetch('/auth/refresh', { method: 'POST' })
   setToken(await res.json())
 }
