@@ -100,7 +100,7 @@ describe('apiFetch 401 handling', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false, status: 401, json: vi.fn().mockResolvedValue({ error: 'Not authenticated' }),
     }));
-    await expect(apiFetch('/silence/games')).rejects.toThrow('Not authenticated');
+    await expect(apiFetch('/games')).rejects.toThrow('Not authenticated');
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 

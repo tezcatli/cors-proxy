@@ -391,14 +391,14 @@ def test_count_pending_respects_ttl():
 # ── GET /games ────────────────────────────────────────────────────────────────
 
 def test_no_auth_returns_401(client):
-    r = client.get('/silence/games')
+    r = client.get('/games')
     assert_contract(r, GAMES['catalog']['unauthorized'])
 
 
 def test_catalog_returns_list(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        r = client.get('/silence/games', headers=auth_header())
+        r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     data = r.get_json()
     assert isinstance(data['games'], list)
@@ -408,7 +408,7 @@ def test_catalog_returns_list(client):
 def test_catalog_response_has_igdb_field(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        r = client.get('/silence/games', headers=auth_header())
+        r = client.get('/games', headers=auth_header())
     data = r.get_json()
     assert all('igdb' in g for g in data['games'])
 
@@ -416,8 +416,8 @@ def test_catalog_response_has_igdb_field(client):
 def test_cache_hit_skips_fetch(client):
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
          patch('games._schedule_resolve'):
-        client.get('/silence/games', headers=auth_header())
-        client.get('/silence/games', headers=auth_header())
+        client.get('/games', headers=auth_header())
+        client.get('/games', headers=auth_header())
     mock_get.assert_called_once()
 
 
@@ -426,7 +426,7 @@ def test_expired_cache_refetches(client):
                                - datetime.timedelta(hours=9))
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
          patch('games._schedule_resolve'):
-        r = client.get('/silence/games', headers=auth_header())
+        r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     mock_get.assert_called_once()
 
@@ -459,7 +459,7 @@ def test_catalog_deduplicates_by_igdb_slug(client):
     with patch('games.http.get', return_value=mock_rss_response(rss_two_names)), \
          patch('games._schedule_resolve'), \
          patch.object(games_module, '_igdb_cache', igdb_cache):
-        r = client.get('/silence/games', headers=auth_header())
+        r = client.get('/games', headers=auth_header())
 
     data = r.get_json()['games']
     zelda_entries = [g for g in data if g['slug'] == 'zelda']
@@ -471,13 +471,13 @@ def test_catalog_serves_cache_on_refresh_parse_error(client):
     # warm the in-memory catalog
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        client.get('/silence/games', headers=auth_header())
+        client.get('/games', headers=auth_header())
     # force staleness so the next request attempts a refresh
     games_module._cached_at = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
                                - datetime.timedelta(hours=9))
     # a malformed feed (non-RequestException) must NOT 500 when we already have data
     with patch('games._refresh_feed', side_effect=ValueError('malformed XML')):
-        r = client.get('/silence/games', headers=auth_header())
+        r = client.get('/games', headers=auth_header())
     assert r.status_code == 200
     assert any(g['name'] == 'Zelda' for g in r.get_json()['games'])
 
@@ -485,11 +485,11 @@ def test_catalog_serves_cache_on_refresh_parse_error(client):
 def test_catalog_returns_304_on_matching_etag(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        r1 = client.get('/silence/games', headers=auth_header())
+        r1 = client.get('/games', headers=auth_header())
     etag = r1.headers.get('ETag')
     assert etag
     # second load with the same ETag and an unchanged catalog → 304, no re-transfer
-    r2 = client.get('/silence/games', headers={**auth_header(), 'If-None-Match': etag})
+    r2 = client.get('/games', headers={**auth_header(), 'If-None-Match': etag})
     assert r2.status_code == 304
     assert r2.get_data() == b''
 
@@ -497,7 +497,7 @@ def test_catalog_returns_304_on_matching_etag(client):
 def test_catalog_igdb_is_slim(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        r = client.get('/silence/games', headers=auth_header())
+        r = client.get('/games', headers=auth_header())
     data = r.get_json()['games']
     for game in data:
         if game['igdb'] is not None:
@@ -509,8 +509,8 @@ def test_catalog_igdb_is_slim(client):
 def test_game_detail_returns_episodes(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        client.get('/silence/games', headers=auth_header())
-    r = client.get('/silence/games/Zelda', headers=auth_header())
+        client.get('/games', headers=auth_header())
+    r = client.get('/games/Zelda', headers=auth_header())
     assert_contract(r, GAMES['game_detail']['success'])
     data = r.get_json()
     assert data['name'] == 'Zelda'
@@ -528,7 +528,7 @@ def test_game_detail_surfaces_display_name_and_igdb_name(client, tmp_corrections
         f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2', 'Silent Hill 2'),
     })
     corrections.upsert('Silent Hill 2', display_name='Silent Hill 2 (2001)')
-    r = client.get('/silence/games/silent-hill-2', headers=auth_header())
+    r = client.get('/games/silent-hill-2', headers=auth_header())
     assert_contract(r, GAMES['game_detail']['success'])
     data = r.get_json()
     assert data['name']        == 'Silent Hill 2 (2001)'
@@ -540,7 +540,7 @@ def test_game_detail_surfaces_display_name_and_igdb_name(client, tmp_corrections
 
 def test_refresh_always_fetches(client):
     with patch('games.http.get', return_value=mock_rss_response()) as mock_get:
-        r = client.post('/silence/games/refresh', headers=auth_header())
+        r = client.post('/games/refresh', headers=auth_header())
     assert_contract(r, GAMES['refresh']['success'])
     mock_get.assert_called_once()
 
@@ -584,7 +584,7 @@ def test_igdb_refresh_returns_game_detail(client):
     games_module._episode_index   = episode_index
     games_module._game_index      = game_index
     with patch('games._resolve_one'):
-        r = client.post('/silence/games/Zelda/igdb-refresh', headers=auth_header())
+        r = client.post('/games/Zelda/igdb-refresh', headers=auth_header())
     assert_contract(r, GAMES['igdb_refresh']['success'])
     data = r.get_json()
     assert data['name'] == 'Zelda'
@@ -603,8 +603,8 @@ _SLIM_EPISODE_KEYS = tuple(k for k in _UNIFIED_EPISODE_KEYS if k not in ('descri
 def test_episodes_returns_list_with_slim_shape(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        client.get('/silence/games', headers=auth_header())
-    r = client.get('/silence/games/episodes', headers=auth_header())
+        client.get('/games', headers=auth_header())
+    r = client.get('/games/episodes', headers=auth_header())
     assert_contract(r, GAMES['episodes']['success'])
     data = r.get_json()
     assert isinstance(data, list) and len(data) > 0
@@ -620,9 +620,9 @@ def test_episodes_returns_list_with_slim_shape(client):
 def test_episode_detail_returns_unified_shape(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        client.get('/silence/games', headers=auth_header())
-    slug = client.get('/silence/games/episodes', headers=auth_header()).get_json()[0]['slug']
-    r = client.get(f'/silence/games/episode?slug={slug}', headers=auth_header())
+        client.get('/games', headers=auth_header())
+    slug = client.get('/games/episodes', headers=auth_header()).get_json()[0]['slug']
+    r = client.get(f'/games/episode?slug={slug}', headers=auth_header())
     assert_contract(r, GAMES['episode']['success'])
     # The single-episode endpoint keeps the FULL shape (incl. description + chapters).
     body = r.get_json()
@@ -630,14 +630,14 @@ def test_episode_detail_returns_unified_shape(client):
         assert key in body, f"missing '{key}' in episode detail"
 
 def test_episode_missing_slug_returns_400(client):
-    r = client.get('/silence/games/episode', headers=auth_header())
+    r = client.get('/games/episode', headers=auth_header())
     assert_contract(r, GAMES['episode']['bad_request'])
 
 def test_episode_unknown_slug_returns_404(client):
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
-        client.get('/silence/games', headers=auth_header())
-    r = client.get('/silence/games/episode?slug=does-not-exist', headers=auth_header())
+        client.get('/games', headers=auth_header())
+    r = client.get('/games/episode?slug=does-not-exist', headers=auth_header())
     assert_contract(r, GAMES['episode']['not_found'])
 
 
@@ -950,7 +950,7 @@ def test_resolve_one_stores_the_correction_fingerprint(tmp_corrections):
 
 from conftest import admin_header   # noqa: E402
 
-_ADMIN_GETS  = ['/silence/games/resolution-stats', '/silence/games/igdb-search?q=zelda']
+_ADMIN_GETS  = ['/games/resolution-stats', '/games/igdb-search?q=zelda']
 
 
 @pytest.mark.parametrize('path', _ADMIN_GETS)
@@ -964,18 +964,18 @@ def test_admin_endpoints_reject_non_admin(client, path):
 
 
 def test_correction_write_rejects_non_admin(client):
-    r = client.put('/silence/games/corrections', headers=auth_header(),
+    r = client.put('/games/corrections', headers=auth_header(),
                    json={'nameSlug': 'zelda', 'igdbId': 1})
     assert_contract(r, GAMES['corrections']['forbidden'])
 
 
 def test_podcast_refresh_rejects_non_admin(client):
-    r = client.post('/silence/games/podcasts/fin-du-game/igdb-refresh', headers=auth_header())
+    r = client.post('/games/podcasts/fin-du-game/igdb-refresh', headers=auth_header())
     assert_contract(r, GAMES['podcast_igdb_refresh']['forbidden'])
 
 
 def test_igdb_search_requires_a_query(client):
-    r = client.get('/silence/games/igdb-search', headers=admin_header())
+    r = client.get('/games/igdb-search', headers=admin_header())
     assert_contract(r, GAMES['igdb_search']['bad_request'])
 
 
@@ -983,14 +983,14 @@ def test_igdb_search_returns_results(client):
     rows = [{'id': 1, 'name': 'Chrono Trigger', 'slug': 'chrono-trigger',
              'released': '1995', 'coverImageId': 'co1'}]
     with patch('games.search_games', return_value=rows):
-        r = client.get('/silence/games/igdb-search?q=chrono', headers=admin_header())
+        r = client.get('/games/igdb-search?q=chrono', headers=admin_header())
     assert_contract(r, GAMES['igdb_search']['success'])
     assert r.get_json()['results'] == rows
 
 
 def test_correction_rejects_an_unknown_podcast(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    r = client.put('/silence/games/corrections', headers=admin_header(),
+    r = client.put('/games/corrections', headers=admin_header(),
                    json={'nameSlug': games_module.make_slug('Silent Hill 2'),
                          'igdbId': 1, 'podcastId': 'nope'})
     assert_contract(r, GAMES['corrections']['bad_request'])
@@ -998,7 +998,7 @@ def test_correction_rejects_an_unknown_podcast(client, tmp_corrections):
 
 def test_correction_rejects_an_unknown_game(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    r = client.put('/silence/games/corrections', headers=admin_header(),
+    r = client.put('/games/corrections', headers=admin_header(),
                    json={'nameSlug': 'no-such-game', 'igdbId': 1})
     assert_contract(r, GAMES['corrections']['not_found'])
 
@@ -1017,7 +1017,7 @@ def test_correction_write_pins_purges_and_reresolves(client, tmp_corrections):
          patch('games.metacritic.fetch_metascore', return_value=None), \
          patch('games.hltb.fetch_time_to_beat', return_value=None), \
          patch('games.fetch_time_to_beat', return_value=None):
-        r = client.put('/silence/games/corrections', headers=admin_header(),
+        r = client.put('/games/corrections', headers=admin_header(),
                        json={'nameSlug': ns, 'igdbId': 1})
     assert_contract(r, GAMES['corrections']['success'])
     body = r.get_json()
@@ -1056,7 +1056,7 @@ def test_correction_scoped_to_one_podcast_leaves_the_other_alone(client, tmp_cor
          patch('games.metacritic.fetch_metascore', return_value=None), \
          patch('games.hltb.fetch_time_to_beat', return_value=None), \
          patch('games.fetch_time_to_beat', return_value=None):
-        r = client.put('/silence/games/corrections', headers=admin_header(),
+        r = client.put('/games/corrections', headers=admin_header(),
                        json={'nameSlug': ns, 'igdbId': 1, 'podcastId': 'fin-du-game'})
     assert r.status_code == 200
     # Only the FDG appearance moved; the SOJ one keeps its own resolution — the
@@ -1080,7 +1080,7 @@ def test_delete_correction_reverts_to_the_name_search(client, tmp_corrections):
          patch('games.metacritic.fetch_metascore', return_value=None), \
          patch('games.hltb.fetch_time_to_beat', return_value=None), \
          patch('games.fetch_time_to_beat', return_value=None):
-        r = client.delete('/silence/games/corrections', headers=admin_header(),
+        r = client.delete('/games/corrections', headers=admin_header(),
                           json={'nameSlug': ns})
     assert r.status_code == 200
     by_id.assert_not_called()      # no longer pinned
@@ -1090,7 +1090,7 @@ def test_delete_correction_reverts_to_the_name_search(client, tmp_corrections):
 
 def test_delete_correction_that_does_not_exist_404s(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    r = client.delete('/silence/games/corrections', headers=admin_header(),
+    r = client.delete('/games/corrections', headers=admin_header(),
                       json={'nameSlug': games_module.make_slug('Silent Hill 2')})
     assert_contract(r, GAMES['corrections']['not_found'])
 
@@ -1099,7 +1099,7 @@ def test_corrections_write_is_refused_when_the_file_is_read_only(client, tmp_cor
     # Stands in for prod, where corrections.json ships in the read-only image layer.
     _seed(_TWO_EPISODES_SAME_NAME, {})
     with patch('games.corrections.is_writable', return_value=False):
-        r = client.put('/silence/games/corrections', headers=admin_header(),
+        r = client.put('/games/corrections', headers=admin_header(),
                        json={'nameSlug': games_module.make_slug('Silent Hill 2'), 'igdbId': 1})
     assert_contract(r, GAMES['corrections']['read_only'])
     assert 'dev' in r.get_json()['error']
@@ -1118,7 +1118,7 @@ def test_podcast_igdb_refresh_purges_only_that_podcast(client):
         f'{ns}-fdg1': _entry(f'{ns}-fdg1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
     }
     with patch('games._schedule_resolve') as sched:
-        r = client.post('/silence/games/podcasts/fin-du-game/igdb-refresh',
+        r = client.post('/games/podcasts/fin-du-game/igdb-refresh',
                         headers=admin_header())
     assert_contract(r, GAMES['podcast_igdb_refresh']['success'])
     assert r.get_json()['purged'] == 1
@@ -1128,7 +1128,7 @@ def test_podcast_igdb_refresh_purges_only_that_podcast(client):
 
 
 def test_podcast_igdb_refresh_unknown_podcast_404s(client):
-    r = client.post('/silence/games/podcasts/nope/igdb-refresh', headers=admin_header())
+    r = client.post('/games/podcasts/nope/igdb-refresh', headers=admin_header())
     assert_contract(r, GAMES['podcast_igdb_refresh']['not_found'])
 
 
@@ -1139,7 +1139,7 @@ def test_resolution_stats_shape(client):
         f'{ns}-remake':   _entry(f'{ns}-remake', 9, 'astrobotanica', 'Astrobotanica'),
         f'{ns}-original': games_module.IgdbEntry(f'{ns}-original', None, None, None, None, False, _NOW),
     })
-    r = client.get('/silence/games/resolution-stats', headers=admin_header())
+    r = client.get('/games/resolution-stats', headers=admin_header())
     assert_contract(r, GAMES['resolution_stats']['success'])
     body = r.get_json()
 
@@ -1193,7 +1193,7 @@ def test_suspects_exclude_names_a_human_already_ruled_on(client):
     assert games_module._is_suspect('Les gardiens de la galaxie',
                                     "Marvel's Guardians of the Galaxy")
     # …but the curated correction rules it out: it reads as resolved, not suspect.
-    r = client.get('/silence/games/resolution-stats', headers=admin_header())
+    r = client.get('/games/resolution-stats', headers=admin_header())
     row = next(g for g in r.get_json()['games'] if g['nameSlug'] == ns)
     assert row['status'] == 'resolved'
     assert row['corrected'] is True
@@ -1219,7 +1219,7 @@ def test_stats_reports_a_merged_group_under_its_resolving_name(client):
         f'{astro}-g2': games_module.IgdbEntry(f'{astro}-g2', 9, 'astrobotanica', 'Astrobotanica',
                                               {}, False, _NOW),   # newest → representative
     })
-    r = client.get('/silence/games/resolution-stats', headers=admin_header())
+    r = client.get('/games/resolution-stats', headers=admin_header())
     suspect = next(g for g in r.get_json()['games'] if g['slug'] == 'astrobotanica')
     assert suspect['status']    == 'suspect'
     assert suspect['nameSlug']  == astro                  # the newest-cached variant
@@ -1253,13 +1253,13 @@ def test_stats_marks_rows_a_correction_already_rules_on(client, tmp_corrections)
         f'{ns}-original': _entry(f'{ns}-original', 9, 'astrobotanica', 'Astrobotanica'),
     })
     # Unruled: the heuristic flags the bad match for review.
-    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
     assert [g['igdbSlug'] for g in body['games'] if g['status'] == 'suspect'] == ['astrobotanica']
     assert body['writable'] is True
 
     # Once a human has ruled on it, nothing is suspect and every row is marked.
     corrections.upsert('Silent Hill 2', igdb_id=1)
-    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
     assert [g for g in body['games'] if g['status'] == 'suspect'] == []
     soj = next(p for p in body['podcasts'] if p['id'] == 'silence-on-joue')
     assert soj['corrected'] == 2          # both appearances of the name
@@ -1269,7 +1269,7 @@ def test_stats_marks_rows_a_correction_already_rules_on(client, tmp_corrections)
 def test_stats_reports_read_only_deployments(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
     with patch('games.corrections.is_writable', return_value=False):
-        body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+        body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
     assert body['writable'] is False
 
 
@@ -1281,7 +1281,7 @@ def test_stats_row_carries_what_the_console_renders(client, tmp_corrections):
         f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2--1', 'Silent Hill 2',
                                released='2024', coverImageId='co42'),
     })
-    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
     row  = next(g for g in body['games'] if g['slug'] == 'silent-hill-2--1')
     assert row['coverImageId'] == 'co42'
     assert row['released']     == '2024'
@@ -1293,7 +1293,7 @@ def test_stats_row_carries_what_the_console_renders(client, tmp_corrections):
 
 def test_stats_rows_are_newest_first(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
     pts = [g['latestPubTs'] or 0 for g in body['games']]
     assert pts == sorted(pts, reverse=True)
 
@@ -1303,7 +1303,7 @@ def test_stats_surfaces_the_current_display_name(client, tmp_corrections):
     ns = games_module.make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {})
     corrections.upsert('Silent Hill 2', display_name='Silent Hill 2 (2001)')
-    body = client.get('/silence/games/resolution-stats', headers=admin_header()).get_json()
+    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
     row  = next(g for g in body['games'] if g['nameSlug'] == ns)
     assert row['displayName'] == 'Silent Hill 2 (2001)'
     assert row['corrected'] is True
@@ -1333,7 +1333,7 @@ def test_renaming_does_not_re_resolve(client, tmp_corrections):
     })
     before = games_module._data_version
     with patch('games.fetch_by_id') as by_id, patch('games.fetch_by_name') as by_name:
-        r = client.put('/silence/games/corrections', headers=admin_header(),
+        r = client.put('/games/corrections', headers=admin_header(),
                        json={'nameSlug': ns, 'displayName': 'Silent Hill 2 (2001)'})
     assert_contract(r, GAMES['corrections']['success'])
     by_id.assert_not_called()
@@ -1347,13 +1347,13 @@ def test_renaming_does_not_re_resolve(client, tmp_corrections):
 
 def test_correction_requires_a_pin_or_a_name(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    r = client.put('/silence/games/corrections', headers=admin_header(),
+    r = client.put('/games/corrections', headers=admin_header(),
                    json={'nameSlug': games_module.make_slug('Silent Hill 2')})
     assert_contract(r, GAMES['corrections']['bad_request'])
 
 
 def test_correction_rejects_a_non_integer_pin(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    r = client.put('/silence/games/corrections', headers=admin_header(),
+    r = client.put('/games/corrections', headers=admin_header(),
                    json={'nameSlug': games_module.make_slug('Silent Hill 2'), 'igdbId': 'nope'})
     assert_contract(r, GAMES['corrections']['bad_request'])

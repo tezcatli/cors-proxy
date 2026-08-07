@@ -7,7 +7,7 @@ function uniqueEmail() {
 }
 
 async function invite(email) {
-  const r = await fetch(`${BASE}/silence/auth/invite`, {
+  const r = await fetch(`${BASE}/auth/invite`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Key': ADMIN_KEY },
     body:    JSON.stringify({ email }),
@@ -18,7 +18,7 @@ async function invite(email) {
 }
 
 async function register(email, password, inviteToken) {
-  return fetch(`${BASE}/silence/auth/register`, {
+  return fetch(`${BASE}/auth/register`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ email, password, invitation_token: inviteToken }),
@@ -26,7 +26,7 @@ async function register(email, password, inviteToken) {
 }
 
 async function login(email, password) {
-  return fetch(`${BASE}/silence/auth/login`, {
+  return fetch(`${BASE}/auth/login`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ email, password }),

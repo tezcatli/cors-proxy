@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-auth_bp = Blueprint("auth", __name__, url_prefix="/silence/auth")
+auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 def _hash(password: str) -> str:
@@ -203,7 +203,7 @@ def register():
 
 
 def _invite_url(token: str) -> str:
-    return f"{Config.RESET_BASE_URL}/silence/?invite={token}"
+    return f"{Config.RESET_BASE_URL}/?invite={token}"
 
 
 @auth_bp.route("/invite", methods=["POST"])
@@ -377,7 +377,7 @@ def reset_request():
                 "INSERT OR REPLACE INTO reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
                 (token, user["id"], expires),
             )
-            reset_url = f"{Config.RESET_BASE_URL}/silence/?reset={token}"
+            reset_url = f"{Config.RESET_BASE_URL}/?reset={token}"
     if reset_url:
         send_reset_email(email, reset_url)
     return "", 204

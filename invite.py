@@ -7,7 +7,7 @@ Usage:
   python invite.py --url https://tezcat.fr --key MY_ADMIN_KEY alice@example.com
 
 --admin is how the *first* administrator is bootstrapped; afterwards invitations
-(and promotions) can be sent from the in-app console at /silence/admin/users.
+(and promotions) can be sent from the in-app console at /admin/users.
 """
 
 import argparse

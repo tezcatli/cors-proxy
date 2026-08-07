@@ -26,7 +26,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-games_bp = Blueprint('games', __name__, url_prefix='/silence/games')
+games_bp = Blueprint('games', __name__, url_prefix='/games')
 games_bp.before_request(require_auth)
 
 

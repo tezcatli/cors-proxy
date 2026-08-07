@@ -7,7 +7,7 @@ import LoginPage   from './pages/LoginPage.vue'
 const Empty = { render: () => null }
 
 const router = createRouter({
-  history: createWebHistory('/silence/'),
+  history: createWebHistory('/'),
   routes: [
     { path: '/',                                  component: Empty,       meta: { depth: 0 } },
     { path: '/episodes',                          component: Empty,       meta: { depth: 0 } },

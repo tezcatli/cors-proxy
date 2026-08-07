@@ -22,18 +22,18 @@ self.addEventListener('fetch', e => {
   if (request.method !== 'GET') return;
 
   // Auth endpoints — never cache (tokens, login state)
-  if (url.pathname.startsWith('/silence/auth/')) return;
+  if (url.pathname.startsWith('/auth/')) return;
 
   // SSE resolution stream — must never be buffered or cached
-  if (url.pathname === '/silence/games/resolution-stream') return;
+  if (url.pathname === '/games/resolution-stream') return;
 
   // Admin endpoints — resolution-stats is ~860 KB and meant to be uncached;
   // igdb-search results are per-keystroke and useless offline.
-  if (url.pathname === '/silence/games/resolution-stats' ||
-      url.pathname === '/silence/games/igdb-search') return;
+  if (url.pathname === '/games/resolution-stats' ||
+      url.pathname === '/games/igdb-search') return;
 
   // Hashed assets (content-addressed) — cache-first, safe indefinitely
-  if (url.pathname.startsWith('/silence/assets/')) {
+  if (url.pathname.startsWith('/assets/')) {
     e.respondWith(
       caches.match(request).then(cached => cached ||
         fetch(request).then(res => {
@@ -46,7 +46,7 @@ self.addEventListener('fetch', e => {
   }
 
   // API data (catalog, IGDB metadata, episodes) — network-first, cache as offline fallback
-  if (url.pathname === '/silence/games' || url.pathname.startsWith('/silence/games/')) {
+  if (url.pathname === '/games' || url.pathname.startsWith('/games/')) {
     e.respondWith(
       fetch(request)
         .then(res => {
@@ -66,7 +66,11 @@ self.addEventListener('fetch', e => {
           if (res.ok) caches.open(CACHE).then(c => c.put(request, res.clone()));
           return res;
         })
-        .catch(() => caches.match('/silence/') || caches.match(request))
+        // caches.match returns a promise, which is always truthy — an `||` chain
+        // here would always take the first branch and resolve to undefined when
+        // the entry is missing, and respondWith(undefined) is a network error.
+        // So the offline fallback has to be chained on the resolved value.
+        .catch(() => caches.match('/').then(r => r ?? caches.match(request)))
     );
     return;
   }
