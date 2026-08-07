@@ -12,38 +12,38 @@
 
 ```
 cors-proxy/
-├── backend/            # Flask backend (CORS proxy + auth API)
-├── frontend/           # Frontend PWA (static files)
-├── nginx/              # Reverse proxy (prod only)
-├── backend_secrets.env     # Backend secrets (git-ignored)
-├── frontend_secrets.env    # Frontend build secrets (git-ignored)
+├── backend/            # Flask backend (API + auth)
+├── frontend/           # Vue 3 PWA sources
+├── nginx/              # web.conf + Dockerfile.web — the static-serving image
+├── deploy/             # what ships to the host: compose.yml + silence.conf
+├── backend_secrets.env # Backend secrets (git-ignored; lives on the host)
 ├── docker-compose.dev.yml
-├── docker-compose.prod.yml
+├── docker-compose.test.yml
 └── invite.py           # CLI tool for sending invitations
 ```
 
 ---
 
-## Secret files
+## Secret file
 
-Both env files must be created manually — they are not committed.
+`backend_secrets.env` must be created manually — it is not committed, and in production it
+is never shipped by the pipeline either: it is created once on the host and left alone.
 
 ### `backend_secrets.env`
 
 ```env
-# Shared proxy secret (legacy, can be any random string)
-PROXY_SECRET=<random string>
-
 # JWT signing key — keep long and secret
 JWT_SECRET=<long random string>
 
 # Admin key — used to call POST /auth/invite
 ADMIN_KEY=<long random string>
 
-# RAWG API key (https://rawg.io/apidocs) — kept server-side, never exposed to browser
-RAWG_KEY=<your rawg api key>
+# IGDB / Twitch application credentials (https://api-docs.igdb.com)
+IGDB_CLIENT_ID=<your igdb client id>
+IGDB_CLIENT_SECRET=<your igdb client secret>
 
-# Base URL used to build invite and password-reset links
+# Base URL used to build invite and password-reset links.
+# In production this is the app's own subdomain: https://ludo.tezcat.fr
 RESET_BASE_URL=https://your-domain.com
 
 # SMTP (optional — omit to log links to stdout instead of sending e-mail)
@@ -96,38 +96,72 @@ Open the link in a browser to complete registration.
 
 ## Production
 
-**1. Create the secret files** (see above). Set `RESET_BASE_URL` to your public domain,
-e.g. `https://tezcat.fr`.
+The app is served at **https://ludo.tezcat.fr/silence/**, behind the shared nginx edge
+defined in the separate **`tezcat-edge`** repository. Nothing is built on the host:
+`.github/workflows/ci.yml` builds images, pushes them to GHCR, and the host pulls them.
 
-**2. Obtain a TLS certificate** with Certbot:
-```bash
-certbot certonly --standalone -d your-domain.com
 ```
-The nginx config expects certificates at `/etc/letsencrypt/live/<domain>/`.
-
-**3. Build and start the stack:**
-```bash
-docker compose -f docker-compose.prod.yml up --build -d
+:443 ──▶ edge-nginx  ──┬─▶ silence-web      static SPA, baked into the image
+   ludo.tezcat.fr      └─▶ silence-backend  Flask/Gunicorn on :8000 (internal)
 ```
 
-Services:
-| Service     | Role                                      | Port  |
-|-------------|-------------------------------------------|-------|
-| `backend`   | Flask/Gunicorn — API + proxy              | 8000 (internal) |
-| `nginx`     | TLS termination, static files, routing    | 80, 443 |
-| `frontend`  | One-shot build container (copies assets)  | — |
+| Service | Image | Role |
+|---|---|---|
+| `backend` | `ghcr.io/tezcatli/silence-backend` | API + auth. Holds all catalog state in memory — **`--workers 1`** |
+| `web`     | `ghcr.io/tezcatli/silence-web`     | nginx serving the built SPA. Stateless |
 
-SQLite data is stored in the named Docker volume `backend_data` (mounted at
-`/backend/data` inside the container). Back it up before destructive operations:
+The edge itself (TLS, routing, ACME) is documented in `tezcat-edge/README.md`.
+
+### What deploys, and how
+
+Push to `main` → tests → images tagged with the commit SHA → the reusable
+`tezcat-edge/.github/workflows/deploy-app.yml` ships two files and restarts:
+
+| Shipped | To | Owner |
+|---|---|---|
+| `deploy/compose.yml`  | `~/opt/silence/compose.yml`          | this repo |
+| `deploy/silence.conf` | `~/opt/edge/conf.d/10-silence.conf`  | this repo |
+
+`~/opt/silence/.env` holds `IMAGE_TAG=<sha>` and is the record of what is deployed.
+`backend_secrets.env` sits beside them and is never touched by the pipeline.
+
+Required repository secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_USER`,
+`DEPLOY_KNOWN_HOSTS` (the pinned host key — **not** `ssh-keyscan`, which would re-trust
+whatever answers DNS on every run and then hand it the deploy key).
+
+The deploy fails if the backend does not report healthy within 150 s, or if the smoke test
+against `https://ludo.tezcat.fr/silence/` does not return 2xx.
+
+### Rollback
+
+Seconds, and no rebuild — the images for every past commit are still in GHCR:
+
 ```bash
-docker run --rm -v cors-proxy_backend_data:/data -v $(pwd):/out \
+ssh user@tezcat.fr "cd ~/opt/silence && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<old-sha>/' .env \
+  && docker compose -f compose.yml up -d"
+```
+
+### Certificates
+
+Issued and renewed by certbot on the host with the **webroot** authenticator, so renewal
+never stops nginx. See `tezcat-edge/README.md`; the app's certificate is
+`/etc/letsencrypt/live/ludo.tezcat.fr/`, referenced by `deploy/silence.conf`.
+
+### Backups
+
+SQLite lives in the named volume `silence_backend_data`, mounted at `/backend/data`. Back
+it up before anything destructive:
+
+```bash
+docker run --rm -v silence_backend_data:/data -v $(pwd):/out \
   busybox cp /data/users.db /out/users.db.bak
 ```
 
-**4. Invite the first user:**
+### First user
+
 ```bash
-ADMIN_KEY=<your key> RESET_BASE_URL=https://your-domain.com \
-  python invite.py alice@example.com
+ADMIN_KEY=<your key> RESET_BASE_URL=https://ludo.tezcat.fr \
+  python invite.py --admin alice@example.com
 ```
 
 ---
@@ -171,8 +205,8 @@ Normally you promote from the console. The SQL below stays the escape hatch — 
 first admin on an existing database, or an instance whose last admin was lost:
 
 ```bash
-# Prod (inside the container)
-docker compose -f docker-compose.prod.yml exec backend \
+# Prod (inside the container, from ~/opt/silence on the host)
+docker compose -f compose.yml exec backend \
   python -c "import db; conn=db.get_db().__enter__(); conn.execute(\"UPDATE users SET is_admin=1 WHERE email=?\", ('alice@example.com',)); conn.commit()"
 
 # Or directly against the DB file
@@ -224,5 +258,9 @@ is validated on load, so a malformed entry fails the tests rather than productio
 | `SMTP_USER`        | *(empty)*                      | SMTP username |
 | `SMTP_PASS`        | *(empty)*                      | SMTP password |
 | `SMTP_FROM`        | `noreply@example.com`          | Sender address |
-| `RAWG_KEY`         | *(required)*                   | RAWG.io API key — server-side only, responses cached 30 days in SQLite |
+| `IGDB_CLIENT_ID`     | *(required)*                 | IGDB/Twitch application id — server-side only |
+| `IGDB_CLIENT_SECRET` | *(required)*                 | IGDB/Twitch application secret |
+| `METACRITIC_SCRAPE`  | `true`                       | Scrape the real Metascore during resolution; falls back to IGDB's aggregate |
+| `IGDB_TTL_HOURS`     | `720` (30 days)              | How long a cached IGDB resolution stays fresh |
+| `RESOLVE_RETRY_MINUTES` | `15`                      | Periodic re-sweep of never-resolved appearances |
 | `DEBUG`            | `false`                        | Set `true` in dev to skip auth checks on proxy |

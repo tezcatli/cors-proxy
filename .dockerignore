@@ -1,0 +1,14 @@
+# Context for nginx/Dockerfile.web, which builds from the repository root.
+# Without this the whole node_modules tree is uploaded to the daemon on every
+# build. Note that backend/Dockerfile.prod builds with context ./backend and
+# reads backend/.dockerignore instead — this file does not apply to it.
+
+.git
+.github
+.claude
+**/node_modules
+# Rebuilt inside the image; a stale host copy must not leak in.
+frontend/dist
+**/__pycache__
+backend/data
+*.env
