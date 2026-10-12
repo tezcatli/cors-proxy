@@ -1,7 +1,6 @@
 import os
 import time
 import logging
-import requests
 from flask import Flask, request, Response, jsonify
 from config import Config
 from db import init_db
@@ -27,53 +26,9 @@ def create_app(testing=False):
         if not Config.ADMIN_KEY:
             logger.warning("ADMIN_KEY is not set — POST /auth/invite will always return 403")
 
-    if Config.DEBUG:
-        import pathlib
-        from flask import send_from_directory, abort
-
-        _app = Flask(__name__, static_folder="static")
-        logger.warning("DEBUG mode is ON — authentication is DISABLED for all /games routes")
-
-        # The SPA is served from the root, so this is a catch-all. Werkzeug sorts
-        # rules without converters ahead of `<path:path>`, so the auth and games
-        # blueprints and /healthz still win — but a routing surprise here would
-        # silently answer an API call with index.html, which is a miserable thing
-        # to debug from the browser. Fail loudly instead.
-        API_PREFIXES = ("auth/", "games/")
-
-        @_app.route("/", defaults={"path": ""})
-        @_app.route("/<path:path>")
-        def spa(path):
-            # Prefixes need the slash and healthz needs to be exact, or a future
-            # SPA route like /authors or /healthzcheck would 404 for no reason.
-            if path.startswith(API_PREFIXES) or path == "healthz":
-                abort(404)
-
-            if Config.DEBUG and os.environ.get("VITE_DEV_SERVER", "false").lower() == "true":
-                vite_url = f"http://frontend:5173/{path}" if path else "http://frontend:5173/"
-                # Forward the raw query string. Re-serializing via requests' `params` from
-                # request.args drops the distinction between `?foo` and `?foo=`, which Vite
-                # uses to recognise virtual extensions like `&lang.css`.
-                raw_qs = request.query_string.decode('latin-1')
-                if raw_qs:
-                    vite_url = f"{vite_url}?{raw_qs}"
-                try:
-                    vite_resp = requests.get(vite_url, timeout=5)
-                    excluded = {"content-encoding", "content-length", "transfer-encoding", "connection"}
-                    headers = [(k, v) for k, v in vite_resp.headers.items() if k.lower() not in excluded]
-                    response = Response(vite_resp.content, status=vite_resp.status_code, headers=headers)
-                    response.headers["Cache-Control"] = "no-store"
-                    return response
-                except requests.RequestException:
-                    pass
-
-            full = pathlib.Path(_app.static_folder) / path
-            filename = path if full.is_file() else "index.html"
-            resp = send_from_directory(_app.static_folder, filename)
-            resp.headers["Cache-Control"] = "no-store"
-            return resp
-    else:
-        _app = Flask(__name__)
+    # API only. The SPA is served by nginx in prod and by Vite in dev (which
+    # proxies /auth and /games here), so Flask never serves a page.
+    _app = Flask(__name__)
 
     _app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
     _app.config['RATELIMIT_ENABLED'] = not testing

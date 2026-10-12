@@ -23,10 +23,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Start the full dev stack (Flask hot-reload + Vite dev server)
 docker compose -f docker-compose.dev.yml up --build
-# Frontend: http://localhost:5000  API: http://localhost:5000
+# App: http://localhost:5173 (Vite)  API alone: http://localhost:5000
 ```
 
-In dev, Flask (`DEBUG=true`) proxies asset requests to the Vite dev server at `http://frontend:5173`, while still serving API routes itself. This ensures CSS and JS changes are served immediately from Vite rather than from stale built output.
+In dev, Vite serves the app and proxies `/auth` and `/games` to Flask (`vite.config.js`). Flask never serves pages, in any environment. Dev runs the real auth — there is no bypass — so sign in with an account (`invite.py --admin` for the first one).
 
 ### Testing
 
@@ -93,9 +93,9 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
 
 ### Backend (`backend/`)
 
-- **`app.py`** — Flask app factory. Registers the auth and games blueprints, an unauthenticated `GET /healthz` liveness probe, and (in `DEBUG=true`) the SPA/Vite-proxy static routes. Auth is skipped entirely when `DEBUG=true`. (The repo dir is still named `cors-proxy` for historical reasons — there is no longer a generic CORS-proxy endpoint.)
+- **`app.py`** — Flask app factory. Registers the auth and games blueprints and an unauthenticated `GET /healthz` liveness probe. API only: the SPA is served by nginx in prod and Vite in dev. (The repo dir is still named `cors-proxy` for historical reasons — there is no longer a generic CORS-proxy endpoint.)
 - **`auth.py`** — Blueprint at `/auth`: invite-token-based registration, login, password reset. All tokens (invite, reset, JWT) are random `secrets.token_urlsafe` strings stored in SQLite. `require_admin()` gates the admin routes here and in `games.py`; it re-reads `users.is_admin` from the DB on every call (the JWT's `admin` claim is cosmetic — it only decides whether the SPA shows the admin UI — so a demotion applies immediately instead of at token expiry).
-  **Account administration** (backs the `/admin/users` console): `GET /auth/users`, `PATCH /auth/users/<id>` (`{is_admin}`), `DELETE /auth/users/<id>`, `GET /auth/invitations` (pending only, with each token + `invite_url` so the console can copy or revoke them), `DELETE /auth/invitations/<token>`. Two invariants are enforced in the same transaction as the write, because either failure locks everyone out of this very console with no in-app way back: **you may not delete or demote yourself** (409), and **the last admin may not disappear** (409). The self-check needs a session, so under `DEBUG` — where `require_admin` is bypassed and `_current_user_id()` is None — the last-admin check is the only thing left, which is exactly the case its test covers.
+  **Account administration** (backs the `/admin/users` console): `GET /auth/users`, `PATCH /auth/users/<id>` (`{is_admin}`), `DELETE /auth/users/<id>`, `GET /auth/invitations` (pending only, with each token + `invite_url` so the console can copy or revoke them), `DELETE /auth/invitations/<token>`. Two invariants are enforced in the same transaction as the write, because either failure locks everyone out of this very console with no in-app way back: **you may not delete or demote yourself** (409), and **the last admin may not disappear** (409). Sequentially the self-check always fires first (only the last admin can target the last admin); the in-transaction count is what stops two admins demoting each other at once.
   `POST /auth/invite` accepts **either** credential: the `X-Admin-Key` shared secret (for `invite.py`/CI, which have no session) or an admin session. Its optional `is_admin` is stored on the invitation row and copied into the account by `register()` — that is the whole invite-time grant, and `invite.py --admin` is how the first admin is bootstrapped. Deleting a user revokes their live sessions for free: `_bearer_user_claims()` re-checks that the subject still exists.
 - **`models.py`** — Dataclasses shared across the backend: `Chapter`, `GameMention`, `Episode`, `GameAppearance`, `PodcastGame`, `IgdbEntry`. No logic.
 - **`rss.py`** — Pure RSS feed parsing (no I/O, no state). Public API: `parse_feed(xml_bytes) -> list[Episode]`, `extract_game_names(title)`, `extract_legacy_names(title)`.
@@ -112,7 +112,7 @@ In dev, Flask handles everything directly on port 5000 (no Nginx).
   - **Writing is a dev-time activity.** `is_writable()` is True in dev (the repo is bind-mounted into the container) and False in prod (`COPY . .` bakes the file into a root-owned image layer and the app runs as `appuser`; a write would be permission-denied *and* discarded on the next build). The admin endpoints 409 when it's False. `_write()` is atomic (temp + `os.replace`) and **carries the original file's mode/owner across** — `mkstemp` makes a 0600 file owned by the writer, so without that the dev container (root) leaves `corrections.json` root:root 0600 and the human can't `git diff` or commit it.
 - **`podcasts.py`** — The feed registry. Each `Podcast` carries its feed URL, the title→game-name extractor for that show's title convention, and `use_date_hint`: whether the episode's publication date is evidence of *the game's* release date. True for Silence on Joue (covers new releases); **False for Fin du Game**, a retrospective show where the date window would resolve a 1997 game to an unrelated 2026 release. Feed URLs are env-overridable (`<ID>_FEED_URL`).
 - **`db.py`** — SQLite at `backend/data/users.db`. WAL mode. Four tables: `users` (incl. `is_admin`), `invitations`, `reset_tokens`, `igdb_cache`. `igdb_cache` is keyed by **podcast_slug** (`make_slug(podcast_name) + '-' + episode.slug`, the RSS guid), one row per (game name, episode) pair. Columns: `igdb_id`, `igdb_slug` (IGDB's own slug, used for URL routing), `name` (canonical IGDB name), `igdb_data` (JSON blob), `is_child` (1 if resolved to a parent game), `correction_sig`, `enriched` (0 until Metacritic/HLTB have run). Loaded into memory at startup; only written when new IGDB resolutions arrive.
-- **`config.py`** — All config from env vars; `Config.DEBUG` gates auth bypass and static file serving, `Config.METACRITIC_SCRAPE` gates the Metacritic scrape.
+- **`config.py`** — All config from env vars; `Config.DEBUG` only relaxes dev ergonomics (no insecure-`JWT_SECRET` refusal, full invite/reset links in the logs, warm-up in the reloader child) — never auth, `Config.METACRITIC_SCRAPE` gates the Metacritic scrape.
 
 ### Frontend (`frontend/`)
 

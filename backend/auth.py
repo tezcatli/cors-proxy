@@ -86,8 +86,6 @@ def _bearer_user_claims():
 
 
 def require_auth():
-    if Config.DEBUG:
-        return
     if _bearer_user_claims():
         return
     abort(401, "Not authenticated")
@@ -96,8 +94,6 @@ def require_auth():
 def require_admin():
     """Gate for routes that mutate the shared catalog. Called explicitly by admin
     views (the blueprint-wide `require_auth` has already run)."""
-    if Config.DEBUG:
-        return
     claims = _bearer_user_claims()
     if not claims:
         abort(401, "Not authenticated")
@@ -106,10 +102,9 @@ def require_admin():
 
 
 def _current_user_id() -> int | None:
-    """The session's user id, or None when there is no usable session — which is
-    the normal case under DEBUG (auth is bypassed) and in `invite.py`'s admin-key
-    flow. Callers use it for self-protection guards, which must degrade rather
-    than crash when nobody is identified."""
+    """The session's user id, or None when there is no usable session (e.g.
+    `invite.py`'s admin-key flow). Callers use it for self-protection guards,
+    which must degrade rather than crash when nobody is identified."""
     claims = _bearer_user_claims()
     try:
         return int(claims["sub"])
@@ -124,8 +119,6 @@ def _admin_key_ok() -> bool:
 
 
 def _admin_session_ok() -> bool:
-    if Config.DEBUG:
-        return True
     claims = _bearer_user_claims()
     return bool(claims and _is_admin_user(claims.get("sub")))
 

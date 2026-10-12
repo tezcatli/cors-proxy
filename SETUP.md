@@ -63,31 +63,31 @@ python3 -c "import secrets; print(secrets.token_urlsafe(40))"
 
 ## Development
 
-In dev mode the Flask server runs with hot-reload (`DEBUG=true`), authentication is
-bypassed for proxy requests, and e-mail links are printed to the container logs instead
-of being sent.
+In dev mode the Flask server runs with hot-reload (`DEBUG=true`) and e-mail links are
+printed to the container logs instead of being sent. Authentication is **not** bypassed:
+dev runs the same auth code as prod, so you sign in with an account (step 3).
 
-**1. Create the secret files** (see above). `RESET_BASE_URL` can stay as
-`http://localhost:5000`.
+**1. Create the secret files** (see above). `RESET_BASE_URL` doesn't matter for dev:
+`docker-compose.dev.yml` sets it to `http://localhost:5173`.
 
 **2. Start the stack:**
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-The frontend is served at **http://localhost:5000** and the API at
-**http://localhost:5000**. In dev, frontend asset requests are proxied to Vite's
-hot-reload server on port `5173`.
+Open the app at **http://localhost:5173** (Vite, with hot reload). Vite forwards
+`/auth` and `/games` to Flask, which also answers directly at **http://localhost:5000**
+(API only — it serves no pages).
 
-**3. Invite the first user:**
+**3. Invite the first user** (`--admin` to reach the admin consoles):
 ```bash
 ADMIN_KEY=<your key> RESET_BASE_URL=http://localhost:5000 \
-  python invite.py alice@example.com
+  python invite.py --admin alice@example.com
 ```
 
 The invite URL is also printed in the `backend` container logs:
 ```
-INVITE LINK for alice@example.com → http://localhost:5000/?invite=…&email=…
+INVITE LINK for alice@example.com → http://localhost:5173/?invite=…
 ```
 
 Open the link in a browser to complete registration.

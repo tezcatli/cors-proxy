@@ -62,10 +62,14 @@ describe('full auth flow', () => {
     const regRes = await register(email, 'password123', token)
     const { access_token } = await regRes.json()
 
-    const r = await fetch(`${BASE}/igdb/game?name=zelda`, {
+    const r = await fetch(`${BASE}/games/episodes`, {
       headers: { Authorization: `Bearer ${access_token}` },
     })
-    // 200 (cached or upstream) or 502/503 (no IGDB creds / upstream down) — anything but 401
-    expect(r.status).not.toBe(401)
+    expect(r.status).toBe(200)
+  })
+
+  it('protected endpoints refuse a request without a token', async () => {
+    const r = await fetch(`${BASE}/games/episodes`)
+    expect(r.status).toBe(401)
   })
 })

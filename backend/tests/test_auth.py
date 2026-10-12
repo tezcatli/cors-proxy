@@ -416,13 +416,16 @@ def test_delete_user_requires_admin(client):
                     AUTH['delete_user']['forbidden'])
 
 def test_the_last_admin_cannot_be_removed(client, monkeypatch):
-    """Reachable when the caller isn't identified — i.e. a DEBUG dev session,
-    where `require_admin` is bypassed and the self-guard has nobody to compare
-    against. It is the only thing standing between dev and an admin-less DB."""
-    admin_header()                       # user 1 is now the sole admin
-    monkeypatch.setattr(Config, 'DEBUG', True)
-    assert_contract(client.delete('/auth/users/1'), AUTH['delete_user']['last_admin'])
-    assert_contract(client.patch('/auth/users/1', json={'is_admin': False}),
+    """Sequentially the self-guard always fires first (only the last admin can
+    target the last admin). The count check is what holds when it can't: two
+    admins demoting each other at once each pass their self-guard, and only the
+    in-transaction count stops the second. Simulate that by blinding the
+    self-guard."""
+    headers = admin_header()             # user 1 is now the sole admin
+    monkeypatch.setattr('auth._current_user_id', lambda: None)
+    assert_contract(client.delete('/auth/users/1', headers=headers),
+                    AUTH['delete_user']['last_admin'])
+    assert_contract(client.patch('/auth/users/1', json={'is_admin': False}, headers=headers),
                     AUTH['update_user']['last_admin'])
     assert _is_admin('__auth_fixture__@test')
 
