@@ -1,12 +1,11 @@
 import json
 import datetime
 import pathlib
-import queue as _queue_mod
 import threading
 import time
 
 import requests as http
-from flask import Blueprint, abort, jsonify, request, Response, stream_with_context
+from flask import Blueprint, abort, jsonify, request, Response
 
 from auth import require_admin, require_auth
 from config import Config
@@ -50,23 +49,9 @@ _igdb_cache: dict[str, IgdbEntry] = {}
 # used to key the cached responses below so repeated reads (incl. 304
 # revalidations) skip re-serialising and re-hashing the (large) payloads.
 _data_version:  int = 0
-# Serialised-response caches: (key, body_text, etag). Feed key = _data_version;
-# catalog key = (_data_version, pending) since the body carries `pending`.
+# Serialised-response caches: (_data_version, body_text, etag).
 _catalog_cache: tuple | None = None
 _feed_cache:    tuple | None = None
-# Pending count memo: (version, minute_bucket, value).
-_pending_cache: tuple[int, int, int] | None = None
-
-# ── SSE subscriber management ─────────────────────────────────────────────────
-
-_resolution_subs:      list[_queue_mod.Queue] = []
-_resolution_subs_lock: threading.Lock         = threading.Lock()
-
-
-def _broadcast(event: dict) -> None:
-    with _resolution_subs_lock:
-        for q in _resolution_subs:
-            q.put_nowait(event)
 
 
 # ── AI chapter injection ──────────────────────────────────────────────────────
@@ -125,13 +110,6 @@ def _inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
 
 
 # ── RSS state helpers ─────────────────────────────────────────────────────────
-
-def _feed_is_stale() -> bool:
-    return (
-        _cached_at is None
-        or (utcnow() - _cached_at).total_seconds() >= Config.RSS_TTL_HOURS * 3600
-    )
-
 
 def _build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
     """Build episode_index and game_index from a list of Episode objects."""
@@ -229,12 +207,21 @@ def _refresh_feed() -> None:
             return
 
         errors: list[str] = []
+        changed = False
         for podcast in PODCASTS:
             try:
-                _fetch_feed(podcast)
+                changed |= _fetch_feed(podcast)
             except Exception as exc:
                 errors.append(f'{podcast.id}: {exc}')
                 logger.warning('Feed fetch failed for %s: %s', podcast.id, exc)
+
+        # The feeds are polled every few minutes and almost always answer 304:
+        # rebuilding then would bump _data_version and invalidate every client's
+        # ETag for nothing.
+        if not changed and _cached_episodes:
+            with _state_lock:
+                _cached_at = utcnow()
+            return
 
         # Combine every feed's episodes (cached lists survive a 304 or a failed fetch).
         episodes = [ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])]
@@ -272,7 +259,7 @@ def _load_igdb_cache_from_db() -> None:
     with get_db() as conn:
         rows = conn.execute(
             'SELECT slug, igdb_id, igdb_slug, name, igdb_data, is_child, cached_at, '
-            'correction_sig FROM igdb_cache'
+            'correction_sig, enriched FROM igdb_cache'
         ).fetchall()
     cache = {}
     for row in rows:
@@ -286,6 +273,7 @@ def _load_igdb_cache_from_db() -> None:
             cached_at=row['cached_at'],
             # NULL on a legacy row reads as "resolved with no correction".
             correction_sig=row['correction_sig'] or '',
+            enriched=bool(row['enriched']),
         )
     with _state_lock:
         _igdb_cache = cache
@@ -368,7 +356,12 @@ def _group_members() -> tuple[dict[str, list[Member]], dict[str, IgdbEntry]]:
 # ── IGDB resolution ───────────────────────────────────────────────────────────
 
 def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
-                 podcast_id: str = '') -> None:
+                 podcast_id: str = '', enrich: bool = True) -> None:
+    """Resolve one appearance against IGDB and cache it (memory + DB).
+
+    `enrich=False` skips the slow, flaky scrapers (Metacritic, HowLongToBeat:
+    ~1–10 s per game against ~0.3 s for IGDB) and caches the entry as
+    `enriched=False`, which keeps it pending so the background sweep completes it."""
     global _data_version
     logger.info('Resolving IGDB for slug=%r name=%r', podcast_slug, name)
     # corrections.json is the only thing that outranks the name search.
@@ -399,7 +392,7 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
         logger.warning('IGDB resolution failed slug=%r name=%r: %s', podcast_slug, name, exc)
         return
 
-    if result and result.data is not None:
+    if enrich and result and result.data is not None:
         # Real Metacritic score (overrides the IGDB aggregate already in the blob),
         # and durée de vie — HowLongToBeat primary, IGDB time-to-beat fallback. Both
         # best-effort: any failure leaves the IGDB value / hides the stat.
@@ -427,6 +420,8 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
         is_child=result.is_child      if result else False,
         cached_at=now,
         correction_sig=sig,
+        # Nothing to enrich on a miss.
+        enriched=enrich or not (result and result.data is not None),
     )
     with _state_lock:
         _igdb_cache[podcast_slug] = entry
@@ -435,20 +430,12 @@ def _resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
     with get_db() as conn:
         conn.execute(
             'INSERT OR REPLACE INTO igdb_cache '
-            '(slug, igdb_id, igdb_slug, name, igdb_data, is_child, cached_at, correction_sig) '
-            'VALUES (?,?,?,?,?,?,?,?)',
+            '(slug, igdb_id, igdb_slug, name, igdb_data, is_child, cached_at, correction_sig, '
+            'enriched) VALUES (?,?,?,?,?,?,?,?,?)',
             (podcast_slug, entry.igdb_id, entry.igdb_slug, entry.name,
              json.dumps(entry.data) if entry.data else None,
-             int(entry.is_child), now, sig)
+             int(entry.is_child), now, sig, int(entry.enriched))
         )
-
-    _broadcast({
-        'type':     'resolved',
-        'nameSlug': make_slug(name),
-        'igdbSlug': igdb_slug,
-        'igdb':     {'metacritic': entry.data.get('metacritic'),
-                     'coverImageId': entry.data.get('coverImageId')} if entry.data else None,
-    })
 
 
 _resolve_lock   = threading.Lock()
@@ -470,7 +457,8 @@ def _fresh_slugs(cache_items) -> set:
 def _appearance_pending(game, appearance, cache, fresh_slugs) -> bool:
     """Whether the resolver should (re)resolve this appearance.
 
-    Pending when it is TTL-stale or never cached (`fresh_slugs`), or when the
+    Pending when it is TTL-stale or never cached (`fresh_slugs`), when it was
+    cached without enrichment (`POST /refresh`'s quick pass), or when the
     correction in force now fingerprints differently than when it was last
     resolved — the latter is how a corrections.json shipped to an already-deployed
     instance takes effect: an added, changed *or removed* correction shifts the
@@ -478,20 +466,11 @@ def _appearance_pending(game, appearance, cache, fresh_slugs) -> bool:
     if appearance.podcast_slug not in fresh_slugs:
         return True
     cached = cache.get(appearance.podcast_slug)
-    if cached is None:
+    if cached is None or not cached.enriched:
         return True
     current = corrections.fingerprint(find_by_podcast(
         game.name, appearance.episode.pub_ts, appearance.episode.podcast_id))
     return cached.correction_sig != current
-
-
-def _count_appearances_pending(cache, fresh_slugs) -> int:
-    """Count appearances the resolver considers pending. Caller holds _state_lock."""
-    return sum(
-        1 for game in _game_index.values()
-        for a in game.appearances
-        if _appearance_pending(game, a, cache, fresh_slugs)
-    )
 
 
 def _resolve_pending(stop: threading.Event) -> None:
@@ -520,7 +499,6 @@ def _resolve_pending(stop: threading.Event) -> None:
                     appearance.episode.podcast_id,
                 )
     finally:
-        _broadcast({'type': 'done'})
         global _resolve_stop
         with _resolve_lock:
             if _resolve_stop is stop:
@@ -540,7 +518,32 @@ def _schedule_resolve(force: bool = False) -> None:
         _resolve_thread.start()
 
 
-# ── Periodic re-resolve (retry transient failures without a manual refresh) ────
+# How long POST /refresh may spend on brand-new games before answering. Measured
+# at ~0.3 s per game for IGDB alone, so a typical new episode (2–5 games) fits;
+# whatever doesn't is left to the background sweep.
+_REFRESH_BUDGET_S = 10
+
+
+def _resolve_new(budget_s: float) -> None:
+    """IGDB-only pass over never-cached appearances, bounded by `budget_s`.
+
+    A user pulls to refresh right after an episode comes out, so this is when
+    someone is watching: the response should already carry the new games' names
+    and covers. Metacritic + HLTB (seconds each, and often timing out) are left to
+    the background sweep — see `_resolve_one(enrich=False)`."""
+    deadline = time.monotonic() + budget_s
+    with _state_lock:
+        todo = [(g, a) for g in _game_index.values() for a in g.appearances
+                if a.podcast_slug not in _igdb_cache]
+    for game, appearance in todo:
+        if time.monotonic() >= deadline:
+            logger.info('Refresh budget spent; leaving new appearances to the sweep')
+            break
+        _resolve_one(appearance.podcast_slug, game.name, appearance.episode.pub_ts,
+                     appearance.episode.podcast_id, enrich=False)
+
+
+# ── Background tick: poll the feeds, retry what's pending ─────────────────────
 
 _periodic_stop: threading.Event | None = None
 
@@ -549,15 +552,15 @@ def _periodic_resolve(stop: threading.Event) -> None:
     interval = Config.RESOLVE_RETRY_MINUTES * 60
     while not stop.wait(interval):
         try:
-            # Proactively pick up newly published episodes during idle periods.
-            if _feed_is_stale():
-                try:
-                    _refresh_feed()
-                except Exception as exc:
-                    logger.warning('Periodic feed refresh failed: %s', exc)
-            # Use the same TTL-aware notion the catalog/SSE use, so never-cached
-            # AND TTL-expired appearances both get picked up (a resolve refreshes
-            # cached_at, so this self-limits to once per TTL period).
+            # Poll every tick: the feeds answer 304 when nothing changed, so this
+            # costs two conditional GETs, and a new episode is picked up — and its
+            # games resolved — within one interval, usually before anyone looks.
+            try:
+                _refresh_feed()
+            except Exception as exc:
+                logger.warning('Periodic feed refresh failed: %s', exc)
+            # Never-cached, unenriched, TTL-expired and re-corrected appearances
+            # alike (a resolve refreshes cached_at, so this self-limits).
             pending = _count_pending()
             if pending:
                 logger.info('Periodic re-resolve: %d pending appearance(s)', pending)
@@ -578,11 +581,10 @@ def _start_periodic_resolve() -> None:
 
 def _startup() -> None:
     _load_igdb_cache_from_db()
-    if _feed_is_stale():
-        try:
-            _refresh_feed()
-        except Exception as exc:
-            logger.warning('Startup RSS fetch failed: %s', exc)
+    try:
+        _refresh_feed()
+    except Exception as exc:
+        logger.warning('Startup RSS fetch failed: %s', exc)
     _schedule_resolve()
     _start_periodic_resolve()
 
@@ -788,22 +790,15 @@ def _load_game(slug: str) -> dict:
 # ── Pending count ─────────────────────────────────────────────────────────────
 
 def _count_pending() -> int:
-    """Count appearances the resolver still considers pending — never resolved OR
-    resolved longer ago than IGDB_TTL_HOURS. Matches `_resolve_pending`'s notion
-    of "pending" so the catalog gate, the SSE endpoint, and the periodic retry all
-    agree.
-
-    Memoised against (data version, minute bucket): it changes only on a version
-    bump or a TTL-boundary crossing, so a full rescan of the cache + appearances
-    runs at most once per minute per version (≤60 s staleness, self-healing)."""
-    global _pending_cache
-    bucket = int(time.monotonic() // 60)
+    """Count appearances the resolver still considers pending (see
+    `_appearance_pending`). Only the background tick and the admin console ask,
+    so it isn't memoised."""
     with _state_lock:
-        if _pending_cache and _pending_cache[0] == _data_version and _pending_cache[1] == bucket:
-            return _pending_cache[2]
-        value = _count_appearances_pending(_igdb_cache, _fresh_slugs(_igdb_cache.items()))
-        _pending_cache = (_data_version, bucket, value)
-        return value
+        games = list(_game_index.values())
+        cache = dict(_igdb_cache)
+    fresh = _fresh_slugs(cache.items())
+    return sum(1 for game in games for a in game.appearances
+               if _appearance_pending(game, a, cache, fresh))
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -858,23 +853,21 @@ def games_episode():
 
 @games_bp.route('', strict_slashes=False)
 def catalog():
-    if _feed_is_stale():
+    # Read-only: the background tick keeps the feed fresh. The one exception is a
+    # cold start whose startup fetch failed — there is nothing to serve yet.
+    if not _cached_episodes:
         try:
             _refresh_feed()
         except Exception as exc:   # network error, malformed XML, etc.
-            if not _cached_episodes:
-                abort(502, f'RSS feed unavailable: {exc}')
-            logger.warning('Feed refresh failed; serving cached catalog: %s', exc)
-        else:
-            _schedule_resolve()
+            abort(502, f'RSS feed unavailable: {exc}')
+        _schedule_resolve()
     global _catalog_cache
-    pending = _count_pending()
     with _state_lock:
         cache = _catalog_cache
-        key   = (_data_version, pending)
+        key   = _data_version
     resp, new_cache = _conditional_cached(
         cache, key,
-        lambda: {'games': _build_catalog(), 'pending': pending},
+        lambda: {'games': _build_catalog()},
     )
     if new_cache is not cache:
         with _state_lock:
@@ -891,46 +884,11 @@ def refresh():
         if not _cached_episodes:
             abort(502, f'RSS feed unavailable: {exc}')
         logger.warning('Manual refresh failed; serving cached catalog: %s', exc)
-    else:
-        _schedule_resolve(force=True)
-    return jsonify({'games': _build_catalog(), 'pending': _count_pending()})
-
-
-@games_bp.route('/resolution-stream')
-def resolution_stream():
-    q = _queue_mod.Queue()
-    with _resolution_subs_lock:
-        _resolution_subs.append(q)
-    # If no resolver is running: start one when there's pending work (it will
-    # broadcast 'resolved' events + a final 'done'), otherwise close out
-    # immediately with our own 'done'. This keeps the stream consistent with the
-    # catalog's `pending` gate — a reopen never returns an instant 'done' while
-    # work remains, which would spin the client.
-    if not (_resolve_thread and _resolve_thread.is_alive()):
-        if _count_pending():
-            _schedule_resolve()
-        else:
-            q.put_nowait({'type': 'done'})
-
-    def generate():
-        try:
-            while True:
-                try:
-                    event = q.get(timeout=30)
-                    yield f'data: {json.dumps(event)}\n\n'
-                    if event.get('type') == 'done':
-                        break
-                except _queue_mod.Empty:
-                    yield ': heartbeat\n\n'
-        finally:
-            with _resolution_subs_lock:
-                if q in _resolution_subs:
-                    _resolution_subs.remove(q)
-
-    r = Response(stream_with_context(generate()), mimetype='text/event-stream')
-    r.headers['Cache-Control']     = 'no-cache'
-    r.headers['X-Accel-Buffering'] = 'no'
-    return r
+    # Even on a failed fetch: a previous tick may have brought in games that
+    # haven't resolved yet, and the user is looking right now.
+    _resolve_new(_REFRESH_BUDGET_S)
+    _schedule_resolve(force=True)
+    return jsonify({'games': _build_catalog()})
 
 
 # ── Admin: resolution stats & corrections ─────────────────────────────────────
@@ -1206,7 +1164,7 @@ def podcast_igdb_refresh(podcast_id):
                          if a.episode.podcast_id == podcast_id]
     _purge_cache(podcast_slugs)
     # Background sweep (this can be hundreds of rate-limited IGDB calls); the
-    # client watches /resolution-stream for progress.
+    # console shows progress through `pending` in /resolution-stats.
     _schedule_resolve(force=True)
     return jsonify({'purged': len(podcast_slugs)})
 

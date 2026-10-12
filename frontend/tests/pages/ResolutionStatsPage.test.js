@@ -37,7 +37,6 @@ const fetchResolutionStats = vi.fn(() => Promise.resolve(structuredClone(STATS))
 vi.mock('../../src/lib/games.js', () => ({
   fetchResolutionStats: (...a) => fetchResolutionStats(...a),
   refreshPodcastIgdb:   vi.fn(),
-  openResolutionStream: vi.fn(() => Promise.reject(new Error('no sse in tests'))),
 }))
 vi.mock('vue-router', () => ({
   useRouter:  () => ({ push: vi.fn() }),

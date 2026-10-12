@@ -61,3 +61,4 @@ class IgdbEntry:
     is_child: bool          # True when resolved to a parent/version_parent
     cached_at: str          # ISO-8601 UTC timestamp
     correction_sig: str = ''  # fingerprint of the correction in force when resolved
+    enriched: bool = True     # False until Metacritic/HLTB have run (see games._resolve_one)

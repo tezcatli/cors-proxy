@@ -106,4 +106,3 @@ def clean_db():
     # pytest session, so they must be dropped alongside the state they derive from.
     _games._catalog_cache   = None
     _games._feed_cache      = None
-    _games._pending_cache   = None

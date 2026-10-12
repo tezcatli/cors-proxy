@@ -23,15 +23,12 @@ def _check(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
-def _decode_jwt(token: str, scope: str | None = None):
-    """Return the JWT claims if valid (and `scope` matches when given), else None."""
+def _decode_jwt(token: str):
+    """Return the JWT claims if valid, else None."""
     try:
-        claims = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+        return jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
     except jwt.PyJWTError:
         return None
-    if scope is not None and claims.get("scope") != scope:
-        return None
-    return claims
 
 
 def _user_exists(claims) -> bool:
@@ -75,26 +72,15 @@ def _make_jwt(user_id: int, email: str) -> str:
     return jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
 
 
-def _make_stream_token(user_id) -> str:
-    """A short-lived token, scoped to the SSE stream, so the long-lived JWT never
-    travels in the EventSource URL (and so it can't be used for data endpoints)."""
-    now = utcnow()
-    return jwt.encode({
-        "sub":   str(user_id),
-        "scope": "stream",
-        "iat":   now,
-        "exp":   now + datetime.timedelta(seconds=Config.STREAM_TTL_SECONDS),
-    }, Config.JWT_SECRET, algorithm="HS256")
-
-
 def _bearer_user_claims():
     """Claims for a valid full-API Bearer token of a still-existing user, else None.
-    Rejects stream-scoped tokens (those are only for the SSE endpoint)."""
+    Rejects any scoped token: session tokens carry no `scope`, and the retired SSE
+    stream tokens (scope "stream") travelled in URLs, so they must never pass."""
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         return None
     claims = _decode_jwt(auth[7:])
-    if claims and claims.get("scope") != "stream" and _user_exists(claims):
+    if claims and not claims.get("scope") and _user_exists(claims):
         return claims
     return None
 
@@ -104,12 +90,6 @@ def require_auth():
         return
     if _bearer_user_claims():
         return
-    # EventSource can't set headers → accept a stream-scoped token in the query
-    # string, but ONLY on the resolution-stream endpoint.
-    if request.path.endswith("/resolution-stream"):
-        claims = _decode_jwt(request.args.get("token", ""), scope="stream")
-        if claims and _user_exists(claims):
-            return
     abort(401, "Not authenticated")
 
 
@@ -148,12 +128,6 @@ def _admin_session_ok() -> bool:
         return True
     claims = _bearer_user_claims()
     return bool(claims and _is_admin_user(claims.get("sub")))
-
-
-@auth_bp.route("/stream-token")
-def stream_token():
-    claims = _bearer_user_claims() or abort(401, "Not authenticated")
-    return jsonify(token=_make_stream_token(claims["sub"]))
 
 
 @auth_bp.route("/refresh", methods=["POST"])

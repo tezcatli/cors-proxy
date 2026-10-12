@@ -255,7 +255,9 @@ def test_refresh_deleted_user_rejected(client):
     assert_contract(r, AUTH['refresh']['unauthorized'])
 
 
-# ── Stream token + scope (S3) / user-existence revocation (S6) ──────────────
+# ── Scoped tokens (S3) / user-existence revocation (S6) ─────────────────────
+# The SSE stream tokens are retired, but ones minted before the deploy stay valid
+# for an hour and travelled in URLs: no scoped token may act as a session.
 
 def _stream_token(uid=1):
     now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
@@ -266,26 +268,8 @@ def _stream_token(uid=1):
     )
 
 
-def test_stream_token_endpoint_returns_stream_scoped_token(client):
-    r = client.get('/auth/stream-token', headers=auth_header())
-    assert r.status_code == 200
-    claims = jwt.decode(r.get_json()['token'], Config.JWT_SECRET, algorithms=['HS256'])
-    assert claims['scope'] == 'stream'
-
-def test_stream_token_requires_auth(client):
-    assert client.get('/auth/stream-token').status_code == 401
-
 def test_stream_scoped_token_rejected_on_data_endpoint(client):
     r = client.get('/games', headers={'Authorization': f'Bearer {_stream_token()}'})
-    assert r.status_code == 401
-
-def test_resolution_stream_accepts_stream_token_in_query(client):
-    r = client.get(f'/games/resolution-stream?token={_stream_token()}')
-    assert r.status_code == 200
-
-def test_resolution_stream_rejects_full_jwt_in_query(client):
-    full = auth_header()['Authorization'].split(' ', 1)[1]
-    r = client.get(f'/games/resolution-stream?token={full}')
     assert r.status_code == 401
 
 def test_token_for_deleted_user_is_rejected(client):

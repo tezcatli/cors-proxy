@@ -23,6 +23,9 @@ _session = requests.Session()
 _rate_limiter = RateLimiter(1 / 1.4)    # gentle — keeps Cloudflare clear
 _RATING_RE = re.compile(r'"ratingValue"\s*:\s*"?(\d{1,3})')
 _BLOCK_MARKERS = ('challenge-platform', 'Just a moment', 'cf-mitigated')
+# Best-effort scrape: answers that come at all came within ~2.5 s when measured,
+# while a stalled request used to hold the sweep for the full 10 s REQUEST_TIMEOUT.
+_TIMEOUT = 3
 
 
 def _slug_candidates(name: str) -> list[str]:
@@ -49,7 +52,7 @@ def fetch_metascore(name: str) -> int | None:
                 f'{_BASE}{slug}/',
                 headers={'User-Agent': _UA, 'Accept': 'text/html',
                          'Accept-Language': 'en-US,en'},
-                timeout=Config.REQUEST_TIMEOUT,
+                timeout=_TIMEOUT,
             )
         except requests.RequestException as exc:
             logger.warning('Metacritic fetch failed %r: %s', slug, exc)

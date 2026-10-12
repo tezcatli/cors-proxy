@@ -358,9 +358,8 @@ def test_catalog_counts_distinct_episodes():
 
 
 def test_count_pending_respects_ttl():
-    """TTL-expired-but-cached appearances are counted as pending (so the catalog
-    gate, SSE endpoint, and periodic retry agree on what needs resolving); freshly
-    cached ones are not. Guards the resolver-trigger unification + datetime compare."""
+    """TTL-expired-but-cached appearances are counted as pending; freshly cached
+    ones are not. Guards the datetime compare."""
     from models import IgdbEntry
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
   <item><title>On a joue a \xc2\xabZelda\xc2\xbb</title>
@@ -376,16 +375,11 @@ def test_count_pending_respects_ttl():
     def cache_with(cached_at):
         return {s: IgdbEntry(s, 1, 'zelda', 'Zelda', {'metacritic': 90}, False, cached_at) for s in slugs}
 
-    def recount():
-        games_module._pending_cache = None      # bust the per-minute memo
-        games_module._data_version += 1
-        return games_module._count_pending()
-
     games_module._igdb_cache = cache_with(games_module.utcnow().isoformat())
-    assert recount() == 0                         # fresh → nothing pending
+    assert games_module._count_pending() == 0                # fresh → nothing pending
 
     games_module._igdb_cache = cache_with('2000-01-01T00:00:00')
-    assert recount() == len(slugs)                # TTL-expired → all pending
+    assert games_module._count_pending() == len(slugs)       # TTL-expired → all pending
 
 
 # ── GET /games ────────────────────────────────────────────────────────────────
@@ -418,16 +412,6 @@ def test_cache_hit_skips_fetch(client):
          patch('games._schedule_resolve'):
         client.get('/games', headers=auth_header())
         client.get('/games', headers=auth_header())
-    mock_get.assert_called_once()
-
-
-def test_expired_cache_refetches(client):
-    games_module._cached_at = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-                               - datetime.timedelta(hours=9))
-    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._schedule_resolve'):
-        r = client.get('/games', headers=auth_header())
-    assert_contract(r, GAMES['catalog']['success'])
     mock_get.assert_called_once()
 
 
@@ -467,17 +451,15 @@ def test_catalog_deduplicates_by_igdb_slug(client):
     assert zelda_entries[0]['episodeCount'] == 2
 
 
-def test_catalog_serves_cache_on_refresh_parse_error(client):
+def test_refresh_serves_cache_on_parse_error(client):
     # warm the in-memory catalog
     with patch('games.http.get', return_value=mock_rss_response()), \
          patch('games._schedule_resolve'):
         client.get('/games', headers=auth_header())
-    # force staleness so the next request attempts a refresh
-    games_module._cached_at = (datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
-                               - datetime.timedelta(hours=9))
     # a malformed feed (non-RequestException) must NOT 500 when we already have data
-    with patch('games._refresh_feed', side_effect=ValueError('malformed XML')):
-        r = client.get('/games', headers=auth_header())
+    with patch('games._refresh_feed', side_effect=ValueError('malformed XML')), \
+         patch('games._resolve_new'), patch('games._schedule_resolve'):
+        r = client.post('/games/refresh', headers=auth_header())
     assert r.status_code == 200
     assert any(g['name'] == 'Zelda' for g in r.get_json()['games'])
 
@@ -539,10 +521,74 @@ def test_game_detail_surfaces_display_name_and_igdb_name(client, tmp_corrections
 # ── POST /games/refresh ───────────────────────────────────────────────────────
 
 def test_refresh_always_fetches(client):
-    with patch('games.http.get', return_value=mock_rss_response()) as mock_get:
+    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('games._resolve_new'), patch('games._schedule_resolve'):
         r = client.post('/games/refresh', headers=auth_header())
     assert_contract(r, GAMES['refresh']['success'])
     mock_get.assert_called_once()
+
+
+def test_catalog_does_not_refetch_once_loaded(client):
+    # The background tick owns feed freshness; a read never triggers a fetch
+    # beyond the cold-start one, however old the catalog is.
+    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('games._schedule_resolve'):
+        client.get('/games', headers=auth_header())
+        games_module._cached_at = datetime.datetime(2000, 1, 1)
+        client.get('/games', headers=auth_header())
+    mock_get.assert_called_once()
+
+
+def test_unchanged_feed_keeps_the_data_version(client):
+    # Polled every tick and nearly always 304: rebuilding would bump the version
+    # and invalidate every client's catalog ETag for nothing.
+    with patch('games.http.get', return_value=mock_rss_response()):
+        games_module._refresh_feed()
+    version = games_module._data_version
+    with patch('games.http.get', return_value=mock_rss_response(status=304)):
+        games_module._refresh_feed()
+    assert games_module._data_version == version
+
+
+def _igdb_hit(name):
+    from igdb import IgdbResult
+    return IgdbResult(id=7, name=name, slug=games_module.make_slug(name),
+                      data={'coverImageId': 'abc'}, is_child=False)
+
+
+def test_refresh_resolves_new_games_without_the_scrapers(client):
+    # Someone pulling to refresh after an episode came out should get the new
+    # games' names and covers in that response; the slow scrapers wait.
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games.fetch_by_name', side_effect=lambda n, ts: _igdb_hit(n)), \
+         patch('games.metacritic.fetch_metascore') as mc, \
+         patch('games.hltb.fetch_time_to_beat') as hl, \
+         patch('games._schedule_resolve'):
+        r = client.post('/games/refresh', headers=auth_header())
+    mc.assert_not_called()
+    hl.assert_not_called()
+    zelda = next(g for g in r.get_json()['games'] if g['name'] == 'Zelda')
+    assert zelda['igdb'] == {'metacritic': None, 'coverImageId': 'abc'}
+    # Not enriched yet → still pending, so the background sweep finishes the job.
+    assert all(not e.enriched for e in games_module._igdb_cache.values())
+    assert games_module._count_pending() == len(games_module._igdb_cache)
+
+
+def test_refresh_leaves_new_games_to_the_sweep_once_the_budget_is_spent(client):
+    with patch('games.http.get', return_value=mock_rss_response()), \
+         patch('games.fetch_by_name') as by_name, \
+         patch('games._schedule_resolve') as sweep, \
+         patch('games._REFRESH_BUDGET_S', 0):
+        client.post('/games/refresh', headers=auth_header())
+    by_name.assert_not_called()
+    sweep.assert_called_once_with(force=True)
+
+
+def test_unenriched_flag_survives_a_restart():
+    with patch('games.fetch_by_name', return_value=_igdb_hit('Zelda')):
+        games_module._resolve_one('zelda-g1', 'Zelda', None, enrich=False)
+    games_module._load_igdb_cache_from_db()
+    assert games_module._igdb_cache['zelda-g1'].enriched is False
 
 
 def test_concurrent_refreshes_coalesce():
@@ -906,14 +952,9 @@ def test_count_pending_flags_a_stale_correction_signature(tmp_corrections):
     game, appearance = _single_soj_game()
     games_module._igdb_cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
 
-    def recount():
-        games_module._pending_cache = None      # bust the per-minute memo
-        games_module._data_version += 1
-        return games_module._count_pending()
-
-    assert recount() == 0
+    assert games_module._count_pending() == 0
     corrections.upsert('Chrono Trigger', igdb_id=4242)
-    assert recount() == 1
+    assert games_module._count_pending() == 1
 
 
 def test_legacy_null_correction_sig_loads_as_blank():

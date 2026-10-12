@@ -64,7 +64,8 @@ def init_db():
                 igdb_data TEXT,
                 is_child  INTEGER DEFAULT 0,
                 cached_at TEXT NOT NULL,
-                correction_sig TEXT
+                correction_sig TEXT,
+                enriched  INTEGER DEFAULT 1
             );
         """)
         cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
@@ -76,6 +77,9 @@ def init_db():
             # NULL on legacy rows reads as '' ("resolved with no correction"), so on
             # first deploy any entry a current correction applies to re-resolves once.
             conn.execute("ALTER TABLE igdb_cache ADD COLUMN correction_sig TEXT")
+        if 'enriched' not in cols and cols:
+            # Every legacy row went through the full resolution, scrapers included.
+            conn.execute("ALTER TABLE igdb_cache ADD COLUMN enriched INTEGER DEFAULT 1")
         user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
         if 'is_admin' not in user_cols and user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")

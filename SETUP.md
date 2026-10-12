@@ -262,5 +262,5 @@ is validated on load, so a malformed entry fails the tests rather than productio
 | `IGDB_CLIENT_SECRET` | *(required)*                 | IGDB/Twitch application secret |
 | `METACRITIC_SCRAPE`  | `true`                       | Scrape the real Metascore during resolution; falls back to IGDB's aggregate |
 | `IGDB_TTL_HOURS`     | `720` (30 days)              | How long a cached IGDB resolution stays fresh |
-| `RESOLVE_RETRY_MINUTES` | `15`                      | Periodic re-sweep of never-resolved appearances |
+| `RESOLVE_RETRY_MINUTES` | `15`                      | Background tick: poll the feeds for new episodes, re-sweep pending appearances |
 | `DEBUG`            | `false`                        | Set `true` in dev to skip auth checks on proxy |

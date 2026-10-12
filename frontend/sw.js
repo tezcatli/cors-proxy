@@ -24,9 +24,6 @@ self.addEventListener('fetch', e => {
   // Auth endpoints — never cache (tokens, login state)
   if (url.pathname.startsWith('/auth/')) return;
 
-  // SSE resolution stream — must never be buffered or cached
-  if (url.pathname === '/games/resolution-stream') return;
-
   // Admin endpoints — resolution-stats is ~860 KB and meant to be uncached;
   // igdb-search results are per-keystroke and useless offline.
   if (url.pathname === '/games/resolution-stats' ||

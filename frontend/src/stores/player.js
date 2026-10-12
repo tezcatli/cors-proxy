@@ -152,19 +152,6 @@ export const usePlayerStore = defineStore('player', () => {
     _updateProgress(oldCh.timestampSeconds, currentTime.value)
   })
 
-  function updateGameSlug(oldSlug, newSlug) {
-    if (current.value?.slug === oldSlug)
-      current.value = { ...current.value, slug: newSlug }
-    const stale = Object.entries(progressMap.value).filter(([, v]) => v.gameSlug === oldSlug)
-    if (stale.length) {
-      progressMap.value = {
-        ...progressMap.value,
-        ...Object.fromEntries(stale.map(([k, v]) => [k, { ...v, gameSlug: newSlug }])),
-      }
-      _saveProgressMap()
-    }
-  }
-
   // Always-current live snapshot — Pinia computed, so guaranteed reactive.
   const liveProgress = computed(() => {
     if (!current.value || audioDuration.value <= 0) return null
@@ -241,7 +228,7 @@ export const usePlayerStore = defineStore('player', () => {
     status, paused, buffering, failed, volume,
     play, close, restore, setEpisodeImageUrl,
     resume, pauseAudio, togglePlayback, seek, retry, setVolume,
-    updateGameSlug, liveProgress, getEpisodeProgress, getGameProgress,
+    liveProgress, getEpisodeProgress, getGameProgress,
     resumeTimeFor, getEpisodeLatestProgress,
   }
 })
