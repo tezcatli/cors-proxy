@@ -1,7 +1,7 @@
-flask
-flask-limiter
-gunicorn
-requests
-PyJWT
-bcrypt
-howlongtobeatpy
+flask==3.1.3
+flask-limiter==4.1.1
+gunicorn==26.2.0
+requests==2.34.2
+PyJWT==2.13.0
+bcrypt==5.0.0
+howlongtobeatpy==1.0.23
