@@ -484,6 +484,18 @@ def test_catalog_returns_304_on_matching_etag(client):
     assert r2.get_data() == b''
 
 
+@pytest.mark.parametrize('url', ['/games', '/games/episodes'])
+def test_revalidation_accepts_the_weak_etag_gzip_leaves(client, url):
+    # The edge gzips these responses, which turns the ETag weak: the browser then
+    # revalidates with W/"…" and must still get a 304, not the full body again.
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
+        client.get('/games', headers=auth_header())
+    etag = client.get(url, headers=auth_header()).headers['ETag']
+    r = client.get(url, headers={**auth_header(), 'If-None-Match': f'W/{etag}'})
+    assert r.status_code == 304
+
+
 def test_catalog_igdb_is_slim(client):
     with patch('feeds.http.get', return_value=mock_rss_response()), \
          patch('resolver.schedule_resolve'):
