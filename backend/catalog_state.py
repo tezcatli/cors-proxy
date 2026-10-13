@@ -51,10 +51,11 @@ def store_entry(entry: IgdbEntry) -> None:
         conn.execute(
             'INSERT OR REPLACE INTO igdb_cache '
             '(slug, igdb_id, igdb_slug, name, igdb_data, is_child, cached_at, correction_sig, '
-            'enriched) VALUES (?,?,?,?,?,?,?,?,?)',
+            'enriched, method) VALUES (?,?,?,?,?,?,?,?,?,?)',
             (entry.podcast_slug, entry.igdb_id, entry.igdb_slug, entry.name,
              json.dumps(entry.data) if entry.data else None,
-             int(entry.is_child), entry.cached_at, entry.correction_sig, int(entry.enriched))
+             int(entry.is_child), entry.cached_at, entry.correction_sig, int(entry.enriched),
+             entry.method)
         )
 
 
@@ -63,7 +64,7 @@ def load_igdb_cache_from_db() -> None:
     with get_db() as conn:
         rows = conn.execute(
             'SELECT slug, igdb_id, igdb_slug, name, igdb_data, is_child, cached_at, '
-            'correction_sig, enriched FROM igdb_cache'
+            'correction_sig, enriched, method FROM igdb_cache'
         ).fetchall()
     cache = {}
     for row in rows:
@@ -78,6 +79,7 @@ def load_igdb_cache_from_db() -> None:
             # NULL on a legacy row reads as "resolved with no correction".
             correction_sig=row['correction_sig'] or '',
             enriched=bool(row['enriched']),
+            method=row['method'],
         )
     with lock:
         igdb_cache = cache

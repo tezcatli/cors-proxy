@@ -8,11 +8,12 @@ import catalog_state as state
 import corrections
 import feeds
 import hltb
+import llm
 import metacritic
 from config import Config
 from corrections import find_by_podcast
 from db import utcnow
-from igdb import fetch_by_id, fetch_by_name, fetch_time_to_beat
+from igdb import fetch_by_id, fetch_by_name, fetch_time_to_beat, search_games
 from models import IgdbEntry
 from podcasts import PODCAST_BY_ID
 from utils import make_slug
@@ -21,17 +22,21 @@ logger = logging.getLogger(__name__)
 
 
 def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
-                podcast_id: str = '', enrich: bool = True) -> None:
+                podcast_id: str = '', enrich: bool = True,
+                episode_title: str = '', use_llm: bool = True) -> None:
     """Resolve one appearance against IGDB and cache it (memory + DB).
 
-    An appearance already resolved under the same correction is *renewed* — its
-    cached igdb_id re-fetched — rather than searched again; see `renew_id`.
+    Order: a corrections.json entry; else, for an appearance already resolved
+    under the same correction, a *renewal* (its cached igdb_id re-fetched, see
+    `renew_id`); else the LLM (`_resolve_with_llm`); else the name search.
 
     `enrich=False` skips the slow, flaky scrapers (Metacritic, HowLongToBeat:
     ~1–10 s per game against ~0.3 s for IGDB) and caches the entry as
-    `enriched=False`, which keeps it pending so the background sweep completes it."""
+    `enriched=False`, which keeps it pending so the background sweep completes it.
+    `use_llm=False` (the same quick pass) goes straight to the name search; the
+    row is then cached as `method='search'`, which keeps it pending too."""
     logger.info('Resolving IGDB for slug=%r name=%r', podcast_slug, name)
-    # corrections.json is the only thing that outranks the name search.
+    # corrections.json outranks everything else.
     correction = find_by_podcast(name, pub_ts, podcast_id)
     pinned_id  = (correction or {}).get('igdb_id')
     sig        = corrections.fingerprint(correction)
@@ -41,8 +46,11 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
     # data rather than search again. A new search can land on another game (IGDB
     # added a same-name remaster since), silently undoing a resolution that was
     # right. Re-searching takes a purge: a correction, or an explicit igdb-refresh.
+    # A plain search result is the exception while the LLM is on: it's provisional.
     renew_id = (cached.igdb_id if cached and cached.igdb_id and not pinned_id
-                and cached.correction_sig == sig else None)
+                and cached.correction_sig == sig
+                and not (llm.enabled() and cached.method == 'search') else None)
+    method = 'pin' if correction else None
     try:
         result = None
         if pinned_id:
@@ -55,23 +63,18 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
             result = fetch_by_id(renew_id, canonical=False)
             if result:
                 result = result._replace(is_child=cached.is_child)
+                method = cached.method
         if result is None and not pinned_id:
-            # Never resolved, a miss, or a renewed id IGDB no longer has.
-            search_name = (correction or {}).get('search_name') or name
-            hint_date   = (correction or {}).get('hint_date')
-            podcast     = PODCAST_BY_ID.get(podcast_id)
-            if hint_date:
-                # An explicit curated date always wins, whatever the podcast.
-                effective_ts = int(datetime.datetime.fromisoformat(hint_date)
-                                   .replace(tzinfo=datetime.timezone.utc).timestamp())
-            elif podcast and not podcast.use_date_hint:
-                # Retrospective show: the episode date isn't evidence of the game's
-                # release date, so search undated and let the ranker prefer the
-                # earliest same-name entry.
-                effective_ts = None
+            # Never resolved, a miss, a provisional search, or a renewed id IGDB no
+            # longer has. A correction's search_name/hint_date means a curator
+            # chose the search, so the LLM stays out of it.
+            found = (_resolve_with_llm(name, podcast_id, pub_ts, episode_title)
+                     if use_llm and not correction else None)
+            if found is not None:
+                result, method = found or None, 'llm'
             else:
-                effective_ts = pub_ts
-            result = fetch_by_name(search_name, effective_ts)
+                result = fetch_by_name(*_search_args(name, pub_ts, podcast_id, correction))
+                method = method or 'search'
     except Exception as exc:
         logger.warning('IGDB resolution failed slug=%r name=%r: %s', podcast_slug, name, exc)
         return
@@ -101,13 +104,75 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
         correction_sig=sig,
         # Nothing to enrich on a miss.
         enriched=enrich or not (result and result.data is not None),
+        method=method,
     ))
+
+
+def _search_args(name, pub_ts, podcast_id, correction) -> tuple[str, int | None]:
+    """(name, date hint) for `fetch_by_name`."""
+    search_name = (correction or {}).get('search_name') or name
+    hint_date   = (correction or {}).get('hint_date')
+    podcast     = PODCAST_BY_ID.get(podcast_id)
+    if hint_date:
+        # An explicit curated date always wins, whatever the podcast.
+        return search_name, int(datetime.datetime.fromisoformat(hint_date)
+                                .replace(tzinfo=datetime.timezone.utc).timestamp())
+    if podcast and not podcast.use_date_hint:
+        # Retrospective show: the episode date isn't evidence of the game's release
+        # date, so search undated and let the ranker prefer the earliest same-name
+        # entry.
+        return search_name, None
+    return search_name, pub_ts
+
+
+def _resolve_with_llm(name: str, podcast_id: str, pub_ts: int | None,
+                      episode_title: str):
+    """The IGDB game the LLM says `name` means: an IgdbResult, False when it
+    judges that no IGDB entry fits (cached as a miss), or None when the LLM is
+    unavailable (the caller falls back to the name search).
+
+    The model never supplies an id: it names the game (translating, expanding),
+    we search IGDB for its candidates, and it picks among those."""
+    if not llm.enabled():
+        return None
+    podcast = PODCAST_BY_ID.get(podcast_id)
+    context = {
+        'podcast':       podcast.name if podcast else '',
+        'show_covers':   ('retrospectives of older games' if podcast and not podcast.use_date_hint
+                          else 'new releases'),
+        'episode_title': episode_title,
+        'episode_date':  (datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc)
+                          .date().isoformat() if pub_ts else None),
+    }
+    titles = llm.official_titles(name, context)
+    if titles is None:
+        return None
+    if not titles:
+        return False
+    candidates: dict[int, dict] = {}
+    for query in dict.fromkeys([name, *titles]):
+        for c in search_games(query):
+            candidates.setdefault(c['id'], {'id': c['id'], 'name': c['name'],
+                                            'year': c['released']})
+    if not candidates:
+        return False
+    chosen = llm.pick_candidate(name, context, list(candidates.values()))
+    if not chosen:
+        return chosen
+    # Canonical, like the name search: a DLC or port the model picked groups
+    # under its parent game.
+    return fetch_by_id(chosen) or None
 
 
 def resolve_members(members) -> None:
     for game, appearance in members:
-        resolve_one(appearance.podcast_slug, game.name,
-                    appearance.episode.pub_ts, appearance.episode.podcast_id)
+        resolve_appearance(game, appearance)
+
+
+def resolve_appearance(game, appearance, **kwargs) -> None:
+    ep = appearance.episode
+    resolve_one(appearance.podcast_slug, game.name, ep.pub_ts, ep.podcast_id,
+                episode_title=ep.title, **kwargs)
 
 
 # ── What is pending ───────────────────────────────────────────────────────────
@@ -137,6 +202,8 @@ def appearance_pending(game, appearance, cache, fresh) -> bool:
     cached = cache.get(appearance.podcast_slug)
     if cached is None or not cached.enriched:
         return True
+    if llm.enabled() and cached.method == 'search':
+        return True             # provisional: the LLM hasn't had its say yet
     current = corrections.fingerprint(find_by_podcast(
         game.name, appearance.episode.pub_ts, appearance.episode.podcast_id))
     return cached.correction_sig != current
@@ -180,12 +247,7 @@ def _resolve_pending(stop: threading.Event) -> None:
             for appearance in pending:
                 if stop.is_set():
                     break
-                resolve_one(
-                    appearance.podcast_slug,
-                    game.name,
-                    appearance.episode.pub_ts,
-                    appearance.episode.podcast_id,
-                )
+                resolve_appearance(game, appearance)
     finally:
         with _resolve_lock:
             if _resolve_stop is stop:
@@ -230,8 +292,7 @@ def resolve_new(budget_s: float) -> None:
         if time.monotonic() >= deadline:
             logger.info('Refresh budget spent; leaving new appearances to the sweep')
             break
-        resolve_one(appearance.podcast_slug, game.name, appearance.episode.pub_ts,
-                    appearance.episode.podcast_id, enrich=False)
+        resolve_appearance(game, appearance, enrich=False, use_llm=False)
 
 
 # ── Background tick: poll the feeds, retry what's pending ─────────────────────

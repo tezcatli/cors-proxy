@@ -42,6 +42,10 @@ ADMIN_KEY=<long random string>
 IGDB_CLIENT_ID=<your igdb client id>
 IGDB_CLIENT_SECRET=<your igdb client secret>
 
+# LLM (optional): resolves names the IGDB search can't (French titles, abbreviations).
+# Set a spending limit on the key at openrouter.ai.
+OPENROUTER_API_KEY=<your openrouter key>
+
 # Base URL used to build invite and password-reset links.
 # In production this is the app's own subdomain: https://ludo.tezcat.fr
 RESET_BASE_URL=https://your-domain.com
@@ -262,6 +266,8 @@ is validated on load, so a malformed entry fails the tests rather than productio
 | `IGDB_CLIENT_SECRET` | *(required)*                 | IGDB/Twitch application secret |
 | `METACRITIC_SCRAPE`  | `true`                       | Scrape the real Metascore during resolution; falls back to IGDB's aggregate |
 | `IGDB_TTL_HOURS`     | `720` (30 days)              | How long a cached IGDB resolution stays fresh |
+| `OPENROUTER_API_KEY` | *(empty)*                    | LLM-assisted resolution; off when empty (the plain IGDB search is used) |
+| `LLM_MODEL`          | `openai/gpt-6-luna`          | OpenRouter model id |
 | `RESOLVE_RETRY_MINUTES` | `15`                      | Background tick: poll the feeds for new episodes, re-sweep pending appearances |
 | `<ID>_FEED_URL`    | *(see `podcasts.py`)*          | Repoint a podcast's feed (dashes → underscores, uppercased: `FIN_DU_GAME_FEED_URL`) |
 | `DEBUG`            | `false`                        | Dev ergonomics only (full invite/reset links in the logs, no insecure-`JWT_SECRET` refusal); never relaxes auth |

@@ -16,6 +16,11 @@ class Config:
     # Scrape the real Metacritic score during IGDB resolution (fallback: IGDB aggregate)
     METACRITIC_SCRAPE: bool = os.getenv("METACRITIC_SCRAPE", "true").lower() == "true"
 
+    # LLM (OpenRouter): which games an episode reviews, which IGDB entry a name
+    # means. Unset key = off; every use has a non-LLM fallback.
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+    LLM_MODEL: str          = os.getenv("LLM_MODEL", "openai/gpt-6-luna")
+
     # IGDB refresh
     IGDB_TTL_HOURS: int = int(os.getenv("IGDB_TTL_HOURS", "720"))  # 30 days
     # Background tick: poll the feeds (conditional GET) and retry pending resolutions

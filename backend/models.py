@@ -62,3 +62,4 @@ class IgdbEntry:
     cached_at: str          # ISO-8601 UTC timestamp
     correction_sig: str = ''  # fingerprint of the correction in force when resolved
     enriched: bool = True     # False until Metacritic/HLTB have run (see resolver.resolve_one)
+    method: str | None = None  # 'search' | 'llm' | 'pin'; None = legacy row, accepted as is
