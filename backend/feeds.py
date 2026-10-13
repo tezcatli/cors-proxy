@@ -1,16 +1,22 @@
 """Fetching the podcast feeds and rebuilding the in-memory catalog from them."""
+import datetime
 import json
 import logging
 import pathlib
+import re
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from html import unescape as _html_unescape
 
 import requests as http
 
 import catalog_state as state
+import llm
 from config import Config
 from corrections import unmatched_slugs
 from db import utcnow
-from models import Chapter, Episode, GameAppearance, PodcastGame
+from models import Chapter, Episode, GameAppearance, GameMention, PodcastGame
 from podcasts import PODCASTS
 from rss import parse_feed, assign_url_slugs, is_game_catalog_excluded, find_chapter_for_game
 from utils import make_slug
@@ -186,30 +192,118 @@ def refresh_feed() -> None:
             with state.lock:
                 state.cached_at = utcnow()
             return
+        _rebuild(errors)
 
-        # Combine every feed's episodes (cached lists survive a 304 or a failed fetch).
-        episodes = [ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])]
-        if not episodes:
-            raise RuntimeError('No episodes from any feed: ' + '; '.join(errors) if errors
-                               else 'No episodes from any feed')
 
-        # Interleave both feeds newest-first; otherwise each feed's block would stay
-        # contiguous (e.g. all SOJ before any FDG) and the second podcast would be
-        # buried at the bottom of the episodes feed. Stable sort keeps ties/undated
-        # items in their existing intra-feed order.
-        episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
+def rebuild() -> None:
+    """Recombine the feeds already fetched into the catalog — after the LLM has
+    answered for new episodes, which changes their games but not the feeds."""
+    with _refresh_lock:
+        _rebuild([])
 
-        assign_url_slugs(episodes)
-        inject_ai_chapters(episodes, _load_ai_chapter_index())
-        episode_index, game_index = build_indexes(episodes)
-        with state.lock:
-            state.episodes      = episodes
-            state.episode_index = episode_index
-            state.game_index    = game_index
-            state.cached_at     = utcnow()
-            state.data_version += 1
-        dead = unmatched_slugs(game_index.keys())
-        if dead:
-            logger.warning('%d correction(s) match no game name in the feed: %s',
-                           len(dead), ', '.join(dead))
-        state.prune_igdb_cache()
+
+def _rebuild(errors: list[str]) -> None:
+    """Combine every feed's episodes into the catalog. Caller holds _refresh_lock."""
+    # Cached lists survive a 304 or a failed fetch.
+    episodes = [ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])]
+    if not episodes:
+        raise RuntimeError('No episodes from any feed: ' + '; '.join(errors) if errors
+                           else 'No episodes from any feed')
+
+    # Interleave the feeds newest-first; otherwise each feed's block would stay
+    # contiguous (e.g. all SOJ before any FDG) and the later podcasts would be
+    # buried at the bottom of the episodes feed. Stable sort keeps ties/undated
+    # items in their existing intra-feed order.
+    episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
+    episodes = _apply_llm_games(episodes)
+
+    assign_url_slugs(episodes)
+    inject_ai_chapters(episodes, _load_ai_chapter_index())
+    episode_index, game_index = build_indexes(episodes)
+    with state.lock:
+        state.episodes      = episodes
+        state.episode_index = episode_index
+        state.game_index    = game_index
+        state.cached_at     = utcnow()
+        state.data_version += 1
+    dead = unmatched_slugs(game_index.keys())
+    if dead:
+        logger.warning('%d correction(s) match no game name in the feed: %s',
+                       len(dead), ', '.join(dead))
+    state.prune_igdb_cache()
+
+
+# ── Games read by the LLM ─────────────────────────────────────────────────────
+# Shows with `games_by_llm`: an episode's games are whatever the LLM said it
+# reviews. Only cached answers are used while rebuilding (that runs on request
+# paths and must not wait on a model); `ask_llm_for_new_episodes` fills the cache
+# from the background, then rebuilds. Until then an episode stays out.
+
+def _llm_shows() -> dict[str, object]:
+    return {p.id: p for p in PODCASTS if p.games_by_llm}
+
+
+def _llm_episode(podcast, ep: Episode) -> dict | None:
+    """What the LLM is shown of `ep`, or None for an item that isn't the show."""
+    if podcast.skip_title and re.search(podcast.skip_title, ep.title):
+        return None
+    text = re.sub(r'\s+', ' ', _html_unescape(re.sub(r'<[^>]+>', ' ', ep.description or '')))
+    return {
+        'show':        podcast.name,
+        'title':       ep.title,
+        'date':        (datetime.datetime.fromtimestamp(ep.pub_ts, datetime.timezone.utc)
+                        .date().isoformat() if ep.pub_ts else None),
+        'description': text.strip()[:2000],
+    }
+
+
+def _apply_llm_games(episodes: list[Episode]) -> list[Episode]:
+    """Give LLM-read episodes their games from the cache; keep out the ones not
+    read yet, and the ones that review no game. Idempotent: the Episode objects
+    are reused across 304s."""
+    shows = _llm_shows()
+    kept = []
+    for ep in episodes:
+        podcast = shows.get(ep.podcast_id)
+        if podcast:
+            payload = _llm_episode(podcast, ep)
+            names = llm.reviewed_games(payload, cached_only=True) if payload else None
+            if not names:
+                continue
+            ep.games = [GameMention(name=n, timestamp=None, timestamp_seconds=0) for n in names]
+        kept.append(ep)
+    return kept
+
+
+_llm_lock     = threading.Lock()
+_LLM_PARALLEL = 4
+
+
+def ask_llm_for_new_episodes(budget_s: float | None = None) -> int:
+    """Ask the LLM about every fetched episode it hasn't read, then rebuild the
+    catalog if any answered. Returns how many answered. A run already in
+    progress makes this a no-op (the first launch reads hundreds of episodes)."""
+    if not llm.enabled() or not _llm_lock.acquire(blocking=False):
+        return 0
+    try:
+        deadline = time.monotonic() + budget_s if budget_s is not None else None
+        todo = [payload for podcast in _llm_shows().values()
+                for ep in _feed_episodes.get(podcast.id, [])
+                if (payload := _llm_episode(podcast, ep)) is not None
+                and llm.reviewed_games(payload, cached_only=True) is None]
+
+        def read(payload) -> bool:
+            if deadline is not None and time.monotonic() >= deadline:
+                return False
+            return llm.reviewed_games(payload) is not None
+
+        # A few at a time: each call takes seconds, and the first launch has
+        # hundreds of episodes to read.
+        with ThreadPoolExecutor(_LLM_PARALLEL) as pool:
+            answered = sum(pool.map(read, todo))
+        if answered:
+            logger.info('LLM read %d new episode(s); rebuilding the catalog', answered)
+            rebuild()
+        return answered
+    finally:
+        _llm_lock.release()

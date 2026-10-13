@@ -6,6 +6,7 @@ The work lives elsewhere — `catalog_state` (the data), `feeds` (RSS → catalo
 requests, caches the two big read payloads, and wires the rest together.
 """
 import logging
+import time
 
 from flask import Blueprint, abort, jsonify, request, Response
 
@@ -123,8 +124,11 @@ def refresh():
             abort(502, f'RSS feed unavailable: {exc}')
         logger.warning('Manual refresh failed; serving cached catalog: %s', exc)
     # Even on a failed fetch: a previous tick may have brought in games that
-    # haven't resolved yet, and the user is looking right now.
-    resolver.resolve_new(resolver.REFRESH_BUDGET_S)
+    # haven't resolved yet, and the user is looking right now. One budget for
+    # both: reading a new episode of an LLM-read show, then resolving its games.
+    deadline = time.monotonic() + resolver.REFRESH_BUDGET_S
+    feeds.ask_llm_for_new_episodes(budget_s=resolver.REFRESH_BUDGET_S)
+    resolver.resolve_new(max(0.0, deadline - time.monotonic()))
     resolver.schedule_resolve(force=True)
     return jsonify({'games': serializers.build_catalog()})
 

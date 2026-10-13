@@ -311,6 +311,8 @@ def _periodic_resolve(stop: threading.Event) -> None:
                 feeds.refresh_feed()
             except Exception as exc:
                 logger.warning('Periodic feed refresh failed: %s', exc)
+            # New episodes of LLM-read shows (a few a week) get their games here.
+            feeds.ask_llm_for_new_episodes()
             # Never-cached, unenriched, TTL-expired and re-corrected appearances
             # alike (a resolve refreshes cached_at, so this self-limits).
             pending = count_pending()
@@ -339,6 +341,10 @@ def _startup() -> None:
         logger.warning('Startup RSS fetch failed: %s', exc)
     schedule_resolve()
     _start_periodic_resolve()
+    # On the first launch this reads every episode of the LLM-read shows — long,
+    # so after the sweep and the tick are up; their games then resolve in a sweep.
+    if feeds.ask_llm_for_new_episodes():
+        schedule_resolve()
 
 
 def startup_warmup() -> None:

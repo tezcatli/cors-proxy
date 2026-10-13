@@ -29,6 +29,13 @@ class Podcast:
     # retrospective show, where the episode date says nothing about the game's
     # release year and the date window would actively mis-resolve it.
     use_date_hint: bool = True
+    # For a show whose titles don't reliably name the game: an LLM reads each
+    # episode's title and description and says which games it reviews
+    # (`feeds.ask_llm_for_new_episodes`). Without the LLM such a show contributes
+    # no episodes. `skip_title` drops items that aren't the show (another
+    # podcast's teaser) before anything is asked.
+    games_by_llm: bool = False
+    skip_title: str | None = None
 
 
 def _feed_url(podcast_id: str, default: str) -> str:
@@ -54,6 +61,24 @@ PODCASTS: list[Podcast] = [
         # Retrospective show: a 2026 episode on Symphony of the Night (1997) must
         # not search IGDB around 2026, or it lands on an unrelated recent game.
         use_date_hint=False,
+    ),
+    Podcast(
+        id='triple-click',
+        label='TC',
+        name='Triple Click',
+        feed_url=_feed_url('triple-click', 'https://feeds.simplecast.com/6WD3bDj7'),
+        extractor=lambda _title: [],
+        games_by_llm=True,
+        # Maximum Fun cross-promotes its other shows in this feed.
+        skip_title=r'^Beanscast\b|\[TEASER\]',
+    ),
+    Podcast(
+        id='the-besties',
+        label='BES',
+        name='The Besties',
+        feed_url=_feed_url('the-besties', 'https://feeds.simplecast.com/Urk3897_'),
+        extractor=lambda _title: [],
+        games_by_llm=True,
     ),
 ]
 

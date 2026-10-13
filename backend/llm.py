@@ -29,20 +29,22 @@ def enabled() -> bool:
     return bool(Config.OPENROUTER_API_KEY)
 
 
-def ask(task: str, version: int, system: str, payload: dict) -> dict | None:
+def ask(task: str, version: int, system: str, payload: dict,
+        cached_only: bool = False) -> dict | None:
     """The model's JSON object answer to `payload` under `system`, cached.
 
     None when the LLM is off or the call fails; a failure isn't cached, so the
-    caller's next attempt asks again.
+    caller's next attempt asks again. `cached_only` never calls the model: it
+    answers from the cache or returns None.
     """
-    if not enabled():
-        return None
     text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     key  = hashlib.sha256(f'{task}\0{version}\0{text}'.encode()).hexdigest()
     with get_db() as conn:
         row = conn.execute('SELECT answer FROM llm_cache WHERE key = ?', (key,)).fetchone()
     if row:
         return json.loads(row['answer'])
+    if cached_only or not enabled():
+        return None
     try:
         resp = http.post(_URL, timeout=_TIMEOUT, headers={
             'Authorization': f'Bearer {Config.OPENROUTER_API_KEY}',
@@ -116,3 +118,29 @@ def pick_candidate(name: str, context: dict, candidates: list[dict]) -> int | bo
         logger.warning('LLM picked %r, not among the candidates for %r', chosen, name)
         return None
     return chosen
+
+
+# ── Which games an episode reviews ────────────────────────────────────────────
+# For shows whose titles don't reliably name the game ("Wolverine Is a Disaster").
+# Measured on 254 episodes of The Besties and Triple Click: the main game is found
+# even when the show's own list omits it, and names come out official.
+
+_REVIEWED_V = 1
+_REVIEWED = """You index video game podcast episodes so listeners can find reviews.
+Given one episode (show, title, date, description), list the video games it
+REVIEWS: games the hosts actually discuss at some length — a full review,
+impressions, or a segment of a round-up episode. Leave out games only mentioned
+in passing (comparisons, references, a quick aside), and anything that isn't a
+video game (films, TV, books, hardware, companies). Use each game's full
+official title as IGDB lists it. An episode about news, a general topic or
+listener mail usually reviews none: return an empty list.
+Answer with JSON only: {"reviewed": ["..."]}"""
+
+
+def reviewed_games(episode: dict, cached_only: bool = False) -> list[str] | None:
+    """The games `episode` reviews ([] = none); None when not known (the LLM is
+    unavailable, or `cached_only` and it hasn't been asked yet)."""
+    answer = ask('reviewed', _REVIEWED_V, _REVIEWED, episode, cached_only=cached_only)
+    if answer is None:
+        return None
+    return [g.strip() for g in answer.get('reviewed', []) if isinstance(g, str) and g.strip()]

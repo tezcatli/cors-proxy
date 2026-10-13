@@ -162,3 +162,81 @@ def test_a_correction_outranks_the_llm(llm_on):
         entry = _resolve()
     post.assert_not_called()
     assert (entry.igdb_id, entry.method) == (42, 'pin')
+
+
+# ── Shows whose games the LLM reads ───────────────────────────────────────────
+
+import feeds                                    # noqa: E402
+from podcasts import PODCAST_BY_ID              # noqa: E402
+
+_TC_RSS = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
+  <item><title>Triple Play: Saros</title><guid>tc-saros</guid>
+    <enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Thu, 07 May 2026 09:00:00 +0000</pubDate>
+    <description>&lt;p&gt;We review &lt;b&gt;Saros&lt;/b&gt;, Housemarque's follow-up to Returnal.&lt;/p&gt;</description></item>
+  <item><title>Why Are There So Many Remakes? [Mailbag]</title><guid>tc-mail</guid>
+    <enclosure url="https://example.com/2.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Thu, 30 Apr 2026 09:00:00 +0000</pubDate><description>Your questions.</description></item>
+  <item><title>Beanscast: The Odyssey [TEASER]</title><guid>tc-beans</guid>
+    <enclosure url="https://example.com/3.mp3" type="audio/mpeg" length="0" />
+    <pubDate>Mon, 27 Apr 2026 09:00:00 +0000</pubDate><description>A film podcast.</description></item>
+</channel></rss>"""
+
+
+@pytest.fixture
+def tc_feed():
+    with patch.object(feeds, 'PODCASTS', [PODCAST_BY_ID['triple-click']]):
+        yield
+
+
+def _llm_by_title(answers: dict):
+    """A mock for `llm.http.post` answering by episode title: order-free, since
+    episodes are read in parallel."""
+    def reply(*_a, json=None, **_kw):
+        title = __import__('json').loads(json['messages'][1]['content'])['title']
+        r = MagicMock()
+        r.raise_for_status.return_value = None
+        r.json.return_value = {'choices': [{'message': {'content':
+                                            __import__('json').dumps(answers[title])}}]}
+        return r
+    return patch('llm.http.post', side_effect=reply)
+
+
+_TC_ANSWERS = {'Triple Play: Saros': {'reviewed': ['Saros']},
+               'Why Are There So Many Remakes? [Mailbag]': {'reviewed': []}}
+
+
+def _refresh_tc():
+    r = MagicMock(status_code=200, content=_TC_RSS, headers={})
+    r.raise_for_status.return_value = None
+    with patch('feeds.http.get', return_value=r):
+        feeds.refresh_feed()
+
+
+def test_an_unread_episode_stays_out_until_the_llm_reads_it(llm_on, tc_feed):
+    _refresh_tc()
+    assert state.episodes == []
+    with _llm_by_title(_TC_ANSWERS) as post:
+        assert feeds.ask_llm_for_new_episodes() == 2
+    assert post.call_count == 2                       # the teaser is never asked about
+    assert [(e.slug, [g.name for g in e.games]) for e in state.episodes] == [('tc-saros', ['Saros'])]
+    sent = [json.loads(c.kwargs['json']['messages'][1]['content']) for c in post.call_args_list]
+    saros = next(x for x in sent if x['title'] == 'Triple Play: Saros')
+    assert saros['description'] == "We review Saros , Housemarque's follow-up to Returnal."
+
+
+def test_read_episodes_are_not_asked_about_again(llm_on, tc_feed):
+    _refresh_tc()
+    with _llm_by_title(_TC_ANSWERS):
+        feeds.ask_llm_for_new_episodes()
+    with patch('llm.http.post') as post:
+        assert feeds.ask_llm_for_new_episodes() == 0
+    post.assert_not_called()
+
+
+def test_without_the_llm_an_llm_read_show_contributes_nothing(tc_feed):
+    _refresh_tc()
+    with patch('llm.http.post') as post:
+        assert feeds.ask_llm_for_new_episodes() == 0
+    post.assert_not_called()
+    assert state.episodes == []
