@@ -24,6 +24,9 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
                 podcast_id: str = '', enrich: bool = True) -> None:
     """Resolve one appearance against IGDB and cache it (memory + DB).
 
+    An appearance already resolved under the same correction is *renewed* — its
+    cached igdb_id re-fetched — rather than searched again; see `renew_id`.
+
     `enrich=False` skips the slow, flaky scrapers (Metacritic, HowLongToBeat:
     ~1–10 s per game against ~0.3 s for IGDB) and caches the entry as
     `enriched=False`, which keeps it pending so the background sweep completes it."""
@@ -31,12 +34,29 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
     # corrections.json is the only thing that outranks the name search.
     correction = find_by_podcast(name, pub_ts, podcast_id)
     pinned_id  = (correction or {}).get('igdb_id')
+    sig        = corrections.fingerprint(correction)
+    with state.lock:
+        cached = state.igdb_cache.get(podcast_slug)
+    # Already resolved, under the correction still in force: refresh that game's
+    # data rather than search again. A new search can land on another game (IGDB
+    # added a same-name remaster since), silently undoing a resolution that was
+    # right. Re-searching takes a purge: a correction, or an explicit igdb-refresh.
+    renew_id = (cached.igdb_id if cached and cached.igdb_id and not pinned_id
+                and cached.correction_sig == sig else None)
     try:
+        result = None
         if pinned_id:
             # A pinned id is authoritative — don't let canonical resolution redirect
             # it (e.g. a remake IGDB models as a "port" of an earlier version).
             result = fetch_by_id(pinned_id, canonical=False)
-        else:
+        elif renew_id:
+            # The cached id is already the canonical one, so no redirect — but the
+            # entry keeps its is_child, which ranks it within its catalog group.
+            result = fetch_by_id(renew_id, canonical=False)
+            if result:
+                result = result._replace(is_child=cached.is_child)
+        if result is None and not pinned_id:
+            # Never resolved, a miss, or a renewed id IGDB no longer has.
             search_name = (correction or {}).get('search_name') or name
             hint_date   = (correction or {}).get('hint_date')
             podcast     = PODCAST_BY_ID.get(podcast_id)
@@ -78,7 +98,7 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
         cached_at=utcnow().isoformat(),
         # Fingerprint the correction actually used, so a later sweep can tell when a
         # shipped corrections.json rules differently on this appearance than it did here.
-        correction_sig=corrections.fingerprint(correction),
+        correction_sig=sig,
         # Nothing to enrich on a miss.
         enriched=enrich or not (result and result.data is not None),
     ))

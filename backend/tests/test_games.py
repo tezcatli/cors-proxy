@@ -1,4 +1,5 @@
 import datetime
+from dataclasses import replace
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -1005,6 +1006,60 @@ def test_resolve_one_stores_the_correction_fingerprint(tmp_corrections):
     expected = corrections.fingerprint(
         corrections.find_by_podcast('Chrono Trigger', 0, 'fin-du-game'))
     assert entry.correction_sig == expected != ''
+
+
+# ── Renewing an expired entry ─────────────────────────────────────────────────
+
+def _renew(cached, by_id=None):
+    """resolve_one on Chrono Trigger's appearance with `cached` in the cache;
+    returns the two IGDB mocks and the entry it stored."""
+    game, appearance = _single_soj_game()
+    if cached:
+        state.igdb_cache = {appearance.podcast_slug: cached(appearance)}
+    with patch('resolver.fetch_by_id', return_value=by_id) as by_id_mock, \
+         patch('resolver.fetch_by_name', return_value=_igdb_hit('Chrono Trigger')) as by_name, \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
+        resolver.resolve_one(appearance.podcast_slug, game.name,
+                             appearance.episode.pub_ts, appearance.episode.podcast_id)
+    return by_id_mock, by_name, state.igdb_cache[appearance.podcast_slug]
+
+
+def test_an_expired_entry_is_renewed_by_id_not_searched_again(tmp_corrections):
+    # A fresh search could land on a same-name game IGDB added since, undoing a
+    # resolution that was right; the known id can't.
+    from igdb import IgdbResult
+    child = lambda a: replace(_fresh_entry(a, ''), is_child=True)   # noqa: E731
+    by_id, by_name, entry = _renew(child, IgdbResult(
+        id=1, name='Chrono Trigger', slug='chrono-trigger', data={'metacritic': 93},
+        is_child=False))
+    by_id.assert_called_once_with(1, canonical=False)
+    by_name.assert_not_called()
+    assert entry.data['metacritic'] == 93
+    assert entry.is_child            # still ranks as the DLC/version it was resolved from
+
+
+def test_renewal_searches_again_when_igdb_dropped_the_id(tmp_corrections):
+    by_id, by_name, entry = _renew(lambda a: _fresh_entry(a, ''), by_id=None)
+    by_name.assert_called_once()
+    assert entry.igdb_id == 7
+
+
+def test_a_cached_miss_is_searched_again(tmp_corrections):
+    miss = lambda a: replace(_fresh_entry(a, ''), igdb_id=None, igdb_slug=None)   # noqa: E731
+    by_id, by_name, _ = _renew(miss)
+    by_id.assert_not_called()
+    by_name.assert_called_once()
+
+
+def test_a_changed_correction_searches_again(tmp_corrections):
+    # Resolved under a correction that has since been removed: its id may be the
+    # very thing the curator took back.
+    stale = lambda a: _fresh_entry(a, 'some-older-correction')   # noqa: E731
+    by_id, by_name, _ = _renew(stale)
+    by_id.assert_not_called()
+    by_name.assert_called_once()
 
 
 # ── Admin gating ──────────────────────────────────────────────────────────────
