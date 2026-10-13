@@ -19,6 +19,8 @@ import jwt
 import pytest
 from app import create_app
 from config import Config
+import catalog_state as _state
+import feeds as _feeds
 import games as _games
 from podcasts import PODCAST_BY_ID as _PODCAST_BY_ID
 
@@ -57,13 +59,13 @@ def client(app):
 def single_podcast():
     """Default tests to a single-feed registry so the blanket `http.get` mock
     (one static response) isn't fetched once per registered podcast. Multi-feed
-    tests opt in by re-patching `games.PODCASTS` within the test."""
-    saved = _games.PODCASTS
-    _games.PODCASTS = [_PODCAST_BY_ID['silence-on-joue']]
+    tests opt in by re-patching `feeds.PODCASTS` within the test."""
+    saved = _feeds.PODCASTS
+    _feeds.PODCASTS = [_PODCAST_BY_ID['silence-on-joue']]
     yield
-    _games.PODCASTS = saved
-    _games._feed_meta     = {}
-    _games._feed_episodes = {}
+    _feeds.PODCASTS = saved
+    _feeds._feed_meta     = {}
+    _feeds._feed_episodes = {}
 
 
 @pytest.fixture
@@ -97,11 +99,11 @@ def clean_db():
             DELETE FROM invitations;
             DELETE FROM users;
         """)
-    _games._cached_episodes = []
-    _games._episode_index   = {}
-    _games._game_index      = {}
-    _games._igdb_cache      = {}
-    _games._cached_at       = None
+    _state.episodes      = []
+    _state.episode_index = {}
+    _state.game_index    = {}
+    _state.igdb_cache    = {}
+    _state.cached_at     = None
     # Response caches are keyed by a version that is monotonic across the whole
     # pytest session, so they must be dropped alongside the state they derive from.
     _games._catalog_cache   = None

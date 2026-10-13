@@ -5,7 +5,9 @@ from flask import Flask, request, Response, jsonify
 from config import Config
 from db import init_db
 from auth import auth_bp
-from games import games_bp, startup_warmup
+import catalog_state
+from games import games_bp
+from resolver import startup_warmup
 from limiter import limiter
 
 logging.basicConfig(
@@ -52,8 +54,7 @@ def create_app(testing=False):
         # Liveness probe: 200 whenever the process is serving. `feedLoaded` is
         # informational — a not-yet-loaded feed must not fail the healthcheck,
         # or Docker would restart the container while it is still warming up.
-        import games
-        return jsonify(status="ok", feedLoaded=bool(games._cached_episodes)), 200
+        return jsonify(status="ok", feedLoaded=bool(catalog_state.episodes)), 200
 
     def json_error(e):
         return jsonify(error=str(e.description)), e.code

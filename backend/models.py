@@ -37,9 +37,9 @@ class Episode:
 @dataclass
 class GameAppearance:
     """Links one PodcastGame to the Episode it appears in, with the game-specific timestamp."""
-    episode: Episode        # reference into _cached_episodes — not a copy
+    episode: Episode        # reference into catalog_state.episodes — not a copy
     mention: GameMention
-    podcast_slug: str       # make_slug(name) + '-' + episode.slug (RSS guid); key into _igdb_cache and DB
+    podcast_slug: str       # make_slug(name) + '-' + episode.slug (RSS guid); key into catalog_state.igdb_cache and DB
 
 
 @dataclass
@@ -61,4 +61,4 @@ class IgdbEntry:
     is_child: bool          # True when resolved to a parent/version_parent
     cached_at: str          # ISO-8601 UTC timestamp
     correction_sig: str = ''  # fingerprint of the correction in force when resolved
-    enriched: bool = True     # False until Metacritic/HLTB have run (see games._resolve_one)
+    enriched: bool = True     # False until Metacritic/HLTB have run (see resolver.resolve_one)

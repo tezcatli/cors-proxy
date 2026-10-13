@@ -3,7 +3,15 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
+import catalog_state as state
+import feeds
 import games as games_module
+import resolver
+import review
+import serializers
+from db import get_db, utcnow
+from models import IgdbEntry
+from utils import make_slug
 from contract import assert_contract, CONTRACT
 from conftest import auth_header
 import db as _db
@@ -217,7 +225,7 @@ def test_parse_feed_guid_fallback_to_enclosure():
     <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description></description></item>
 </channel></rss>"""
     ep = _parse_feed(rss)[0]
-    assert ep.slug == games_module.make_slug('https://example.com/x.mp3')
+    assert ep.slug == make_slug('https://example.com/x.mp3')
 
 def test_same_day_episodes_both_kept():
     # Two DISTINCT episodes, same calendar day, both mention «Zelda», different guids.
@@ -229,8 +237,8 @@ def test_same_day_episodes_both_kept():
     <guid>day-b</guid><enclosure url="https://example.com/b.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 15 Jan 2024 20:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
 </channel></rss>"""
-    _, game_index = games_module._build_indexes(_parse_feed(rss))
-    zelda = game_index[games_module.make_slug('Zelda')]
+    _, game_index = feeds.build_indexes(_parse_feed(rss))
+    zelda = game_index[make_slug('Zelda')]
     assert {a.episode.slug for a in zelda.appearances} == {'day-a', 'day-b'}
 
 def test_multi_feed_merges_same_game_across_podcasts():
@@ -255,8 +263,8 @@ def test_multi_feed_merges_same_game_across_podcasts():
     _assign_url_slugs(episodes)
     assert len({ep.url_slug for ep in episodes}) == len(episodes)  # globally unique
 
-    _, game_index = games_module._build_indexes(episodes)
-    zelda = game_index[games_module.make_slug('Zelda')]
+    _, game_index = feeds.build_indexes(episodes)
+    zelda = game_index[make_slug('Zelda')]
     assert len(zelda.appearances) == 2
     assert {a.episode.podcast_id for a in zelda.appearances} == {'silence-on-joue', 'fin-du-game'}
 
@@ -297,8 +305,8 @@ def test_intra_episode_duplicate_deduped():
     <guid>solo</guid><enclosure url="https://example.com/s.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 15 Jan 2024 09:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
 </channel></rss>"""
-    _, game_index = games_module._build_indexes(_parse_feed(rss))
-    zelda = game_index[games_module.make_slug('Zelda')]
+    _, game_index = feeds.build_indexes(_parse_feed(rss))
+    zelda = game_index[make_slug('Zelda')]
     assert len(zelda.appearances) == 1
 
 
@@ -312,20 +320,20 @@ def _blank_episode(title, slug):
 def test_inject_ai_chapters_matches_on_title_slug():
     # episode.slug is now a guid; injection must still match on make_slug(title).
     ep = _blank_episode('My Episode', 'guid-xyz')
-    ai_index = {games_module.make_slug('My Episode'): [
+    ai_index = {make_slug('My Episode'): [
         {'start_s': 30, 'title': 'Intro'}, {'start_s': 90, 'title': 'Zelda'},
     ]}
-    games_module._inject_ai_chapters([ep], ai_index)
+    feeds.inject_ai_chapters([ep], ai_index)
     assert [c.title for c in ep.chapters] == ['Intro', 'Zelda']
 
 def test_inject_ai_chapters_skips_malformed_entries():
     ep = _blank_episode('Bad Ep', 'g')
-    ai_index = {games_module.make_slug('Bad Ep'): [
+    ai_index = {make_slug('Bad Ep'): [
         {'title': 'no start'},                # missing start_s → skipped
         {'start_s': 10},                       # missing title  → skipped
         {'start_s': 20, 'title': 'Good'},      # kept
     ]}
-    games_module._inject_ai_chapters([ep], ai_index)
+    feeds.inject_ai_chapters([ep], ai_index)
     assert [c.title for c in ep.chapters] == ['Good']
 
 
@@ -341,18 +349,18 @@ def test_catalog_counts_distinct_episodes():
     <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
 </channel></rss>"""
     episodes = _parse_feed(rss)
-    episode_index, game_index = games_module._build_indexes(episodes)
-    games_module._cached_episodes = episodes
-    games_module._episode_index   = episode_index
-    games_module._game_index      = game_index
+    episode_index, game_index = feeds.build_indexes(episodes)
+    state.episodes = episodes
+    state.episode_index   = episode_index
+    state.game_index      = game_index
     now = '2999-01-01T00:00:00'
-    games_module._igdb_cache = {
-        f"{games_module.make_slug('Zelda')}-g1":
+    state.igdb_cache = {
+        f"{make_slug('Zelda')}-g1":
             IgdbEntry('z-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
-        f"{games_module.make_slug('Zelda BOTW')}-g1":
+        f"{make_slug('Zelda BOTW')}-g1":
             IgdbEntry('zb-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
     }
-    catalog = games_module._build_catalog()
+    catalog = serializers.build_catalog()
     entry = next(g for g in catalog if g['slug'] == 'zelda-botw')
     assert entry['episodeCount'] == 1
 
@@ -367,19 +375,19 @@ def test_count_pending_respects_ttl():
     <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
 </channel></rss>"""
     episodes = _parse_feed(rss)
-    _, game_index = games_module._build_indexes(episodes)
-    games_module._game_index = game_index
+    _, game_index = feeds.build_indexes(episodes)
+    state.game_index = game_index
     slugs = [a.podcast_slug for g in game_index.values() for a in g.appearances]
     assert slugs
 
     def cache_with(cached_at):
         return {s: IgdbEntry(s, 1, 'zelda', 'Zelda', {'metacritic': 90}, False, cached_at) for s in slugs}
 
-    games_module._igdb_cache = cache_with(games_module.utcnow().isoformat())
-    assert games_module._count_pending() == 0                # fresh → nothing pending
+    state.igdb_cache = cache_with(utcnow().isoformat())
+    assert resolver.count_pending() == 0                # fresh → nothing pending
 
-    games_module._igdb_cache = cache_with('2000-01-01T00:00:00')
-    assert games_module._count_pending() == len(slugs)       # TTL-expired → all pending
+    state.igdb_cache = cache_with('2000-01-01T00:00:00')
+    assert resolver.count_pending() == len(slugs)       # TTL-expired → all pending
 
 
 # ── GET /games ────────────────────────────────────────────────────────────────
@@ -390,8 +398,8 @@ def test_no_auth_returns_401(client):
 
 
 def test_catalog_returns_list(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         r = client.get('/games', headers=auth_header())
     assert_contract(r, GAMES['catalog']['success'])
     data = r.get_json()
@@ -400,16 +408,16 @@ def test_catalog_returns_list(client):
 
 
 def test_catalog_response_has_igdb_field(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         r = client.get('/games', headers=auth_header())
     data = r.get_json()
     assert all('igdb' in g for g in data['games'])
 
 
 def test_cache_hit_skips_fetch(client):
-    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
         client.get('/games', headers=auth_header())
     mock_get.assert_called_once()
@@ -440,9 +448,9 @@ def test_catalog_deduplicates_by_igdb_slug(client):
         'zelda-z1':      IgdbEntry('zelda-z1',      1, 'zelda', 'Zelda', None, False, '2099-01-01'),
         'zelda-botw-z2': IgdbEntry('zelda-botw-z2', 1, 'zelda', 'Zelda', None, False, '2099-01-01'),
     }
-    with patch('games.http.get', return_value=mock_rss_response(rss_two_names)), \
-         patch('games._schedule_resolve'), \
-         patch.object(games_module, '_igdb_cache', igdb_cache):
+    with patch('feeds.http.get', return_value=mock_rss_response(rss_two_names)), \
+         patch('resolver.schedule_resolve'), \
+         patch.object(state, 'igdb_cache', igdb_cache):
         r = client.get('/games', headers=auth_header())
 
     data = r.get_json()['games']
@@ -453,20 +461,20 @@ def test_catalog_deduplicates_by_igdb_slug(client):
 
 def test_refresh_serves_cache_on_parse_error(client):
     # warm the in-memory catalog
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
     # a malformed feed (non-RequestException) must NOT 500 when we already have data
-    with patch('games._refresh_feed', side_effect=ValueError('malformed XML')), \
-         patch('games._resolve_new'), patch('games._schedule_resolve'):
+    with patch('feeds.refresh_feed', side_effect=ValueError('malformed XML')), \
+         patch('resolver.resolve_new'), patch('resolver.schedule_resolve'):
         r = client.post('/games/refresh', headers=auth_header())
     assert r.status_code == 200
     assert any(g['name'] == 'Zelda' for g in r.get_json()['games'])
 
 
 def test_catalog_returns_304_on_matching_etag(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         r1 = client.get('/games', headers=auth_header())
     etag = r1.headers.get('ETag')
     assert etag
@@ -477,8 +485,8 @@ def test_catalog_returns_304_on_matching_etag(client):
 
 
 def test_catalog_igdb_is_slim(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         r = client.get('/games', headers=auth_header())
     data = r.get_json()['games']
     for game in data:
@@ -489,8 +497,8 @@ def test_catalog_igdb_is_slim(client):
 # ── GET /games/<slug> ─────────────────────────────────────────────────────────
 
 def test_game_detail_returns_episodes(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
     r = client.get('/games/Zelda', headers=auth_header())
     assert_contract(r, GAMES['game_detail']['success'])
@@ -505,7 +513,7 @@ def test_game_detail_surfaces_display_name_and_igdb_name(client, tmp_corrections
     # displayName pre-fills the picker's « Nom affiché »; igdbName is the true
     # resolution behind the entry (top-level `name` is already the override).
     import corrections
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2', 'Silent Hill 2'),
     })
@@ -521,8 +529,8 @@ def test_game_detail_surfaces_display_name_and_igdb_name(client, tmp_corrections
 # ── POST /games/refresh ───────────────────────────────────────────────────────
 
 def test_refresh_always_fetches(client):
-    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._resolve_new'), patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('resolver.resolve_new'), patch('resolver.schedule_resolve'):
         r = client.post('/games/refresh', headers=auth_header())
     assert_contract(r, GAMES['refresh']['success'])
     mock_get.assert_called_once()
@@ -531,10 +539,10 @@ def test_refresh_always_fetches(client):
 def test_catalog_does_not_refetch_once_loaded(client):
     # The background tick owns feed freshness; a read never triggers a fetch
     # beyond the cold-start one, however old the catalog is.
-    with patch('games.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()) as mock_get, \
+         patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
-        games_module._cached_at = datetime.datetime(2000, 1, 1)
+        state.cached_at = datetime.datetime(2000, 1, 1)
         client.get('/games', headers=auth_header())
     mock_get.assert_called_once()
 
@@ -542,53 +550,53 @@ def test_catalog_does_not_refetch_once_loaded(client):
 def test_unchanged_feed_keeps_the_data_version(client):
     # Polled every tick and nearly always 304: rebuilding would bump the version
     # and invalidate every client's catalog ETag for nothing.
-    with patch('games.http.get', return_value=mock_rss_response()):
-        games_module._refresh_feed()
-    version = games_module._data_version
-    with patch('games.http.get', return_value=mock_rss_response(status=304)):
-        games_module._refresh_feed()
-    assert games_module._data_version == version
+    with patch('feeds.http.get', return_value=mock_rss_response()):
+        feeds.refresh_feed()
+    version = state.data_version
+    with patch('feeds.http.get', return_value=mock_rss_response(status=304)):
+        feeds.refresh_feed()
+    assert state.data_version == version
 
 
 def _igdb_hit(name):
     from igdb import IgdbResult
-    return IgdbResult(id=7, name=name, slug=games_module.make_slug(name),
+    return IgdbResult(id=7, name=name, slug=make_slug(name),
                       data={'coverImageId': 'abc'}, is_child=False)
 
 
 def test_refresh_resolves_new_games_without_the_scrapers(client):
     # Someone pulling to refresh after an episode came out should get the new
     # games' names and covers in that response; the slow scrapers wait.
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games.fetch_by_name', side_effect=lambda n, ts: _igdb_hit(n)), \
-         patch('games.metacritic.fetch_metascore') as mc, \
-         patch('games.hltb.fetch_time_to_beat') as hl, \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.fetch_by_name', side_effect=lambda n, ts: _igdb_hit(n)), \
+         patch('resolver.metacritic.fetch_metascore') as mc, \
+         patch('resolver.hltb.fetch_time_to_beat') as hl, \
+         patch('resolver.schedule_resolve'):
         r = client.post('/games/refresh', headers=auth_header())
     mc.assert_not_called()
     hl.assert_not_called()
     zelda = next(g for g in r.get_json()['games'] if g['name'] == 'Zelda')
     assert zelda['igdb'] == {'metacritic': None, 'coverImageId': 'abc'}
     # Not enriched yet → still pending, so the background sweep finishes the job.
-    assert all(not e.enriched for e in games_module._igdb_cache.values())
-    assert games_module._count_pending() == len(games_module._igdb_cache)
+    assert all(not e.enriched for e in state.igdb_cache.values())
+    assert resolver.count_pending() == len(state.igdb_cache)
 
 
 def test_refresh_leaves_new_games_to_the_sweep_once_the_budget_is_spent(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games.fetch_by_name') as by_name, \
-         patch('games._schedule_resolve') as sweep, \
-         patch('games._REFRESH_BUDGET_S', 0):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.fetch_by_name') as by_name, \
+         patch('resolver.schedule_resolve') as sweep, \
+         patch('resolver.REFRESH_BUDGET_S', 0):
         client.post('/games/refresh', headers=auth_header())
     by_name.assert_not_called()
     sweep.assert_called_once_with(force=True)
 
 
 def test_unenriched_flag_survives_a_restart():
-    with patch('games.fetch_by_name', return_value=_igdb_hit('Zelda')):
-        games_module._resolve_one('zelda-g1', 'Zelda', None, enrich=False)
-    games_module._load_igdb_cache_from_db()
-    assert games_module._igdb_cache['zelda-g1'].enriched is False
+    with patch('resolver.fetch_by_name', return_value=_igdb_hit('Zelda')):
+        resolver.resolve_one('zelda-g1', 'Zelda', None, enrich=False)
+    state.load_igdb_cache_from_db()
+    assert state.igdb_cache['zelda-g1'].enriched is False
 
 
 def test_concurrent_refreshes_coalesce():
@@ -604,9 +612,9 @@ def test_concurrent_refreshes_coalesce():
         gate.wait(5)
         return mock_rss_response()
 
-    with patch('games.http.get', side_effect=slow_get):
-        t1 = threading.Thread(target=games_module._refresh_feed)
-        t2 = threading.Thread(target=games_module._refresh_feed)
+    with patch('feeds.http.get', side_effect=slow_get):
+        t1 = threading.Thread(target=feeds.refresh_feed)
+        t2 = threading.Thread(target=feeds.refresh_feed)
         t1.start()
         for _ in range(200):                    # until t1 is inside the fetch
             if calls:
@@ -618,18 +626,18 @@ def test_concurrent_refreshes_coalesce():
         t1.join(2)
         t2.join(2)
     assert len(calls) == 1
-    assert games_module._cached_at is not None
+    assert state.cached_at is not None
 
 
 # ── POST /games/<slug>/igdb-refresh ──────────────────────────────────────────
 
 def test_igdb_refresh_returns_game_detail(client):
     episodes = _parse_feed(MINIMAL_RSS)
-    episode_index, game_index = games_module._build_indexes(episodes)
-    games_module._cached_episodes = episodes
-    games_module._episode_index   = episode_index
-    games_module._game_index      = game_index
-    with patch('games._resolve_one'):
+    episode_index, game_index = feeds.build_indexes(episodes)
+    state.episodes = episodes
+    state.episode_index   = episode_index
+    state.game_index      = game_index
+    with patch('resolver.resolve_one'):
         r = client.post('/games/Zelda/igdb-refresh', headers=auth_header())
     assert_contract(r, GAMES['igdb_refresh']['success'])
     data = r.get_json()
@@ -647,8 +655,8 @@ _UNIFIED_EPISODE_KEYS = ('title', 'slug', 'urlSlug', 'audioUrl', 'pubTs', 'image
 _SLIM_EPISODE_KEYS = tuple(k for k in _UNIFIED_EPISODE_KEYS if k not in ('description', 'chapters'))
 
 def test_episodes_returns_list_with_slim_shape(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
     r = client.get('/games/episodes', headers=auth_header())
     assert_contract(r, GAMES['episodes']['success'])
@@ -664,8 +672,8 @@ def test_episodes_returns_list_with_slim_shape(client):
 # ── GET /games/episode ────────────────────────────────────────────────────────
 
 def test_episode_detail_returns_unified_shape(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
     slug = client.get('/games/episodes', headers=auth_header()).get_json()[0]['slug']
     r = client.get(f'/games/episode?slug={slug}', headers=auth_header())
@@ -680,8 +688,8 @@ def test_episode_missing_slug_returns_400(client):
     assert_contract(r, GAMES['episode']['bad_request'])
 
 def test_episode_unknown_slug_returns_404(client):
-    with patch('games.http.get', return_value=mock_rss_response()), \
-         patch('games._schedule_resolve'):
+    with patch('feeds.http.get', return_value=mock_rss_response()), \
+         patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
     r = client.get('/games/episode?slug=does-not-exist', headers=auth_header())
     assert_contract(r, GAMES['episode']['not_found'])
@@ -694,12 +702,12 @@ def _seed(rss, cache, podcast_id='silence-on-joue'):
     podcast  = PODCAST_BY_ID[podcast_id]
     episodes = _parse_feed(rss, extractor=podcast.extractor, podcast_id=podcast.id)
     _assign_url_slugs(episodes)
-    episode_index, game_index = games_module._build_indexes(episodes)
-    games_module._cached_episodes = episodes
-    games_module._episode_index   = episode_index
-    games_module._game_index      = game_index
-    games_module._igdb_cache      = cache
-    games_module._data_version   += 1
+    episode_index, game_index = feeds.build_indexes(episodes)
+    state.episodes = episodes
+    state.episode_index   = episode_index
+    state.game_index      = game_index
+    state.igdb_cache      = cache
+    state.data_version   += 1
     games_module._catalog_cache   = None
     return episodes
 
@@ -725,18 +733,18 @@ _TWO_EPISODES_SAME_NAME = b"""<?xml version="1.0" encoding="UTF-8"?><rss version
 def test_same_name_resolving_to_two_games_splits_into_two_entries():
     # One podcast name covering two distinct IGDB games (the 2001 original and the
     # 2024 remake) must yield two catalog entries — not one absorbing the other.
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-remake':   _entry(f'{ns}-remake',   2, 'silent-hill-2--1', 'Silent Hill 2', released='2024'),
         f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2',    'Silent Hill 2', released='2001'),
     })
-    catalog = games_module._build_catalog()
+    catalog = serializers.build_catalog()
     slugs   = {g['slug'] for g in catalog}
     assert {'silent-hill-2', 'silent-hill-2--1'} <= slugs
 
     # …and each detail page lists only its own episode.
-    original = games_module._load_game('silent-hill-2')
-    remake   = games_module._load_game('silent-hill-2--1')
+    original = serializers.load_game('silent-hill-2')
+    remake   = serializers.load_game('silent-hill-2--1')
     assert [e['slug'] for e in original['episodes']] == ['original']
     assert [e['slug'] for e in remake['episodes']]   == ['remake']
     assert original['igdb']['released'] == '2001'
@@ -754,37 +762,37 @@ def test_name_variants_resolving_to_one_game_still_merge():
     <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda BOTW</description></item>
 </channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
     _seed(rss, {
-        f"{games_module.make_slug('Zelda')}-g1":      _entry('a', 1, 'zelda-botw', 'Zelda BOTW'),
-        f"{games_module.make_slug('Zelda BOTW')}-g2": _entry('b', 1, 'zelda-botw', 'Zelda BOTW'),
+        f"{make_slug('Zelda')}-g1":      _entry('a', 1, 'zelda-botw', 'Zelda BOTW'),
+        f"{make_slug('Zelda BOTW')}-g2": _entry('b', 1, 'zelda-botw', 'Zelda BOTW'),
     })
-    catalog = [g for g in games_module._build_catalog() if g['slug'] == 'zelda-botw']
+    catalog = [g for g in serializers.build_catalog() if g['slug'] == 'zelda-botw']
     assert len(catalog) == 1
     assert catalog[0]['episodeCount'] == 2
-    assert len(games_module._load_game('zelda-botw')['episodes']) == 2
+    assert len(serializers.load_game('zelda-botw')['episodes']) == 2
 
 
 def test_unresolved_appearances_group_under_name_slug():
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     # Only the remake episode is resolved; the other is still pending.
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2--1', 'Silent Hill 2', released='2024'),
     })
-    catalog = {g['slug']: g for g in games_module._build_catalog()}
+    catalog = {g['slug']: g for g in serializers.build_catalog()}
     assert catalog[ns]['igdb'] is None                       # unresolved bucket
     assert catalog['silent-hill-2--1']['igdb'] is not None
     # The name_slug entry carries only the unresolved appearance.
-    assert [e['slug'] for e in games_module._load_game(ns)['episodes']] == ['original']
+    assert [e['slug'] for e in serializers.load_game(ns)['episodes']] == ['original']
 
 
 def test_name_slug_that_is_also_an_igdb_slug_serves_the_resolved_group():
     # make_slug('Silent Hill 2') == the original's igdb_slug. The resolved group
     # must win, so /game/silent-hill-2 is the 2001 game, not a mixed bag.
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-remake':   _entry(f'{ns}-remake',   2, 'silent-hill-2--1', 'Silent Hill 2', released='2024'),
         f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2',    'Silent Hill 2', released='2001'),
     })
-    detail = games_module._load_game(ns)
+    detail = serializers.load_game(ns)
     assert [e['slug'] for e in detail['episodes']] == ['original']
     assert detail['igdb']['released'] == '2001'
 
@@ -797,24 +805,24 @@ def test_detail_falls_back_to_all_appearances_for_a_fully_resolved_name_slug():
     <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda BOTW</description></item>
 </channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    ns = games_module.make_slug('Zelda BOTW')       # 'zelda-botw' ≠ igdb slug below
+    ns = make_slug('Zelda BOTW')       # 'zelda-botw' ≠ igdb slug below
     _seed(rss, {f'{ns}-g1': _entry(f'{ns}-g1', 1, 'the-legend-of-zelda-breath-of-the-wild', 'Zelda')})
-    detail = games_module._load_game(ns)
+    detail = serializers.load_game(ns)
     assert len(detail['episodes']) == 1
     assert detail['igdb'] is None      # unresolved fallback shape
 
 
 def test_detail_episodes_are_newest_first():
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    pts = [e['pubTs'] for e in games_module._load_game(ns)['episodes']]
+    pts = [e['pubTs'] for e in serializers.load_game(ns)['episodes']]
     assert pts == sorted(pts, reverse=True)
 
 
 def test_unknown_slug_still_404s():
     _seed(_TWO_EPISODES_SAME_NAME, {})
     with pytest.raises(Exception):
-        games_module._load_game('no-such-game')
+        serializers.load_game('no-such-game')
 
 
 # ── Resolution: per-podcast date hint + corrections ───────────────────────────
@@ -833,16 +841,16 @@ _SOJ_RSS = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel
 
 
 def _resolve_capturing(rss, podcast_id):
-    """Run _resolve_one for the single appearance of `rss` and report what
+    """Run resolve_one for the single appearance of `rss` and report what
     fetch_by_name was called with."""
     podcast  = PODCAST_BY_ID[podcast_id]
     episodes = _parse_feed(rss, extractor=podcast.extractor, podcast_id=podcast.id)
-    _, game_index = games_module._build_indexes(episodes)
-    games_module._game_index = game_index
+    _, game_index = feeds.build_indexes(episodes)
+    state.game_index = game_index
     game       = next(iter(game_index.values()))
     appearance = game.appearances[0]
-    with patch('games.fetch_by_name', return_value=None) as by_name:
-        games_module._resolve_one(appearance.podcast_slug, game.name,
+    with patch('resolver.fetch_by_name', return_value=None) as by_name:
+        resolver.resolve_one(appearance.podcast_slug, game.name,
                                   appearance.episode.pub_ts, appearance.episode.podcast_id)
     return by_name
 
@@ -864,20 +872,20 @@ def test_news_podcast_still_uses_the_episode_date_as_a_hint():
 def test_a_pinned_correction_beats_the_name_search(tmp_corrections):
     from igdb import IgdbResult
     import corrections
-    ns = games_module.make_slug('Chrono Trigger')
+    ns = make_slug('Chrono Trigger')
     corrections.upsert('Chrono Trigger', igdb_id=4242)
     result = IgdbResult(id=4242, name='Chrono Trigger', slug='chrono-trigger',
                         data={'metacritic': 92}, is_child=False)
-    with patch('games.fetch_by_id', return_value=result) as by_id, \
-         patch('games.fetch_by_name') as by_name, \
-         patch('games.metacritic.fetch_metascore', return_value=None), \
-         patch('games.hltb.fetch_time_to_beat', return_value=None), \
-         patch('games.fetch_time_to_beat', return_value=None):
-        games_module._resolve_one(f'{ns}-fdg1', 'Chrono Trigger', 0, 'fin-du-game')
+    with patch('resolver.fetch_by_id', return_value=result) as by_id, \
+         patch('resolver.fetch_by_name') as by_name, \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
+        resolver.resolve_one(f'{ns}-fdg1', 'Chrono Trigger', 0, 'fin-du-game')
     by_name.assert_not_called()
     # canonical=False: a human's pin must not be redirected to a parent game.
     assert by_id.call_args == ((4242,), {'canonical': False})
-    assert games_module._igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
+    assert state.igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
 
 
 def test_podcast_scoped_correction_beats_the_all_podcasts_one(tmp_corrections):
@@ -897,8 +905,8 @@ def _single_soj_game():
     """Build a one-game index from an SOJ episode; return (game, appearance)."""
     podcast  = PODCAST_BY_ID['silence-on-joue']
     episodes = _parse_feed(_SOJ_RSS, extractor=podcast.extractor, podcast_id=podcast.id)
-    _, game_index = games_module._build_indexes(episodes)
-    games_module._game_index = game_index
+    _, game_index = feeds.build_indexes(episodes)
+    state.game_index = game_index
     game = next(iter(game_index.values()))
     return game, game.appearances[0]
 
@@ -907,7 +915,7 @@ def _fresh_entry(appearance, sig):
     """A freshly-cached (not TTL-stale) entry, so pending depends only on `sig`."""
     from models import IgdbEntry
     return IgdbEntry(appearance.podcast_slug, 1, 'chrono-trigger', 'Chrono Trigger',
-                     {'metacritic': 90}, False, games_module.utcnow().isoformat(),
+                     {'metacritic': 90}, False, utcnow().isoformat(),
                      correction_sig=sig)
 
 
@@ -921,10 +929,10 @@ def test_shipped_pin_makes_a_previously_uncorrected_entry_pending(tmp_correction
     import corrections
     game, appearance = _single_soj_game()
     cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}   # resolved with no correction
-    fresh = games_module._fresh_slugs(cache.items())
-    assert not games_module._appearance_pending(game, appearance, cache, fresh)
+    fresh = resolver.fresh_slugs(cache.items())
+    assert not resolver.appearance_pending(game, appearance, cache, fresh)
     corrections.upsert('Chrono Trigger', igdb_id=4242)               # ship a pin
-    assert games_module._appearance_pending(game, appearance, cache, fresh)
+    assert resolver.appearance_pending(game, appearance, cache, fresh)
 
 
 def test_removed_correction_makes_a_pinned_entry_pending(tmp_corrections):
@@ -932,56 +940,56 @@ def test_removed_correction_makes_a_pinned_entry_pending(tmp_corrections):
     game, appearance = _single_soj_game()
     corrections.upsert('Chrono Trigger', igdb_id=4242)
     cache = {appearance.podcast_slug: _fresh_entry(appearance, _sig_for(appearance, game))}
-    fresh = games_module._fresh_slugs(cache.items())
-    assert not games_module._appearance_pending(game, appearance, cache, fresh)
+    fresh = resolver.fresh_slugs(cache.items())
+    assert not resolver.appearance_pending(game, appearance, cache, fresh)
     corrections.remove('Chrono Trigger')                            # ship its removal
-    assert games_module._appearance_pending(game, appearance, cache, fresh)
+    assert resolver.appearance_pending(game, appearance, cache, fresh)
 
 
 def test_shipped_display_name_does_not_make_an_entry_pending(tmp_corrections):
     import corrections
     game, appearance = _single_soj_game()
     cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
-    fresh = games_module._fresh_slugs(cache.items())
+    fresh = resolver.fresh_slugs(cache.items())
     corrections.upsert('Chrono Trigger', display_name='Chrono Trigger (SNES)')
-    assert not games_module._appearance_pending(game, appearance, cache, fresh)
+    assert not resolver.appearance_pending(game, appearance, cache, fresh)
 
 
 def test_count_pending_flags_a_stale_correction_signature(tmp_corrections):
     import corrections
     game, appearance = _single_soj_game()
-    games_module._igdb_cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
+    state.igdb_cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
 
-    assert games_module._count_pending() == 0
+    assert resolver.count_pending() == 0
     corrections.upsert('Chrono Trigger', igdb_id=4242)
-    assert games_module._count_pending() == 1
+    assert resolver.count_pending() == 1
 
 
 def test_legacy_null_correction_sig_loads_as_blank():
     # A row written before this column existed has NULL; it must read as "resolved
     # with no correction", not crash or mismatch every fingerprint spuriously.
-    with games_module.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             'INSERT INTO igdb_cache (slug, igdb_id, igdb_slug, name, igdb_data, '
             'is_child, cached_at, correction_sig) VALUES (?,?,?,?,?,?,?,?)',
             ('zelda-g1', 1, 'zelda', 'Zelda', None, 0, '2099-01-01', None))
-    games_module._load_igdb_cache_from_db()
-    assert games_module._igdb_cache['zelda-g1'].correction_sig == ''
+    state.load_igdb_cache_from_db()
+    assert state.igdb_cache['zelda-g1'].correction_sig == ''
 
 
 def test_resolve_one_stores_the_correction_fingerprint(tmp_corrections):
     from igdb import IgdbResult
     import corrections
-    ns = games_module.make_slug('Chrono Trigger')
+    ns = make_slug('Chrono Trigger')
     corrections.upsert('Chrono Trigger', igdb_id=4242)
     result = IgdbResult(id=4242, name='Chrono Trigger', slug='chrono-trigger',
                         data={'metacritic': 92}, is_child=False)
-    with patch('games.fetch_by_id', return_value=result), \
-         patch('games.metacritic.fetch_metascore', return_value=None), \
-         patch('games.hltb.fetch_time_to_beat', return_value=None), \
-         patch('games.fetch_time_to_beat', return_value=None):
-        games_module._resolve_one(f'{ns}-fdg1', 'Chrono Trigger', 0, 'fin-du-game')
-    entry    = games_module._igdb_cache[f'{ns}-fdg1']
+    with patch('resolver.fetch_by_id', return_value=result), \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
+        resolver.resolve_one(f'{ns}-fdg1', 'Chrono Trigger', 0, 'fin-du-game')
+    entry    = state.igdb_cache[f'{ns}-fdg1']
     expected = corrections.fingerprint(
         corrections.find_by_podcast('Chrono Trigger', 0, 'fin-du-game'))
     assert entry.correction_sig == expected != ''
@@ -1032,7 +1040,7 @@ def test_igdb_search_returns_results(client):
 def test_correction_rejects_an_unknown_podcast(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
     r = client.put('/games/corrections', headers=admin_header(),
-                   json={'nameSlug': games_module.make_slug('Silent Hill 2'),
+                   json={'nameSlug': make_slug('Silent Hill 2'),
                          'igdbId': 1, 'podcastId': 'nope'})
     assert_contract(r, GAMES['corrections']['bad_request'])
 
@@ -1047,17 +1055,17 @@ def test_correction_rejects_an_unknown_game(client, tmp_corrections):
 def test_correction_write_pins_purges_and_reresolves(client, tmp_corrections):
     import json as _json
     from igdb import IgdbResult
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     # Start from a wrong resolution, as the FDG date-window bug produced.
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-original': _entry(f'{ns}-original', 9, 'astrobotanica', 'Astrobotanica'),
     })
     fixed = IgdbResult(id=1, name='Silent Hill 2', slug='silent-hill-2',
                        data={'released': '2001'}, is_child=False)
-    with patch('games.fetch_by_id', return_value=fixed), \
-         patch('games.metacritic.fetch_metascore', return_value=None), \
-         patch('games.hltb.fetch_time_to_beat', return_value=None), \
-         patch('games.fetch_time_to_beat', return_value=None):
+    with patch('resolver.fetch_by_id', return_value=fixed), \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
         r = client.put('/games/corrections', headers=admin_header(),
                        json={'nameSlug': ns, 'igdbId': 1})
     assert_contract(r, GAMES['corrections']['success'])
@@ -1066,7 +1074,7 @@ def test_correction_write_pins_purges_and_reresolves(client, tmp_corrections):
     assert body['igdb']['released'] == '2001'
     assert body['corrected'] is True
     # The stale 'astrobotanica' cache row is gone…
-    assert games_module._igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
+    assert state.igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
     # …and the pin landed in the git-tracked file, keyed on the feed's wording.
     written = _json.loads(tmp_corrections.read_text())['corrections']
     assert written == [{'podcast_name': 'Silent Hill 2', 'igdb_id': 1}]
@@ -1074,53 +1082,53 @@ def test_correction_write_pins_purges_and_reresolves(client, tmp_corrections):
 
 def test_correction_scoped_to_one_podcast_leaves_the_other_alone(client, tmp_corrections):
     from igdb import IgdbResult
-    ns  = games_module.make_slug('Chrono Trigger')
+    ns  = make_slug('Chrono Trigger')
     soj = _parse_feed(_SOJ_RSS, extractor=PODCAST_BY_ID['silence-on-joue'].extractor,
                       podcast_id='silence-on-joue')
     fdg = _parse_feed(_FDG_RSS, extractor=PODCAST_BY_ID['fin-du-game'].extractor,
                       podcast_id='fin-du-game')
     episodes = soj + fdg
     _assign_url_slugs(episodes)
-    episode_index, game_index = games_module._build_indexes(episodes)
-    games_module._cached_episodes = episodes
-    games_module._episode_index   = episode_index
-    games_module._game_index      = game_index
-    games_module._igdb_cache      = {
+    episode_index, game_index = feeds.build_indexes(episodes)
+    state.episodes = episodes
+    state.episode_index   = episode_index
+    state.game_index      = game_index
+    state.igdb_cache      = {
         f'{ns}-soj1': _entry(f'{ns}-soj1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
         f'{ns}-fdg1': _entry(f'{ns}-fdg1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
     }
-    games_module._data_version += 1
+    state.data_version += 1
 
     fixed = IgdbResult(id=1, name='Chrono Trigger', slug='chrono-trigger',
                        data={'released': '1995'}, is_child=False)
-    with patch('games.fetch_by_id', return_value=fixed), \
-         patch('games.metacritic.fetch_metascore', return_value=None), \
-         patch('games.hltb.fetch_time_to_beat', return_value=None), \
-         patch('games.fetch_time_to_beat', return_value=None):
+    with patch('resolver.fetch_by_id', return_value=fixed), \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
         r = client.put('/games/corrections', headers=admin_header(),
                        json={'nameSlug': ns, 'igdbId': 1, 'podcastId': 'fin-du-game'})
     assert r.status_code == 200
     # Only the FDG appearance moved; the SOJ one keeps its own resolution — the
     # split the per-appearance grouping exists to allow.
-    assert games_module._igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
-    assert games_module._igdb_cache[f'{ns}-soj1'].igdb_slug == 'chrono-trigger--3'
+    assert state.igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
+    assert state.igdb_cache[f'{ns}-soj1'].igdb_slug == 'chrono-trigger--3'
     assert [e['slug'] for e in r.get_json()['episodes']] == ['fdg1']
 
 
 def test_delete_correction_reverts_to_the_name_search(client, tmp_corrections):
     import corrections
     from igdb import IgdbResult
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {})
     corrections.upsert('Silent Hill 2', igdb_id=1)
 
     searched = IgdbResult(id=7, name='Silent Hill 2', slug='silent-hill-2',
                           data={'released': '2001'}, is_child=False)
-    with patch('games.fetch_by_name', return_value=searched) as by_name, \
-         patch('games.fetch_by_id') as by_id, \
-         patch('games.metacritic.fetch_metascore', return_value=None), \
-         patch('games.hltb.fetch_time_to_beat', return_value=None), \
-         patch('games.fetch_time_to_beat', return_value=None):
+    with patch('resolver.fetch_by_name', return_value=searched) as by_name, \
+         patch('resolver.fetch_by_id') as by_id, \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
         r = client.delete('/games/corrections', headers=admin_header(),
                           json={'nameSlug': ns})
     assert r.status_code == 200
@@ -1132,39 +1140,39 @@ def test_delete_correction_reverts_to_the_name_search(client, tmp_corrections):
 def test_delete_correction_that_does_not_exist_404s(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
     r = client.delete('/games/corrections', headers=admin_header(),
-                      json={'nameSlug': games_module.make_slug('Silent Hill 2')})
+                      json={'nameSlug': make_slug('Silent Hill 2')})
     assert_contract(r, GAMES['corrections']['not_found'])
 
 
 def test_corrections_write_is_refused_when_the_file_is_read_only(client, tmp_corrections):
     # Stands in for prod, where corrections.json ships in the read-only image layer.
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    with patch('games.corrections.is_writable', return_value=False):
+    with patch('corrections.is_writable', return_value=False):
         r = client.put('/games/corrections', headers=admin_header(),
-                       json={'nameSlug': games_module.make_slug('Silent Hill 2'), 'igdbId': 1})
+                       json={'nameSlug': make_slug('Silent Hill 2'), 'igdbId': 1})
     assert_contract(r, GAMES['corrections']['read_only'])
     assert 'dev' in r.get_json()['error']
 
 
 def test_podcast_igdb_refresh_purges_only_that_podcast(client):
-    ns  = games_module.make_slug('Chrono Trigger')
+    ns  = make_slug('Chrono Trigger')
     soj = _parse_feed(_SOJ_RSS, extractor=PODCAST_BY_ID['silence-on-joue'].extractor,
                       podcast_id='silence-on-joue')
     fdg = _parse_feed(_FDG_RSS, extractor=PODCAST_BY_ID['fin-du-game'].extractor,
                       podcast_id='fin-du-game')
-    _, game_index = games_module._build_indexes(soj + fdg)
-    games_module._game_index = game_index
-    games_module._igdb_cache = {
+    _, game_index = feeds.build_indexes(soj + fdg)
+    state.game_index = game_index
+    state.igdb_cache = {
         f'{ns}-soj1': _entry(f'{ns}-soj1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
         f'{ns}-fdg1': _entry(f'{ns}-fdg1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
     }
-    with patch('games._schedule_resolve') as sched:
+    with patch('resolver.schedule_resolve') as sched:
         r = client.post('/games/podcasts/fin-du-game/igdb-refresh',
                         headers=admin_header())
     assert_contract(r, GAMES['podcast_igdb_refresh']['success'])
     assert r.get_json()['purged'] == 1
-    assert f'{ns}-fdg1' not in games_module._igdb_cache      # purged
-    assert f'{ns}-soj1' in games_module._igdb_cache          # untouched
+    assert f'{ns}-fdg1' not in state.igdb_cache      # purged
+    assert f'{ns}-soj1' in state.igdb_cache          # untouched
     sched.assert_called_once()
 
 
@@ -1174,11 +1182,11 @@ def test_podcast_igdb_refresh_unknown_podcast_404s(client):
 
 
 def test_resolution_stats_shape(client):
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         # 'Silent Hill 2' → 'Astrobotanica' is exactly the kind of miss to surface.
         f'{ns}-remake':   _entry(f'{ns}-remake', 9, 'astrobotanica', 'Astrobotanica'),
-        f'{ns}-original': games_module.IgdbEntry(f'{ns}-original', None, None, None, None, False, _NOW),
+        f'{ns}-original': IgdbEntry(f'{ns}-original', None, None, None, None, False, _NOW),
     })
     r = client.get('/games/resolution-stats', headers=admin_header())
     assert_contract(r, GAMES['resolution_stats']['success'])
@@ -1206,7 +1214,7 @@ def test_resolution_stats_shape(client):
     ('Senua’s Saga Hellblade II', 'Hellblade II: Senua’s Saga'),  # reordered
 ])
 def test_is_suspect_passes_benign_differences(podcast_name, igdb_name):
-    assert not games_module._is_suspect(podcast_name, igdb_name)
+    assert not review.is_suspect(podcast_name, igdb_name)
 
 
 @pytest.mark.parametrize('podcast_name,igdb_name', [
@@ -1216,7 +1224,7 @@ def test_is_suspect_passes_benign_differences(podcast_name, igdb_name):
     ('Castlevania: Symphony of the Night', "Castlevania: Belmont's Curse"),
 ])
 def test_is_suspect_flags_unrelated_names(podcast_name, igdb_name):
-    assert games_module._is_suspect(podcast_name, igdb_name)
+    assert review.is_suspect(podcast_name, igdb_name)
 
 
 def test_suspects_exclude_names_a_human_already_ruled_on(client):
@@ -1228,10 +1236,10 @@ def test_suspects_exclude_names_a_human_already_ruled_on(client):
     <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 x</description></item>
 </channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    ns = games_module.make_slug('Les gardiens de la galaxie')
+    ns = make_slug('Les gardiens de la galaxie')
     _seed(rss, {f'{ns}-g1': _entry(f'{ns}-g1', 1, 'guardians', "Marvel's Guardians of the Galaxy")})
     # The heuristic alone would flag it…
-    assert games_module._is_suspect('Les gardiens de la galaxie',
+    assert review.is_suspect('Les gardiens de la galaxie',
                                     "Marvel's Guardians of the Galaxy")
     # …but the curated correction rules it out: it reads as resolved, not suspect.
     r = client.get('/games/resolution-stats', headers=admin_header())
@@ -1252,12 +1260,12 @@ def test_stats_reports_a_merged_group_under_its_resolving_name(client):
     <guid>g2</guid><enclosure url="https://example.com/2.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Astrobot</description></item>
 </channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    botw, astro = games_module.make_slug('Zelda BOTW'), games_module.make_slug('Astrobot')
+    botw, astro = make_slug('Zelda BOTW'), make_slug('Astrobot')
     _seed(rss, {
         # Both land on the same (wrong) igdb_slug → one group, two name variants.
-        f'{botw}-g1':  games_module.IgdbEntry(f'{botw}-g1', 9, 'astrobotanica', 'Astrobotanica',
+        f'{botw}-g1':  IgdbEntry(f'{botw}-g1', 9, 'astrobotanica', 'Astrobotanica',
                                               {}, False, '2000-01-01T00:00:00'),
-        f'{astro}-g2': games_module.IgdbEntry(f'{astro}-g2', 9, 'astrobotanica', 'Astrobotanica',
+        f'{astro}-g2': IgdbEntry(f'{astro}-g2', 9, 'astrobotanica', 'Astrobotanica',
                                               {}, False, _NOW),   # newest → representative
     })
     r = client.get('/games/resolution-stats', headers=admin_header())
@@ -1269,27 +1277,27 @@ def test_stats_reports_a_merged_group_under_its_resolving_name(client):
 
 def test_detail_reports_whether_a_correction_applies(client, tmp_corrections):
     import corrections
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    assert games_module._load_game(ns)['corrected'] is False
+    assert serializers.load_game(ns)['corrected'] is False
 
     corrections.upsert('Silent Hill 2', igdb_id=1)
-    assert games_module._load_game(ns)['corrected'] is True
+    assert serializers.load_game(ns)['corrected'] is True
 
 
 def test_detail_corrected_flag_respects_podcast_scope(client, tmp_corrections):
     # A correction scoped to a podcast this entry has no episodes from must not
     # light up the "remove the correction" affordance.
     import corrections
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {})          # seeded as silence-on-joue
     corrections.upsert('Silent Hill 2', 'fin-du-game', igdb_id=1)
-    assert games_module._load_game(ns)['corrected'] is False
+    assert serializers.load_game(ns)['corrected'] is False
 
 
 def test_stats_marks_rows_a_correction_already_rules_on(client, tmp_corrections):
     import corrections
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-original': _entry(f'{ns}-original', 9, 'astrobotanica', 'Astrobotanica'),
     })
@@ -1309,7 +1317,7 @@ def test_stats_marks_rows_a_correction_already_rules_on(client, tmp_corrections)
 
 def test_stats_reports_read_only_deployments(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    with patch('games.corrections.is_writable', return_value=False):
+    with patch('corrections.is_writable', return_value=False):
         body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
     assert body['writable'] is False
 
@@ -1317,7 +1325,7 @@ def test_stats_reports_read_only_deployments(client, tmp_corrections):
 # ── Admin console: row shape + display-name edits ─────────────────────────────
 
 def test_stats_row_carries_what_the_console_renders(client, tmp_corrections):
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2--1', 'Silent Hill 2',
                                released='2024', coverImageId='co42'),
@@ -1341,7 +1349,7 @@ def test_stats_rows_are_newest_first(client, tmp_corrections):
 
 def test_stats_surfaces_the_current_display_name(client, tmp_corrections):
     import corrections
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {})
     corrections.upsert('Silent Hill 2', display_name='Silent Hill 2 (2001)')
     body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
@@ -1351,50 +1359,50 @@ def test_stats_surfaces_the_current_display_name(client, tmp_corrections):
 
 
 def test_catalog_applies_a_podcast_scoped_display_name(tmp_corrections):
-    # _group_display_name must look the correction up at the appearance's own
+    # group_display_name must look the correction up at the appearance's own
     # podcast scope, or a podcast_id-scoped rename would show in the admin
     # console (which passes podcast_id) but never in the catalog.
     import corrections
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2-remake', 'Silent Hill 2 Remake'),
     })
     corrections.upsert('Silent Hill 2', 'silence-on-joue',
                        display_name='Silent Hill 2 (renommé)')
-    names = {g['slug']: g['name'] for g in games_module._build_catalog()}
+    names = {g['slug']: g['name'] for g in serializers.build_catalog()}
     assert names['silent-hill-2-remake'] == 'Silent Hill 2 (renommé)'
 
 
 def test_renaming_does_not_re_resolve(client, tmp_corrections):
     # display_name is applied at response time, so a rename must not burn a round
     # of IGDB + Metacritic + HLTB calls to arrive at the same entry.
-    ns = games_module.make_slug('Silent Hill 2')
+    ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-original': _entry(f'{ns}-original', 1, 'silent-hill-2', 'Silent Hill 2'),
     })
-    before = games_module._data_version
-    with patch('games.fetch_by_id') as by_id, patch('games.fetch_by_name') as by_name:
+    before = state.data_version
+    with patch('resolver.fetch_by_id') as by_id, patch('resolver.fetch_by_name') as by_name:
         r = client.put('/games/corrections', headers=admin_header(),
                        json={'nameSlug': ns, 'displayName': 'Silent Hill 2 (2001)'})
     assert_contract(r, GAMES['corrections']['success'])
     by_id.assert_not_called()
     by_name.assert_not_called()
     # The cached resolution survives…
-    assert games_module._igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
+    assert state.igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
     # …but the derived caches are invalidated so the new name is served.
-    assert games_module._data_version > before
+    assert state.data_version > before
     assert r.get_json()['name'] == 'Silent Hill 2 (2001)'
 
 
 def test_correction_requires_a_pin_or_a_name(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
     r = client.put('/games/corrections', headers=admin_header(),
-                   json={'nameSlug': games_module.make_slug('Silent Hill 2')})
+                   json={'nameSlug': make_slug('Silent Hill 2')})
     assert_contract(r, GAMES['corrections']['bad_request'])
 
 
 def test_correction_rejects_a_non_integer_pin(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
     r = client.put('/games/corrections', headers=admin_header(),
-                   json={'nameSlug': games_module.make_slug('Silent Hill 2'), 'igdbId': 'nope'})
+                   json={'nameSlug': make_slug('Silent Hill 2'), 'igdbId': 'nope'})
     assert_contract(r, GAMES['corrections']['bad_request'])
