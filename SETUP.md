@@ -263,4 +263,5 @@ is validated on load, so a malformed entry fails the tests rather than productio
 | `METACRITIC_SCRAPE`  | `true`                       | Scrape the real Metascore during resolution; falls back to IGDB's aggregate |
 | `IGDB_TTL_HOURS`     | `720` (30 days)              | How long a cached IGDB resolution stays fresh |
 | `RESOLVE_RETRY_MINUTES` | `15`                      | Background tick: poll the feeds for new episodes, re-sweep pending appearances |
-| `DEBUG`            | `false`                        | Set `true` in dev to skip auth checks on proxy |
+| `<ID>_FEED_URL`    | *(see `podcasts.py`)*          | Repoint a podcast's feed (dashes → underscores, uppercased: `FIN_DU_GAME_FEED_URL`) |
+| `DEBUG`            | `false`                        | Dev ergonomics only (full invite/reset links in the logs, no insecure-`JWT_SECRET` refusal); never relaxes auth |

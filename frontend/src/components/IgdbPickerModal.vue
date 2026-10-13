@@ -27,14 +27,14 @@ const error    = ref(null)
 // independent, so this can be saved on its own — and doing so costs no IGDB call.
 const displayName = ref(props.game.displayName || '')
 const nameDirty = computed(() => displayName.value !== (props.game.displayName || ''))
-// '' = every podcast. Only offered when the game spans both shows, since that's
-// the only case where the two can legitimately need different IGDB games.
+// '' = every podcast. Only offered when the game spans several shows, since
+// that's the only case where they can legitimately need different IGDB games.
 const scope    = ref('')
 
 const scopeOptions = computed(() => {
   const ids = props.game.podcasts ?? []
   if (ids.length < 2) return []
-  return [{ id: '', name: 'Les deux podcasts' },
+  return [{ id: '', name: 'Tous les podcasts' },
           ...ids.map(id => ({ id, name: podcastMeta(id)?.name || id }))]
 })
 
@@ -151,7 +151,7 @@ onUnmounted(() => {
           leur propre fiche.
         </p>
 
-        <!-- Scope: only meaningful for a game both shows cover -->
+        <!-- Scope: only meaningful for a game several shows cover -->
         <div v-if="scopeOptions.length" class="flex flex-wrap gap-1.5 mb-3">
           <button
             v-for="opt in scopeOptions"
