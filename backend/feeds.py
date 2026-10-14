@@ -267,7 +267,11 @@ def _apply_llm_games(episodes: list[Episode]) -> list[Episode]:
         podcast = shows.get(ep.podcast_id)
         if podcast:
             payload = _llm_episode(podcast, ep)
-            names = llm.reviewed_games(payload, cached_only=True) if payload else None
+            # An older prompt's answer stands in until the current one is cached,
+            # so a prompt change doesn't drop these episodes (and, with them,
+            # their IGDB resolutions) for the half hour the re-read takes.
+            names = (llm.reviewed_games(payload, cached_only=True, any_version=True)
+                     if payload else None)
             if not names:
                 continue
             # A few episodes have chapters (The Besties, 2014–16): point each game

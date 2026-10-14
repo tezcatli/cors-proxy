@@ -30,17 +30,22 @@ def enabled() -> bool:
 
 
 def ask(task: str, version: int, system: str, payload: dict,
-        cached_only: bool = False) -> dict | None:
+        cached_only: bool = False, any_version: bool = False) -> dict | None:
     """The model's JSON object answer to `payload` under `system`, cached.
 
     None when the LLM is off or the call fails; a failure isn't cached, so the
     caller's next attempt asks again. `cached_only` never calls the model: it
-    answers from the cache or returns None.
+    answers from the cache or returns None. `any_version` (with `cached_only`)
+    falls back to the newest answer an older prompt gave for this input: a
+    prompt change must not empty the catalog while the new answers come in.
     """
     text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     key  = hashlib.sha256(f'{task}\0{version}\0{text}'.encode()).hexdigest()
     with get_db() as conn:
         row = conn.execute('SELECT answer FROM llm_cache WHERE key = ?', (key,)).fetchone()
+        if not row and any_version:
+            row = conn.execute('SELECT answer FROM llm_cache WHERE task = ? AND input = ? '
+                               'ORDER BY version DESC LIMIT 1', (task, text)).fetchone()
     if row:
         return json.loads(row['answer'])
     if cached_only or not enabled():
@@ -141,10 +146,13 @@ game or none; a grab bag several. When unsure, leave the game out.
 Answer with JSON only: {"reviewed": ["..."]}"""
 
 
-def reviewed_games(episode: dict, cached_only: bool = False) -> list[str] | None:
+def reviewed_games(episode: dict, cached_only: bool = False,
+                   any_version: bool = False) -> list[str] | None:
     """The games `episode` critiques ([] = none); None when not known (the LLM is
-    unavailable, or `cached_only` and it hasn't been asked yet)."""
-    answer = ask('reviewed', _REVIEWED_V, _REVIEWED, episode, cached_only=cached_only)
+    unavailable, or `cached_only` and it hasn't been asked yet). `any_version`
+    accepts an older prompt's answer (see `ask`)."""
+    answer = ask('reviewed', _REVIEWED_V, _REVIEWED, episode,
+                 cached_only=cached_only, any_version=any_version)
     if answer is None:
         return None
     return [g.strip() for g in answer.get('reviewed', []) if isinstance(g, str) and g.strip()]

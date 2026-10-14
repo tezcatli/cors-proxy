@@ -266,3 +266,17 @@ def test_an_llm_read_game_points_at_its_chapter():
         feeds._apply_llm_games([ep])
     assert [(g.name, g.timestamp_seconds) for g in ep.games] == [
         ("Luigi's Mansion: Dark Moon", 1770), ('Gears of War: Judgment', 180), ('Halo 4', 0)]
+
+
+def test_a_prompt_change_keeps_the_episodes_until_the_new_answers_come_in(llm_on, tc_feed, monkeypatch):
+    _refresh_tc()
+    with _llm_by_title(_TC_ANSWERS):
+        feeds.ask_llm_for_new_episodes()
+    monkeypatch.setattr(llm, '_REVIEWED_V', llm._REVIEWED_V + 1)
+    feeds.rebuild()
+    assert [e.slug for e in state.episodes] == ['tc-saros']   # the old answer stands in
+    answers = {**_TC_ANSWERS, 'Triple Play: Saros': {'reviewed': ['Saros', 'Returnal']}}
+    with _llm_by_title(answers) as post:
+        assert feeds.ask_llm_for_new_episodes() == 2          # yet both are asked again
+    assert post.call_count == 2
+    assert [g.name for g in state.episodes[0].games] == ['Saros', 'Returnal']

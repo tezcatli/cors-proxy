@@ -78,6 +78,8 @@ def init_db():
                 model      TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+            -- llm.ask(any_version=True): an older prompt's answer for this input.
+            CREATE INDEX IF NOT EXISTS llm_cache_task_input ON llm_cache (task, input);
         """)
         cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
         if 'igdb_slug' not in cols and cols:
