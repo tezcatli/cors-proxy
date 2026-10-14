@@ -13,7 +13,7 @@
 // sorting lives on the column headers.
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { fetchResolutionStats, refreshPodcastIgdb, openResolutionStream } from '../lib/games.js'
+import { fetchResolutionStats, refreshPodcastIgdb } from '../lib/games.js'
 import { useGamesStore } from '../stores/games.js'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
 import { formatDate } from '../lib/utils.js'
@@ -128,8 +128,6 @@ const filtersActive = computed(() =>
   podcastId.value !== 'all' || correctedOnly.value)
 
 // ── Data ────────────────────────────────────────────────────────────────────
-let _sse = null
-
 async function load() {
   try {
     stats.value = await fetchResolutionStats()
@@ -141,27 +139,11 @@ async function load() {
   }
 }
 
-// While a sweep runs the figures are a moving target; follow it to the end and
-// reload once, so the page settles on numbers that mean something.
-async function watchResolution() {
-  if (_sse) return
-  try {
-    _sse = await openResolutionStream()
-  } catch { return }
-  _sse.onmessage = (e) => {
-    if (JSON.parse(e.data).type === 'done') { _sse.close(); _sse = null; load() }
-  }
-  _sse.onerror = () => {
-    if (_sse && _sse.readyState === EventSource.CLOSED) { _sse = null; load() }
-  }
-}
-
 async function reresolvePodcast(id) {
   refreshingPodcast.value = id
   try {
     await refreshPodcastIgdb(id)
     await load()
-    watchResolution()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -172,17 +154,11 @@ async function reresolvePodcast(id) {
 function onSaved() {
   picking.value = null
   load()
-  gamesStore.load(false)   // the catalogue entry may have moved to a new slug
+  gamesStore.load()   // the catalogue entry may have moved to a new slug
 }
 
-onMounted(async () => {
-  await load()
-  if (stats.value?.pending) watchResolution()
-})
-onUnmounted(() => {
-  clearTimeout(_debounce)
-  if (_sse) { _sse.close(); _sse = null }
-})
+onMounted(load)
+onUnmounted(() => clearTimeout(_debounce))
 
 function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
 </script>
@@ -243,6 +219,9 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
               {{ stats.resolving ? 'Résolution en cours' : 'Résolution incomplète' }} —
               {{ stats.pending }} apparition(s) en attente. Les chiffres ne sont pas définitifs.
             </span>
+            <!-- A sweep can run for an hour: reload on demand rather than
+                 reshuffling the rows under the reader's eyes. -->
+            <button type="button" class="toolbar__reset ml-auto flex-shrink-0" @click="load">Actualiser</button>
           </p>
           <p v-if="!stats.writable" class="banner banner--muted">
             <Lock :size="14" class="flex-shrink-0" />

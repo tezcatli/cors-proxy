@@ -191,7 +191,6 @@ onUnmounted(() => _barObserver?.disconnect())
       :sort-mode="gamesStore.sortMode"
       :sort-asc="gamesStore.sortAsc"
       :loading="gamesStore.loading"
-      :resolving="gamesStore.resolving"
       :last-fetch="gamesStore.lastFetch"
       :hide-unresolved="hideUnresolved"
       :selected-podcast="gamesStore.selectedPodcast"

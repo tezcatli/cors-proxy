@@ -28,7 +28,7 @@ and the most specific matching entry wins:
                   different games under one name).
 
 Optional display:
-  display_name  — override the shown name. Applied at response time in games.py,
+  display_name  — override the shown name. Applied at response time in serializers.py,
                   independent of how the game resolved, so it composes with a pin.
 """
 import datetime
@@ -153,7 +153,7 @@ def _find(slug: str, pub_ts, podcast_id: str = ''):
 
 
 # Fields that change how an appearance resolves. display_name is deliberately
-# excluded: it's applied at response time in games.py, so a rename must not
+# excluded: it's applied at response time in serializers.py, so a rename must not
 # trigger a re-resolution.
 _SIG_FIELDS = ('igdb_id', 'search_name', 'hint_date')
 

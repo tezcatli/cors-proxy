@@ -67,9 +67,4 @@ describe('service worker offline navigation fallback', () => {
     const { listeners } = loadWorker();
     expect(navigateTo(listeners, `${origin}/auth/login`)).toBeUndefined();
   });
-
-  it('does not intercept the SSE resolution stream', () => {
-    const { listeners } = loadWorker();
-    expect(navigateTo(listeners, `${origin}/games/resolution-stream`)).toBeUndefined();
-  });
 });

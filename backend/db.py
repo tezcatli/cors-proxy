@@ -64,8 +64,22 @@ def init_db():
                 igdb_data TEXT,
                 is_child  INTEGER DEFAULT 0,
                 cached_at TEXT NOT NULL,
-                correction_sig TEXT
+                correction_sig TEXT,
+                enriched  INTEGER DEFAULT 1,
+                method    TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS llm_cache (
+                key        TEXT PRIMARY KEY,
+                task       TEXT NOT NULL,
+                version    INTEGER NOT NULL,
+                input      TEXT NOT NULL,
+                answer     TEXT NOT NULL,
+                model      TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            -- llm.ask(any_version=True): an older prompt's answer for this input.
+            CREATE INDEX IF NOT EXISTS llm_cache_task_input ON llm_cache (task, input);
         """)
         cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
         if 'igdb_slug' not in cols and cols:
@@ -76,6 +90,13 @@ def init_db():
             # NULL on legacy rows reads as '' ("resolved with no correction"), so on
             # first deploy any entry a current correction applies to re-resolves once.
             conn.execute("ALTER TABLE igdb_cache ADD COLUMN correction_sig TEXT")
+        if 'enriched' not in cols and cols:
+            # Every legacy row went through the full resolution, scrapers included.
+            conn.execute("ALTER TABLE igdb_cache ADD COLUMN enriched INTEGER DEFAULT 1")
+        if 'method' not in cols and cols:
+            # How the row was resolved: 'search', 'llm' or 'pin'. NULL on legacy rows
+            # = accepted as is; the dev audit (tools/llm_audit.py) reviews them.
+            conn.execute("ALTER TABLE igdb_cache ADD COLUMN method TEXT")
         user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
         if 'is_admin' not in user_cols and user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")

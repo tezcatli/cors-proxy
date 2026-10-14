@@ -76,14 +76,3 @@ export async function refreshPodcastIgdb(podcastId) {
                            { method: 'POST' })
   return r.json()
 }
-
-// A short-lived, stream-scoped token (not the session JWT) for the SSE URL.
-async function fetchStreamToken() {
-  const r = await apiFetch('/auth/stream-token')
-  return (await r.json()).token
-}
-
-export async function openResolutionStream() {
-  const token = await fetchStreamToken()
-  return new EventSource(`/games/resolution-stream?token=${encodeURIComponent(token)}`)
-}

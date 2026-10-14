@@ -255,7 +255,9 @@ def test_refresh_deleted_user_rejected(client):
     assert_contract(r, AUTH['refresh']['unauthorized'])
 
 
-# ── Stream token + scope (S3) / user-existence revocation (S6) ──────────────
+# ── Scoped tokens (S3) / user-existence revocation (S6) ─────────────────────
+# The SSE stream tokens are retired, but ones minted before the deploy stay valid
+# for an hour and travelled in URLs: no scoped token may act as a session.
 
 def _stream_token(uid=1):
     now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
@@ -266,26 +268,8 @@ def _stream_token(uid=1):
     )
 
 
-def test_stream_token_endpoint_returns_stream_scoped_token(client):
-    r = client.get('/auth/stream-token', headers=auth_header())
-    assert r.status_code == 200
-    claims = jwt.decode(r.get_json()['token'], Config.JWT_SECRET, algorithms=['HS256'])
-    assert claims['scope'] == 'stream'
-
-def test_stream_token_requires_auth(client):
-    assert client.get('/auth/stream-token').status_code == 401
-
 def test_stream_scoped_token_rejected_on_data_endpoint(client):
     r = client.get('/games', headers={'Authorization': f'Bearer {_stream_token()}'})
-    assert r.status_code == 401
-
-def test_resolution_stream_accepts_stream_token_in_query(client):
-    r = client.get(f'/games/resolution-stream?token={_stream_token()}')
-    assert r.status_code == 200
-
-def test_resolution_stream_rejects_full_jwt_in_query(client):
-    full = auth_header()['Authorization'].split(' ', 1)[1]
-    r = client.get(f'/games/resolution-stream?token={full}')
     assert r.status_code == 401
 
 def test_token_for_deleted_user_is_rejected(client):
@@ -432,13 +416,16 @@ def test_delete_user_requires_admin(client):
                     AUTH['delete_user']['forbidden'])
 
 def test_the_last_admin_cannot_be_removed(client, monkeypatch):
-    """Reachable when the caller isn't identified — i.e. a DEBUG dev session,
-    where `require_admin` is bypassed and the self-guard has nobody to compare
-    against. It is the only thing standing between dev and an admin-less DB."""
-    admin_header()                       # user 1 is now the sole admin
-    monkeypatch.setattr(Config, 'DEBUG', True)
-    assert_contract(client.delete('/auth/users/1'), AUTH['delete_user']['last_admin'])
-    assert_contract(client.patch('/auth/users/1', json={'is_admin': False}),
+    """Sequentially the self-guard always fires first (only the last admin can
+    target the last admin). The count check is what holds when it can't: two
+    admins demoting each other at once each pass their self-guard, and only the
+    in-transaction count stops the second. Simulate that by blinding the
+    self-guard."""
+    headers = admin_header()             # user 1 is now the sole admin
+    monkeypatch.setattr('auth._current_user_id', lambda: None)
+    assert_contract(client.delete('/auth/users/1', headers=headers),
+                    AUTH['delete_user']['last_admin'])
+    assert_contract(client.patch('/auth/users/1', json={'is_admin': False}, headers=headers),
                     AUTH['update_user']['last_admin'])
     assert _is_admin('__auth_fixture__@test')
 

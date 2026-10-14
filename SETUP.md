@@ -42,6 +42,10 @@ ADMIN_KEY=<long random string>
 IGDB_CLIENT_ID=<your igdb client id>
 IGDB_CLIENT_SECRET=<your igdb client secret>
 
+# LLM (optional): resolves names the IGDB search can't (French titles, abbreviations).
+# Set a spending limit on the key at openrouter.ai.
+OPENROUTER_API_KEY=<your openrouter key>
+
 # Base URL used to build invite and password-reset links.
 # In production this is the app's own subdomain: https://ludo.tezcat.fr
 RESET_BASE_URL=https://your-domain.com
@@ -63,31 +67,31 @@ python3 -c "import secrets; print(secrets.token_urlsafe(40))"
 
 ## Development
 
-In dev mode the Flask server runs with hot-reload (`DEBUG=true`), authentication is
-bypassed for proxy requests, and e-mail links are printed to the container logs instead
-of being sent.
+In dev mode the Flask server runs with hot-reload (`DEBUG=true`) and e-mail links are
+printed to the container logs instead of being sent. Authentication is **not** bypassed:
+dev runs the same auth code as prod, so you sign in with an account (step 3).
 
-**1. Create the secret files** (see above). `RESET_BASE_URL` can stay as
-`http://localhost:5000`.
+**1. Create the secret files** (see above). `RESET_BASE_URL` doesn't matter for dev:
+`docker-compose.dev.yml` sets it to `http://localhost:5173`.
 
 **2. Start the stack:**
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-The frontend is served at **http://localhost:5000** and the API at
-**http://localhost:5000**. In dev, frontend asset requests are proxied to Vite's
-hot-reload server on port `5173`.
+Open the app at **http://localhost:5173** (Vite, with hot reload). Vite forwards
+`/auth` and `/games` to Flask, which also answers directly at **http://localhost:5000**
+(API only — it serves no pages).
 
-**3. Invite the first user:**
+**3. Invite the first user** (`--admin` to reach the admin consoles):
 ```bash
 ADMIN_KEY=<your key> RESET_BASE_URL=http://localhost:5000 \
-  python invite.py alice@example.com
+  python invite.py --admin alice@example.com
 ```
 
 The invite URL is also printed in the `backend` container logs:
 ```
-INVITE LINK for alice@example.com → http://localhost:5000/?invite=…&email=…
+INVITE LINK for alice@example.com → http://localhost:5173/?invite=…
 ```
 
 Open the link in a browser to complete registration.
@@ -262,5 +266,8 @@ is validated on load, so a malformed entry fails the tests rather than productio
 | `IGDB_CLIENT_SECRET` | *(required)*                 | IGDB/Twitch application secret |
 | `METACRITIC_SCRAPE`  | `true`                       | Scrape the real Metascore during resolution; falls back to IGDB's aggregate |
 | `IGDB_TTL_HOURS`     | `720` (30 days)              | How long a cached IGDB resolution stays fresh |
-| `RESOLVE_RETRY_MINUTES` | `15`                      | Periodic re-sweep of never-resolved appearances |
-| `DEBUG`            | `false`                        | Set `true` in dev to skip auth checks on proxy |
+| `OPENROUTER_API_KEY` | *(empty)*                    | LLM-assisted resolution; off when empty (the plain IGDB search is used) |
+| `LLM_MODEL`          | `openai/gpt-6-luna`          | OpenRouter model id |
+| `RESOLVE_RETRY_MINUTES` | `15`                      | Background tick: poll the feeds for new episodes, re-sweep pending appearances |
+| `<ID>_FEED_URL`    | *(see `podcasts.py`)*          | Repoint a podcast's feed (dashes → underscores, uppercased: `FIN_DU_GAME_FEED_URL`) |
+| `DEBUG`            | `false`                        | Dev ergonomics only (full invite/reset links in the logs, no insecure-`JWT_SECRET` refusal); never relaxes auth |

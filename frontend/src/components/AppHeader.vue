@@ -10,7 +10,6 @@ const props = defineProps({
   sortMode:        String,
   sortAsc:         Boolean,
   loading:         Boolean,
-  resolving:       Boolean,
   lastFetch:       String,
   hideUnresolved:  Boolean,
   selectedPodcast: String,
@@ -197,12 +196,12 @@ function closeSearch() { searchOpen.value = false }
       <!-- Refresh -->
       <button
         class="icon-action"
-        :disabled="loading || resolving"
-        :aria-label="loading ? 'Chargement…' : resolving ? 'Résolution IGDB en cours…' : (lastFetchLabel ? `Actualiser (mis à jour ${lastFetchLabel})` : 'Actualiser')"
-        :title="resolving ? 'Résolution IGDB en cours…' : (lastFetchLabel ? `Mis à jour ${lastFetchLabel}` : 'Actualiser')"
+        :disabled="loading"
+        :aria-label="loading ? 'Chargement…' : (lastFetchLabel ? `Actualiser (mis à jour ${lastFetchLabel})` : 'Actualiser')"
+        :title="lastFetchLabel ? `Mis à jour ${lastFetchLabel}` : 'Actualiser'"
         @click="emit('refresh')"
       >
-        <RotateCw :size="17" :stroke-width="2.25" :class="{ 'animate-spin': loading || resolving }" />
+        <RotateCw :size="17" :stroke-width="2.25" :class="{ 'animate-spin': loading }" />
       </button>
 
       <!-- Account slot -->

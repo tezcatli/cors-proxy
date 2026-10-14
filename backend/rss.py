@@ -185,7 +185,8 @@ def _extract_chapters(text: str) -> list[Chapter]:
             chapters.append(Chapter(
                 timestamp=ts_str,
                 timestamp_seconds=_parse_timestamp(ts_str),
-                title=m.group(2).strip(),
+                # « 22:00 - Shovel Knight »: the separator isn't part of the title.
+                title=re.sub(r'^[-–—:]+\s*', '', m.group(2).strip()),
             ))
     return chapters
 

@@ -248,8 +248,7 @@
       "success": {
         "status": 200,
         "fields": [
-          "games",
-          "pending"
+          "games"
         ]
       },
       "unauthorized": {
@@ -296,8 +295,7 @@
       "success": {
         "status": 200,
         "fields": [
-          "games",
-          "pending"
+          "games"
         ]
       },
       "upstream_error": {
@@ -456,17 +454,6 @@
       },
       "forbidden": {
         "status": 403,
-        "fields": [
-          "error"
-        ]
-      }
-    },
-    "resolution_stream": {
-      "success": {
-        "status": 200
-      },
-      "unauthorized": {
-        "status": 401,
         "fields": [
           "error"
         ]

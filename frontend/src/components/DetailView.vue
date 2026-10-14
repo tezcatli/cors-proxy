@@ -136,7 +136,7 @@ const pickerTarget = computed(() => {
 
 async function onCorrectionSaved(detail) {
   pickerOpen.value = false
-  await gamesStore.load(false)
+  await gamesStore.load()
   // Pinning a different game moves the entry to a new igdb_slug — follow it,
   // or we'd sit on a route that no longer exists in the catalog.
   if (detail?.slug && detail.slug !== route.params.slug) {
@@ -174,7 +174,7 @@ async function refreshIgdb() {
     // Re-resolution can move the entry to a different igdb_slug — follow it
     // (same as onCorrectionSaved), or we'd sit on a route with no catalog entry.
     if (result.slug && result.slug !== route.params.slug) {
-      await gamesStore.load(false)
+      await gamesStore.load()
       router.replace(`/game/${encodeURIComponent(result.slug)}`)
       return
     }
