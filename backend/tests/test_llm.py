@@ -88,10 +88,9 @@ def test_the_llm_resolves_a_translated_name(llm_on):
          patch('resolver.search_games', side_effect=lambda q: [
              {'id': 42, 'name': 'The Plucky Squire', 'released': '2024'}] if 'Plucky' in q else []), \
          patch('resolver.fetch_by_id', return_value=_PLUCKY) as by_id, \
-         patch('resolver.fetch_by_name') as by_name:
+         patch('resolver.fetch_by_name', return_value=None):
         entry = _resolve()
     by_id.assert_called_once_with(42)        # canonical, like the name search
-    by_name.assert_not_called()
     assert (entry.igdb_id, entry.method) == (42, 'llm')
 
 
@@ -158,6 +157,7 @@ def test_a_provisional_search_result_goes_to_the_llm_not_a_renewal(llm_on):
     with _llm_answers({'titles': ['The Plucky Squire']}, {'id': 42}), \
          patch('resolver.search_games', return_value=[
              {'id': 42, 'name': 'The Plucky Squire', 'released': '2024'}]), \
+         patch('resolver.fetch_by_name', return_value=None), \
          patch('resolver.fetch_by_id', return_value=_PLUCKY) as by_id:
         entry = _resolve()
     by_id.assert_called_once_with(42)        # not the renewal's (42, canonical=False)
@@ -287,6 +287,7 @@ def test_a_name_the_llm_already_read_skips_the_titles_question(llm_on):
          patch('resolver.search_games', return_value=[
              {'id': 42, 'name': 'Saros', 'released': '2026'}]) as search, \
          patch('resolver.fetch_by_id', return_value=_PLUCKY), \
+         patch('resolver.fetch_by_name', return_value=None), \
          patch('resolver.metacritic.fetch_metascore', return_value=None), \
          patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
          patch('resolver.fetch_time_to_beat', return_value=None):
@@ -294,3 +295,17 @@ def test_a_name_the_llm_already_read_skips_the_titles_question(llm_on):
     assert post.call_count == 1                 # only the pick
     search.assert_called_once_with('Saros')
     assert state.igdb_cache['saros-tc1'].method == 'llm'
+
+
+def test_the_name_searchs_match_is_offered_beside_the_free_text_results(llm_on):
+    # IGDB's search lists only DLCs and seasons for some base games.
+    with _llm_answers({'titles': ['The Plucky Squire']}, {'id': 42}) as post, \
+         patch('resolver.search_games', return_value=[
+             {'id': 9, 'name': 'The Plucky Squire - Season 2', 'released': '2025'}]), \
+         patch('resolver.fetch_by_name', return_value=_PLUCKY), \
+         patch('resolver.fetch_by_id') as by_id:
+        entry = _resolve()
+    offered = json.loads(post.call_args_list[1].kwargs['json']['messages'][1]['content'])
+    assert {c['id'] for c in offered['candidates']} == {9, 42}
+    by_id.assert_not_called()
+    assert entry.igdb_id == 42

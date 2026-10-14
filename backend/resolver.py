@@ -175,20 +175,20 @@ def _resolve_with_llm(name: str, podcast_id: str, pub_ts: int | None):
         for c in search_games(query):
             candidates.setdefault(c['id'], {'id': c['id'], 'name': c['name'],
                                             'year': c['released']})
-    # IGDB's free-text search misses some titles its name search finds (« The
-    # Séance of Blake Manor » returns nothing): offer that match as a candidate
-    # rather than conclude no game fits.
-    fallback = None
+    # IGDB's free-text search misses some games its name search finds: nothing
+    # at all for « The Séance of Blake Manor », only DLCs and seasons for
+    # « Honkai: Star Rail » or « Fall Guys ». Always offer that match too.
+    fallback = fetch_by_name(*_search_args(name, pub_ts, podcast_id, None))
+    if fallback is not None:
+        candidates.setdefault(fallback.id, {
+            'id': fallback.id, 'name': fallback.name,
+            'year': ((fallback.data or {}).get('released') or '')[:4] or None})
     if not candidates:
-        fallback = fetch_by_name(*_search_args(name, pub_ts, podcast_id, None))
-        if fallback is None:
-            return False
-        candidates[fallback.id] = {'id': fallback.id, 'name': fallback.name,
-                                   'year': ((fallback.data or {}).get('released') or '')[:4] or None}
+        return False
     chosen = llm.pick_candidate(name, context, list(candidates.values()))
     if not chosen:
         return chosen
-    if fallback is not None:
+    if fallback is not None and chosen == fallback.id:
         return fallback                      # already canonical
     # Canonical, like the name search: a DLC or port the model picked groups
     # under its parent game.
