@@ -270,7 +270,15 @@ def _apply_llm_games(episodes: list[Episode]) -> list[Episode]:
             names = llm.reviewed_games(payload, cached_only=True) if payload else None
             if not names:
                 continue
-            ep.games = [GameMention(name=n, timestamp=None, timestamp_seconds=0) for n in names]
+            # A few episodes have chapters (The Besties, 2014–16): point each game
+            # at its own, as the title-parsed shows do.
+            ep.games = []
+            for n in names:
+                chapter = find_chapter_for_game(n, ep.chapters)
+                ep.games.append(GameMention(
+                    name=n,
+                    timestamp=chapter.timestamp if chapter else None,
+                    timestamp_seconds=chapter.timestamp_seconds if chapter else 0))
         kept.append(ep)
     return kept
 

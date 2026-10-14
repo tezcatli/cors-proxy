@@ -250,3 +250,19 @@ def test_without_the_llm_an_llm_read_show_contributes_nothing(tc_feed):
         assert feeds.ask_llm_for_new_episodes() == 0
     post.assert_not_called()
     assert state.episodes == []
+
+
+def test_an_llm_read_game_points_at_its_chapter():
+    from models import Chapter, Episode
+    from rss import _extract_chapters
+    chapters = _extract_chapters('03:00 - Gears of War: Judgment\n29:30 -- Luigi\'s Mansion: Dark Moon')
+    assert [c.title for c in chapters] == ['Gears of War: Judgment', "Luigi's Mansion: Dark Moon"]
+    ep = Episode(title='The Besties Podcast 50', slug='bes-50', audio_url='', pub_ts=None,
+                 image_url=None, description='', chapters=chapters, games=[],
+                 podcast_id='the-besties')
+    with patch.object(feeds, 'PODCASTS', [PODCAST_BY_ID['the-besties']]), \
+         patch('feeds.llm.reviewed_games',
+               return_value=["Luigi's Mansion: Dark Moon", 'Gears of War: Judgment', 'Halo 4']):
+        feeds._apply_llm_games([ep])
+    assert [(g.name, g.timestamp_seconds) for g in ep.games] == [
+        ("Luigi's Mansion: Dark Moon", 1770), ('Gears of War: Judgment', 180), ('Halo 4', 0)]
