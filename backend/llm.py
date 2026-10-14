@@ -1,6 +1,6 @@
 """An LLM (via OpenRouter) for what a search engine can't judge: which IGDB entry a
 podcast's wording means (a French translation, an abbreviation, an old game
-named in a 2026 episode), and which games an episode reviews.
+named in a 2026 episode), and which games an episode critiques.
 
 Off when `OPENROUTER_API_KEY` is unset, and every caller has a non-LLM fallback,
 so an outage never blocks the catalog. Each answer is cached in `llm_cache` by
@@ -120,25 +120,29 @@ def pick_candidate(name: str, context: dict, candidates: list[dict]) -> int | bo
     return chosen
 
 
-# ── Which games an episode reviews ────────────────────────────────────────────
+# ── Which games an episode critiques ──────────────────────────────────────────
 # For shows whose titles don't reliably name the game ("Wolverine Is a Disaster").
-# Measured on 254 episodes of The Besties and Triple Click: the main game is found
-# even when the show's own list omits it, and names come out official.
+# Critiques only, not every game discussed: measured on 200 episodes this halves
+# the games (451 → 219) — news, best-of lists, series retrospectives and games
+# named for comparison drop out; a grab bag of recent releases keeps each game.
 
-_REVIEWED_V = 1
-_REVIEWED = """You index video game podcast episodes so listeners can find reviews.
-Given one episode (show, title, date, description), list the video games it
-REVIEWS: games the hosts actually discuss at some length — a full review,
-impressions, or a segment of a round-up episode. Leave out games only mentioned
-in passing (comparisons, references, a quick aside), and anything that isn't a
-video game (films, TV, books, hardware, companies). Use each game's full
-official title as IGDB lists it. An episode about news, a general topic or
-listener mail usually reviews none: return an empty list.
+_REVIEWED_V = 2
+_REVIEWED = """You index video game podcast episodes so listeners can find CRITIQUES of games.
+Given one episode (show, title, date, description), list the games it critiques:
+a game the hosts have played and give their verdict on — a review, or one game's
+segment in a grab bag of recent releases they have been playing. Nothing else:
+- not games brought up for comparison or context, nor a game's predecessors;
+- not retrospectives on a series, history or "required playing" episodes;
+- not best-of / game-of-the-year lists or rankings;
+- not previews, trailers, announcements, news or recommendations ("one more thing");
+- nothing that isn't a video game.
+Use each game's full official title as IGDB lists it. Most episodes critique one
+game or none; a grab bag several. When unsure, leave the game out.
 Answer with JSON only: {"reviewed": ["..."]}"""
 
 
 def reviewed_games(episode: dict, cached_only: bool = False) -> list[str] | None:
-    """The games `episode` reviews ([] = none); None when not known (the LLM is
+    """The games `episode` critiques ([] = none); None when not known (the LLM is
     unavailable, or `cached_only` and it hasn't been asked yet)."""
     answer = ask('reviewed', _REVIEWED_V, _REVIEWED, episode, cached_only=cached_only)
     if answer is None:

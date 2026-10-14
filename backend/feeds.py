@@ -235,7 +235,7 @@ def _rebuild(errors: list[str]) -> None:
 
 # ── Games read by the LLM ─────────────────────────────────────────────────────
 # Shows with `games_by_llm`: an episode's games are whatever the LLM said it
-# reviews. Only cached answers are used while rebuilding (that runs on request
+# critiques. Only cached answers are used while rebuilding (that runs on request
 # paths and must not wait on a model); `ask_llm_for_new_episodes` fills the cache
 # from the background, then rebuilds. Until then an episode stays out.
 
