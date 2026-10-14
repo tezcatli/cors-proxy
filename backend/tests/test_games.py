@@ -1473,3 +1473,18 @@ def test_correction_rejects_a_non_integer_pin(client, tmp_corrections):
     r = client.put('/games/corrections', headers=admin_header(),
                    json={'nameSlug': make_slug('Silent Hill 2'), 'igdbId': 'nope'})
     assert_contract(r, GAMES['corrections']['bad_request'])
+
+
+def test_a_game_is_scraped_once_for_all_its_episodes():
+    # Metacritic and HowLongToBeat take ~1–10 s a game: a second episode on the
+    # same game reuses the figures instead of scraping them again.
+    hit = lambda n, ts: _igdb_hit('Zelda')
+    with patch('resolver.fetch_by_name', side_effect=hit), \
+         patch('resolver.metacritic.fetch_metascore', return_value=91) as mc, \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=40) as hl:
+        resolver.resolve_one('zelda-ep1', 'Zelda', None, use_llm=False)
+        resolver.resolve_one('zelda-ep2', 'Zelda', None, use_llm=False)
+    assert mc.call_count == hl.call_count == 1
+    second = state.igdb_cache['zelda-ep2']
+    assert second.enriched
+    assert (second.data['metacritic'], second.data['timeToBeatHours']) == (91, 40)

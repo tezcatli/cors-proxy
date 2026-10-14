@@ -22,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
-                podcast_id: str = '', enrich: bool = True,
-                episode_title: str = '', use_llm: bool = True) -> None:
+                podcast_id: str = '', enrich: bool = True, use_llm: bool = True) -> None:
     """Resolve one appearance against IGDB and cache it (memory + DB).
 
     Order: a corrections.json entry; else, for an appearance already resolved
@@ -68,7 +67,7 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
             # Never resolved, a miss, a provisional search, or a renewed id IGDB no
             # longer has. A correction's search_name/hint_date means a curator
             # chose the search, so the LLM stays out of it.
-            found = (_resolve_with_llm(name, podcast_id, pub_ts, episode_title)
+            found = (_resolve_with_llm(name, podcast_id, pub_ts)
                      if use_llm and not correction else None)
             if found is not None:
                 result, method = found or None, 'llm'
@@ -79,7 +78,11 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
         logger.warning('IGDB resolution failed slug=%r name=%r: %s', podcast_slug, name, exc)
         return
 
-    if enrich and result and result.data is not None:
+    if enrich and result and result.data is not None and (shared := _enrichment_of(result.id, podcast_slug)):
+        # Another appearance of this game was enriched within the TTL: the scrapers
+        # (~1–10 s a game) would only fetch the same figures again.
+        result.data.update(shared)
+    elif enrich and result and result.data is not None:
         # Real Metacritic score (overrides the IGDB aggregate already in the blob),
         # and durée de vie — HowLongToBeat primary, IGDB time-to-beat fallback. Both
         # best-effort: any failure leaves the IGDB value / hides the stat.
@@ -108,6 +111,21 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
     ))
 
 
+_ENRICHED_FIELDS = ('metacritic', 'timeToBeatHours')
+
+
+def _enrichment_of(igdb_id: int, podcast_slug: str) -> dict | None:
+    """The scraped figures of another enriched, unexpired appearance of `igdb_id`
+    (not this one's own: renewing it is how its figures get refreshed)."""
+    with state.lock:
+        siblings = [e for e in state.igdb_cache.values()
+                    if e.igdb_id == igdb_id and e.enriched and e.data
+                    and e.podcast_slug != podcast_slug]
+    fresh = fresh_slugs((e.podcast_slug, e) for e in siblings)
+    entry = next((e for e in siblings if e.podcast_slug in fresh), None)
+    return {f: entry.data.get(f) for f in _ENRICHED_FIELDS} if entry else None
+
+
 def _search_args(name, pub_ts, podcast_id, correction) -> tuple[str, int | None]:
     """(name, date hint) for `fetch_by_name`."""
     search_name = (correction or {}).get('search_name') or name
@@ -125,14 +143,16 @@ def _search_args(name, pub_ts, podcast_id, correction) -> tuple[str, int | None]
     return search_name, pub_ts
 
 
-def _resolve_with_llm(name: str, podcast_id: str, pub_ts: int | None,
-                      episode_title: str):
+def _resolve_with_llm(name: str, podcast_id: str, pub_ts: int | None):
     """The IGDB game the LLM says `name` means: an IgdbResult, False when it
     judges that no IGDB entry fits (cached as a miss), or None when the LLM is
     unavailable (the caller falls back to the name search).
 
     The model never supplies an id: it names the game (translating, expanding),
-    we search IGDB for its candidates, and it picks among those."""
+    we search IGDB for its candidates, and it picks among those.
+
+    The context is the show and the year, not the episode: a name heard in
+    several episodes of a year is then one question, not one per episode."""
     if not llm.enabled():
         return None
     podcast = PODCAST_BY_ID.get(podcast_id)
@@ -140,11 +160,12 @@ def _resolve_with_llm(name: str, podcast_id: str, pub_ts: int | None,
         'podcast':       podcast.name if podcast else '',
         'show_covers':   ('retrospectives of older games' if podcast and not podcast.use_date_hint
                           else 'new releases'),
-        'episode_title': episode_title,
-        'episode_date':  (datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc)
-                          .date().isoformat() if pub_ts else None),
+        'episode_year':  (datetime.datetime.fromtimestamp(pub_ts, datetime.timezone.utc).year
+                          if pub_ts else None),
     }
-    titles = llm.official_titles(name, context)
+    # A show whose games the LLM read already has official titles: asking the
+    # model to name the game again would only cost a call.
+    titles = [name] if podcast and podcast.games_by_llm else llm.official_titles(name, context)
     if titles is None:
         return None
     if not titles:
@@ -181,8 +202,7 @@ def resolve_members(members) -> None:
 
 def resolve_appearance(game, appearance, **kwargs) -> None:
     ep = appearance.episode
-    resolve_one(appearance.podcast_slug, game.name, ep.pub_ts, ep.podcast_id,
-                episode_title=ep.title, **kwargs)
+    resolve_one(appearance.podcast_slug, game.name, ep.pub_ts, ep.podcast_id, **kwargs)
 
 
 # ── What is pending ───────────────────────────────────────────────────────────

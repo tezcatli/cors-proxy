@@ -80,9 +80,9 @@ def ask(task: str, version: int, system: str, payload: dict,
 # Two calls, so the model never makes up an id: it first says which game the
 # name means, we fetch IGDB's candidates for that, then it picks one of them.
 
-_TITLES_V = 1
+_TITLES_V = 2
 _TITLES = """You help match video game names heard on podcasts to the IGDB database.
-Given a name as a podcast wrote it and the episode's context, give the official
+Given a name as a podcast wrote it and its context (show, year), give the official
 title(s) IGDB most likely lists the game under: translate a French title to its
 international one ("Le Vaillant Petit Page" -> "The Plucky Squire"), expand an
 abbreviation ("GTA V" -> "Grand Theft Auto V"), fix a typo. Most likely first,
@@ -98,12 +98,12 @@ def official_titles(name: str, context: dict) -> list[str] | None:
     return [t for t in answer.get('titles', []) if isinstance(t, str) and t.strip()][:3]
 
 
-_PICK_V = 1
+_PICK_V = 2
 _PICK = """You help match video game names heard on podcasts to the IGDB database.
-Given a name as a podcast wrote it, the episode's context and IGDB candidates
+Given a name as a podcast wrote it, its context (show, year) and IGDB candidates
 (id, name, release year), pick the candidate the podcast is talking about. Use
-the context: a show covering new releases discusses the version current at the
-episode's date (a 2024 remake over the 1998 original); a retrospective show
+the context: a show covering new releases discusses the version current in the
+episode's year (a 2024 remake over the 1998 original); a retrospective show
 discusses the original. Prefer the main game over a DLC, bundle or edition
 unless the name says otherwise. If no candidate is the game, answer null.
 Answer with JSON only: {"id": <candidate id or null>}"""

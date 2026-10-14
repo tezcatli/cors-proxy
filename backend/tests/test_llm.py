@@ -79,7 +79,7 @@ def _resolve(**kw):
          patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
          patch('resolver.fetch_time_to_beat', return_value=None):
         resolver.resolve_one(_SLUG, 'Le Vaillant Petit Page', 1_700_000_000,
-                             'silence-on-joue', episode_title='«Le Vaillant Petit Page»', **kw)
+                             'silence-on-joue', **kw)
     return state.igdb_cache[_SLUG]
 
 
@@ -280,3 +280,17 @@ def test_a_prompt_change_keeps_the_episodes_until_the_new_answers_come_in(llm_on
         assert feeds.ask_llm_for_new_episodes() == 2          # yet both are asked again
     assert post.call_count == 2
     assert [g.name for g in state.episodes[0].games] == ['Saros', 'Returnal']
+
+
+def test_a_name_the_llm_already_read_skips_the_titles_question(llm_on):
+    with _llm_answers({'id': 42}) as post, \
+         patch('resolver.search_games', return_value=[
+             {'id': 42, 'name': 'Saros', 'released': '2026'}]) as search, \
+         patch('resolver.fetch_by_id', return_value=_PLUCKY), \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
+        resolver.resolve_one('saros-tc1', 'Saros', 1_778_000_000, 'triple-click')
+    assert post.call_count == 1                 # only the pick
+    search.assert_called_once_with('Saros')
+    assert state.igdb_cache['saros-tc1'].method == 'llm'
