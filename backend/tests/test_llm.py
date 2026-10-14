@@ -102,6 +102,16 @@ def test_a_name_the_llm_rules_out_is_a_settled_miss(llm_on):
     assert (entry.igdb_id, entry.method) == (None, 'llm')
 
 
+def test_a_title_igdbs_free_text_search_misses_goes_through_the_name_search(llm_on):
+    with _llm_answers({'titles': ['The Plucky Squire']}, {'id': 42}), \
+         patch('resolver.search_games', return_value=[]), \
+         patch('resolver.fetch_by_name', return_value=_PLUCKY), \
+         patch('resolver.fetch_by_id') as by_id:
+        entry = _resolve()
+    by_id.assert_not_called()
+    assert (entry.igdb_id, entry.method) == (42, 'llm')
+
+
 def test_without_the_llm_the_name_search_still_resolves(llm_on):
     with patch('llm.http.post', side_effect=OSError('down')), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY):
