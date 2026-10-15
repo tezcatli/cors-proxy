@@ -64,10 +64,15 @@ const gameCoverImageId = computed(() =>
 
 const { cssVars } = useArtworkAccent(gameCoverImageId)
 
-const isPlaying = computed(() =>
+const isThisTrack = computed(() =>
   !!playerStore.current && playerStore.current.url === episode.value?.audioUrl
 )
-const activeChapter = computed(() => isPlaying.value ? playerStore.currentChapter : null)
+// Opened from a game's page, the main button plays *that* game's review: the
+// same audio playing another game's review doesn't count.
+const isPlaying = computed(() =>
+  isThisTrack.value && (slug == null || playerStore.current.slug === slug)
+)
+const activeChapter = computed(() => isThisTrack.value ? playerStore.currentChapter : null)
 
 function playFrom(ts, timestamp) {
   if (!episode.value?.audioUrl) return

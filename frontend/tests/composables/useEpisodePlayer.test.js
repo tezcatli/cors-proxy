@@ -60,3 +60,29 @@ describe('useEpisodePlayer · resume from saved progress', () => {
     expect(playerStore.current.ts).toBe(100)
   })
 })
+
+describe('useEpisodePlayer · another game of the same episode', () => {
+  const ctx = slug => ({ value: { name: slug, slug, coverImageId: null } })
+
+  it("doesn't count the episode as playing on another game's page", () => {
+    const zelda = useEpisodePlayer(ctx('zelda'))
+    zelda.playEp(ep)
+    const mario = useEpisodePlayer(ctx('mario'))
+    expect(zelda.isEpPlaying(ep)).toBe(true)
+    expect(mario.isEpPlaying(ep)).toBe(false)
+  })
+
+  it("starts the other game's review rather than resuming the first", () => {
+    seedProgress(150)                       // partway through Zelda's chapter
+    useEpisodePlayer(ctx('zelda')).playEp(ep)
+    const { playEp, playerStore } = useEpisodePlayer(ctx('mario'))
+    playEp({ ...ep, timestampSeconds: 300 })
+    expect(playerStore.current.slug).toBe('mario')
+    expect(playerStore.current.ts).toBe(300)
+  })
+
+  it('still counts it as playing in the feed, which has no game context', () => {
+    useEpisodePlayer(ctx('zelda')).playEp(ep)
+    expect(useEpisodePlayer().isEpPlaying(ep)).toBe(true)
+  })
+})
