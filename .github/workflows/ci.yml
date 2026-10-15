@@ -11,6 +11,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Weekly rebuild of main: the base images (python/nginx alpine) take their
+  # security fixes only when an image is rebuilt, and nothing else rebuilds
+  # without a commit. Same sha, same tag — the deploy pulls, so it still ships.
+  schedule:
+    - cron: '0 4 * * 1'
 
 # Not cancel-in-progress: interrupting a job that is halfway through starting
 # containers on the host is the failure mode this exists to prevent.
@@ -27,6 +32,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+
+      # Blocking only on what ships: the backend's runtime requirements and the
+      # SPA's runtime dependencies. Dev tooling never reaches the host.
+      - name: Audit runtime dependencies
+        run: |
+          pipx run pip-audit -r backend/requirements.txt
+          cd frontend && npm audit --omit=dev --audit-level=high
 
       - name: Backend tests
         run: ./test-backend.sh
@@ -73,6 +85,8 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: true
+          # Re-resolve the floating base tags rather than reuse a cached one.
+          pull: true
           tags: |
             ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:${{ github.sha }}
             ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:latest
