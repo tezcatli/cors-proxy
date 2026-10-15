@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:24-alpine
 # No glob on the lockfile: it is committed, and a missing one should fail the
 # build rather than silently resolve different versions than CI tested.
 COPY package.json package-lock.json /

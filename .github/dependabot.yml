@@ -1,0 +1,26 @@
+# Weekly update PRs; ci.yml tests each one before anything can reach main.
+# Minor and patch bumps are grouped into one PR per ecosystem; a major bump
+# comes alone, since it is the kind that needs a migration (tailwind 4, vite 8…).
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
+
+  - package-ecosystem: docker
+    directories: [/backend, /frontend, /nginx]
+    schedule: { interval: weekly }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { update-types: [minor, patch, major] }

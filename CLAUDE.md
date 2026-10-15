@@ -60,6 +60,8 @@ ssh user@tezcat.fr "cd ~/opt/silence && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<old-s
   && docker compose -f compose.yml up -d"
 ```
 
+**Keeping dependencies current.** Dependabot (`.github/dependabot.yml`) opens weekly PRs for pip, npm, the Dockerfiles' base images and the Actions — minor/patch grouped, each major alone — and CI tests them like any PR. CI fails on a known vulnerability in what ships (`pip-audit` on `requirements.txt`, `npm audit --omit=dev --audit-level=high`); dev tooling is not audited. A weekly scheduled run rebuilds and redeploys `main` with `pull: true`, because the floating `python:3.14-alpine` / `nginx:alpine` tags only bring their security fixes in when an image is rebuilt. (GitHub disables scheduled workflows after 60 days without repo activity.)
+
 ### User management
 
 ```bash

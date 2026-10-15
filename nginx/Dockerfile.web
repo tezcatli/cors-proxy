@@ -3,7 +3,7 @@
 #
 #   docker build -f nginx/Dockerfile.web -t silence-web .
 
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 # Copy the manifests alone first so the dependency layer is reused whenever only
 # application sources changed.
