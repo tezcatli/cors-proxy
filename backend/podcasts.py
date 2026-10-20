@@ -31,7 +31,7 @@ class Podcast:
     use_date_hint: bool = True
     # For a show whose titles don't reliably name the game: an LLM reads each
     # episode's title and description and says which games it reviews
-    # (`feeds.ask_llm_for_new_episodes`). Without the LLM such a show contributes
+    # (`resolver.schedule_llm_reads`). Without the LLM such a show contributes
     # no episodes. `skip_title` drops items that aren't the show (another
     # podcast's teaser) before anything is asked.
     games_by_llm: bool = False

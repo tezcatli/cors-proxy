@@ -11,6 +11,7 @@ import feeds
 import hltb
 import llm
 import metacritic
+import worker
 from config import Config
 from corrections import find_by_podcast
 from db import utcnow
@@ -296,74 +297,71 @@ def count_pending() -> int:
 
 
 # ── The sweep ─────────────────────────────────────────────────────────────────
+# Planned as one job per appearance and per game on the worker, so a request's
+# job never waits behind a whole sweep. Each job checks again when it runs: the
+# plan may be minutes old by then.
 
-_resolve_lock   = threading.Lock()
-_resolve_thread: threading.Thread | None = None
-_resolve_stop:   threading.Event  | None = None
-
-
-def _resolve_pending(stop: threading.Event) -> None:
-    global _resolve_stop
-    try:
-        with state.lock:
-            games = dict(state.game_index)
-        if not games:
-            return
-
-        # Which game each appearance is, first: a resolution caches its game too.
-        cache = state.entries()
-        for game in games.values():
-            for appearance in game.appearances:
-                if stop.is_set():
-                    return
-                entry = cache.get(appearance.podcast_slug)
-                if resolution_pending(game, appearance, entry.resolution if entry else None):
-                    resolve_appearance(game, appearance)
-
-        # Then each game's data, once per game however many episodes discuss it.
-        stale = {e.igdb_id for e in state.entries().values()
-                 if e.igdb_id is not None and game_pending(e.game)}
-        for igdb_id in stale:
-            if stop.is_set():
-                return
-            refresh_game(igdb_id)
-    finally:
-        with _resolve_lock:
-            if _resolve_stop is stop:
-                _resolve_stop = None
+def schedule_resolve() -> None:
+    """Plan a sweep over whatever is pending. Cheap, and a no-op while one is
+    already planned: every job it queues is keyed."""
+    worker.submit(_plan_sweep, key='sweep')
 
 
-def schedule_resolve(force: bool = False) -> None:
-    global _resolve_thread, _resolve_stop
-    with _resolve_lock:
-        if not force and _resolve_thread and _resolve_thread.is_alive():
-            return
-        if _resolve_stop:
-            _resolve_stop.set()
-        stop            = threading.Event()
-        _resolve_stop   = stop
-        _resolve_thread = threading.Thread(target=_resolve_pending, args=(stop,), daemon=True)
-        _resolve_thread.start()
+def _plan_sweep() -> None:
+    with state.lock:
+        games = list(state.game_index.values())
+    # Which game each appearance is, first: a resolution caches its game too.
+    cache   = state.entries()
+    planned = 0
+    for game in games:
+        for appearance in game.appearances:
+            entry = cache.get(appearance.podcast_slug)
+            if resolution_pending(game, appearance, entry.resolution if entry else None):
+                worker.submit(_resolve_if_pending, game, appearance,
+                              key=f'resolve:{appearance.podcast_slug}')
+                planned += 1
+    # Then each game's data, once per game however many episodes discuss it.
+    stale = {e.igdb_id for e in state.entries().values()
+             if e.igdb_id is not None and game_pending(e.game)}
+    for igdb_id in stale:
+        worker.submit(_refresh_if_pending, igdb_id, key=f'game:{igdb_id}')
+    if planned or stale:
+        logger.info('Sweep: %d appearance(s) to resolve, %d game(s) to refresh',
+                    planned, len(stale))
+
+
+def _resolve_if_pending(game, appearance) -> None:
+    if resolution_pending(game, appearance, state.resolutions.get(appearance.podcast_slug)):
+        resolve_appearance(game, appearance)
+
+
+def _refresh_if_pending(igdb_id: int) -> None:
+    with state.lock:
+        wanted = any(r.igdb_id == igdb_id for r in state.resolutions.values())
+        game   = state.games.get(igdb_id)
+    if wanted and game_pending(game):
+        refresh_game(igdb_id)
 
 
 def is_resolving() -> bool:
-    return bool(_resolve_thread and _resolve_thread.is_alive())
+    return worker.busy()
 
 
-# How long POST /refresh may spend on brand-new games before answering. Measured
-# at ~0.3 s per game for IGDB alone, so a typical new episode (2–5 games) fits;
-# whatever doesn't is left to the background sweep.
+# How long POST /refresh may spend on brand-new episodes and games before
+# answering. Measured at ~0.3 s per game for IGDB alone, so a typical new
+# episode (2–5 games) fits; whatever doesn't is left to the sweep.
 REFRESH_BUDGET_S = 10
 
 
-def resolve_new(budget_s: float) -> None:
-    """IGDB-only pass over never-cached appearances, bounded by `budget_s`.
-
-    A user pulls to refresh right after an episode comes out, so this is when
-    someone is watching: the response should already carry the new games' names
-    and covers. Metacritic + HLTB (seconds each, and often timing out) are left to
-    the background sweep — see `resolve_one(enrich=False)`."""
+def quick_pass(budget_s: float) -> None:
+    """POST /refresh's work after the fetch, as one worker job: someone pulled to
+    refresh right after an episode came out and is watching, so the response
+    should already carry the new games' names and covers. Reads new episodes of
+    LLM-read shows, then resolves never-cached appearances IGDB-only — Metacritic
+    + HLTB (seconds each, and often timing out) and the LLM's say are left to the
+    sweep (`resolve_one(enrich=False, use_llm=False)`)."""
     deadline = time.monotonic() + budget_s
+    feeds.read_new_episodes(deadline)
     with state.lock:
         todo = [(g, a) for g in state.game_index.values() for a in g.appearances
                 if a.podcast_slug not in state.resolutions]
@@ -372,6 +370,26 @@ def resolve_new(budget_s: float) -> None:
             logger.info('Refresh budget spent; leaving new appearances to the sweep')
             break
         resolve_appearance(game, appearance, enrich=False, use_llm=False)
+    schedule_resolve()
+
+
+def schedule_llm_reads() -> None:
+    """Queue every episode the LLM hasn't read, one job each; the first to answer
+    queues a rebuild — behind the reads already waiting, so on a first launch
+    (hundreds of episodes) the catalog is rebuilt once, not per episode."""
+    for payload in feeds.unread_episodes():
+        worker.submit(_read_episode, payload,
+                      key=f"llm:{payload['show']}:{payload['date']}:{payload['title']}")
+
+
+def _read_episode(payload: dict) -> None:
+    if feeds.read_episode(payload):
+        worker.submit(_rebuild_and_sweep, key='rebuild')
+
+
+def _rebuild_and_sweep() -> None:
+    feeds.rebuild()
+    schedule_resolve()
 
 
 # ── Background tick: poll the feeds, retry what's pending ─────────────────────
@@ -379,35 +397,34 @@ def resolve_new(budget_s: float) -> None:
 _periodic_stop: threading.Event | None = None
 
 
-def _periodic_resolve(stop: threading.Event) -> None:
+def _tick() -> None:
+    # Poll every tick: the feeds answer 304 when nothing changed, so this costs a
+    # few conditional GETs, and a new episode is picked up — and its games
+    # resolved — within one interval, usually before anyone looks.
+    try:
+        feeds.refresh_feed()
+    except Exception as exc:
+        logger.warning('Periodic feed refresh failed: %s', exc)
+    # New episodes of LLM-read shows (a few a week) get their games read.
+    schedule_llm_reads()
+    # Unresolved, re-corrected and due-for-retry appearances, unscraped and
+    # expired games alike (resolving or fetching moves the stamp, so this
+    # self-limits).
+    schedule_resolve()
+
+
+def _periodic(stop: threading.Event) -> None:
     interval = Config.RESOLVE_RETRY_MINUTES * 60
     while not stop.wait(interval):
-        try:
-            # Poll every tick: the feeds answer 304 when nothing changed, so this
-            # costs two conditional GETs, and a new episode is picked up — and its
-            # games resolved — within one interval, usually before anyone looks.
-            try:
-                feeds.refresh_feed()
-            except Exception as exc:
-                logger.warning('Periodic feed refresh failed: %s', exc)
-            # New episodes of LLM-read shows (a few a week) get their games here.
-            feeds.ask_llm_for_new_episodes()
-            # Unresolved and re-corrected appearances, unscraped and expired games
-            # alike (resolving or fetching refreshes the stamp, so this self-limits).
-            pending = count_pending()
-            if pending:
-                logger.info('Periodic re-resolve: %d pending appearance(s)', pending)
-                schedule_resolve()
-        except Exception:
-            logger.exception('Periodic re-resolve tick failed')
+        worker.submit(_tick, key='tick')
 
 
-def _start_periodic_resolve() -> None:
+def _start_periodic() -> None:
     global _periodic_stop
     if _periodic_stop:
         return
     _periodic_stop = threading.Event()
-    threading.Thread(target=_periodic_resolve, args=(_periodic_stop,), daemon=True).start()
+    threading.Thread(target=_periodic, args=(_periodic_stop,), daemon=True).start()
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
@@ -419,12 +436,14 @@ def _startup() -> None:
     except Exception as exc:
         logger.warning('Startup RSS fetch failed: %s', exc)
     schedule_resolve()
-    _start_periodic_resolve()
     # On the first launch this reads every episode of the LLM-read shows — long,
-    # so after the sweep and the tick are up; their games then resolve in a sweep.
-    if feeds.ask_llm_for_new_episodes():
-        schedule_resolve()
+    # but one job each, behind the sweep; their games then resolve in another.
+    schedule_llm_reads()
 
 
 def startup_warmup() -> None:
-    threading.Thread(target=_startup, daemon=True).start()
+    worker.start()
+    # HIGH, and queued before any request can be: a cold-start GET /games waiting
+    # on the feed must find the IGDB cache already loaded.
+    worker.submit(_startup, key='startup', priority=worker.HIGH)
+    _start_periodic()

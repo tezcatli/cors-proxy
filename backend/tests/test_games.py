@@ -462,7 +462,7 @@ def test_refresh_serves_cache_on_parse_error(client):
         client.get('/games', headers=auth_header())
     # a malformed feed (non-RequestException) must NOT 500 when we already have data
     with patch('feeds.refresh_feed', side_effect=ValueError('malformed XML')), \
-         patch('resolver.resolve_new'), patch('resolver.schedule_resolve'):
+         patch('resolver.quick_pass'), patch('resolver.schedule_resolve'):
         r = client.post('/games/refresh', headers=auth_header())
     assert r.status_code == 200
     assert any(g['name'] == 'Zelda' for g in r.get_json()['games'])
@@ -538,7 +538,7 @@ def test_game_detail_surfaces_display_name_and_igdb_name(client, tmp_corrections
 
 def test_refresh_always_fetches(client):
     with patch('feeds.http.get', return_value=mock_rss_response()) as mock_get, \
-         patch('resolver.resolve_new'), patch('resolver.schedule_resolve'):
+         patch('resolver.quick_pass'), patch('resolver.schedule_resolve'):
         r = client.post('/games/refresh', headers=auth_header())
     assert_contract(r, GAMES['refresh']['success'])
     mock_get.assert_called_once()
@@ -597,7 +597,7 @@ def test_refresh_leaves_new_games_to_the_sweep_once_the_budget_is_spent(client):
          patch('resolver.REFRESH_BUDGET_S', 0):
         client.post('/games/refresh', headers=auth_header())
     by_name.assert_not_called()
-    sweep.assert_called_once_with(force=True)
+    sweep.assert_called_once_with()
 
 
 def test_unenriched_flag_survives_a_restart():
@@ -605,36 +605,6 @@ def test_unenriched_flag_survives_a_restart():
         resolver.resolve_one('zelda-g1', 'Zelda', None, enrich=False)
     state.load_igdb_cache_from_db()
     assert state.entry('zelda-g1').game.enriched is False
-
-
-def test_concurrent_refreshes_coalesce():
-    # Two threads refreshing at once must fetch each feed once: the waiter sees
-    # _cached_at moved while it was queued on _refresh_lock and piggybacks.
-    import threading
-    import time as _time
-    gate  = threading.Event()
-    calls = []
-
-    def slow_get(url, **kwargs):
-        calls.append(url)
-        gate.wait(5)
-        return mock_rss_response()
-
-    with patch('feeds.http.get', side_effect=slow_get):
-        t1 = threading.Thread(target=feeds.refresh_feed)
-        t2 = threading.Thread(target=feeds.refresh_feed)
-        t1.start()
-        for _ in range(200):                    # until t1 is inside the fetch
-            if calls:
-                break
-            _time.sleep(0.01)
-        t2.start()
-        _time.sleep(0.05)                       # t2 now queued on the lock
-        gate.set()
-        t1.join(2)
-        t2.join(2)
-    assert len(calls) == 1
-    assert state.cached_at is not None
 
 
 # ── POST /games/<slug>/igdb-refresh ──────────────────────────────────────────
@@ -1048,7 +1018,6 @@ _EXPIRED = '2000-01-01T00:00:00'
 def _sweep(cached, by_id=None):
     """Run the background sweep over Chrono Trigger's appearance with `cached`
     (a function of the appearance) in the cache; returns the two IGDB mocks."""
-    import threading
     game, appearance = _single_soj_game()
     set_cache({appearance.podcast_slug: cached(appearance)})
     with patch('resolver.fetch_by_id', return_value=by_id) as by_id_mock, \
@@ -1056,7 +1025,7 @@ def _sweep(cached, by_id=None):
          patch('resolver.metacritic.fetch_metascore', return_value=None), \
          patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
          patch('resolver.fetch_time_to_beat', return_value=None):
-        resolver._resolve_pending(threading.Event())
+        resolver.schedule_resolve()
     return by_id_mock, by_name, appearance.podcast_slug
 
 

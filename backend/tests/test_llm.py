@@ -266,7 +266,7 @@ def test_an_unread_episode_stays_out_until_the_llm_reads_it(llm_on, tc_feed):
     _refresh_tc()
     assert state.episodes == []
     with _llm_by_title(_TC_ANSWERS) as post:
-        assert feeds.ask_llm_for_new_episodes() == 2
+        assert feeds.read_new_episodes() == 2
     assert post.call_count == 2                       # the teaser is never asked about
     assert [(e.slug, [g.name for g in e.games]) for e in state.episodes] == [('tc-saros', ['Saros'])]
     sent = [json.loads(c.kwargs['json']['messages'][1]['content']) for c in post.call_args_list]
@@ -277,16 +277,16 @@ def test_an_unread_episode_stays_out_until_the_llm_reads_it(llm_on, tc_feed):
 def test_read_episodes_are_not_asked_about_again(llm_on, tc_feed):
     _refresh_tc()
     with _llm_by_title(_TC_ANSWERS):
-        feeds.ask_llm_for_new_episodes()
+        feeds.read_new_episodes()
     with patch('llm.http.post') as post:
-        assert feeds.ask_llm_for_new_episodes() == 0
+        assert feeds.read_new_episodes() == 0
     post.assert_not_called()
 
 
 def test_without_the_llm_an_llm_read_show_contributes_nothing(tc_feed):
     _refresh_tc()
     with patch('llm.http.post') as post:
-        assert feeds.ask_llm_for_new_episodes() == 0
+        assert feeds.read_new_episodes() == 0
     post.assert_not_called()
     assert state.episodes == []
 
@@ -310,13 +310,13 @@ def test_an_llm_read_game_points_at_its_chapter():
 def test_a_prompt_change_keeps_the_episodes_until_the_new_answers_come_in(llm_on, tc_feed, monkeypatch):
     _refresh_tc()
     with _llm_by_title(_TC_ANSWERS):
-        feeds.ask_llm_for_new_episodes()
+        feeds.read_new_episodes()
     monkeypatch.setattr(llm, '_REVIEWED_V', llm._REVIEWED_V + 1)
     feeds.rebuild()
     assert [e.slug for e in state.episodes] == ['tc-saros']   # the old answer stands in
     answers = {**_TC_ANSWERS, 'Triple Play: Saros': {'reviewed': ['Saros', 'Returnal']}}
     with _llm_by_title(answers) as post:
-        assert feeds.ask_llm_for_new_episodes() == 2          # yet both are asked again
+        assert feeds.read_new_episodes() == 2          # yet both are asked again
     assert post.call_count == 2
     assert [g.name for g in state.episodes[0].games] == ['Saros', 'Returnal']
 

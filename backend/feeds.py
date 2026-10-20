@@ -1,12 +1,14 @@
-"""Fetching the podcast feeds and rebuilding the in-memory catalog from them."""
+"""Fetching the podcast feeds and rebuilding the in-memory catalog from them.
+
+Everything here that writes runs on the worker (`worker.py`), one job at a time,
+so none of it takes a lock of its own beyond `catalog_state.lock` for readers.
+"""
 import datetime
 import json
 import logging
 import pathlib
 import re
-import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from html import unescape as _html_unescape
 
 import requests as http
@@ -155,9 +157,6 @@ def _fetch_feed(podcast) -> bool:
     return True
 
 
-_refresh_lock = threading.Lock()
-
-
 def refresh_feed() -> None:
     """Fetch every registered podcast, then recombine all feeds into one catalog.
 
@@ -165,45 +164,34 @@ def refresh_feed() -> None:
     doesn't abort the others as long as we already have cached episodes for it.
     If *no* feed yields any episodes, the whole refresh raises so the caller can
     keep serving the previous cache rather than blanking it.
-
-    Serialized: a caller that waited on the lock while another thread refreshed
-    piggybacks on that result instead of re-fetching (the concurrent callers are
-    a cold-start catalog request, the periodic thread, and POST /refresh — all of
-    which just want "fresh now").
     """
-    before = state.cached_at
-    with _refresh_lock:
-        if state.cached_at is not before:
-            return
+    errors: list[str] = []
+    changed = False
+    for podcast in PODCASTS:
+        try:
+            changed |= _fetch_feed(podcast)
+        except Exception as exc:
+            errors.append(f'{podcast.id}: {exc}')
+            logger.warning('Feed fetch failed for %s: %s', podcast.id, exc)
 
-        errors: list[str] = []
-        changed = False
-        for podcast in PODCASTS:
-            try:
-                changed |= _fetch_feed(podcast)
-            except Exception as exc:
-                errors.append(f'{podcast.id}: {exc}')
-                logger.warning('Feed fetch failed for %s: %s', podcast.id, exc)
-
-        # The feeds are polled every few minutes and almost always answer 304:
-        # rebuilding then would bump data_version and invalidate every client's
-        # ETag for nothing.
-        if not changed and state.episodes:
-            with state.lock:
-                state.cached_at = utcnow()
-            return
-        _rebuild(errors)
+    # The feeds are polled every few minutes and almost always answer 304:
+    # rebuilding then would bump data_version and invalidate every client's
+    # ETag for nothing.
+    if not changed and state.episodes:
+        with state.lock:
+            state.cached_at = utcnow()
+        return
+    _rebuild(errors)
 
 
 def rebuild() -> None:
     """Recombine the feeds already fetched into the catalog — after the LLM has
     answered for new episodes, which changes their games but not the feeds."""
-    with _refresh_lock:
-        _rebuild([])
+    _rebuild([])
 
 
 def _rebuild(errors: list[str]) -> None:
-    """Combine every feed's episodes into the catalog. Caller holds _refresh_lock."""
+    """Combine every feed's episodes into the catalog."""
     # Cached lists survive a 304 or a failed fetch.
     episodes = [ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])]
     if not episodes:
@@ -235,9 +223,10 @@ def _rebuild(errors: list[str]) -> None:
 
 # ── Games read by the LLM ─────────────────────────────────────────────────────
 # Shows with `games_by_llm`: an episode's games are whatever the LLM said it
-# critiques. Only cached answers are used while rebuilding (that runs on request
-# paths and must not wait on a model); `ask_llm_for_new_episodes` fills the cache
-# from the background, then rebuilds. Until then an episode stays out.
+# critiques. Only cached answers are used while rebuilding, which must not wait on
+# a model; the cache is filled one episode per worker job (`resolver.schedule_llm_reads`)
+# or, within POST /refresh's budget, by `read_new_episodes`. Until then an episode
+# stays out.
 
 def _llm_shows() -> dict[str, object]:
     return {p.id: p for p in PODCASTS if p.games_by_llm}
@@ -287,35 +276,30 @@ def _apply_llm_games(episodes: list[Episode]) -> list[Episode]:
     return kept
 
 
-_llm_lock     = threading.Lock()
-_LLM_PARALLEL = 4
+def unread_episodes() -> list[dict]:
+    """What the LLM is shown of every fetched episode it hasn't read yet."""
+    if not llm.enabled():
+        return []
+    return [payload for podcast in _llm_shows().values()
+            for ep in _feed_episodes.get(podcast.id, [])
+            if (payload := _llm_episode(podcast, ep)) is not None
+            and llm.reviewed_games(payload, cached_only=True) is None]
 
 
-def ask_llm_for_new_episodes(budget_s: float | None = None) -> int:
-    """Ask the LLM about every fetched episode it hasn't read, then rebuild the
-    catalog if any answered. Returns how many answered. A run already in
-    progress makes this a no-op (the first launch reads hundreds of episodes)."""
-    if not llm.enabled() or not _llm_lock.acquire(blocking=False):
-        return 0
-    try:
-        deadline = time.monotonic() + budget_s if budget_s is not None else None
-        todo = [payload for podcast in _llm_shows().values()
-                for ep in _feed_episodes.get(podcast.id, [])
-                if (payload := _llm_episode(podcast, ep)) is not None
-                and llm.reviewed_games(payload, cached_only=True) is None]
+def read_episode(payload: dict) -> bool:
+    """Ask the LLM about one episode; True once it has answered (now or before)."""
+    return llm.reviewed_games(payload) is not None
 
-        def read(payload) -> bool:
-            if deadline is not None and time.monotonic() >= deadline:
-                return False
-            return llm.reviewed_games(payload) is not None
 
-        # A few at a time: each call takes seconds, and the first launch has
-        # hundreds of episodes to read.
-        with ThreadPoolExecutor(_LLM_PARALLEL) as pool:
-            answered = sum(pool.map(read, todo))
-        if answered:
-            logger.info('LLM read %d new episode(s); rebuilding the catalog', answered)
-            rebuild()
-        return answered
-    finally:
-        _llm_lock.release()
+def read_new_episodes(deadline: float | None = None) -> int:
+    """Read every unread episode — until the monotonic `deadline`, if given — and
+    rebuild the catalog if any answered. Returns how many answered."""
+    answered = 0
+    for payload in unread_episodes():
+        if deadline is not None and time.monotonic() >= deadline:
+            break
+        answered += read_episode(payload)
+    if answered:
+        logger.info('LLM read %d new episode(s); rebuilding the catalog', answered)
+        rebuild()
+    return answered

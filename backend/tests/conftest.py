@@ -20,6 +20,8 @@ import pytest
 from app import create_app
 from config import Config
 import catalog_state as _state
+import worker as _worker
+_worker.inline = True      # jobs run at once, in the test's thread
 import feeds as _feeds
 import games as _games
 from podcasts import PODCAST_BY_ID as _PODCAST_BY_ID
