@@ -14,7 +14,7 @@ from config import Config
 from corrections import find_by_podcast
 from db import utcnow
 from igdb import fetch_by_id, fetch_by_name, fetch_time_to_beat, search_games
-from models import IgdbEntry
+from models import IgdbEntry, IgdbGame, Resolution
 from podcasts import PODCAST_BY_ID
 from utils import make_slug
 
@@ -23,50 +23,30 @@ logger = logging.getLogger(__name__)
 
 def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
                 podcast_id: str = '', enrich: bool = True, use_llm: bool = True) -> None:
-    """Resolve one appearance against IGDB and cache it (memory + DB).
+    """Decide which IGDB game one appearance is, and cache that decision (memory + DB).
 
-    Order: a corrections.json entry; else, for an appearance already resolved
-    under the same correction, a *renewal* (its cached igdb_id re-fetched, see
-    `renew_id`); else the LLM (`_resolve_with_llm`); else the name search.
+    Order: a corrections.json entry; else the LLM (`_resolve_with_llm`); else the
+    name search. The game's data is cached once per game (`_store_game`), so an
+    appearance landing on a game already fetched costs no second fetch or scrape.
 
     `enrich=False` skips the slow, flaky scrapers (Metacritic, HowLongToBeat:
-    ~1–10 s per game against ~0.3 s for IGDB) and caches the entry as
+    ~1–10 s per game against ~0.3 s for IGDB) and caches a new game as
     `enriched=False`, which keeps it pending so the background sweep completes it.
     `use_llm=False` (the same quick pass) goes straight to the name search; the
-    row is then cached as `method='search'`, which keeps it pending too."""
+    resolution is then cached as `method='search'`, which keeps it pending too."""
     logger.info('Resolving IGDB for slug=%r name=%r', podcast_slug, name)
     # corrections.json outranks everything else.
     correction = find_by_podcast(name, pub_ts, podcast_id)
     pinned_id  = (correction or {}).get('igdb_id')
-    sig        = corrections.fingerprint(correction)
-    with state.lock:
-        cached = state.igdb_cache.get(podcast_slug)
-    # Already resolved, under the correction still in force: refresh that game's
-    # data rather than search again. A new search can land on another game (IGDB
-    # added a same-name remaster since), silently undoing a resolution that was
-    # right. Re-searching takes a purge: a correction, or an explicit igdb-refresh.
-    # A plain search result is the exception while the LLM is on: it's provisional.
-    renew_id = (cached.igdb_id if cached and cached.igdb_id and not pinned_id
-                and cached.correction_sig == sig
-                and not (llm.enabled() and cached.method == 'search') else None)
-    method = 'pin' if correction else None
+    method     = 'pin' if correction else None
     try:
-        result = None
         if pinned_id:
             # A pinned id is authoritative — don't let canonical resolution redirect
             # it (e.g. a remake IGDB models as a "port" of an earlier version).
             result = fetch_by_id(pinned_id, canonical=False)
-        elif renew_id:
-            # The cached id is already the canonical one, so no redirect — but the
-            # entry keeps its is_child, which ranks it within its catalog group.
-            result = fetch_by_id(renew_id, canonical=False)
-            if result:
-                result = result._replace(is_child=cached.is_child)
-                method = cached.method
-        if result is None and not pinned_id:
-            # Never resolved, a miss, a provisional search, or a renewed id IGDB no
-            # longer has. A correction's search_name/hint_date means a curator
-            # chose the search, so the LLM stays out of it.
+        else:
+            # A correction's search_name/hint_date means a curator chose the
+            # search, so the LLM stays out of it.
             found = (_resolve_with_llm(name, podcast_id, pub_ts)
                      if use_llm and not correction else None)
             if found is not None:
@@ -74,56 +54,72 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
             else:
                 result = fetch_by_name(*_search_args(name, pub_ts, podcast_id, correction))
                 method = method or 'search'
+        if result:
+            _store_game(result, enrich)
     except Exception as exc:
         logger.warning('IGDB resolution failed slug=%r name=%r: %s', podcast_slug, name, exc)
         return
 
-    if enrich and result and result.data is not None and (shared := _enrichment_of(result.id, podcast_slug)):
-        # Another appearance of this game was enriched within the TTL: the scrapers
-        # (~1–10 s a game) would only fetch the same figures again.
-        result.data.update(shared)
-    elif enrich and result and result.data is not None:
+    state.store_resolution(Resolution(
+        podcast_slug=podcast_slug,
+        igdb_id=result.id if result else None,
+        is_child=result.is_child if result else False,
+        resolved_at=utcnow().isoformat(),
+        # Fingerprint the correction actually used, so a later sweep can tell when a
+        # shipped corrections.json rules differently on this appearance than it did here.
+        correction_sig=corrections.fingerprint(correction),
+        method=method,
+    ))
+
+
+def _store_game(result, enrich: bool) -> None:
+    """Cache `result`'s game, unless the cached copy is good enough: fetched within
+    the TTL and enriched — or any copy at all on the quick pass, which leaves an
+    expired one to the sweep rather than replace it with unscraped data."""
+    with state.lock:
+        cached = state.games.get(result.id)
+    if cached and (not enrich or (cached.enriched and is_fresh(cached.fetched_at))):
+        return
+    _write_game(result, enrich)
+
+
+def _write_game(result, enrich: bool) -> None:
+    data = dict(result.data)
+    if enrich:
         # Real Metacritic score (overrides the IGDB aggregate already in the blob),
         # and durée de vie — HowLongToBeat primary, IGDB time-to-beat fallback. Both
         # best-effort: any failure leaves the IGDB value / hides the stat.
         mc = metacritic.fetch_metascore(result.name)
         if mc is not None:
-            result.data['metacritic'] = mc
-        result.data['timeToBeatHours'] = (
-            hltb.fetch_time_to_beat(result.name, result.data.get('released'))
+            data['metacritic'] = mc
+        data['timeToBeatHours'] = (
+            hltb.fetch_time_to_beat(result.name, data.get('released'))
             or fetch_time_to_beat(result.id)
         )
-
-    state.store_entry(IgdbEntry(
-        podcast_slug=podcast_slug,
-        igdb_id=result.id             if result else None,
-        igdb_slug=(result.slug or make_slug(result.name)) if result else None,
-        name=result.name              if result else None,
-        data=result.data              if result else None,
-        is_child=result.is_child      if result else False,
-        cached_at=utcnow().isoformat(),
-        # Fingerprint the correction actually used, so a later sweep can tell when a
-        # shipped corrections.json rules differently on this appearance than it did here.
-        correction_sig=sig,
-        # Nothing to enrich on a miss.
-        enriched=enrich or not (result and result.data is not None),
-        method=method,
+    state.store_game(IgdbGame(
+        igdb_id=result.id,
+        igdb_slug=result.slug or make_slug(result.name),
+        name=result.name,
+        data=data,
+        fetched_at=utcnow().isoformat(),
+        enriched=enrich,
     ))
 
 
-_ENRICHED_FIELDS = ('metacritic', 'timeToBeatHours')
-
-
-def _enrichment_of(igdb_id: int, podcast_slug: str) -> dict | None:
-    """The scraped figures of another enriched, unexpired appearance of `igdb_id`
-    (not this one's own: renewing it is how its figures get refreshed)."""
-    with state.lock:
-        siblings = [e for e in state.igdb_cache.values()
-                    if e.igdb_id == igdb_id and e.enriched and e.data
-                    and e.podcast_slug != podcast_slug]
-    fresh = fresh_slugs((e.podcast_slug, e) for e in siblings)
-    entry = next((e for e in siblings if e.podcast_slug in fresh), None)
-    return {f: entry.data.get(f) for f in _ENRICHED_FIELDS} if entry else None
+def refresh_game(igdb_id: int) -> None:
+    """Re-fetch a game by id — expired, never scraped, or missing — and re-scrape
+    it. Its appearances keep their resolution: re-searching their names could land
+    on a same-name game IGDB added since and silently undo a right resolution. When
+    IGDB no longer has the id, those appearances are searched again."""
+    try:
+        result = fetch_by_id(igdb_id, canonical=False)
+        if result is None:
+            logger.info('IGDB no longer has game %d; re-resolving its appearances', igdb_id)
+            state.drop_game(igdb_id)
+            return
+        _write_game(result, enrich=True)
+    except Exception as exc:
+        logger.warning('IGDB refresh failed igdb_id=%d: %s', igdb_id, exc)
 
 
 def _search_args(name, pub_ts, podcast_id, correction) -> tuple[str, int | None]:
@@ -207,36 +203,49 @@ def resolve_appearance(game, appearance, **kwargs) -> None:
 
 # ── What is pending ───────────────────────────────────────────────────────────
 
-def fresh_slugs(cache_items) -> set:
-    """Cache keys resolved within the IGDB TTL window. Compares parsed datetimes,
-    not ISO strings, so a whole-second timestamp (no fractional part) can't
-    mis-sort against a fractional cutoff."""
+def is_fresh(stamp: str) -> bool:
+    """Whether `stamp` is within the IGDB TTL. Compares parsed datetimes, not ISO
+    strings, so a whole-second timestamp (no fractional part) can't mis-sort
+    against a fractional cutoff."""
     cutoff = utcnow() - datetime.timedelta(hours=Config.IGDB_TTL_HOURS)
-    return {
-        slug for slug, entry in cache_items
-        if datetime.datetime.fromisoformat(entry.cached_at) > cutoff
-    }
+    return datetime.datetime.fromisoformat(stamp) > cutoff
 
 
-def appearance_pending(game, appearance, cache, fresh) -> bool:
-    """Whether the resolver should (re)resolve this appearance.
+def resolution_pending(game, appearance, resolution: Resolution | None) -> bool:
+    """Whether the resolver should decide (again) which game this appearance is.
 
-    Pending when it is TTL-stale or never cached (`fresh`), when it was cached
-    without enrichment (`POST /refresh`'s quick pass), or when the correction in
-    force now fingerprints differently than when it was last resolved — the
-    latter is how a corrections.json shipped to an already-deployed instance takes
-    effect: an added, changed *or removed* correction shifts the fingerprint and
-    re-resolves exactly the affected appearances, nothing else."""
-    if appearance.podcast_slug not in fresh:
+    Pending when never resolved; when IGDB had no match and the TTL has passed
+    (it may have added the game since); when it is a plain search result while the
+    LLM is on (provisional: the LLM hasn't had its say); or when the correction in
+    force now fingerprints differently than when it was resolved — that is how a
+    corrections.json shipped to an already-deployed instance takes effect: an
+    added, changed *or removed* correction re-resolves exactly the affected
+    appearances. A match is never re-searched for its age: `game_pending` renews
+    its data by id."""
+    if resolution is None:
         return True
-    cached = cache.get(appearance.podcast_slug)
-    if cached is None or not cached.enriched:
+    if resolution.igdb_id is None and not is_fresh(resolution.resolved_at):
         return True
-    if llm.enabled() and cached.method == 'search':
-        return True             # provisional: the LLM hasn't had its say yet
+    if llm.enabled() and resolution.method == 'search':
+        return True
     current = corrections.fingerprint(find_by_podcast(
         game.name, appearance.episode.pub_ts, appearance.episode.podcast_id))
-    return cached.correction_sig != current
+    return resolution.correction_sig != current
+
+
+def game_pending(game: IgdbGame | None) -> bool:
+    """Whether a game an appearance is resolved to needs (re)fetching: missing,
+    never scraped (`POST /refresh`'s quick pass), or past the TTL."""
+    return game is None or not game.enriched or not is_fresh(game.fetched_at)
+
+
+def appearance_pending(game, appearance, cache: dict[str, IgdbEntry]) -> bool:
+    """Whether the sweep still has work for this appearance, either decision.
+    `cache` is a `catalog_state.entries()` snapshot."""
+    entry = cache.get(appearance.podcast_slug)
+    if entry is None or resolution_pending(game, appearance, entry.resolution):
+        return True
+    return entry.igdb_id is not None and game_pending(entry.game)
 
 
 def count_pending() -> int:
@@ -244,10 +253,9 @@ def count_pending() -> int:
     tick and the admin console ask, so it isn't memoised."""
     with state.lock:
         games = list(state.game_index.values())
-        cache = dict(state.igdb_cache)
-    fresh = fresh_slugs(cache.items())
+    cache = state.entries()
     return sum(1 for game in games for a in game.appearances
-               if appearance_pending(game, a, cache, fresh))
+               if appearance_pending(game, a, cache))
 
 
 # ── The sweep ─────────────────────────────────────────────────────────────────
@@ -261,23 +269,27 @@ def _resolve_pending(stop: threading.Event) -> None:
     global _resolve_stop
     try:
         with state.lock:
-            games      = dict(state.game_index)
-            cache_snap = list(state.igdb_cache.items())
+            games = dict(state.game_index)
         if not games:
             return
 
-        cache = dict(cache_snap)
-        fresh = fresh_slugs(cache_snap)
-
+        # Which game each appearance is, first: a resolution caches its game too.
+        cache = state.entries()
         for game in games.values():
-            if stop.is_set():
-                break
-            pending = [a for a in game.appearances
-                       if appearance_pending(game, a, cache, fresh)]
-            for appearance in pending:
+            for appearance in game.appearances:
                 if stop.is_set():
-                    break
-                resolve_appearance(game, appearance)
+                    return
+                entry = cache.get(appearance.podcast_slug)
+                if resolution_pending(game, appearance, entry.resolution if entry else None):
+                    resolve_appearance(game, appearance)
+
+        # Then each game's data, once per game however many episodes discuss it.
+        stale = {e.igdb_id for e in state.entries().values()
+                 if e.igdb_id is not None and game_pending(e.game)}
+        for igdb_id in stale:
+            if stop.is_set():
+                return
+            refresh_game(igdb_id)
     finally:
         with _resolve_lock:
             if _resolve_stop is stop:
@@ -317,7 +329,7 @@ def resolve_new(budget_s: float) -> None:
     deadline = time.monotonic() + budget_s
     with state.lock:
         todo = [(g, a) for g in state.game_index.values() for a in g.appearances
-                if a.podcast_slug not in state.igdb_cache]
+                if a.podcast_slug not in state.resolutions]
     for game, appearance in todo:
         if time.monotonic() >= deadline:
             logger.info('Refresh budget spent; leaving new appearances to the sweep')
@@ -343,8 +355,8 @@ def _periodic_resolve(stop: threading.Event) -> None:
                 logger.warning('Periodic feed refresh failed: %s', exc)
             # New episodes of LLM-read shows (a few a week) get their games here.
             feeds.ask_llm_for_new_episodes()
-            # Never-cached, unenriched, TTL-expired and re-corrected appearances
-            # alike (a resolve refreshes cached_at, so this self-limits).
+            # Unresolved and re-corrected appearances, unscraped and expired games
+            # alike (resolving or fetching refreshes the stamp, so this self-limits).
             pending = count_pending()
             if pending:
                 logger.info('Periodic re-resolve: %d pending appearance(s)', pending)

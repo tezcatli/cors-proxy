@@ -56,17 +56,24 @@ def init_db():
                 used_at    DATETIME
             );
 
-            CREATE TABLE IF NOT EXISTS igdb_cache (
-                slug      TEXT PRIMARY KEY,
-                igdb_id   INTEGER,
-                igdb_slug TEXT,
-                name      TEXT,
-                igdb_data TEXT,
-                is_child  INTEGER DEFAULT 0,
-                cached_at TEXT NOT NULL,
-                correction_sig TEXT,
-                enriched  INTEGER DEFAULT 1,
-                method    TEXT
+            -- Which IGDB game each appearance is (podcast_slug = make_slug(name) +
+            -- '-' + episode guid). igdb_id NULL = IGDB had no match.
+            CREATE TABLE IF NOT EXISTS resolutions (
+                slug           TEXT PRIMARY KEY,
+                igdb_id        INTEGER,
+                is_child       INTEGER NOT NULL DEFAULT 0,
+                resolved_at    TEXT    NOT NULL,
+                correction_sig TEXT    NOT NULL DEFAULT '',
+                method         TEXT
+            );
+            -- One row per IGDB game, shared by all the appearances resolved to it.
+            CREATE TABLE IF NOT EXISTS igdb_games (
+                igdb_id    INTEGER PRIMARY KEY,
+                igdb_slug  TEXT    NOT NULL,
+                name       TEXT    NOT NULL,
+                data       TEXT    NOT NULL,
+                fetched_at TEXT    NOT NULL,
+                enriched   INTEGER NOT NULL DEFAULT 1
             );
 
             CREATE TABLE IF NOT EXISTS llm_cache (
@@ -81,22 +88,8 @@ def init_db():
             -- llm.ask(any_version=True): an older prompt's answer for this input.
             CREATE INDEX IF NOT EXISTS llm_cache_task_input ON llm_cache (task, input);
         """)
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
-        if 'igdb_slug' not in cols and cols:
-            conn.execute("ALTER TABLE igdb_cache ADD COLUMN igdb_slug TEXT")
-        if 'is_child' not in cols and cols:
-            conn.execute("ALTER TABLE igdb_cache ADD COLUMN is_child INTEGER DEFAULT 0")
-        if 'correction_sig' not in cols and cols:
-            # NULL on legacy rows reads as '' ("resolved with no correction"), so on
-            # first deploy any entry a current correction applies to re-resolves once.
-            conn.execute("ALTER TABLE igdb_cache ADD COLUMN correction_sig TEXT")
-        if 'enriched' not in cols and cols:
-            # Every legacy row went through the full resolution, scrapers included.
-            conn.execute("ALTER TABLE igdb_cache ADD COLUMN enriched INTEGER DEFAULT 1")
-        if 'method' not in cols and cols:
-            # How the row was resolved: 'search', 'llm' or 'pin'. NULL on legacy rows
-            # = accepted as is; the dev audit (tools/llm_audit.py) reviews them.
-            conn.execute("ALTER TABLE igdb_cache ADD COLUMN method TEXT")
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'igdb_cache'").fetchone():
+            _split_igdb_cache(conn)
         user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
         if 'is_admin' not in user_cols and user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
@@ -104,9 +97,35 @@ def init_db():
         inv_cols = {row[1] for row in conn.execute("PRAGMA table_info(invitations)")}
         if 'is_admin' not in inv_cols and inv_cols:
             conn.execute("ALTER TABLE invitations ADD COLUMN is_admin INTEGER DEFAULT 0")
-        # After the column migrations: a legacy table gains igdb_slug above, so
-        # creating the index earlier (in the executescript) would fail on it.
-        conn.execute("""
-            CREATE INDEX IF NOT EXISTS igdb_cache_igdb_slug
-                ON igdb_cache(igdb_slug) WHERE igdb_slug IS NOT NULL
-        """)
+
+
+def _split_igdb_cache(conn) -> None:
+    """Migrate the legacy one-row-per-appearance `igdb_cache` into `resolutions`
+    and `igdb_games`, then drop it. Each game keeps its best copy: an enriched one
+    over the quick pass's, then the newest. A row without its game's data keeps
+    its resolution, and the sweep fetches the game by id."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
+    # Columns added over the table's life; NULL on rows from before them.
+    sig      = 'correction_sig' if 'correction_sig' in cols else "''"
+    enriched = 'enriched'       if 'enriched'       in cols else '1'
+    method   = 'method'         if 'method'         in cols else 'NULL'
+    is_child = 'is_child'       if 'is_child'       in cols else '0'
+    slug     = 'igdb_slug'      if 'igdb_slug'      in cols else 'NULL'
+    conn.execute(f"""
+        INSERT OR IGNORE INTO resolutions (slug, igdb_id, is_child, resolved_at, correction_sig, method)
+        SELECT slug, igdb_id, COALESCE({is_child}, 0), cached_at, COALESCE({sig}, ''), {method}
+        FROM igdb_cache
+    """)
+    conn.execute(f"""
+        INSERT OR IGNORE INTO igdb_games (igdb_id, igdb_slug, name, data, fetched_at, enriched)
+        SELECT igdb_id, igdb_slug, name, data, cached_at, enriched FROM (
+            SELECT igdb_id, {slug} AS igdb_slug, name, igdb_data AS data, cached_at,
+                   COALESCE({enriched}, 1) AS enriched,
+                   ROW_NUMBER() OVER (PARTITION BY igdb_id
+                                      ORDER BY COALESCE({enriched}, 1) DESC, cached_at DESC) AS pick
+            FROM igdb_cache
+            WHERE igdb_id IS NOT NULL AND {slug} IS NOT NULL
+              AND name IS NOT NULL AND igdb_data IS NOT NULL
+        ) WHERE pick = 1
+    """)
+    conn.execute("DROP TABLE igdb_cache")

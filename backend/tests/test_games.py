@@ -11,10 +11,9 @@ import resolver
 import review
 import serializers
 from db import get_db, utcnow
-from models import IgdbEntry
 from utils import make_slug
 from contract import assert_contract, CONTRACT
-from conftest import auth_header
+from conftest import auth_header, cache_entry, set_cache
 import db as _db
 from rss import extract_game_names as _extract_game_names, extract_legacy_names as _extract_legacy_names, extract_fdg_names as _extract_fdg_names, parse_feed as _parse_feed, assign_url_slugs as _assign_url_slugs, sanitize_html as _sanitize_html
 from podcasts import PODCAST_BY_ID
@@ -343,7 +342,6 @@ def test_inject_ai_chapters_skips_malformed_entries():
 def test_catalog_counts_distinct_episodes():
     # Two name variants resolving to ONE igdb_slug, co-occurring in ONE episode,
     # must count that episode once (not twice).
-    from models import IgdbEntry
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
   <item><title>On a joue a \xc2\xabZelda\xc2\xbb et \xc2\xabZelda BOTW\xc2\xbb</title>
     <guid>g1</guid><enclosure url="https://example.com/e.mp3" type="audio/mpeg" length="0" />
@@ -355,12 +353,12 @@ def test_catalog_counts_distinct_episodes():
     state.episode_index   = episode_index
     state.game_index      = game_index
     now = '2999-01-01T00:00:00'
-    state.igdb_cache = {
+    set_cache({
         f"{make_slug('Zelda')}-g1":
-            IgdbEntry('z-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
+            cache_entry('z-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
         f"{make_slug('Zelda BOTW')}-g1":
-            IgdbEntry('zb-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
-    }
+            cache_entry('zb-g1', 1, 'zelda-botw', 'Zelda BOTW', {'metacritic': 97}, False, now),
+    })
     catalog = serializers.build_catalog()
     entry = next(g for g in catalog if g['slug'] == 'zelda-botw')
     assert entry['episodeCount'] == 1
@@ -369,7 +367,6 @@ def test_catalog_counts_distinct_episodes():
 def test_count_pending_respects_ttl():
     """TTL-expired-but-cached appearances are counted as pending; freshly cached
     ones are not. Guards the datetime compare."""
-    from models import IgdbEntry
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
   <item><title>On a joue a \xc2\xabZelda\xc2\xbb</title>
     <guid>g1</guid><enclosure url="https://example.com/e.mp3" type="audio/mpeg" length="0" />
@@ -382,12 +379,12 @@ def test_count_pending_respects_ttl():
     assert slugs
 
     def cache_with(cached_at):
-        return {s: IgdbEntry(s, 1, 'zelda', 'Zelda', {'metacritic': 90}, False, cached_at) for s in slugs}
+        return {s: cache_entry(s, 1, 'zelda', 'Zelda', {'metacritic': 90}, False, cached_at) for s in slugs}
 
-    state.igdb_cache = cache_with(utcnow().isoformat())
+    set_cache(cache_with(utcnow().isoformat()))
     assert resolver.count_pending() == 0                # fresh → nothing pending
 
-    state.igdb_cache = cache_with('2000-01-01T00:00:00')
+    set_cache(cache_with('2000-01-01T00:00:00'))
     assert resolver.count_pending() == len(slugs)       # TTL-expired → all pending
 
 
@@ -444,14 +441,12 @@ def test_catalog_deduplicates_by_igdb_slug(client):
 </channel></rss>"""
     rss_two_names = rss_two_names.replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
 
-    from models import IgdbEntry
-    igdb_cache = {
-        'zelda-z1':      IgdbEntry('zelda-z1',      1, 'zelda', 'Zelda', None, False, '2099-01-01'),
-        'zelda-botw-z2': IgdbEntry('zelda-botw-z2', 1, 'zelda', 'Zelda', None, False, '2099-01-01'),
-    }
+    set_cache({
+        'zelda-z1':      cache_entry('zelda-z1',      1, 'zelda', 'Zelda', None, False, '2099-01-01'),
+        'zelda-botw-z2': cache_entry('zelda-botw-z2', 1, 'zelda', 'Zelda', None, False, '2099-01-01'),
+    })
     with patch('feeds.http.get', return_value=mock_rss_response(rss_two_names)), \
-         patch('resolver.schedule_resolve'), \
-         patch.object(state, 'igdb_cache', igdb_cache):
+         patch('resolver.schedule_resolve'):
         r = client.get('/games', headers=auth_header())
 
     data = r.get_json()['games']
@@ -591,8 +586,8 @@ def test_refresh_resolves_new_games_without_the_scrapers(client):
     zelda = next(g for g in r.get_json()['games'] if g['name'] == 'Zelda')
     assert zelda['igdb'] == {'metacritic': None, 'coverImageId': 'abc'}
     # Not enriched yet → still pending, so the background sweep finishes the job.
-    assert all(not e.enriched for e in state.igdb_cache.values())
-    assert resolver.count_pending() == len(state.igdb_cache)
+    assert all(not g.enriched for g in state.games.values())
+    assert resolver.count_pending() == len(state.resolutions)
 
 
 def test_refresh_leaves_new_games_to_the_sweep_once_the_budget_is_spent(client):
@@ -609,7 +604,7 @@ def test_unenriched_flag_survives_a_restart():
     with patch('resolver.fetch_by_name', return_value=_igdb_hit('Zelda')):
         resolver.resolve_one('zelda-g1', 'Zelda', None, enrich=False)
     state.load_igdb_cache_from_db()
-    assert state.igdb_cache['zelda-g1'].enriched is False
+    assert state.entry('zelda-g1').game.enriched is False
 
 
 def test_concurrent_refreshes_coalesce():
@@ -719,7 +714,7 @@ def _seed(rss, cache, podcast_id='silence-on-joue'):
     state.episodes = episodes
     state.episode_index   = episode_index
     state.game_index      = game_index
-    state.igdb_cache      = cache
+    set_cache(cache)
     state.data_version   += 1
     games_module._catalog_cache   = None
     return episodes
@@ -729,8 +724,7 @@ _NOW = '2999-01-01T00:00:00'
 
 
 def _entry(podcast_slug, igdb_id, igdb_slug, name, **data):
-    from models import IgdbEntry
-    return IgdbEntry(podcast_slug, igdb_id, igdb_slug, name, dict(data), False, _NOW)
+    return cache_entry(podcast_slug, igdb_id, igdb_slug, name, dict(data), False, _NOW)
 
 
 _TWO_EPISODES_SAME_NAME = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
@@ -898,7 +892,7 @@ def test_a_pinned_correction_beats_the_name_search(tmp_corrections):
     by_name.assert_not_called()
     # canonical=False: a human's pin must not be redirected to a parent game.
     assert by_id.call_args == ((4242,), {'canonical': False})
-    assert state.igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
+    assert state.entry(f'{ns}-fdg1').igdb_slug == 'chrono-trigger'
 
 
 def test_podcast_scoped_correction_beats_the_all_podcasts_one(tmp_corrections):
@@ -926,10 +920,8 @@ def _single_soj_game():
 
 def _fresh_entry(appearance, sig):
     """A freshly-cached (not TTL-stale) entry, so pending depends only on `sig`."""
-    from models import IgdbEntry
-    return IgdbEntry(appearance.podcast_slug, 1, 'chrono-trigger', 'Chrono Trigger',
-                     {'metacritic': 90}, False, utcnow().isoformat(),
-                     correction_sig=sig)
+    return cache_entry(appearance.podcast_slug, 1, 'chrono-trigger', 'Chrono Trigger',
+                       {'metacritic': 90}, False, utcnow().isoformat(), correction_sig=sig)
 
 
 def _sig_for(appearance, game):
@@ -942,10 +934,9 @@ def test_shipped_pin_makes_a_previously_uncorrected_entry_pending(tmp_correction
     import corrections
     game, appearance = _single_soj_game()
     cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}   # resolved with no correction
-    fresh = resolver.fresh_slugs(cache.items())
-    assert not resolver.appearance_pending(game, appearance, cache, fresh)
+    assert not resolver.appearance_pending(game, appearance, cache)
     corrections.upsert('Chrono Trigger', igdb_id=4242)               # ship a pin
-    assert resolver.appearance_pending(game, appearance, cache, fresh)
+    assert resolver.appearance_pending(game, appearance, cache)
 
 
 def test_removed_correction_makes_a_pinned_entry_pending(tmp_corrections):
@@ -953,41 +944,82 @@ def test_removed_correction_makes_a_pinned_entry_pending(tmp_corrections):
     game, appearance = _single_soj_game()
     corrections.upsert('Chrono Trigger', igdb_id=4242)
     cache = {appearance.podcast_slug: _fresh_entry(appearance, _sig_for(appearance, game))}
-    fresh = resolver.fresh_slugs(cache.items())
-    assert not resolver.appearance_pending(game, appearance, cache, fresh)
+    assert not resolver.appearance_pending(game, appearance, cache)
     corrections.remove('Chrono Trigger')                            # ship its removal
-    assert resolver.appearance_pending(game, appearance, cache, fresh)
+    assert resolver.appearance_pending(game, appearance, cache)
 
 
 def test_shipped_display_name_does_not_make_an_entry_pending(tmp_corrections):
     import corrections
     game, appearance = _single_soj_game()
     cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
-    fresh = resolver.fresh_slugs(cache.items())
     corrections.upsert('Chrono Trigger', display_name='Chrono Trigger (SNES)')
-    assert not resolver.appearance_pending(game, appearance, cache, fresh)
+    assert not resolver.appearance_pending(game, appearance, cache)
 
 
 def test_count_pending_flags_a_stale_correction_signature(tmp_corrections):
     import corrections
     game, appearance = _single_soj_game()
-    state.igdb_cache = {appearance.podcast_slug: _fresh_entry(appearance, '')}
+    set_cache({appearance.podcast_slug: _fresh_entry(appearance, '')})
 
     assert resolver.count_pending() == 0
     corrections.upsert('Chrono Trigger', igdb_id=4242)
     assert resolver.count_pending() == 1
 
 
-def test_legacy_null_correction_sig_loads_as_blank():
-    # A row written before this column existed has NULL; it must read as "resolved
-    # with no correction", not crash or mismatch every fingerprint spuriously.
+def test_legacy_igdb_cache_is_split_into_resolutions_and_games():
+    # The table before the split: one row per appearance, the game's data copied
+    # into each. Two rows on game 1 (the quick pass's and an enriched one), a
+    # miss, and a row from before correction_sig existed.
     with get_db() as conn:
-        conn.execute(
-            'INSERT INTO igdb_cache (slug, igdb_id, igdb_slug, name, igdb_data, '
-            'is_child, cached_at, correction_sig) VALUES (?,?,?,?,?,?,?,?)',
-            ('zelda-g1', 1, 'zelda', 'Zelda', None, 0, '2099-01-01', None))
+        conn.execute('CREATE TABLE igdb_cache (slug TEXT PRIMARY KEY, igdb_id INTEGER, '
+                     'igdb_slug TEXT, name TEXT, igdb_data TEXT, is_child INTEGER DEFAULT 0, '
+                     'cached_at TEXT NOT NULL, correction_sig TEXT, enriched INTEGER DEFAULT 1, '
+                     'method TEXT)')
+        conn.executemany('INSERT INTO igdb_cache VALUES (?,?,?,?,?,?,?,?,?,?)', [
+            ('zelda-g1', 1, 'zelda', 'Zelda', '{"metacritic": 97}', 0, '2026-01-01', None, 1, None),
+            ('zelda-g2', 1, 'zelda', 'Zelda', '{}', 1, '2026-02-01', 'sig', 0, 'llm'),
+            ('nope-g3', None, None, None, None, 0, '2026-03-01', '', 1, 'search'),
+        ])
+    _db.init_db()
+    with get_db() as conn:
+        assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'igdb_cache'").fetchone()
     state.load_igdb_cache_from_db()
-    assert state.igdb_cache['zelda-g1'].correction_sig == ''
+
+    assert set(state.resolutions) == {'zelda-g1', 'zelda-g2', 'nope-g3'}
+    assert state.resolutions['zelda-g1'].correction_sig == ''     # NULL: no correction
+    assert (state.resolutions['zelda-g2'].is_child, state.resolutions['zelda-g2'].method) \
+        == (True, 'llm')
+    assert state.resolutions['nope-g3'].igdb_id is None
+    # One game, from its enriched copy even though the other is newer.
+    assert list(state.games) == [1]
+    assert (state.games[1].data, state.games[1].enriched) == ({'metacritic': 97}, True)
+
+
+def test_prune_drops_orphaned_resolutions_then_unused_games():
+    game, appearance = _single_soj_game()
+    gone = 'old-name-gone-guid'                      # an appearance no longer in the feed
+    for e in (_fresh_entry(appearance, ''),
+              cache_entry(gone, 2, 'gone-game', 'Gone Game')):
+        state.store_resolution(e.resolution)
+        state.store_game(e.game)
+    state.store_game(cache_entry('x', 3, 'never-used', 'Never Used').game)
+
+    state.prune_igdb_cache()
+
+    assert set(state.resolutions) == {appearance.podcast_slug}
+    assert set(state.games) == {1}                   # 2 lost its last resolution; 3 had none
+    state.load_igdb_cache_from_db()                  # …and the DB agrees
+    assert (set(state.resolutions), set(state.games)) == ({appearance.podcast_slug}, {1})
+
+
+def test_prune_keeps_everything_when_the_feed_parsed_empty():
+    # A transient empty parse must not wipe the cache.
+    state.store_resolution(cache_entry('a-g1', 1, 'a', 'A').resolution)
+    state.store_game(cache_entry('a-g1', 1, 'a', 'A').game)
+    state.game_index = {}
+    state.prune_igdb_cache()
+    assert (set(state.resolutions), set(state.games)) == ({'a-g1'}, {1})
 
 
 def test_resolve_one_stores_the_correction_fingerprint(tmp_corrections):
@@ -1002,64 +1034,80 @@ def test_resolve_one_stores_the_correction_fingerprint(tmp_corrections):
          patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
          patch('resolver.fetch_time_to_beat', return_value=None):
         resolver.resolve_one(f'{ns}-fdg1', 'Chrono Trigger', 0, 'fin-du-game')
-    entry    = state.igdb_cache[f'{ns}-fdg1']
+    entry    = state.entry(f'{ns}-fdg1')
     expected = corrections.fingerprint(
         corrections.find_by_podcast('Chrono Trigger', 0, 'fin-du-game'))
-    assert entry.correction_sig == expected != ''
+    assert entry.resolution.correction_sig == expected != ''
 
 
-# ── Renewing an expired entry ─────────────────────────────────────────────────
+# ── The sweep: decisions, then each game's data ───────────────────────────────
 
-def _renew(cached, by_id=None):
-    """resolve_one on Chrono Trigger's appearance with `cached` in the cache;
-    returns the two IGDB mocks and the entry it stored."""
+_EXPIRED = '2000-01-01T00:00:00'
+
+
+def _sweep(cached, by_id=None):
+    """Run the background sweep over Chrono Trigger's appearance with `cached`
+    (a function of the appearance) in the cache; returns the two IGDB mocks."""
+    import threading
     game, appearance = _single_soj_game()
-    if cached:
-        state.igdb_cache = {appearance.podcast_slug: cached(appearance)}
+    set_cache({appearance.podcast_slug: cached(appearance)})
     with patch('resolver.fetch_by_id', return_value=by_id) as by_id_mock, \
          patch('resolver.fetch_by_name', return_value=_igdb_hit('Chrono Trigger')) as by_name, \
          patch('resolver.metacritic.fetch_metascore', return_value=None), \
          patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
          patch('resolver.fetch_time_to_beat', return_value=None):
-        resolver.resolve_one(appearance.podcast_slug, game.name,
-                             appearance.episode.pub_ts, appearance.episode.podcast_id)
-    return by_id_mock, by_name, state.igdb_cache[appearance.podcast_slug]
+        resolver._resolve_pending(threading.Event())
+    return by_id_mock, by_name, appearance.podcast_slug
 
 
-def test_an_expired_entry_is_renewed_by_id_not_searched_again(tmp_corrections):
+def test_an_expired_game_is_renewed_by_id_not_searched_again(tmp_corrections):
     # A fresh search could land on a same-name game IGDB added since, undoing a
     # resolution that was right; the known id can't.
     from igdb import IgdbResult
-    child = lambda a: replace(_fresh_entry(a, ''), is_child=True)   # noqa: E731
-    by_id, by_name, entry = _renew(child, IgdbResult(
+    expired_child = lambda a: cache_entry(   # noqa: E731
+        a.podcast_slug, 1, 'chrono-trigger', 'Chrono Trigger', {'metacritic': 90},
+        is_child=True, at=_EXPIRED)
+    by_id, by_name, slug = _sweep(expired_child, IgdbResult(
         id=1, name='Chrono Trigger', slug='chrono-trigger', data={'metacritic': 93},
         is_child=False))
     by_id.assert_called_once_with(1, canonical=False)
     by_name.assert_not_called()
+    entry = state.entry(slug)
     assert entry.data['metacritic'] == 93
     assert entry.is_child            # still ranks as the DLC/version it was resolved from
 
 
-def test_renewal_searches_again_when_igdb_dropped_the_id(tmp_corrections):
-    by_id, by_name, entry = _renew(lambda a: _fresh_entry(a, ''), by_id=None)
-    by_name.assert_called_once()
-    assert entry.igdb_id == 7
+def test_a_game_igdb_dropped_is_searched_again(tmp_corrections):
+    expired = lambda a: cache_entry(   # noqa: E731
+        a.podcast_slug, 1, 'chrono-trigger', 'Chrono Trigger', at=_EXPIRED)
+    by_id, by_name, slug = _sweep(expired, by_id=None)
+    by_id.assert_called_once_with(1, canonical=False)
+    assert state.entry(slug) is None and 1 not in state.games
+    assert resolver.count_pending() == 1          # the next sweep searches it again
 
 
-def test_a_cached_miss_is_searched_again(tmp_corrections):
-    miss = lambda a: replace(_fresh_entry(a, ''), igdb_id=None, igdb_slug=None)   # noqa: E731
-    by_id, by_name, _ = _renew(miss)
+def test_a_cached_miss_is_searched_again_once_expired(tmp_corrections):
+    miss = lambda at: lambda a: cache_entry(a.podcast_slug, None, None, None, at=at)  # noqa: E731
+    by_id, by_name, _ = _sweep(miss(utcnow().isoformat()))
+    by_name.assert_not_called()
+    by_id, by_name, slug = _sweep(miss(_EXPIRED))
     by_id.assert_not_called()
     by_name.assert_called_once()
+    assert state.entry(slug).igdb_id == 7
 
 
 def test_a_changed_correction_searches_again(tmp_corrections):
     # Resolved under a correction that has since been removed: its id may be the
     # very thing the curator took back.
-    stale = lambda a: _fresh_entry(a, 'some-older-correction')   # noqa: E731
-    by_id, by_name, _ = _renew(stale)
+    by_id, by_name, _ = _sweep(lambda a: _fresh_entry(a, 'some-older-correction'))
     by_id.assert_not_called()
     by_name.assert_called_once()
+
+
+def test_a_settled_appearance_on_a_fresh_game_costs_nothing(tmp_corrections):
+    by_id, by_name, _ = _sweep(lambda a: _fresh_entry(a, ''))
+    by_id.assert_not_called()
+    by_name.assert_not_called()
 
 
 # ── Admin gating ──────────────────────────────────────────────────────────────
@@ -1141,7 +1189,7 @@ def test_correction_write_pins_purges_and_reresolves(client, tmp_corrections):
     assert body['igdb']['released'] == '2001'
     assert body['corrected'] is True
     # The stale 'astrobotanica' cache row is gone…
-    assert state.igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
+    assert state.entry(f'{ns}-original').igdb_slug == 'silent-hill-2'
     # …and the pin landed in the git-tracked file, keyed on the feed's wording.
     written = _json.loads(tmp_corrections.read_text())['corrections']
     assert written == [{'podcast_name': 'Silent Hill 2', 'igdb_id': 1}]
@@ -1160,10 +1208,10 @@ def test_correction_scoped_to_one_podcast_leaves_the_other_alone(client, tmp_cor
     state.episodes = episodes
     state.episode_index   = episode_index
     state.game_index      = game_index
-    state.igdb_cache      = {
+    set_cache({
         f'{ns}-soj1': _entry(f'{ns}-soj1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
         f'{ns}-fdg1': _entry(f'{ns}-fdg1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
-    }
+    })
     state.data_version += 1
 
     fixed = IgdbResult(id=1, name='Chrono Trigger', slug='chrono-trigger',
@@ -1177,8 +1225,8 @@ def test_correction_scoped_to_one_podcast_leaves_the_other_alone(client, tmp_cor
     assert r.status_code == 200
     # Only the FDG appearance moved; the SOJ one keeps its own resolution — the
     # split the per-appearance grouping exists to allow.
-    assert state.igdb_cache[f'{ns}-fdg1'].igdb_slug == 'chrono-trigger'
-    assert state.igdb_cache[f'{ns}-soj1'].igdb_slug == 'chrono-trigger--3'
+    assert state.entry(f'{ns}-fdg1').igdb_slug == 'chrono-trigger'
+    assert state.entry(f'{ns}-soj1').igdb_slug == 'chrono-trigger--3'
     assert [e['slug'] for e in r.get_json()['episodes']] == ['fdg1']
 
 
@@ -1229,17 +1277,17 @@ def test_podcast_igdb_refresh_purges_only_that_podcast(client):
                       podcast_id='fin-du-game')
     _, game_index = feeds.build_indexes(soj + fdg)
     state.game_index = game_index
-    state.igdb_cache = {
+    set_cache({
         f'{ns}-soj1': _entry(f'{ns}-soj1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
         f'{ns}-fdg1': _entry(f'{ns}-fdg1', 5, 'chrono-trigger--3', 'Chrono Trigger'),
-    }
+    })
     with patch('resolver.schedule_resolve') as sched:
         r = client.post('/games/podcasts/fin-du-game/igdb-refresh',
                         headers=admin_header())
     assert_contract(r, GAMES['podcast_igdb_refresh']['success'])
     assert r.get_json()['purged'] == 1
-    assert f'{ns}-fdg1' not in state.igdb_cache      # purged
-    assert f'{ns}-soj1' in state.igdb_cache          # untouched
+    assert f'{ns}-fdg1' not in state.resolutions     # purged
+    assert f'{ns}-soj1' in state.resolutions         # untouched
     sched.assert_called_once()
 
 
@@ -1253,7 +1301,7 @@ def test_resolution_stats_shape(client):
     _seed(_TWO_EPISODES_SAME_NAME, {
         # 'Silent Hill 2' → 'Astrobotanica' is exactly the kind of miss to surface.
         f'{ns}-remake':   _entry(f'{ns}-remake', 9, 'astrobotanica', 'Astrobotanica'),
-        f'{ns}-original': IgdbEntry(f'{ns}-original', None, None, None, None, False, _NOW),
+        f'{ns}-original': cache_entry(f'{ns}-original', None, None, None, None, False, _NOW),
     })
     r = client.get('/games/resolution-stats', headers=admin_header())
     assert_contract(r, GAMES['resolution_stats']['success'])
@@ -1330,9 +1378,9 @@ def test_stats_reports_a_merged_group_under_its_resolving_name(client):
     botw, astro = make_slug('Zelda BOTW'), make_slug('Astrobot')
     _seed(rss, {
         # Both land on the same (wrong) igdb_slug → one group, two name variants.
-        f'{botw}-g1':  IgdbEntry(f'{botw}-g1', 9, 'astrobotanica', 'Astrobotanica',
+        f'{botw}-g1':  cache_entry(f'{botw}-g1', 9, 'astrobotanica', 'Astrobotanica',
                                               {}, False, '2000-01-01T00:00:00'),
-        f'{astro}-g2': IgdbEntry(f'{astro}-g2', 9, 'astrobotanica', 'Astrobotanica',
+        f'{astro}-g2': cache_entry(f'{astro}-g2', 9, 'astrobotanica', 'Astrobotanica',
                                               {}, False, _NOW),   # newest → representative
     })
     r = client.get('/games/resolution-stats', headers=admin_header())
@@ -1455,7 +1503,7 @@ def test_renaming_does_not_re_resolve(client, tmp_corrections):
     by_id.assert_not_called()
     by_name.assert_not_called()
     # The cached resolution survives…
-    assert state.igdb_cache[f'{ns}-original'].igdb_slug == 'silent-hill-2'
+    assert state.entry(f'{ns}-original').igdb_slug == 'silent-hill-2'
     # …but the derived caches are invalidated so the new name is served.
     assert state.data_version > before
     assert r.get_json()['name'] == 'Silent Hill 2 (2001)'
@@ -1485,6 +1533,45 @@ def test_a_game_is_scraped_once_for_all_its_episodes():
         resolver.resolve_one('zelda-ep1', 'Zelda', None, use_llm=False)
         resolver.resolve_one('zelda-ep2', 'Zelda', None, use_llm=False)
     assert mc.call_count == hl.call_count == 1
-    second = state.igdb_cache['zelda-ep2']
-    assert second.enriched
+    second = state.entry('zelda-ep2')
+    assert second.game.enriched
     assert (second.data['metacritic'], second.data['timeToBeatHours']) == (91, 40)
+
+
+def test_a_correction_moving_onto_a_cached_game_reuses_its_data(client, tmp_corrections):
+    # Pinning re-decides which game this is; that game's data is already here.
+    ns = make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-original': _entry(f'{ns}-original', 9, 'astrobotanica', 'Astrobotanica'),
+        f'{ns}-remake':   _entry(f'{ns}-remake', 1, 'silent-hill-2', 'Silent Hill 2',
+                                 metacritic=89),
+    })
+    from igdb import IgdbResult
+    pinned = IgdbResult(id=1, name='Silent Hill 2', slug='silent-hill-2',
+                        data={}, is_child=False)
+    with patch('resolver.fetch_by_id', return_value=pinned), \
+         patch('resolver.metacritic.fetch_metascore') as mc:
+        r = client.put('/games/corrections', headers=admin_header(),
+                       json={'nameSlug': ns, 'igdbId': 1})
+    mc.assert_not_called()
+    assert r.get_json()['igdb']['metacritic'] == 89
+    assert state.entry(f'{ns}-original').igdb_slug == 'silent-hill-2'
+
+
+def test_an_explicit_igdb_refresh_fetches_the_games_data_again(client):
+    # The one way to get a fresh Metacritic score before the TTL.
+    ns = make_slug('Silent Hill 2')
+    _seed(_TWO_EPISODES_SAME_NAME, {
+        f'{ns}-remake': _entry(f'{ns}-remake', 1, 'silent-hill-2', 'Silent Hill 2',
+                               metacritic=80),
+    })
+    from igdb import IgdbResult
+    same = IgdbResult(id=1, name='Silent Hill 2', slug='silent-hill-2', data={}, is_child=False)
+    with patch('resolver.fetch_by_name', return_value=same), \
+         patch('resolver.metacritic.fetch_metascore', return_value=89) as mc, \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
+        r = client.post('/games/silent-hill-2/igdb-refresh', headers=auth_header())
+    assert r.status_code == 200
+    mc.assert_called_once()
+    assert state.games[1].data['metacritic'] == 89

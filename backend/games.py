@@ -133,12 +133,20 @@ def refresh():
     return jsonify({'games': serializers.build_catalog()})
 
 
+def _purge_with_games(podcast_slugs: list[str], cache) -> None:
+    """An explicit IGDB refresh: re-resolve these appearances, and re-fetch the
+    games they were on — a correction only re-resolves, but this is the one way
+    to get a game's data (and its Metacritic score) again before the TTL."""
+    state.expire_games(e.igdb_id for s in podcast_slugs if (e := cache.get(s)))
+    state.purge_cache(podcast_slugs)
+
+
 @games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
 @limiter.limit("10 per minute")
 def game_igdb_refresh(slug):
     # This entry's appearances (by igdb_slug, or the name_slug fallback).
-    members, _, _ = serializers.match_appearances(slug)
-    state.purge_cache([a.podcast_slug for _, a in members])
+    members, cache, _ = serializers.match_appearances(slug)
+    _purge_with_games([a.podcast_slug for _, a in members], cache)
     resolver.resolve_members(members)
     return jsonify(serializers.load_members(members, make_slug(slug)))
 
@@ -254,7 +262,7 @@ def podcast_igdb_refresh(podcast_id):
         podcast_slugs = [a.podcast_slug for game in state.game_index.values()
                          for a in game.appearances
                          if a.episode.podcast_id == podcast_id]
-    state.purge_cache(podcast_slugs)
+    _purge_with_games(podcast_slugs, state.entries())
     # Background sweep (this can be hundreds of rate-limited IGDB calls); the
     # console shows progress through `pending` in /resolution-stats.
     resolver.schedule_resolve(force=True)

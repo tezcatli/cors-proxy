@@ -33,7 +33,7 @@ def best_member(members: list[Member],
     """The representative (member, entry) of a group, or None when none resolved.
 
     Prefers non-child entries (a canonical game over a DLC/version redirected to
-    its parent); among equals, the most recently cached.
+    its parent); among equals, the most recently resolved.
     """
     candidates = [
         (m, cache[m[1].podcast_slug]) for m in members
@@ -43,7 +43,7 @@ def best_member(members: list[Member],
         return None
     non_child = [c for c in candidates if not c[1].is_child]
     pool      = non_child if non_child else candidates
-    return max(pool, key=lambda c: c[1].cached_at)
+    return max(pool, key=lambda c: c[1].resolution.resolved_at)
 
 
 def group_members() -> tuple[dict[str, list[Member]], dict[str, IgdbEntry]]:
@@ -53,7 +53,7 @@ def group_members() -> tuple[dict[str, list[Member]], dict[str, IgdbEntry]]:
     two reads."""
     with state.lock:
         games = dict(state.game_index)
-        cache = dict(state.igdb_cache)
+    cache = state.entries()
     groups: dict[str, list[Member]] = {}
     for game in games.values():
         for appearance in game.appearances:
@@ -98,7 +98,7 @@ def _build_resolved(episode: Episode) -> dict[str, tuple[str, str, str | None]]:
     resolved: dict[str, tuple[str, str, str | None]] = {}
     for mention in episode.games:
         podcast_slug = f'{make_slug(mention.name)}-{episode.slug}'
-        entry        = state.igdb_cache.get(podcast_slug)
+        entry        = state.entry(podcast_slug)
         if entry and entry.igdb_slug and mention.timestamp:
             cover_image_id = entry.data.get('coverImageId') if entry.data else None
             resolved[mention.timestamp] = (entry.name or mention.name, entry.igdb_slug, cover_image_id)

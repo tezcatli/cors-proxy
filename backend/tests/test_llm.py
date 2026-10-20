@@ -80,7 +80,7 @@ def _resolve(**kw):
          patch('resolver.fetch_time_to_beat', return_value=None):
         resolver.resolve_one(_SLUG, 'Le Vaillant Petit Page', 1_700_000_000,
                              'silence-on-joue', **kw)
-    return state.igdb_cache[_SLUG]
+    return state.entry(_SLUG)
 
 
 def test_the_llm_resolves_a_translated_name(llm_on):
@@ -91,14 +91,14 @@ def test_the_llm_resolves_a_translated_name(llm_on):
          patch('resolver.fetch_by_name', return_value=None):
         entry = _resolve()
     by_id.assert_called_once_with(42)        # canonical, like the name search
-    assert (entry.igdb_id, entry.method) == (42, 'llm')
+    assert (entry.igdb_id, entry.resolution.method) == (42, 'llm')
 
 
 def test_a_name_the_llm_rules_out_is_a_settled_miss(llm_on):
     with _llm_answers({'titles': []}), patch('resolver.fetch_by_name') as by_name:
         entry = _resolve()
     by_name.assert_not_called()
-    assert (entry.igdb_id, entry.method) == (None, 'llm')
+    assert (entry.igdb_id, entry.resolution.method) == (None, 'llm')
 
 
 def test_a_title_igdbs_free_text_search_misses_goes_through_the_name_search(llm_on):
@@ -108,29 +108,28 @@ def test_a_title_igdbs_free_text_search_misses_goes_through_the_name_search(llm_
          patch('resolver.fetch_by_id') as by_id:
         entry = _resolve()
     by_id.assert_not_called()
-    assert (entry.igdb_id, entry.method) == (42, 'llm')
+    assert (entry.igdb_id, entry.resolution.method) == (42, 'llm')
 
 
 def test_without_the_llm_the_name_search_still_resolves(llm_on):
     with patch('llm.http.post', side_effect=OSError('down')), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY):
         entry = _resolve()
-    assert (entry.igdb_id, entry.method) == (42, 'search')
+    assert (entry.igdb_id, entry.resolution.method) == (42, 'search')
 
 
 def test_the_quick_refresh_pass_skips_the_llm(llm_on):
     with patch('llm.http.post') as post, patch('resolver.fetch_by_name', return_value=_PLUCKY):
         entry = _resolve(enrich=False, use_llm=False)
     post.assert_not_called()
-    assert entry.method == 'search'
+    assert entry.resolution.method == 'search'
 
 
 def _pending(entry):
     game = MagicMock(); game.name = 'Le Vaillant Petit Page'
     app  = MagicMock(podcast_slug=_SLUG)
     app.episode.pub_ts, app.episode.podcast_id = 1_700_000_000, 'silence-on-joue'
-    cache = {_SLUG: entry}
-    return resolver.appearance_pending(game, app, cache, resolver.fresh_slugs(cache.items()))
+    return resolver.appearance_pending(game, app, {_SLUG: entry})
 
 
 def test_a_search_result_stays_pending_while_the_llm_is_on(llm_on, monkeypatch):
@@ -144,13 +143,15 @@ def test_a_search_result_stays_pending_while_the_llm_is_on(llm_on, monkeypatch):
 
 def test_llm_and_legacy_rows_are_settled(llm_on):
     from dataclasses import replace
+    from models import IgdbEntry
     with _llm_answers({'titles': []}):
         entry = _resolve()
     assert not _pending(entry)
-    assert not _pending(replace(entry, method=None))   # pre-LLM row: left to the dev audit
+    legacy = IgdbEntry(replace(entry.resolution, method=None), entry.game)
+    assert not _pending(legacy)   # pre-LLM row: left to the dev audit
 
 
-def test_a_provisional_search_result_goes_to_the_llm_not_a_renewal(llm_on):
+def test_a_provisional_search_result_goes_to_the_llm(llm_on):
     with patch('llm.http.post', side_effect=OSError('down')), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY):
         _resolve()
@@ -160,8 +161,8 @@ def test_a_provisional_search_result_goes_to_the_llm_not_a_renewal(llm_on):
          patch('resolver.fetch_by_name', return_value=None), \
          patch('resolver.fetch_by_id', return_value=_PLUCKY) as by_id:
         entry = _resolve()
-    by_id.assert_called_once_with(42)        # not the renewal's (42, canonical=False)
-    assert entry.method == 'llm'
+    by_id.assert_called_once_with(42)        # canonical, like the name search
+    assert entry.resolution.method == 'llm'
 
 
 def test_a_correction_outranks_the_llm(llm_on):
@@ -171,7 +172,7 @@ def test_a_correction_outranks_the_llm(llm_on):
          patch('resolver.fetch_by_id', return_value=_PLUCKY):
         entry = _resolve()
     post.assert_not_called()
-    assert (entry.igdb_id, entry.method) == (42, 'pin')
+    assert (entry.igdb_id, entry.resolution.method) == (42, 'pin')
 
 
 # ── Shows whose games the LLM reads ───────────────────────────────────────────
@@ -294,7 +295,7 @@ def test_a_name_the_llm_already_read_skips_the_titles_question(llm_on):
         resolver.resolve_one('saros-tc1', 'Saros', 1_778_000_000, 'triple-click')
     assert post.call_count == 1                 # only the pick
     search.assert_called_once_with('Saros')
-    assert state.igdb_cache['saros-tc1'].method == 'llm'
+    assert state.entry('saros-tc1').resolution.method == 'llm'
 
 
 def test_the_name_searchs_match_is_offered_beside_the_free_text_results(llm_on):
