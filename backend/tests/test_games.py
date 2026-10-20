@@ -1104,6 +1104,48 @@ def test_a_changed_correction_searches_again(tmp_corrections):
     by_name.assert_called_once()
 
 
+def test_an_igdb_error_is_retried_after_a_backoff_not_every_sweep(tmp_corrections):
+    game, appearance = _single_soj_game()
+    slug = appearance.podcast_slug
+    with patch('resolver.fetch_by_name', side_effect=OSError('IGDB down')):
+        resolver.resolve_appearance(game, appearance)
+    failed = state.resolutions[slug]
+    assert (failed.igdb_id, failed.attempts, failed.last_error) == (None, 1, 'IGDB down')
+    assert failed.retry_at > utcnow().isoformat()
+    assert resolver.count_pending() == 0                   # waiting out its backoff
+
+    state.resolutions[slug] = replace(failed, retry_at=_EXPIRED)
+    assert resolver.count_pending() == 1                   # due again
+    with patch('resolver.fetch_by_name', return_value=_igdb_hit('Chrono Trigger')), \
+         patch('resolver.metacritic.fetch_metascore', return_value=None), \
+         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
+         patch('resolver.fetch_time_to_beat', return_value=None):
+        resolver.resolve_appearance(game, appearance)
+    settled = state.resolutions[slug]
+    assert (settled.igdb_id, settled.attempts, settled.retry_at) == (7, 0, None)
+
+
+def test_a_failed_retry_keeps_serving_the_previous_match(tmp_corrections):
+    game, appearance = _single_soj_game()
+    set_cache({appearance.podcast_slug: _fresh_entry(appearance, 'some-older-correction')})
+    with patch('resolver.fetch_by_name', side_effect=OSError('IGDB down')):
+        resolver.resolve_appearance(game, appearance)
+    entry = state.entry(appearance.podcast_slug)
+    assert (entry.igdb_slug, entry.resolution.attempts) == ('chrono-trigger', 1)
+
+
+def test_stats_count_erroring_appearances_apart_from_misses(client):
+    ns = make_slug('Silent Hill 2')
+    miss    = cache_entry(f'{ns}-original', None, None, None)
+    failing = cache_entry(f'{ns}-remake', None, None, None)
+    failing = type(failing)(replace(failing.resolution, attempts=2,
+                                    retry_at='2999-01-01T00:00:00'), None)
+    _seed(_TWO_EPISODES_SAME_NAME, {f'{ns}-original': miss, f'{ns}-remake': failing})
+    r = client.get('/games/resolution-stats', headers=admin_header())
+    soj = next(p for p in r.get_json()['podcasts'] if p['id'] == 'silence-on-joue')
+    assert (soj['failed'], soj['retrying'], soj['pending']) == (1, 1, 0)
+
+
 def test_a_settled_appearance_on_a_fresh_game_costs_nothing(tmp_corrections):
     by_id, by_name, _ = _sweep(lambda a: _fresh_entry(a, ''))
     by_id.assert_not_called()

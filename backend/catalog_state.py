@@ -66,10 +66,11 @@ def store_resolution(resolution: Resolution) -> None:
         data_version += 1
     with get_db() as conn:
         conn.execute(
-            'INSERT OR REPLACE INTO resolutions '
-            '(slug, igdb_id, is_child, resolved_at, correction_sig, method) VALUES (?,?,?,?,?,?)',
+            'INSERT OR REPLACE INTO resolutions (slug, igdb_id, is_child, resolved_at, '
+            'correction_sig, method, attempts, last_error, retry_at) VALUES (?,?,?,?,?,?,?,?,?)',
             (resolution.podcast_slug, resolution.igdb_id, int(resolution.is_child),
-             resolution.resolved_at, resolution.correction_sig, resolution.method))
+             resolution.resolved_at, resolution.correction_sig, resolution.method,
+             resolution.attempts, resolution.last_error, resolution.retry_at))
 
 
 def store_game(game: IgdbGame) -> None:
@@ -89,7 +90,8 @@ def load_igdb_cache_from_db() -> None:
     global resolutions, games
     with get_db() as conn:
         res_rows  = conn.execute('SELECT slug, igdb_id, is_child, resolved_at, correction_sig, '
-                                 'method FROM resolutions').fetchall()
+                                 'method, attempts, last_error, retry_at '
+                                 'FROM resolutions').fetchall()
         game_rows = conn.execute('SELECT igdb_id, igdb_slug, name, data, fetched_at, enriched '
                                  'FROM igdb_games').fetchall()
     loaded_res = {row['slug']: Resolution(
@@ -99,6 +101,9 @@ def load_igdb_cache_from_db() -> None:
         resolved_at=row['resolved_at'],
         correction_sig=row['correction_sig'],
         method=row['method'],
+        attempts=row['attempts'],
+        last_error=row['last_error'],
+        retry_at=row['retry_at'],
     ) for row in res_rows}
     loaded_games = {row['igdb_id']: IgdbGame(
         igdb_id=row['igdb_id'],

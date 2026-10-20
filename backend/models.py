@@ -72,6 +72,11 @@ class Resolution:
     resolved_at: str        # ISO-8601 UTC timestamp
     correction_sig: str = ''  # fingerprint of the correction in force when resolved
     method: str | None = None  # 'search' | 'llm' | 'pin'; None = legacy row, accepted as is
+    # Consecutive failures (IGDB error, LLM unavailable) and when to try again: a
+    # failing name is retried on a growing delay, not on every sweep.
+    attempts: int = 0
+    last_error: str | None = None
+    retry_at: str | None = None   # ISO-8601 UTC; None = settled
 
 
 @dataclass(frozen=True)

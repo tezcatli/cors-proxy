@@ -184,6 +184,9 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
                 <span class="pstat__nums">
                   <b>{{ p.resolved }}</b>/{{ p.appearances }}
                   <template v-if="p.failed"> · <span class="text-error">{{ p.failed }} échec</span></template>
+                  <template v-if="p.retrying">
+                    · <span class="text-warning" title="IGDB ou le LLM a échoué ; nouvel essai plus tard">{{ p.retrying }} en erreur</span>
+                  </template>
                   <template v-if="p.pending"> · {{ p.pending }} en attente</template>
                 </span>
                 <button

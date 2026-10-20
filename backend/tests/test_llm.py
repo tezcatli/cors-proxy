@@ -132,13 +132,51 @@ def _pending(entry):
     return resolver.appearance_pending(game, app, {_SLUG: entry})
 
 
-def test_a_search_result_stays_pending_while_the_llm_is_on(llm_on, monkeypatch):
+def test_a_search_result_goes_back_to_the_llm_after_its_backoff(llm_on, monkeypatch):
     with patch('llm.http.post', side_effect=OSError('down')), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY):
         entry = _resolve()
-    assert _pending(entry)
-    monkeypatch.setattr(Config, 'OPENROUTER_API_KEY', '')
-    assert not _pending(entry)               # LLM off: the search is all there is
+    # Served meanwhile, but provisional: the LLM is asked again — not every sweep.
+    assert (entry.igdb_id, entry.resolution.method) == (42, 'search')
+    assert (entry.resolution.attempts, entry.resolution.last_error) == (1, 'LLM unavailable')
+    assert not _pending(entry)
+    assert _pending(_retry_due(entry))
+
+
+def _retry_due(entry):
+    from dataclasses import replace
+    from models import IgdbEntry
+    return IgdbEntry(replace(entry.resolution, retry_at='2000-01-01T00:00:00'), entry.game)
+
+
+def test_a_search_result_is_settled_once_the_llm_is_off(llm_on, monkeypatch):
+    with patch('resolver.fetch_by_name', return_value=_PLUCKY):
+        monkeypatch.setattr(Config, 'OPENROUTER_API_KEY', '')
+        entry = _resolve()
+    assert entry.resolution.retry_at is None
+    assert not _pending(entry)               # the search is all there is
+
+
+def test_an_llm_that_keeps_failing_is_asked_less_and_less_often(llm_on):
+    import datetime
+    from db import utcnow
+    delays = []
+    for _ in range(3):
+        with patch('llm.http.post', side_effect=OSError('down')), \
+             patch('resolver.fetch_by_name', return_value=_PLUCKY):
+            entry = _resolve()
+        delays.append(datetime.datetime.fromisoformat(entry.resolution.retry_at) - utcnow())
+    assert entry.resolution.attempts == 3
+    assert delays[0] < delays[1] < delays[2]
+
+
+def test_the_llm_answering_clears_the_failures(llm_on):
+    with patch('llm.http.post', side_effect=OSError('down')), \
+         patch('resolver.fetch_by_name', return_value=_PLUCKY):
+        _resolve()
+    with _llm_answers({'titles': []}):
+        entry = _resolve()
+    assert (entry.resolution.attempts, entry.resolution.retry_at) == (0, None)
 
 
 def test_llm_and_legacy_rows_are_settled(llm_on):

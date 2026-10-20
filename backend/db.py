@@ -64,7 +64,10 @@ def init_db():
                 is_child       INTEGER NOT NULL DEFAULT 0,
                 resolved_at    TEXT    NOT NULL,
                 correction_sig TEXT    NOT NULL DEFAULT '',
-                method         TEXT
+                method         TEXT,
+                attempts       INTEGER NOT NULL DEFAULT 0,
+                last_error     TEXT,
+                retry_at       TEXT
             );
             -- One row per IGDB game, shared by all the appearances resolved to it.
             CREATE TABLE IF NOT EXISTS igdb_games (

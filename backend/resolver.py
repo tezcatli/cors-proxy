@@ -1,4 +1,5 @@
 """Resolving podcast game names against IGDB, and the background work that does it."""
+import dataclasses
 import datetime
 import logging
 import threading
@@ -33,12 +34,20 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
     ~1–10 s per game against ~0.3 s for IGDB) and caches a new game as
     `enriched=False`, which keeps it pending so the background sweep completes it.
     `use_llm=False` (the same quick pass) goes straight to the name search; the
-    resolution is then cached as `method='search'`, which keeps it pending too."""
+    resolution is then cached as `method='search'`, which keeps it pending too.
+
+    A failure — IGDB erroring, or the LLM unavailable when it was wanted — is
+    recorded with a growing `retry_at` (`_backoff`), so a name that fails every
+    time costs a few calls a day rather than a round every sweep."""
     logger.info('Resolving IGDB for slug=%r name=%r', podcast_slug, name)
     # corrections.json outranks everything else.
     correction = find_by_podcast(name, pub_ts, podcast_id)
     pinned_id  = (correction or {}).get('igdb_id')
     method     = 'pin' if correction else None
+    llm_wanted = use_llm and not correction and llm.enabled()
+    found      = None
+    with state.lock:
+        previous = state.resolutions.get(podcast_slug)
     try:
         if pinned_id:
             # A pinned id is authoritative — don't let canonical resolution redirect
@@ -58,9 +67,13 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
             _store_game(result, enrich)
     except Exception as exc:
         logger.warning('IGDB resolution failed slug=%r name=%r: %s', podcast_slug, name, exc)
+        # Keep what it resolved to before, if anything: a failed retry is no reason
+        # to stop serving a match.
+        _store_failure(previous or Resolution(podcast_slug, None, False, utcnow().isoformat()),
+                       previous, str(exc))
         return
 
-    state.store_resolution(Resolution(
+    resolution = Resolution(
         podcast_slug=podcast_slug,
         igdb_id=result.id if result else None,
         is_child=result.is_child if result else False,
@@ -69,7 +82,28 @@ def resolve_one(podcast_slug: str, name: str, pub_ts: int | None,
         # shipped corrections.json rules differently on this appearance than it did here.
         correction_sig=corrections.fingerprint(correction),
         method=method,
-    ))
+    )
+    if llm_wanted and found is None:
+        # The LLM was down or gave an unusable answer: the search's result stands
+        # meanwhile, provisional, and the LLM is asked again after the backoff.
+        _store_failure(resolution, previous, 'LLM unavailable')
+    else:
+        state.store_resolution(resolution)
+
+
+def _backoff(attempts: int) -> datetime.timedelta:
+    """The delay before retry `attempts + 1`: the tick's interval, doubling, up to a day."""
+    delay = datetime.timedelta(minutes=Config.RESOLVE_RETRY_MINUTES) * 2 ** (attempts - 1)
+    return min(delay, datetime.timedelta(days=1))
+
+
+def _store_failure(resolution: Resolution, previous: Resolution | None, error: str) -> None:
+    attempts = (previous.attempts if previous else 0) + 1
+    logger.info('Resolution of %r failed %d time(s) in a row; next try in %s',
+                resolution.podcast_slug, attempts, _backoff(attempts))
+    state.store_resolution(dataclasses.replace(
+        resolution, attempts=attempts, last_error=error[:500],
+        retry_at=(utcnow() + _backoff(attempts)).isoformat()))
 
 
 def _store_game(result, enrich: bool) -> None:
@@ -224,6 +258,9 @@ def resolution_pending(game, appearance, resolution: Resolution | None) -> bool:
     its data by id."""
     if resolution is None:
         return True
+    if resolution.retry_at:
+        # A failure: retried once its backoff has passed, and not before.
+        return datetime.datetime.fromisoformat(resolution.retry_at) <= utcnow()
     if resolution.igdb_id is None and not is_fresh(resolution.resolved_at):
         return True
     if llm.enabled() and resolution.method == 'search':
