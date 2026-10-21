@@ -6,7 +6,9 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 
-def _send(to_email: str, subject: str, body: str):
+def _send(to_email: str, subject: str, body: str) -> bool:
+    """Send one e-mail; False (logged) when it fails. A mail server being down
+    must not fail the request: the invitation or reset token is already stored."""
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"]    = Config.SMTP_FROM
@@ -18,10 +20,11 @@ def _send(to_email: str, subject: str, body: str):
             smtp.sendmail(Config.SMTP_FROM, [to_email], msg.as_string())
     except Exception:
         logger.exception("Failed to send email to %s (subject: %s)", to_email, subject)
-        raise
+        return False
+    return True
 
 
-def send_invite_email(to_email: str, invite_url: str):
+def send_invite_email(to_email: str, invite_url: str) -> bool:
     body = (
         "Bonjour,\n\n"
         "Vous avez été invité(e) à rejoindre Silence on Joue.\n\n"
@@ -34,11 +37,11 @@ def send_invite_email(to_email: str, invite_url: str):
             logger.info("INVITE LINK for %s → %s", to_email, invite_url)
         else:
             logger.info("INVITE LINK for %s → %s?invite=<redacted>", to_email, invite_url.split("?")[0])
-        return
-    _send(to_email, "Invitation — Silence on Joue", body)
+        return False
+    return _send(to_email, "Invitation — Silence on Joue", body)
 
 
-def send_reset_email(to_email: str, reset_url: str):
+def send_reset_email(to_email: str, reset_url: str) -> bool:
     body = (
         "Bonjour,\n\n"
         "Cliquez sur ce lien pour réinitialiser votre mot de passe :\n\n"
@@ -51,5 +54,5 @@ def send_reset_email(to_email: str, reset_url: str):
             logger.info("PASSWORD RESET LINK for %s → %s", to_email, reset_url)
         else:
             logger.info("PASSWORD RESET LINK for %s → %s?reset=<redacted>", to_email, reset_url.split("?")[0])
-        return
-    _send(to_email, "Réinitialisation de mot de passe — Silence on Joue", body)
+        return False
+    return _send(to_email, "Réinitialisation de mot de passe — Silence on Joue", body)

@@ -184,6 +184,7 @@ function askConfirm(key) { confirming.value = confirming.value === key ? null : 
           <div v-if="lastInvite" class="invite-result">
             <span class="invite-result__label">
               Lien d'invitation<template v-if="lastInvite.is_admin"> (administrateur)</template>
+              — {{ lastInvite.email_sent ? 'envoyé par e-mail' : 'e-mail non envoyé, transmettez ce lien' }}
             </span>
             <code class="invite-result__url">{{ lastInvite.invite_url }}</code>
             <button class="btn-ghost-sm" @click="copyLink(lastInvite.invite_url)">
