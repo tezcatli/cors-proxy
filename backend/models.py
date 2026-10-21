@@ -39,7 +39,7 @@ class GameAppearance:
     """Links one PodcastGame to the Episode it appears in, with the game-specific timestamp."""
     episode: Episode        # reference into catalog_state.episodes — not a copy
     mention: GameMention
-    podcast_slug: str       # make_slug(name) + '-' + episode.slug (RSS guid); key into catalog_state.igdb_cache and DB
+    podcast_slug: str       # make_slug(name) + '-' + episode.slug (RSS guid); key into catalog_state.resolutions and DB
 
 
 @dataclass
@@ -51,15 +51,50 @@ class PodcastGame:
 
 
 @dataclass
-class IgdbEntry:
-    """One resolved IGDB row, keyed by podcast_slug (make_slug(name) + '-' + episode guid)."""
+class IgdbGame:
+    """One IGDB game's data, shared by every appearance resolved to it — so it is
+    fetched, scraped and refreshed once per game, not once per episode."""
+    igdb_id: int
+    igdb_slug: str          # IGDB's own slug, used for URL routing
+    name: str               # canonical IGDB name
+    data: dict              # normalised IGDB data blob (JSON-serialisable)
+    fetched_at: str         # ISO-8601 UTC; the IGDB TTL runs from here
+    enriched: bool = True   # False until Metacritic/HLTB have run (see resolver.resolve_one)
+
+
+@dataclass
+class Resolution:
+    """Which IGDB game one appearance is, keyed by podcast_slug (make_slug(name) +
+    '-' + episode guid). The decision only: the game's data lives in IgdbGame."""
     podcast_slug: str
-    igdb_id: Optional[int]
-    igdb_slug: Optional[str]
-    name: Optional[str]     # canonical IGDB name
-    data: Optional[dict]    # normalised IGDB data blob (JSON-serialisable)
+    igdb_id: Optional[int]  # None = IGDB was asked and had no match (a negative cache)
     is_child: bool          # True when resolved to a parent/version_parent
-    cached_at: str          # ISO-8601 UTC timestamp
+    resolved_at: str        # ISO-8601 UTC timestamp
     correction_sig: str = ''  # fingerprint of the correction in force when resolved
-    enriched: bool = True     # False until Metacritic/HLTB have run (see resolver.resolve_one)
     method: str | None = None  # 'search' | 'llm' | 'pin'; None = legacy row, accepted as is
+    # Consecutive failures (IGDB error, LLM unavailable) and when to try again: a
+    # failing name is retried on a growing delay, not on every sweep.
+    attempts: int = 0
+    last_error: str | None = None
+    retry_at: str | None = None   # ISO-8601 UTC; None = settled
+
+
+@dataclass(frozen=True)
+class IgdbEntry:
+    """What the readers see of an appearance: its Resolution joined with its
+    IgdbGame — `game` is None on a miss, or while a dropped game is re-fetched."""
+    resolution: Resolution
+    game: Optional[IgdbGame]
+
+    @property
+    def podcast_slug(self) -> str:        return self.resolution.podcast_slug
+    @property
+    def igdb_id(self) -> Optional[int]:   return self.resolution.igdb_id
+    @property
+    def is_child(self) -> bool:           return self.resolution.is_child
+    @property
+    def igdb_slug(self) -> Optional[str]: return self.game.igdb_slug if self.game else None
+    @property
+    def name(self) -> Optional[str]:      return self.game.name if self.game else None
+    @property
+    def data(self) -> Optional[dict]:     return self.game.data if self.game else None

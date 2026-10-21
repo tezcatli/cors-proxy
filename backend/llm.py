@@ -7,8 +7,8 @@ so an outage never blocks the catalog. Each answer is cached in `llm_cache` by
 (task, prompt version, input): one input costs one call, ever. Bump a task's
 version when its prompt changes, so the cache stops answering for the old one.
 
-Answers are provisional: the dev audit (tools/llm_audit.py) reviews them, and
-what it commits to corrections.json always wins.
+Answers are provisional: they are reviewed in the admin console (in dev), and
+what that commits to corrections.json always wins.
 """
 import hashlib
 import json

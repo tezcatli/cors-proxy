@@ -94,14 +94,13 @@ def _group_summary(slug: str, members: list[Member],
 
 def resolution_stats() -> dict:
     groups, cache = group_members()
-    fresh = resolver.fresh_slugs(cache.items())
 
     # Per-podcast tallies are counted over appearances (an appearance belongs to
     # exactly one podcast), while the lists below are per catalog entry.
     per_podcast = {
         p.id: {'id': p.id, 'label': p.label, 'name': p.name,
                'appearances': 0, 'resolved': 0, 'failed': 0,
-               'pending': 0, 'corrected': 0}
+               'retrying': 0, 'pending': 0, 'corrected': 0}
         for p in PODCASTS
     }
     rows = []
@@ -113,11 +112,16 @@ def resolution_stats() -> dict:
                 continue
             stats['appearances'] += 1
             cached = cache.get(appearance.podcast_slug)
-            if cached is not None:
-                # A cached row with no igdb_id is a negative cache: IGDB was asked
-                # and had nothing. Never-cached rows are neither — only pending.
-                stats['failed' if cached.igdb_id is None else 'resolved'] += 1
-            if resolver.appearance_pending(game, appearance, cache, fresh):
+            if cached is not None and cached.igdb_id is not None:
+                stats['resolved'] += 1
+            elif cached is not None and not cached.resolution.retry_at:
+                # A negative cache: IGDB was asked and had nothing. Never-cached
+                # rows are neither — only pending.
+                stats['failed'] += 1
+            if cached is not None and cached.resolution.retry_at:
+                # Erroring (IGDB down, LLM unavailable), waiting out its backoff.
+                stats['retrying'] += 1
+            if resolver.appearance_pending(game, appearance, cache):
                 stats['pending'] += 1
             if find_by_podcast(game.name, appearance.episode.pub_ts,
                                appearance.episode.podcast_id):

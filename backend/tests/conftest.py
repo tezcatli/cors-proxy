@@ -20,9 +20,27 @@ import pytest
 from app import create_app
 from config import Config
 import catalog_state as _state
+import worker as _worker
+_worker.inline = True      # jobs run at once, in the test's thread
 import feeds as _feeds
 import games as _games
 from podcasts import PODCAST_BY_ID as _PODCAST_BY_ID
+
+
+def cache_entry(podcast_slug, igdb_id, igdb_slug, name, data=None, is_child=False,
+                at='2999-01-01T00:00:00', correction_sig='', enriched=True, method=None):
+    """An IgdbEntry: one appearance's resolution, joined with its game when it
+    has one. `at` stamps both (a resolution's and its game's freshness)."""
+    from models import IgdbEntry, IgdbGame, Resolution
+    game = (IgdbGame(igdb_id, igdb_slug, name, data or {}, at, enriched)
+            if igdb_id is not None else None)
+    return IgdbEntry(Resolution(podcast_slug, igdb_id, is_child, at, correction_sig, method), game)
+
+
+def set_cache(entries):
+    """Load `{podcast_slug: IgdbEntry}` into the two IGDB stores."""
+    _state.resolutions = {slug: e.resolution for slug, e in entries.items()}
+    _state.games       = {e.game.igdb_id: e.game for e in entries.values() if e.game}
 
 
 def auth_header(email='user@example.com'):
@@ -94,7 +112,8 @@ def clean_db():
     yield
     with _db.get_db() as conn:
         conn.executescript("""
-            DELETE FROM igdb_cache;
+            DELETE FROM resolutions;
+            DELETE FROM igdb_games;
             DELETE FROM llm_cache;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
@@ -103,7 +122,8 @@ def clean_db():
     _state.episodes      = []
     _state.episode_index = {}
     _state.game_index    = {}
-    _state.igdb_cache    = {}
+    _state.resolutions   = {}
+    _state.games         = {}
     _state.cached_at     = None
     # Response caches are keyed by a version that is monotonic across the whole
     # pytest session, so they must be dropped alongside the state they derive from.

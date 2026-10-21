@@ -4,9 +4,11 @@ The work lives elsewhere — `catalog_state` (the data), `feeds` (RSS → catalo
 `resolver` (IGDB resolution and the background tick), `serializers` (payloads),
 `review` (the admin console's quality view). This module only validates
 requests, caches the two big read payloads, and wires the rest together.
+
+Handlers read the catalog directly; anything that writes it runs on the worker
+(`worker.call`), so a request can't race the background sweep.
 """
 import logging
-import time
 
 from flask import Blueprint, abort, jsonify, request, Response
 
@@ -16,6 +18,7 @@ import feeds
 import resolver
 import review
 import serializers
+import worker
 from auth import require_admin, require_auth
 from igdb import search_games
 from limiter import limiter
@@ -90,7 +93,7 @@ def catalog():
     # cold start whose startup fetch failed — there is nothing to serve yet.
     if not state.episodes:
         try:
-            feeds.refresh_feed()
+            worker.call(feeds.refresh_feed, key='feeds')
         except Exception as exc:   # network error, malformed XML, etc.
             abort(502, f'RSS feed unavailable: {exc}')
         resolver.schedule_resolve()
@@ -118,28 +121,36 @@ def game_detail(slug):
 @limiter.limit("10 per minute")
 def refresh():
     try:
-        feeds.refresh_feed()
+        worker.call(feeds.refresh_feed, key='feeds')
     except Exception as exc:   # network error, malformed XML, etc.
         if not state.episodes:
             abort(502, f'RSS feed unavailable: {exc}')
         logger.warning('Manual refresh failed; serving cached catalog: %s', exc)
     # Even on a failed fetch: a previous tick may have brought in games that
-    # haven't resolved yet, and the user is looking right now. One budget for
-    # both: reading a new episode of an LLM-read show, then resolving its games.
-    deadline = time.monotonic() + resolver.REFRESH_BUDGET_S
-    feeds.ask_llm_for_new_episodes(budget_s=resolver.REFRESH_BUDGET_S)
-    resolver.resolve_new(max(0.0, deadline - time.monotonic()))
-    resolver.schedule_resolve(force=True)
+    # haven't resolved yet, and the user is looking right now.
+    worker.call(resolver.quick_pass, resolver.REFRESH_BUDGET_S, key='quick-pass')
     return jsonify({'games': serializers.build_catalog()})
+
+
+def _purge_and_resolve(members: list[Member], cache) -> None:
+    _purge_with_games([a.podcast_slug for _, a in members], cache)
+    resolver.resolve_members(members)
+
+
+def _purge_with_games(podcast_slugs: list[str], cache) -> None:
+    """An explicit IGDB refresh: re-resolve these appearances, and re-fetch the
+    games they were on — a correction only re-resolves, but this is the one way
+    to get a game's data (and its Metacritic score) again before the TTL."""
+    state.expire_games(e.igdb_id for s in podcast_slugs if (e := cache.get(s)))
+    state.purge_cache(podcast_slugs)
 
 
 @games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
 @limiter.limit("10 per minute")
 def game_igdb_refresh(slug):
     # This entry's appearances (by igdb_slug, or the name_slug fallback).
-    members, _, _ = serializers.match_appearances(slug)
-    state.purge_cache([a.podcast_slug for _, a in members])
-    resolver.resolve_members(members)
+    members, cache, _ = serializers.match_appearances(slug)
+    worker.call(_purge_and_resolve, members, cache)
     return jsonify(serializers.load_members(members, make_slug(slug)))
 
 
@@ -188,6 +199,13 @@ def _correction_target(payload: dict) -> tuple[PodcastGame, str, list[Member]]:
     return game, podcast_id, members
 
 
+def _purge_and_resolve_only(members: list[Member]) -> None:
+    """A correction re-decides which game these are; whichever it lands on, the
+    data already cached for it is still good."""
+    state.purge_cache([a.podcast_slug for _, a in members])
+    resolver.resolve_members(members)
+
+
 def _require_writable():
     if not corrections.is_writable():
         abort(409, 'corrections.json is read-only in this deployment. Curate it in '
@@ -196,8 +214,7 @@ def _require_writable():
 
 def _reresolve(members: list[Member], name_slug: str) -> dict:
     """Purge + re-resolve synchronously so the response reflects the edited file."""
-    state.purge_cache([a.podcast_slug for _, a in members])
-    resolver.resolve_members(members)
+    worker.call(_purge_and_resolve_only, members)
     return serializers.load_members(members, name_slug)
 
 
@@ -254,8 +271,8 @@ def podcast_igdb_refresh(podcast_id):
         podcast_slugs = [a.podcast_slug for game in state.game_index.values()
                          for a in game.appearances
                          if a.episode.podcast_id == podcast_id]
-    state.purge_cache(podcast_slugs)
+    worker.call(lambda: _purge_with_games(podcast_slugs, state.entries()))
     # Background sweep (this can be hundreds of rate-limited IGDB calls); the
     # console shows progress through `pending` in /resolution-stats.
-    resolver.schedule_resolve(force=True)
+    resolver.schedule_resolve()
     return jsonify({'purged': len(podcast_slugs)})
