@@ -344,3 +344,58 @@ def test_ads_are_not_chapters():
         {'title': 'Mail', 'game': None, 'start_s': 380, 'end_s': 900}]})
     feeds._apply_readings([ep], {'bes-1': sections})
     assert [c.title for c in ep.chapters] == ['Welcome', 'Mail']
+
+
+# ── DeepInfra failing ─────────────────────────────────────────────────────────
+
+@pytest.fixture
+def no_pause(monkeypatch):
+    monkeypatch.setattr(ingest, '_failures', 0)
+    monkeypatch.setattr(ingest, '_paused_until', 0.0)
+
+
+def _deepinfra_refuses(status=402):
+    import requests
+    audio = MagicMock()
+    audio.__enter__.return_value = audio
+    audio.iter_content.return_value = [b'audio']
+    refused = MagicMock()
+    refused.raise_for_status.side_effect = requests.HTTPError(f'{status} Payment Required')
+    return patch('transcribe._http.get', return_value=audio), \
+        patch('transcribe._http.post', return_value=refused)
+
+
+def test_deepinfra_failing_pauses_the_ingestion_not_the_episode(keys, besties, no_pause):
+    get, post = _deepinfra_refuses()
+    with get as download, post:
+        assert ingest._step(lambda: None) > 0
+        assert ingest._step(lambda: None) > 0           # paused: nothing more is tried
+    assert download.call_count == 1                     # not one download per episode
+    assert transcribe.rows() == {}                      # no episode is blamed
+    assert [ep.slug for ep in ingest.pending()] == ['bes-control', 'bes-mail']
+
+
+def test_the_pause_grows_while_deepinfra_keeps_failing(keys, besties, no_pause):
+    get, post = _deepinfra_refuses()
+    with get, post:
+        first = ingest._step(lambda: None)
+        ingest._paused_until = 0.0                      # the pause is over
+        second = ingest._step(lambda: None)
+    assert second == pytest.approx(2 * first)
+
+
+def test_the_ingestion_resumes_once_deepinfra_answers(keys, besties, no_pause):
+    get, post = _deepinfra_refuses()
+    with get, post:
+        ingest._step(lambda: None)
+    ingest._paused_until = 0.0
+    read = []
+    with _deepinfra(), _reads({'Control Resonant Rewards Your Patience': _CONTROL}):
+        assert ingest._step(lambda: read.append(1)) == 0
+    assert read == [1] and ingest._failures == 0
+
+
+def test_a_missing_episode_is_blamed_on_the_episode(keys, besties, no_pause):
+    with patch('transcribe._http.get', side_effect=OSError('404')):
+        assert ingest._step(lambda: None) == 0         # on to the next one
+    assert transcribe.rows()['bes-control'].attempts == 1

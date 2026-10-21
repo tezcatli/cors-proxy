@@ -40,6 +40,11 @@ def enabled() -> bool:
     return bool(Config.DEEPINFRA_API_KEY)
 
 
+class Unavailable(Exception):
+    """DeepInfra failed the transcription: the provider is at fault — no credit
+    left, a key refused, an outage — not the episode."""
+
+
 @dataclass
 class Transcript:
     model:    str
@@ -81,7 +86,9 @@ class _Multipart:
 
 
 def transcribe(audio_url: str, language: str) -> Transcript:
-    """Download the episode's audio and transcribe it. Raises on any failure."""
+    """Download the episode's audio and transcribe it. Raises `Unavailable` when
+    DeepInfra fails, anything else when the episode does (its audio missing,
+    no speech in it)."""
     with tempfile.TemporaryFile() as audio:
         with _http.get(audio_url, stream=True, timeout=Config.REQUEST_TIMEOUT,
                       headers={'User-Agent': 'PodcastCatalog/1.0'}) as resp:
@@ -92,12 +99,15 @@ def transcribe(audio_url: str, language: str) -> Transcript:
                     raise ValueError(f'audio over {_MAX_BYTES >> 20} MB')
         audio.seek(0)
         body = _Multipart({'language': language, 'chunk_level': 'segment'}, audio)
-        resp = _http.post(_API + Config.TRANSCRIBE_MODEL, data=body, timeout=_TIMEOUT, headers={
-            'Authorization': f'Bearer {Config.DEEPINFRA_API_KEY}',
-            'Content-Type':  body.content_type,
-        })
-    resp.raise_for_status()
-    answer = resp.json()
+        try:
+            resp = _http.post(_API + Config.TRANSCRIBE_MODEL, data=body, timeout=_TIMEOUT, headers={
+                'Authorization': f'Bearer {Config.DEEPINFRA_API_KEY}',
+                'Content-Type':  body.content_type,
+            })
+            resp.raise_for_status()
+            answer = resp.json()
+        except (requests.RequestException, ValueError) as exc:
+            raise Unavailable(f'DeepInfra: {exc}') from exc
     segments = [[round(s['start'], 2), round(s['end'], 2), s['text'].strip()]
                 for s in answer.get('segments') or [] if s.get('text', '').strip()]
     if not segments:

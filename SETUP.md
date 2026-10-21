@@ -47,7 +47,9 @@ IGDB_CLIENT_SECRET=<your igdb client secret>
 OPENROUTER_API_KEY=<your openrouter key>
 
 # Transcription (optional): every episode, once, for its chapters, games and verdicts.
-# The backlog costs ~30 $ the first time, then a few dollars a year.
+# The backlog costs ~30 $ the first time, then a few dollars a year. Set a spending cap
+# on the key: when it is reached, the ingestion pauses (up to a day between tries);
+# after topping up, restart the backend to resume at once.
 DEEPINFRA_API_KEY=<your deepinfra key>
 
 # Base URL used to build invite and password-reset links.

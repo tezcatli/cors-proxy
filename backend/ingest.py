@@ -11,6 +11,7 @@ changes when the worker rebuilds it (`on_read`).
 """
 import logging
 import threading
+import time
 
 import feeds
 import llm
@@ -19,11 +20,19 @@ from config import Config
 from db import utcnow
 from models import Episode
 from podcasts import PODCAST_BY_ID
+from utils import backoff
 
 logger = logging.getLogger(__name__)
 
 _wake = threading.Event()
 _thread: threading.Thread | None = None
+
+# DeepInfra failing — out of credit, a key refused, an outage — pauses the whole
+# ingestion rather than fail each episode in turn: each attempt downloads the
+# whole audio first (up to 180 MB), so a dry account would pull the backlog's
+# ~100 GB for nothing, every day. In memory: a restart resumes at once.
+_failures     = 0      # DeepInfra failures in a row
+_paused_until = 0.0    # time.monotonic()
 
 
 def _status(episode: Episode, row: transcribe.Row | None) -> str:
@@ -72,7 +81,9 @@ def stats() -> dict[str, dict]:
 
 def ingest(episode: Episode) -> bool:
     """Transcribe `episode` if it isn't, then read it. True once it is read; a
-    failure is recorded, and the episode waits out a growing delay."""
+    failure of the episode is recorded, and it waits out a growing delay. A
+    failure of DeepInfra (`transcribe.Unavailable`) is raised: it isn't the
+    episode's."""
     try:
         transcript = transcribe.load(episode.slug)
         if transcript is None:
@@ -89,6 +100,8 @@ def ingest(episode: Episode) -> bool:
         transcribe.clear_failure(episode.slug)
         logger.info('Read %r', episode.title)
         return True
+    except transcribe.Unavailable:
+        raise
     except Exception as exc:
         transcribe.store_failure(episode.slug, f'{type(exc).__name__}: {exc}')
         return False
@@ -110,19 +123,42 @@ def start(on_read) -> None:
     _thread.start()
 
 
+def _step(on_read) -> float | None:
+    """One turn: ingest the next pending episode. Returns how long to wait before
+    the next turn: 0 to go on, None until woken (nothing to do), the rest of a
+    pause while DeepInfra fails."""
+    global _failures, _paused_until
+    pause = _paused_until - time.monotonic()
+    if pause > 0:
+        return pause
+    try:
+        todo = pending()
+    except Exception:
+        logger.exception('Ingestion: listing the pending episodes failed')
+        return None
+    if not todo:
+        return None
+    try:
+        read = ingest(todo[0])
+    except transcribe.Unavailable as exc:
+        _failures += 1
+        delay = backoff(_failures).total_seconds()
+        _paused_until = time.monotonic() + delay
+        logger.warning('Ingestion paused for %d min (%s); restart the backend to resume at once',
+                       delay // 60, exc)
+        return delay
+    _failures = 0
+    if read:
+        on_read()
+    return 0
+
+
 def _loop(on_read) -> None:
     while True:
         _wake.clear()
-        try:
-            todo = pending()
-        except Exception:
-            logger.exception('Ingestion: listing the pending episodes failed')
-            todo = []
-        if not todo:
-            _wake.wait()
-            continue
-        if ingest(todo[0]):
-            on_read()
+        wait = _step(on_read)
+        if wait != 0:
+            _wake.wait(wait)     # the tick's wake ends it early: a pause is then re-checked
 
 
 def main(names: list[str]) -> None:
