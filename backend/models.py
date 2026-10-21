@@ -39,6 +39,10 @@ class Episode:
     url_slug: str = ''      # human-readable make_slug(title), de-duplicated — used only for routing/URLs
     podcast_id: str = ''    # source podcast id (e.g. 'silence-on-joue', 'fin-du-game')
     chapters_read: bool = False  # chapters from the transcript's reading, replaced by the next one
+    # The games the title (or the description's reading) proposed, before the
+    # transcript's reading confirms them; `games` is what is kept. None until the
+    # first rebuild sets it aside (`feeds._apply_readings`).
+    proposed: Optional[list[GameMention]] = None
 
 
 @dataclass

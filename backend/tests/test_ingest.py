@@ -399,3 +399,35 @@ def test_a_missing_episode_is_blamed_on_the_episode(keys, besties, no_pause):
     with patch('transcribe._http.get', side_effect=OSError('404')):
         assert ingest._step(lambda: None) == 0         # on to the next one
     assert transcribe.rows()['bes-control'].attempts == 1
+
+
+# ── The title proposes, the reading confirms ─────────────────────────────────
+
+def _special_episode():
+    from models import Episode, GameMention
+    return Episode(title="«Le 500e épisode en public» et «Hades II»", slug='soj-500',
+                   audio_url=None, pub_ts=None, image_url=None, description='', chapters=[],
+                   games=[GameMention('Le 500e épisode en public', None, 0),
+                          GameMention('Hades II', None, 0),
+                          GameMention('GTA VI', None, 0)],
+                   podcast_id='silence-on-joue')
+
+
+_SPECIAL = llm._sections({'sections': [
+    {'title': 'Le 500e en public', 'game': None, 'start_s': 0, 'end_s': 1800},
+    {'title': 'Hades 2', 'game': 'Hades 2', 'kind': 'review', 'start_s': 1800, 'end_s': 3000,
+     'votes': ['positive']},
+    {'title': 'GTA VI', 'game': 'GTA VI', 'kind': 'news', 'start_s': 3000, 'end_s': 3300}]})
+
+
+def test_a_title_s_game_the_reading_finds_no_section_of_is_dropped():
+    ep = _special_episode()
+    feeds._apply_readings([ep], {'soj-500': _SPECIAL})
+    assert [g.name for g in ep.games] == ['Hades II', 'GTA VI']   # GTA VI: in the news, still there
+
+
+def test_without_a_reading_the_title_s_games_stand():
+    ep = _special_episode()
+    feeds._apply_readings([ep], {'soj-500': _SPECIAL})
+    feeds._apply_readings([ep], {})
+    assert [g.name for g in ep.games] == ['Le 500e épisode en public', 'Hades II', 'GTA VI']

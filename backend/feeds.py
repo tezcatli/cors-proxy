@@ -128,18 +128,26 @@ def _as_chapter(section: dict, title: str) -> Chapter:
 
 
 def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) -> None:
-    """What an episode's reading adds to it: chapters when it has none of its own
-    (ads left out), the games it critiques that its title doesn't name — a
-    show's title names two games, its hour on Microïds' catalogue five more —
-    and each game's critique. Idempotent: the Episode objects are reused across
-    304s, and what a reading added is replaced by the next reading's."""
+    """What an episode's reading makes of it. The title proposes, the reading
+    confirms: a game the title names is kept when the reading finds a section of
+    it, whatever kind — a special's title is not a game («Le 500e épisode en
+    public», «et plein d'autres»). The reading adds the games it critiques that
+    the title doesn't name — a show's title names two games, its hour on
+    Microïds' catalogue five more — gives each game its critique, and chapters
+    an episode that has none of its own (ads left out). Idempotent: the Episode
+    objects are reused across 304s; what the title proposed is set aside, and
+    the games are rebuilt from it on every pass."""
     for ep in episodes:
-        ep.games = [m for m in ep.games if not m.read]
-        for mention in ep.games:
+        if ep.proposed is None:
+            ep.proposed = list(ep.games)
+        for mention in ep.proposed:
             mention.critique = None
         sections = readings.get(ep.slug)
         if not sections:
+            ep.games = list(ep.proposed)
             continue
+        spoken = [_as_chapter(s, s['game']) for s in sections if s['game']]
+        ep.games = [m for m in ep.proposed if find_chapter_for_game(m.name, spoken)]
         if not ep.chapters or ep.chapters_read:
             ep.chapters = [_as_chapter(s, s['title']) for s in sections if not s['ad']]
             ep.chapters_read = True
@@ -350,7 +358,7 @@ def _apply_llm_games(episodes: list[Episode],
                 continue
             # A few episodes have chapters (The Besties, 2014–16): point each game
             # at its own, as the title-parsed shows do.
-            ep.games = []
+            ep.games, ep.proposed = [], None   # proposed anew from this pass's names
             for n in names:
                 chapter = find_chapter_for_game(n, ep.chapters)
                 ep.games.append(GameMention(

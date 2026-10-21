@@ -17,7 +17,6 @@ djpod URLs; all 601 map to the current feed.
 """
 import gzip
 import json
-import os
 import sqlite3
 import sys
 
@@ -45,7 +44,6 @@ def load(path: str) -> None:
 
     with gzip.open(path) as f:
         lab = json.load(f)
-    os.remove(path)
     feeds._fetch_feed(PODCAST_BY_ID['silence-on-joue'])
     guid_of = {}
     for ep in feeds._feed_episodes['silence-on-joue']:
