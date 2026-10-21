@@ -35,6 +35,11 @@ def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with get_db() as conn:
         conn.execute("PRAGMA journal_mode=WAL")
+        # The split cache's first shape (deployed on its own) kept one decision per
+        # appearance in `resolutions`, keyed by slug: exactly the transit table's
+        # rows, which become answers at the first complete build.
+        if 'slug' in {row[1] for row in conn.execute("PRAGMA table_info(resolutions)")}:
+            conn.execute('ALTER TABLE resolutions RENAME TO appearance_resolutions')
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS users (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
