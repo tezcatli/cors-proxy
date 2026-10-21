@@ -91,12 +91,6 @@ def _point_mentions(episode: Episode) -> None:
 # game each is about and the hosts' verdict. Only cached readings are used while
 # rebuilding, as for the games read from descriptions.
 
-# A section shorter than this is a mention in passing, not a game the episode
-# is about — measured: a 1 min 30 s aside on a golf game against the 15-minute
-# segments of the games reviewed.
-MIN_GAME_SECTION_S = 180
-
-
 def _readings(episodes: list[Episode]) -> dict[str, list[dict]]:
     """The cached reading of every transcribed episode, by guid."""
     models = {guid: row.model for guid, row in transcribe.rows().items() if row.model}
@@ -106,11 +100,19 @@ def _readings(episodes: list[Episode]) -> dict[str, list[dict]]:
             is not None}
 
 
+# What the catalog lists of an episode's reading: the games its hosts critique —
+# played and judged, concluding or not, a best-of's entries included. Not the
+# games in the news, recommended in passing or named, however long they are
+# talked about. The reading only describes each section (`llm.KINDS`), so this
+# can change without reading again.
+CRITIQUE_KINDS = {'review', 'impressions', 'ranking'}
+
+
 def _game_sections(sections: list[dict]) -> list[dict]:
-    """The sections an episode spends on a game — long enough, once per game."""
+    """The sections that critique a game, once per game."""
     first: dict[str, dict] = {}
     for s in sections:
-        if s['game'] and s['end'] - s['start'] >= MIN_GAME_SECTION_S:
+        if s['kind'] in CRITIQUE_KINDS:
             first.setdefault(make_slug(s['game']), s)
     return list(first.values())
 
@@ -127,9 +129,9 @@ def _as_chapter(section: dict, title: str) -> Chapter:
 
 def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) -> None:
     """What an episode's reading adds to it: chapters when it has none of its own
-    (ads left out), the games it spends a section on that its title doesn't name
-    — a show's title names two games, its hour on Microïds' catalogue five more —
-    and each game's verdict. Idempotent: the Episode objects are reused across
+    (ads left out), the games it critiques that its title doesn't name — a
+    show's title names two games, its hour on Microïds' catalogue five more —
+    and each game's critique. Idempotent: the Episode objects are reused across
     304s, and what a reading added is replaced by the next reading's."""
     for ep in episodes:
         ep.games = [m for m in ep.games if not m.read]
@@ -152,7 +154,7 @@ def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) ->
                 mention = GameMention(name=section['game'], timestamp=_seconds_to_ts(section['start']),
                                       timestamp_seconds=section['start'], read=True)
                 ep.games.append(mention)
-            mention.critique = section['critique']
+            mention.critique = section['opinion']
 
 
 # ── Indexes ───────────────────────────────────────────────────────────────────

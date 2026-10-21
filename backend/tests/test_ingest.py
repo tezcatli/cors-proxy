@@ -34,12 +34,12 @@ _SEGMENTS = [{'start': 0.0, 'end': 240.0, 'text': ' Welcome to the Besties.'},
 _CONTROL = {'sections': [
     {'title': 'Welcome', 'game': None, 'start_s': 0, 'end_s': 240},
     {'title': 'Control Resonant', 'game': 'Control Resonant', 'start_s': 240, 'end_s': 1860,
-     'votes': ['positive', 'enthusiastic', 'mixed'], 'pros': ['Surreal Manhattan'],
+     'kind': 'review', 'votes': ['positive', 'enthusiastic', 'mixed'], 'pros': ['Surreal Manhattan'],
      'cons': ['Slow start'], 'verdict_s': 1800},
     {'title': 'Gears of War: E-DAY', 'game': 'Gears of War: E-DAY', 'start_s': 1860,
-     'end_s': 2750, 'votes': ['positive'], 'pros': ['Beautiful'], 'cons': [], 'verdict_s': 2000},
+     'end_s': 2750, 'kind': 'review', 'votes': ['positive'], 'pros': ['Beautiful'], 'cons': [], 'verdict_s': 2000},
     {'title': 'A Normal Golf Game', 'game': 'A Normal Golf Game', 'start_s': 2750,
-     'end_s': 2840, 'votes': ['positive'], 'pros': [], 'cons': [], 'verdict_s': 2800}]}
+     'end_s': 2840, 'kind': 'mention'}]}                   # named in passing
 _MAIL = {'sections': [{'title': 'Listener mail', 'game': None, 'start_s': 0, 'end_s': 2840}]}
 
 
@@ -100,10 +100,11 @@ def _episode(guid):
 # ── Averaging the hosts' verdicts ─────────────────────────────────────────────
 
 @pytest.mark.parametrize('votes, expected', [
-    (['enthusiastic', 'positive', 'negative', 'positive'], 'positive'),   # 1.75
+    (['enthusiastic', 'positive', 'negative', 'positive'], 'mixed'),      # 1.5: a tie
     (['positive', 'negative'], 'mixed'),                                  # 1.0
     (['mixed', 'negative'], 'mixed'),            # 0.5: a split goes to «mixed»
-    (['positive', 'enthusiastic'], 'positive'),  # 2.5: the step nearer «mixed»
+    (['positive', 'enthusiastic'], 'positive'),  # «enthusiastic» is shown as «positive»
+    (['enthusiastic', 'enthusiastic', 'mixed'], 'positive'),             # 1.67
     (['negative'], 'negative'),
     (['Patrick: mixed', 'Marius: Negative'], 'mixed'),   # a host's name is dropped
     (['great', 'meh'], None),                    # not on the scale
@@ -113,20 +114,39 @@ def test_the_verdict_is_the_hosts_average(votes, expected):
     assert llm.verdict(votes) == expected
 
 
-def test_a_section_without_a_verdict_has_no_critique():
+def test_a_game_section_is_described_whatever_its_kind():
     sections = llm._sections({'sections': [
-        {'title': 'News', 'game': 'Dredge', 'start_s': 600, 'end_s': 900, 'votes': []},
-        {'title': 'Intro', 'game': None, 'start_s': 0, 'end_s': 600, 'votes': ['positive']},
+        {'title': 'News', 'game': 'GTA VI', 'kind': 'news', 'start_s': 600, 'end_s': 1200,
+         'votes': ['negative'], 'verdict_s': 700},
+        {'title': 'Still playing', 'game': 'Saros', 'kind': 'impressions', 'start_s': 1200,
+         'end_s': 2000, 'votes': [], 'pros': ['Tight combat'], 'verdict_s': 1900},
+        {'title': 'Odd', 'game': 'Halo', 'kind': 'rumour', 'start_s': 2000, 'end_s': 2100},
+        {'title': 'Intro', 'game': None, 'kind': 'review', 'start_s': 0, 'end_s': 600},
         {'title': 'Broken', 'start_s': 'x', 'end_s': 1},
     ]})
-    assert [(s['title'], s['critique']) for s in sections] == [('Intro', None), ('News', None)]
+    assert [(s['title'], s['kind'], s['opinion'] and s['opinion']['verdict']) for s in sections] == [
+        ('Intro', None, None),                     # not a game: no kind, no opinion
+        ('News', 'news', 'negative'),
+        ('Still playing', 'impressions', None),    # no one concludes
+        ('Odd', 'mention', None)]                  # a kind off the list is a mention
+
+
+@pytest.mark.parametrize('kind, listed', [
+    ('review', True), ('impressions', True), ('ranking', True),
+    ('news', False), ('recommendation', False), ('mention', False)])
+def test_the_catalog_lists_the_games_its_hosts_critique(kind, listed):
+    sections = llm._sections({'sections': [
+        {'title': 'x', 'game': 'Fire Emblem Awakening', 'kind': kind, 'start_s': 3000,
+         'end_s': 3060, 'votes': ['enthusiastic']}]})
+    assert feeds._read_games(sections) == (['Fire Emblem Awakening'] if listed else [])
 
 
 def test_pros_and_cons_are_kept_to_three():
     [section] = llm._sections({'sections': [
-        {'title': 'Saros', 'game': 'Saros', 'start_s': 0, 'end_s': 900, 'votes': ['positive'],
+        {'title': 'Saros', 'game': 'Saros', 'start_s': 0, 'end_s': 900, 'kind': 'review',
+         'votes': ['positive'],
          'pros': ['a', 'b', 'c', 'd'], 'cons': ['', 'e'], 'verdict_s': 850}]})
-    assert section['critique'] == {'verdict': 'positive', 'pros': ['a', 'b', 'c'],
+    assert section['opinion'] == {'verdict': 'positive', 'pros': ['a', 'b', 'c'],
                                    'cons': ['e'], 'at': 850}
 
 
@@ -243,7 +263,7 @@ def test_a_read_episode_is_about_the_games_of_its_long_sections(keys, besties):
     _ingest_all()
     [ep] = state.episodes                       # the mail is about no game: left out
     assert [(g.name, g.timestamp_seconds) for g in ep.games] == [
-        ('Control Resonant', 240), ('Gears of War: E-DAY', 1860)]   # not the 90-s golf aside
+        ('Control Resonant', 240), ('Gears of War: E-DAY', 1860)]   # not the golf game named in passing
     assert [c.title for c in ep.chapters] == [
         'Welcome', 'Control Resonant', 'Gears of War: E-DAY', 'A Normal Golf Game']
 
@@ -272,7 +292,7 @@ def test_an_episode_s_own_chapters_win_over_its_reading(keys):
     sections = llm._sections({'sections': [
         {'title': 'Intro', 'game': None, 'start_s': 0, 'end_s': 2227},
         {'title': 'Super Mario RPG', 'game': 'Super Mario RPG', 'start_s': 2227,
-         'end_s': 3338, 'votes': ['positive'], 'verdict_s': 3097}]})
+         'end_s': 3338, 'kind': 'review', 'votes': ['positive'], 'verdict_s': 3097}]})
     feeds._apply_readings([ep], {'soj-1': sections})
     assert [c.title for c in ep.chapters] == ['Super Mario RPG']
     assert ep.games[0].critique['verdict'] == 'positive'
@@ -291,11 +311,11 @@ def _soj_episode():
 _S17E16 = llm._sections({'sections': [
     {'title': 'Intro', 'game': None, 'start_s': 0, 'end_s': 3755},
     {'title': 'Goldorak', 'game': 'Goldorak : Le Festin des Loups', 'start_s': 3755,
-     'end_s': 5057, 'votes': ['negative'], 'verdict_s': 4900},
-    {'title': 'Dredge (news)', 'game': 'Dredge', 'start_s': 5057, 'end_s': 5100,
-     'votes': ['mixed']},
+     'end_s': 5057, 'kind': 'review', 'votes': ['negative'], 'verdict_s': 4900},
+    {'title': 'GTA VI trailer', 'game': 'GTA VI', 'start_s': 5057, 'end_s': 5600,
+     'kind': 'news', 'votes': ['negative']},
     {'title': 'KarmaZoo', 'game': 'KarmaZoo', 'start_s': 9365, 'end_s': 10629,
-     'votes': ['positive'], 'verdict_s': 10400}]})
+     'kind': 'review', 'votes': ['positive'], 'verdict_s': 10400}]})
 
 
 def test_a_reading_adds_the_games_the_title_doesnt_name():
@@ -304,7 +324,7 @@ def test_a_reading_adds_the_games_the_title_doesnt_name():
         feeds._apply_readings([ep], {'soj-16': _S17E16})
     assert [(g.name, g.timestamp_seconds, g.read, g.critique['verdict']) for g in ep.games] == [
         ('Karmazoo', 9294, False, 'positive'),                 # the title's, with its verdict
-        ('Goldorak : Le Festin des Loups', 3755, True, 'negative')]   # not the 43-s aside
+        ('Goldorak : Le Festin des Loups', 3755, True, 'negative')]   # not the trailer in the news
 
 
 def test_what_a_reading_added_goes_when_it_does():

@@ -170,8 +170,9 @@ def reviewed_games(episode: dict, cached_only: bool = False,
 
 
 # ── Reading an episode's transcript ───────────────────────────────────────────
-# One reading gives the episode's chapters, the game each section is about and
-# what the hosts think of it. The transcript is speech-to-text, so names come out
+# One reading gives the episode's chapters, the game each section is about, what
+# kind of section it is and what the hosts think of it — a description: what the
+# catalog makes of it is decided in feeds.py. The transcript is speech-to-text, so names come out
 # phonetic («GICNEP» for Jiknep): the episode's own title and description are
 # given as context and their spelling wins — no hand-kept lexicon. The language
 # is named outright: told only "the episode's language", the model answered in
@@ -194,29 +195,44 @@ description is what was said, use their spelling; otherwise clean up the name
 as transcribed.
 Timestamps: use only the second values of the [Xs - Ys] markers; sections follow
 one another with no gap or overlap, from the first marker to the last.
-For each video-game section, say what the hosts think of the game, from what
-they actually say: "votes", one verdict per host who gives one, each just the
-word "enthusiastic", "positive", "mixed" or "negative", no name (["positive",
-"mixed"]; [] when nobody gives a verdict: news, a preview, a game they haven't
-played); "pros" and "cons", at
-most 3 short items each; "verdict_s", the second where the verdict is stated
-most clearly.
+For each video-game section, describe it — what happens, not whether it
+matters: "kind" is
+- "review": the hosts have played the game and judge it;
+- "impressions": they are playing it and say how it's going, without concluding;
+- "news": the game is in the news — an announcement, a trailer, a release, sales;
+- "ranking": its entry in a best-of, a ranking or a year in review — even when
+  the hosts played it and judge it there, this is the kind;
+- "recommendation": a host recommends it in passing (listener mail, a tip);
+- "mention": it is named in passing or for comparison.
+And whatever the kind, from what the hosts actually say: "votes", one verdict
+per host who gives one on the game itself, each just the word "enthusiastic",
+"positive", "mixed" or "negative", no name (["positive", "mixed"]; [] when
+nobody does); "pros" and "cons", at most 3 short items each; "verdict_s", the
+second where their opinion is stated most clearly.
 Answer with JSON only: {"sections": [{"title": "...", "game": "..." or null,
-"ad": false, "start_s": 0, "end_s": 95, "votes": [], "pros": [], "cons": [],
-"verdict_s": 0}]}"""
+"kind": null, "ad": false, "start_s": 0, "end_s": 95, "votes": [], "pros": [],
+"cons": [], "verdict_s": 0}]}"""
 
 _LANGUAGES = {'fr': 'French', 'en': 'English'}
-VERDICTS = ('negative', 'mixed', 'positive', 'enthusiastic')
+VERDICTS = ('negative', 'mixed', 'positive')
+# The reader's words, on the scale shown. It is asked for four, but tells
+# «enthusiastic» from «positive» apart no better than chance — measured: two
+# readings of 20 episodes disagreed on 11 of 58 verdicts there, against 7 on
+# every other boundary together.
+_SCORES = {'negative': 0, 'mixed': 1, 'positive': 2, 'enthusiastic': 2}
+# What a game section is. The reader describes; what the catalog keeps is
+# decided in code (`feeds.CRITIQUE_KINDS`), so a change of policy re-reads nothing.
+KINDS = ('review', 'impressions', 'ranking', 'news', 'recommendation', 'mention')
 
 
 def verdict(votes: list[str]) -> str | None:
     """The hosts' verdicts averaged on the scale `VERDICTS`; a tie between two
-    steps goes to the one nearer «mixed» — hosts split down the middle are mixed.
-    None when nobody gave one."""
+    steps goes to «mixed» — hosts split down the middle are mixed. None when
+    nobody gave one."""
     # «Patrick Hellio: mixed» counts as «mixed»: whose vote it is can't be told
     # from a transcript, only that it was cast.
     words  = [v.rsplit(':', 1)[-1].strip().lower() for v in votes]
-    scores = [VERDICTS.index(w) for w in words if w in VERDICTS]
+    scores = [_SCORES[w] for w in words if w in _SCORES]
     if not scores:
         return None
     mean = sum(scores) / len(scores)
@@ -236,23 +252,25 @@ def _sections(answer: dict) -> list[dict]:
         except (KeyError, TypeError, ValueError):
             continue
         game = raw.get('game') if isinstance(raw.get('game'), str) and raw['game'].strip() else None
-        critique = None
+        kind = opinion = None
         if game:
+            kind = raw.get('kind') if raw.get('kind') in KINDS else 'mention'
             listed = lambda k: [x.strip() for x in raw.get(k) or [] if isinstance(x, str) and x.strip()][:3]
-            said = verdict([v for v in raw.get('votes') or [] if isinstance(v, str)])
             at = raw.get('verdict_s')
-            if said:
-                critique = {'verdict': said, 'pros': listed('pros'), 'cons': listed('cons'),
-                            'at': int(at) if isinstance(at, (int, float)) else start}
+            opinion = {'verdict': verdict([v for v in raw.get('votes') or [] if isinstance(v, str)]),
+                       'pros': listed('pros'), 'cons': listed('cons'),
+                       'at': int(at) if isinstance(at, (int, float)) else start}
         sections.append({'title': raw['title'].strip(), 'game': game and game.strip(),
-                         'start': start, 'end': end, 'critique': critique,
+                         'kind': kind, 'start': start, 'end': end, 'opinion': opinion,
                          'ad': raw.get('ad') is True})
     return sorted(sections, key=lambda s: s['start'])
 
 
 def read_transcript(episode: dict, segments: list | None = None) -> list[dict] | None:
-    """The sections of a transcribed episode: [{title, game, start, end,
-    critique, ad}], critique = {verdict, pros, cons, at} or None.
+    """The sections of a transcribed episode: [{title, game, kind, start, end,
+    opinion, ad}]. A game section has a `kind` (`KINDS`) and the hosts' `opinion`
+    = {verdict, pros, cons, at}, `verdict` None when nobody gives one; any other
+    section has neither.
 
     `episode` identifies the reading (show, language, guid, transcript model,
     title, description); the transcript itself, `segments` ([[start, end, text]]),
