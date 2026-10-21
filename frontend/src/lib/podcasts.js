@@ -8,6 +8,10 @@ export const PODCASTS = [
   { id: 'fin-du-game',     label: 'FDG', name: 'Fin du Game' },
   { id: 'triple-click',    label: 'TC',  name: 'Triple Click' },
   { id: 'the-besties',     label: 'BES', name: 'The Besties' },
+  { id: 'origami',            label: 'ORI',  name: "ORIGAMI L'Hebdo" },
+  { id: 'zqsd',               label: 'ZQSD', name: 'ZQSD' },
+  { id: 'the-back-page',      label: 'TBP',  name: 'The Back Page' },
+  { id: 'game-informer-show', label: 'GI',   name: 'The Game Informer Show' },
 ]
 
 export const PODCAST_BY_ID = Object.fromEntries(PODCASTS.map(p => [p.id, p]))
