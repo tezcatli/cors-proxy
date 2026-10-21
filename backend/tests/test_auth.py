@@ -459,3 +459,28 @@ def test_revoking_an_invitation_kills_the_registration(client):
 def test_revoke_invitation_requires_admin(client):
     assert_contract(client.delete('/auth/invitations/whatever', headers=auth_header()),
                     AUTH['revoke_invitation']['forbidden'])
+
+
+# ── Mail server failures ───────────────────────────────────────────────────
+
+def _smtp_down(monkeypatch):
+    import smtplib
+    monkeypatch.setattr(Config, 'SMTP_HOST', 'smtp.invalid')
+    def refuse(*a, **k):
+        raise smtplib.SMTPAuthenticationError(535, b'bad credentials')
+    monkeypatch.setattr(smtplib, 'SMTP', refuse)
+
+def test_invite_survives_a_mail_failure(client, monkeypatch):
+    _smtp_down(monkeypatch)
+    r = client.post('/auth/invite', json={'email': 'a@b.com'},
+                    headers={'X-Admin-Key': Config.ADMIN_KEY})
+    assert_contract(r, AUTH['invite']['success'])
+    assert r.get_json()['email_sent'] is False
+    token = r.get_json()['invite_url'].split('?invite=')[1]
+    assert client.get(f'/auth/invite-info/{token}').status_code == 200
+
+def test_reset_request_survives_a_mail_failure(client, monkeypatch):
+    register(client, email='reset@example.com')
+    _smtp_down(monkeypatch)
+    r = client.post('/auth/reset-request', json={'email': 'reset@example.com'})
+    assert_contract(r, AUTH['reset_request']['success'])
