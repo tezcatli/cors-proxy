@@ -5,8 +5,13 @@ export function useEpisodePlayer(gameContext = null) {
   // or null (feed context — derives from episode.games[0])
   const playerStore = usePlayerStore()
 
+  // On a game's page, the same episode audio playing another game's review is
+  // not "this" review: a tap must jump to this game, not pause/resume the other.
   function isEpPlaying(ep) {
-    return !!playerStore.current && ep.audioUrl === playerStore.current.url
+    const cur = playerStore.current
+    if (!cur || ep.audioUrl !== cur.url) return false
+    const slug = gameContext?.value?.slug
+    return !slug || cur.slug === slug
   }
 
   function playEp(ep) {

@@ -5,7 +5,8 @@
         "status": 201,
         "fields": [
           "invite_url",
-          "is_admin"
+          "is_admin",
+          "email_sent"
         ]
       },
       "forbidden": {

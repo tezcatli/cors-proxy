@@ -193,8 +193,10 @@ def invite():
             (token, email, is_admin),
         )
     invite_url = _invite_url(token)
-    send_invite_email(email, invite_url)
-    return jsonify(invite_url=invite_url, is_admin=bool(is_admin)), 201
+    # The link is returned either way: when the mail doesn't go out, it is the
+    # only copy of the invitation, and the console shows it.
+    sent = send_invite_email(email, invite_url)
+    return jsonify(invite_url=invite_url, is_admin=bool(is_admin), email_sent=sent), 201
 
 
 @auth_bp.route("/invite-info/<token>", methods=["GET"])
