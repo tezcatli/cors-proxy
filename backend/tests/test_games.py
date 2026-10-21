@@ -985,6 +985,41 @@ def test_the_legacy_cache_becomes_one_answer_per_question():
             "SELECT 1 FROM sqlite_master WHERE name = 'appearance_resolutions'").fetchone()
 
 
+def test_the_first_split_cache_becomes_one_answer_per_question():
+    # The split cache as first deployed: `resolutions` held one decision per
+    # appearance, keyed by slug. Chrono Trigger's two rows agree; Zelda's was
+    # failing (an IGDB error waiting out its delay), which decides nothing.
+    ct, zelda = make_slug('Chrono Trigger'), make_slug('Zelda')
+    with get_db() as conn:
+        conn.execute('DROP TABLE resolutions')
+        conn.execute("CREATE TABLE resolutions (slug TEXT PRIMARY KEY, igdb_id INTEGER, "
+                     "is_child INTEGER NOT NULL DEFAULT 0, resolved_at TEXT NOT NULL, "
+                     "correction_sig TEXT NOT NULL DEFAULT '', method TEXT, "
+                     "attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT, retry_at TEXT)")
+        conn.executemany('INSERT INTO resolutions VALUES (?,?,?,?,?,?,?,?,?)', [
+            (f'{ct}-soj1', 1, 0, '2026-06-06', '', 'llm', 0, None, None),
+            (f'{ct}-soj2', 1, 0, '2026-06-13', '', None, 0, None, None),
+            (f'{zelda}-soj2', None, 0, '2026-06-13', '', None, 2, 'IGDB down', '2026-06-14'),
+        ])
+        conn.execute("INSERT INTO igdb_games VALUES (1, 'chrono-trigger', 'Chrono Trigger', "
+                     "'{}', '2999-01-01', 1)")
+    _db.init_db()
+    state.load_igdb_cache_from_db()
+    with patch('feeds.http.get', return_value=mock_rss_response(_TWO_SOJ_2026)):
+        feeds.refresh_feed()
+
+    ct_question = question_for(state.game_index[ct], state.episodes[0])
+    zelda_question = question_for(state.game_index[zelda], state.episodes[0])
+    assert set(state.resolutions) == {ct_question.key}
+    assert (state.resolutions[ct_question.key].igdb_id,
+            state.resolutions[ct_question.key].method) == (1, 'llm')
+    assert resolver.resolution_pending(state.resolutions.get(zelda_question.key))
+    with get_db() as conn:
+        assert 'question' in {r[1] for r in conn.execute('PRAGMA table_info(resolutions)')}
+        assert not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE name = 'appearance_resolutions'").fetchone()
+
+
 def test_a_curated_question_keeps_the_answer_given_under_its_correction(tmp_corrections):
     # Its game's data is still good: no fetch, no scrape after the deploy.
     import corrections

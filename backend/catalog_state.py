@@ -258,7 +258,10 @@ def adopt_appearance_resolutions() -> None:
         if not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'appearance_resolutions'"
                             ).fetchone():
             return
-        rows = {r['slug']: r for r in conn.execute('SELECT * FROM appearance_resolutions')}
+        # A row failing when it was migrated (`retry_at`, the split cache's first
+        # shape) decided nothing: its question is asked like a new one.
+        rows = {r['slug']: r for r in conn.execute('SELECT * FROM appearance_resolutions')
+                if not ('retry_at' in r.keys() and r['retry_at'])}
     by_question: dict[str, list] = collections.defaultdict(list)
     with lock:
         for game in game_index.values():
