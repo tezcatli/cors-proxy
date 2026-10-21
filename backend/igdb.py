@@ -164,6 +164,12 @@ def _rank_results(results: list[dict], query: str,
 
 # ── Normalise IGDB result → frontend shape ────────────────────────────────────
 
+def _release_date(ts: int | None) -> str | None:
+    """A first_release_date as an ISO day: how close it is to an episode is the
+    evidence that tells a reviewed new release from an older namesake."""
+    return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).date().isoformat() if ts else None
+
+
 def _to_game_data(game: dict) -> dict:
     cover_image_id = (game.get('cover') or {}).get('image_id')
 
@@ -258,6 +264,7 @@ def _to_game_data(game: dict) -> dict:
         rating=rating,
         genres=genres,
         released=released,
+        releaseDate=_release_date(game.get('first_release_date')),
         platforms=platforms,
         esrb=esrb,
         description=description,
@@ -340,11 +347,13 @@ _FIELDS = 'fields ' + ', '.join(
 ) + '; '
 
 
-def _release_window(pub_ts: int) -> tuple[int, int]:
-    """Return a (lo, hi) timestamp window around a podcast episode's publication date."""
-    lo = pub_ts - 365 * 24 * 3600   # 1 year before episode
-    hi = pub_ts + 180 * 24 * 3600   # 6 months after episode
-    return lo, hi
+Window = tuple[int, int]   # (lo, hi) release-date bounds, Unix timestamps
+
+
+def window_around(ts: int) -> Window:
+    """Releases a show covering new games may discuss on day `ts`: from a year
+    before to six months after (previews)."""
+    return ts - 365 * 24 * 3600, ts + 180 * 24 * 3600
 
 
 def _name_filter(safe: str, safe_base: str | None = None) -> str:
@@ -354,11 +363,11 @@ def _name_filter(safe: str, safe_base: str | None = None) -> str:
     return '(' + ' | '.join(parts) + ')'
 
 
-def _search_candidates(safe: str, safe_base: str | None, pub_ts: int | None) -> list[dict]:
+def _search_candidates(safe: str, safe_base: str | None, window: Window | None) -> list[dict]:
     """Two-pass IGDB search: text search first, regex fallback second."""
     type_filter = 'game_type != 5'
-    if pub_ts:
-        lo, hi      = _release_window(pub_ts)
+    if window:
+        lo, hi      = window
         date_filter = f'& first_release_date >= {lo} & first_release_date <= {hi}'
     else:
         date_filter = ''
@@ -382,37 +391,40 @@ def fetch_by_id(igdb_id: int, canonical: bool = True) -> IgdbResult | None:
     return _build_result(results[0], canonical=canonical)
 
 
-def fetch_by_name(name: str, pub_ts: int | None = None) -> IgdbResult | None:
-    """Name search with optional publication-date hint. Returns IgdbResult or None."""
+def fetch_by_name(name: str, window: Window | None = None) -> IgdbResult | None:
+    """Name search, preferring releases inside `window` when given; undated, ties
+    go to the earliest release. Returns IgdbResult or None."""
     safe      = name.replace('\\', '').replace('"', '')
     base_name = _strip_subtitle(name)
     safe_base = base_name.replace('\\', '').replace('"', '') if base_name != name else None
 
-    results = _search_candidates(safe, safe_base, pub_ts)
-    if not results and pub_ts:
+    results = _search_candidates(safe, safe_base, window)
+    if not results and window:
         # Retry without date constraint in case the release date is outside the window
         results = _search_candidates(safe, safe_base, None)
     if not results:
         return None
 
-    if pub_ts:
-        lo, hi      = _release_window(pub_ts)
+    if window:
+        lo, hi      = window
         in_window   = [g for g in results if lo <= (g.get('first_release_date') or 0) <= hi]
         if in_window:
             results = in_window
 
-    return _build_result(_rank_results(results, name, prefer_earliest=pub_ts is None)[0])
+    return _build_result(_rank_results(results, name, prefer_earliest=window is None)[0])
 
 
-_SEARCH_FIELDS = 'fields name, slug, first_release_date, cover.image_id; '
+_SEARCH_FIELDS = 'fields name, slug, first_release_date, cover.image_id, alternative_names.name; '
 
 
 def search_games(query: str, limit: int = 10) -> list[dict]:
-    """Free-text IGDB search for the admin correction picker.
+    """Free-text IGDB search: the admin correction picker's results, and the
+    candidates the LLM judges.
 
     Deliberately unlike `fetch_by_name`: no date window, no canonical redirect and
-    no ranking — a human is choosing, so show IGDB's own matches (ports, remakes
-    and versions included) with the release year to tell them apart.
+    no ranking — a human or the LLM is choosing, so show IGDB's own matches (ports,
+    remakes and versions included) with the release year to tell them apart, and
+    the other names IGDB knows each by (localised titles, abbreviations).
     """
     safe = query.replace('\\', '').replace('"', '').strip()
     if not safe:
@@ -428,7 +440,10 @@ def search_games(query: str, limit: int = 10) -> list[dict]:
             'released':     (str(datetime.datetime.fromtimestamp(
                                 released, datetime.timezone.utc).year)
                              if released else None),
+            'releaseDate':  _release_date(released),
             'coverImageId': (game.get('cover') or {}).get('image_id'),
+            'alternativeNames': [a['name'] for a in game.get('alternative_names') or []
+                                 if a.get('name')][:5],
         })
     return out
 

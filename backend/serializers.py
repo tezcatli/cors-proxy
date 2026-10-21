@@ -43,7 +43,7 @@ def best_member(members: list[Member],
         return None
     non_child = [c for c in candidates if not c[1].is_child]
     pool      = non_child if non_child else candidates
-    return max(pool, key=lambda c: c[1].resolution.resolved_at)
+    return max(pool, key=lambda c: c[1].resolution.decided_at)
 
 
 def group_members() -> tuple[dict[str, list[Member]], dict[str, IgdbEntry]]:
@@ -97,8 +97,8 @@ def _build_resolved(episode: Episode) -> dict[str, tuple[str, str, str | None]]:
     """Build a timestamp → (igdb_name, igdb_slug, cover_image_id) map for one episode."""
     resolved: dict[str, tuple[str, str, str | None]] = {}
     for mention in episode.games:
-        podcast_slug = f'{make_slug(mention.name)}-{episode.slug}'
-        entry        = state.entry(podcast_slug)
+        game  = state.game_index.get(make_slug(mention.name))
+        entry = state.entry(game, episode) if game else None
         if entry and entry.igdb_slug and mention.timestamp:
             cover_image_id = entry.data.get('coverImageId') if entry.data else None
             resolved[mention.timestamp] = (entry.name or mention.name, entry.igdb_slug, cover_image_id)

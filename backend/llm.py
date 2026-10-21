@@ -1,6 +1,6 @@
-"""An LLM (via OpenRouter) for what a search engine can't judge: which IGDB entry a
-podcast's wording means (a French translation, an abbreviation, an old game
-named in a 2026 episode), and which games an episode critiques.
+"""An LLM (via OpenRouter) for what a search engine can't judge: which of IGDB's
+candidates a podcast's wording means (a French translation, an abbreviation, an
+old game named in a 2026 episode), and which games an episode critiques.
 
 Off when `OPENROUTER_API_KEY` is unset, and every caller has a non-LLM fallback,
 so an outage never blocks the catalog. Each answer is cached in `llm_cache` by
@@ -77,35 +77,43 @@ def ask(task: str, version: int, system: str, payload: dict,
 
 
 # ── Resolving a podcast's game name to an IGDB entry ──────────────────────────
-# Two calls, so the model never makes up an id: it first says which game the
-# name means, we fetch IGDB's candidates for that, then it picks one of them.
+# The LLM reads, IGDB knows: the model never states a fact about a game — the
+# games newest to a news show are newer than its training. It suggests titles to
+# search for (a reading of the name), and it judges the candidates IGDB returns
+# (names, alternative names, release dates) against the name and the episode's
+# date: a show reviewing new releases talks about a game out shortly before, and
+# IGDB is full of older namesakes.
 
-_TITLES_V = 2
-_TITLES = """You help match video game names heard on podcasts to the IGDB database.
-Given a name as a podcast wrote it and its context (show, year), give the official
-title(s) IGDB most likely lists the game under: translate a French title to its
-international one ("Le Vaillant Petit Page" -> "The Plucky Squire"), expand an
-abbreviation ("GTA V" -> "Grand Theft Auto V"), fix a typo. Most likely first,
-at most three. If the name is clearly not a video game, return an empty list.
+_TITLES_V = 3
+_TITLES = """You help find video games heard on podcasts in the IGDB database.
+Given a name as a podcast wrote it and its context (show, episode date), suggest up to
+three titles worth searching IGDB for besides the name itself: a French title's
+international one ("Le Vaillant Petit Page" -> "The Plucky Squire"), an
+abbreviation expanded ("GTA V" -> "Grand Theft Auto V"), a typo fixed. Only
+readings of the name: the game may be newer than anything you know, so never
+replace it with a game you know. Nothing to suggest is a fine answer.
 Answer with JSON only: {"titles": ["..."]}"""
 
 
-def official_titles(name: str, context: dict) -> list[str] | None:
-    """Titles to search IGDB for; None when the LLM is unavailable."""
+def suggest_titles(name: str, context: dict) -> list[str] | None:
+    """Extra titles to search IGDB for ([] = none); None when the LLM is unavailable."""
     answer = ask('titles', _TITLES_V, _TITLES, {'name': name, **context})
     if answer is None:
         return None
     return [t for t in answer.get('titles', []) if isinstance(t, str) and t.strip()][:3]
 
 
-_PICK_V = 2
+_PICK_V = 3
 _PICK = """You help match video game names heard on podcasts to the IGDB database.
-Given a name as a podcast wrote it, its context (show, year) and IGDB candidates
-(id, name, release year), pick the candidate the podcast is talking about. Use
-the context: a show covering new releases discusses the version current in the
-episode's year (a 2024 remake over the 1998 original); a retrospective show
-discusses the original. Prefer the main game over a DLC, bundle or edition
-unless the name says otherwise. If no candidate is the game, answer null.
+Given a name as a podcast wrote it, its context (show, what it covers, the date
+of the episode) and IGDB candidates (id, name, other names, release date), pick
+the candidate the podcast is talking about. The game may be newer than anything
+you know: judge from the names and the dates, not from memory. A show covering
+new releases reviews a game released shortly before the episode — or soon
+after, for a preview — so prefer it over an older or later game of the same
+name (a 2024 remake over the 1998 original); a retrospective show discusses the
+original. Prefer the main game over a DLC, bundle or edition unless the name
+says otherwise. If no candidate is the game, answer null.
 Answer with JSON only: {"id": <candidate id or null>}"""
 
 

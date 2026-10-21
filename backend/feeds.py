@@ -218,7 +218,9 @@ def _rebuild(errors: list[str]) -> None:
     if dead:
         logger.warning('%d correction(s) match no game name in the feed: %s',
                        len(dead), ', '.join(dead))
-    state.prune_igdb_cache()
+    # With every feed in, the catalog is whole: the legacy decisions can be
+    # matched to the questions their appearances ask.
+    state.reconcile(complete=all(p.id in _feed_episodes for p in PODCASTS))
 
 
 # ── Games read by the LLM ─────────────────────────────────────────────────────

@@ -340,37 +340,3 @@ def test_upsert_rename_preserves_a_search_name(tmp_corrections):
 def test_upsert_with_nothing_to_write_raises(tmp_corrections):
     with pytest.raises(ValueError, match='nothing to write'):
         _corr.upsert('Chrono Trigger')
-
-
-# ── Fingerprint (drives re-resolution when corrections.json ships) ─────────────
-
-def test_fingerprint_none_and_empty_are_blank():
-    assert _corr.fingerprint(None) == ''
-    assert _corr.fingerprint({}) == ''
-
-
-def test_fingerprint_display_only_is_blank():
-    # A rename resolves identically to no correction, so it must not re-resolve.
-    assert _corr.fingerprint({'podcast_name': 'X', 'display_name': 'Y'}) == ''
-
-
-def test_fingerprint_display_name_does_not_change_the_signature():
-    pin = {'podcast_name': 'X', 'igdb_id': 42}
-    assert _corr.fingerprint(pin) == _corr.fingerprint({**pin, 'display_name': 'Y'})
-
-
-def test_fingerprint_distinguishes_resolution_affecting_fields():
-    sigs = {
-        _corr.fingerprint({'igdb_id': 1}),
-        _corr.fingerprint({'igdb_id': 2}),
-        _corr.fingerprint({'search_name': 'Zelda'}),
-        _corr.fingerprint({'search_name': 'Zelda', 'hint_date': '2024-01-01'}),
-    }
-    assert len(sigs) == 4          # all distinct
-    assert '' not in sigs
-
-
-def test_fingerprint_is_stable_regardless_of_key_order():
-    a = _corr.fingerprint({'igdb_id': 1, 'hint_date': '2024-01-01'})
-    b = _corr.fingerprint({'hint_date': '2024-01-01', 'igdb_id': 1})
-    assert a == b

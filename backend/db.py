@@ -56,18 +56,19 @@ def init_db():
                 used_at    DATETIME
             );
 
-            -- Which IGDB game each appearance is (podcast_slug = make_slug(name) +
-            -- '-' + episode guid). igdb_id NULL = IGDB had no match.
+            -- The answer to each question (questions.Question.key): which IGDB
+            -- game it is. igdb_id NULL = no candidate fits, the question is open.
             CREATE TABLE IF NOT EXISTS resolutions (
-                slug           TEXT PRIMARY KEY,
-                igdb_id        INTEGER,
-                is_child       INTEGER NOT NULL DEFAULT 0,
-                resolved_at    TEXT    NOT NULL,
-                correction_sig TEXT    NOT NULL DEFAULT '',
-                method         TEXT,
-                attempts       INTEGER NOT NULL DEFAULT 0,
-                last_error     TEXT,
-                retry_at       TEXT
+                question    TEXT PRIMARY KEY,
+                igdb_id     INTEGER,
+                is_child    INTEGER NOT NULL DEFAULT 0,
+                decided_at  TEXT    NOT NULL,
+                method      TEXT,
+                titles      TEXT,
+                candidates  TEXT,
+                attempts    INTEGER NOT NULL DEFAULT 0,
+                last_error  TEXT,
+                retry_at    TEXT
             );
             -- One row per IGDB game, shared by all the appearances resolved to it.
             CREATE TABLE IF NOT EXISTS igdb_games (
@@ -103,10 +104,13 @@ def init_db():
 
 
 def _split_igdb_cache(conn) -> None:
-    """Migrate the legacy one-row-per-appearance `igdb_cache` into `resolutions`
-    and `igdb_games`, then drop it. Each game keeps its best copy: an enriched one
-    over the quick pass's, then the newest. A row without its game's data keeps
-    its resolution, and the sweep fetches the game by id."""
+    """Migrate the legacy one-row-per-appearance `igdb_cache`, then drop it.
+
+    The games go straight to `igdb_games`, each keeping its best copy: an enriched
+    one over the quick pass's, then the newest. The decisions can't become
+    questions yet — a question needs the episode's show and date, so the feed —
+    so they wait in `appearance_resolutions` until the first catalog build
+    (`catalog_state.adopt_appearance_resolutions`)."""
     cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
     # Columns added over the table's life; NULL on rows from before them.
     sig      = 'correction_sig' if 'correction_sig' in cols else "''"
@@ -114,8 +118,18 @@ def _split_igdb_cache(conn) -> None:
     method   = 'method'         if 'method'         in cols else 'NULL'
     is_child = 'is_child'       if 'is_child'       in cols else '0'
     slug     = 'igdb_slug'      if 'igdb_slug'      in cols else 'NULL'
+    conn.execute("""
+        CREATE TABLE appearance_resolutions (
+            slug           TEXT PRIMARY KEY,
+            igdb_id        INTEGER,
+            is_child       INTEGER NOT NULL,
+            resolved_at    TEXT    NOT NULL,
+            correction_sig TEXT    NOT NULL,
+            method         TEXT
+        )
+    """)
     conn.execute(f"""
-        INSERT OR IGNORE INTO resolutions (slug, igdb_id, is_child, resolved_at, correction_sig, method)
+        INSERT INTO appearance_resolutions
         SELECT slug, igdb_id, COALESCE({is_child}, 0), cached_at, COALESCE({sig}, ''), {method}
         FROM igdb_cache
     """)
