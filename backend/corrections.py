@@ -155,22 +155,6 @@ def _find(slug: str, pub_ts, podcast_id: str = ''):
 # Fields that change how an appearance resolves. display_name is deliberately
 # excluded: it's applied at response time in serializers.py, so a rename must not
 # trigger a re-resolution.
-_SIG_FIELDS = ('igdb_id', 'search_name', 'hint_date')
-
-
-def fingerprint(correction: dict | None) -> str:
-    """Canonical signature of the resolution-affecting part of an entry.
-
-    Stored on each cached IGDB row so a deployed instance can tell that a shipped
-    corrections.json now rules differently on an appearance than when it was last
-    resolved — and re-resolve exactly those. '' when no correction applies (or a
-    display-only entry, which resolves identically to no correction at all)."""
-    if not correction:
-        return ''
-    sig = {k: correction[k] for k in _SIG_FIELDS if correction.get(k)}
-    return json.dumps(sig, sort_keys=True) if sig else ''
-
-
 def find_by_podcast(podcast_name: str, pub_ts=None, podcast_id: str = ''):
     return _find(make_slug(podcast_name), pub_ts, podcast_id)
 

@@ -7,6 +7,7 @@ import requests
 import igdb
 from igdb import (
     _to_game_data, _rank_results, _resolve_canonical, _build_result, fetch_by_name,
+    window_around,
 )
 
 
@@ -150,7 +151,7 @@ def test_fetch_by_name_prefers_in_window_result():
     in_win  = {'id': 1, 'name': 'Match', 'first_release_date': pub}
     out_win = {'id': 2, 'name': 'Match', 'first_release_date': pub - 5 * 365 * 24 * 3600}
     with patch('igdb._post', return_value=[out_win, in_win]):
-        assert fetch_by_name('Match', pub).id == 1
+        assert fetch_by_name('Match', window_around(pub)).id == 1
 
 def test_fetch_by_name_retries_without_date_window():
     pub = int(datetime.datetime(2020, 6, 1, tzinfo=datetime.timezone.utc).timestamp())
@@ -161,7 +162,7 @@ def test_fetch_by_name_retries_without_date_window():
         return [] if 'first_release_date >=' in body else [old]
 
     with patch('igdb._post', side_effect=fake_post):
-        assert fetch_by_name('Retro', pub).id == 9
+        assert fetch_by_name('Retro', window_around(pub)).id == 9
 
 def test_fetch_by_name_none_when_no_results():
     with patch('igdb._post', return_value=[]):

@@ -27,19 +27,26 @@ import games as _games
 from podcasts import PODCAST_BY_ID as _PODCAST_BY_ID
 
 
-def cache_entry(podcast_slug, igdb_id, igdb_slug, name, data=None, is_child=False,
-                at='2999-01-01T00:00:00', correction_sig='', enriched=True, method=None):
-    """An IgdbEntry: one appearance's resolution, joined with its game when it
-    has one. `at` stamps both (a resolution's and its game's freshness)."""
+def cache_entry(key, igdb_id, igdb_slug, name, data=None, is_child=False,
+                at='2999-01-01T00:00:00', enriched=True, method=None):
+    """An IgdbEntry: an answer, joined with its game when it has one. `at` stamps
+    both (the answer's and its game's freshness). `key` is replaced by the real
+    question key in `set_cache`."""
     from models import IgdbEntry, IgdbGame, Resolution
     game = (IgdbGame(igdb_id, igdb_slug, name, data or {}, at, enriched)
             if igdb_id is not None else None)
-    return IgdbEntry(Resolution(podcast_slug, igdb_id, is_child, at, correction_sig, method), game)
+    return IgdbEntry(Resolution(key, igdb_id, is_child, at, method), game)
 
 
 def set_cache(entries):
-    """Load `{podcast_slug: IgdbEntry}` into the two IGDB stores."""
-    _state.resolutions = {slug: e.resolution for slug, e in entries.items()}
+    """Load `{podcast_slug: IgdbEntry}` into the two IGDB stores: each entry
+    answers the question its appearance asks, so the catalog must be loaded."""
+    import dataclasses
+    from questions import question_for
+    asking = {a.podcast_slug: question_for(g, a.episode).key
+              for g in _state.game_index.values() for a in g.appearances}
+    _state.resolutions = {asking[slug]: dataclasses.replace(e.resolution, question=asking[slug])
+                          for slug, e in entries.items()}
     _state.games       = {e.game.igdb_id: e.game for e in entries.values() if e.game}
 
 
@@ -115,6 +122,7 @@ def clean_db():
             DELETE FROM resolutions;
             DELETE FROM igdb_games;
             DELETE FROM llm_cache;
+            DELETE FROM transcripts;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
             DELETE FROM users;

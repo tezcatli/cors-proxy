@@ -68,47 +68,135 @@ def test_the_model_only_chooses_among_the_candidates(llm_on):
 # ── Resolution ────────────────────────────────────────────────────────────────
 
 _PLUCKY = IgdbResult(id=42, name='The Plucky Squire', slug='the-plucky-squire',
-                     data={'coverImageId': 'c'}, is_child=False)
-_SLUG   = 'le-vaillant-petit-page-ep1'
+                     data={'coverImageId': 'c', 'released': '2024', 'releaseDate': '2024-09-17'},
+                     is_child=False)
+_TS_2023 = 1_700_000_000
 
 
-def _resolve(**kw):
-    """Resolve « Le Vaillant Petit Page » (a French title IGDB's search misses)
-    with the scrapers off; returns the cached entry."""
+def _hit(igdb_id, name, year, other_names=()):
+    """One `search_games` result, as IGDB's free-text search returns it."""
+    return {'id': igdb_id, 'name': name, 'released': year, 'releaseDate': f'{year}-06-01',
+            'alternativeNames': list(other_names)}
+
+
+def _question(name='Le Vaillant Petit Page', pub_ts=_TS_2023, podcast_id='silence-on-joue'):
+    from models import Episode, PodcastGame
+    from questions import question_for
+    from utils import make_slug
+    episode = Episode(title='t', slug='g', audio_url=None, pub_ts=pub_ts, image_url=None,
+                      description=None, chapters=[], games=[], podcast_id=podcast_id)
+    return question_for(PodcastGame(make_slug(name), name), episode)
+
+
+def _resolve(question=None, **kw):
+    """Answer « Le Vaillant Petit Page » (a French title IGDB's search misses) with
+    the scrapers off; returns the stored answer joined with its game."""
+    from models import IgdbEntry
+    question = question or _question()
     with patch('resolver.metacritic.fetch_metascore', return_value=None), \
          patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
          patch('resolver.fetch_time_to_beat', return_value=None):
-        resolver.resolve_one(_SLUG, 'Le Vaillant Petit Page', 1_700_000_000,
-                             'silence-on-joue', **kw)
-    return state.entry(_SLUG)
+        resolver.resolve(question, **kw)
+    answer = state.resolutions[question.key]
+    return IgdbEntry(answer, state.games.get(answer.igdb_id))
+
+
+def _pending(entry):
+    return resolver.resolution_pending(entry.resolution)
 
 
 def test_the_llm_resolves_a_translated_name(llm_on):
     with _llm_answers({'titles': ['The Plucky Squire']}, {'id': 42}), \
          patch('resolver.search_games', side_effect=lambda q: [
-             {'id': 42, 'name': 'The Plucky Squire', 'released': '2024'}] if 'Plucky' in q else []), \
+             _hit(42, 'The Plucky Squire', '2024')] if 'Plucky' in q else []), \
          patch('resolver.fetch_by_id', return_value=_PLUCKY) as by_id, \
          patch('resolver.fetch_by_name', return_value=None):
         entry = _resolve()
     by_id.assert_called_once_with(42)        # canonical, like the name search
     assert (entry.igdb_id, entry.resolution.method) == (42, 'llm')
+    # What it was decided on is kept with the answer.
+    assert (entry.resolution.titles, entry.resolution.candidates) == (['The Plucky Squire'], [42])
 
 
-def test_a_name_the_llm_rules_out_is_a_settled_miss(llm_on):
-    with _llm_answers({'titles': []}), patch('resolver.fetch_by_name') as by_name:
+def test_a_game_newer_than_the_model_is_resolved_from_the_evidence(llm_on):
+    # The model doesn't know « Silent Hill f » and reads it as a game it knows; that
+    # reading only adds candidates — IGDB's match in the episode's window is offered
+    # all the same, and the model judges it on its name and year.
+    sh_f = IgdbResult(id=7, name='Silent Hill f', slug='silent-hill-f',
+                      data={'released': '2025', 'releaseDate': '2025-09-25'}, is_child=False)
+    with _llm_answers({'titles': ['Silent Hill']}, {'id': 7}) as post, \
+         patch('resolver.search_games', side_effect=lambda q: [
+             _hit(1, 'Silent Hill', '1999')] if q == 'Silent Hill' else []), \
+         patch('resolver.fetch_by_name', return_value=sh_f):
+        entry = _resolve(_question('Silent Hill f', 1_760_000_000))
+    offered = json.loads(post.call_args_list[1].kwargs['json']['messages'][1]['content'])
+    # Judged on dates: the episode's, and each candidate's release.
+    assert offered['episode_date'] == '2025-10-09'
+    assert {c['id']: c['released'] for c in offered['candidates']} == {1: '1999-06-01',
+                                                                       7: '2025-09-25'}
+    assert (entry.igdb_id, entry.resolution.method) == (7, 'llm')
+
+
+def test_an_empty_reading_is_no_verdict(llm_on):
+    # « Nothing to suggest » used to mean « not a game »: the name is still searched.
+    with _llm_answers({'titles': []}, {'id': 42}) as post, \
+         patch('resolver.search_games', return_value=[_hit(42, 'The Plucky Squire', '2024')]), \
+         patch('resolver.fetch_by_name', return_value=_PLUCKY):
         entry = _resolve()
-    by_name.assert_not_called()
-    assert (entry.igdb_id, entry.resolution.method) == (None, 'llm')
+    assert post.call_count == 2
+    assert entry.igdb_id == 42
 
 
-def test_a_title_igdbs_free_text_search_misses_goes_through_the_name_search(llm_on):
-    with _llm_answers({'titles': ['The Plucky Squire']}, {'id': 42}), \
+def test_no_candidate_leaves_the_question_open_without_asking(llm_on):
+    with _llm_answers({'titles': []}) as post, \
          patch('resolver.search_games', return_value=[]), \
-         patch('resolver.fetch_by_name', return_value=_PLUCKY), \
-         patch('resolver.fetch_by_id') as by_id:
+         patch('resolver.fetch_by_name', return_value=None):
         entry = _resolve()
-    by_id.assert_not_called()
-    assert (entry.igdb_id, entry.resolution.method) == (42, 'llm')
+    assert post.call_count == 1                 # the reading; nothing to judge
+    assert (entry.igdb_id, entry.resolution.method, entry.resolution.candidates) == (None, 'llm', [])
+    assert not _pending(entry)
+
+
+def test_an_answered_question_is_not_asked_again_after_a_new_prompt(llm_on, monkeypatch):
+    with _llm_answers({'titles': []}, {'id': 42}), \
+         patch('resolver.search_games', return_value=[_hit(42, 'The Plucky Squire', '2024')]), \
+         patch('resolver.fetch_by_name', return_value=_PLUCKY):
+        entry = _resolve()
+    monkeypatch.setattr(llm, '_TITLES_V', llm._TITLES_V + 1)
+    monkeypatch.setattr(llm, '_PICK_V', llm._PICK_V + 1)
+    assert not _pending(entry)
+
+
+def test_an_open_question_is_judged_again_only_on_new_evidence(llm_on, monkeypatch):
+    from dataclasses import replace
+    expired = '2000-01-01T00:00:00'
+    with _llm_answers({'titles': ['The Plucky Squire']}, {'id': None}), \
+         patch('resolver.search_games', return_value=[_hit(9, 'Plucky Puzzle', '2021')]), \
+         patch('resolver.fetch_by_name', return_value=None):
+        entry = _resolve()
+    assert entry.igdb_id is None and not _pending(entry)
+    key = entry.resolution.question
+    state.resolutions[key] = replace(entry.resolution, decided_at=expired)
+    assert resolver.resolution_pending(state.resolutions[key])   # open, past the TTL
+
+    # Same evidence, even under a new prompt: same verdict, no call.
+    monkeypatch.setattr(llm, '_PICK_V', llm._PICK_V + 1)
+    with patch('llm.http.post') as post, \
+         patch('resolver.search_games', return_value=[_hit(9, 'Plucky Puzzle', '2021')]), \
+         patch('resolver.fetch_by_name', return_value=None):
+        entry = _resolve()
+    post.assert_not_called()                                # the reading is kept too
+    state.resolutions[key] = replace(entry.resolution, decided_at=expired)
+
+    # IGDB has added the game since: judged again.
+    with _llm_answers({'id': 42}) as post, \
+         patch('resolver.search_games', return_value=[_hit(9, 'Plucky Puzzle', '2021'),
+                                                      _hit(42, 'The Plucky Squire', '2024')]), \
+         patch('resolver.fetch_by_name', return_value=None), \
+         patch('resolver.fetch_by_id', return_value=_PLUCKY):
+        entry = _resolve()
+    assert post.call_count == 1
+    assert entry.igdb_id == 42
 
 
 def test_without_the_llm_the_name_search_still_resolves(llm_on):
@@ -125,14 +213,7 @@ def test_the_quick_refresh_pass_skips_the_llm(llm_on):
     assert entry.resolution.method == 'search'
 
 
-def _pending(entry):
-    game = MagicMock(); game.name = 'Le Vaillant Petit Page'
-    app  = MagicMock(podcast_slug=_SLUG)
-    app.episode.pub_ts, app.episode.podcast_id = 1_700_000_000, 'silence-on-joue'
-    return resolver.appearance_pending(game, app, {_SLUG: entry})
-
-
-def test_a_search_result_goes_back_to_the_llm_after_its_backoff(llm_on, monkeypatch):
+def test_a_search_result_goes_back_to_the_llm_after_its_backoff(llm_on):
     with patch('llm.http.post', side_effect=OSError('down')), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY):
         entry = _resolve()
@@ -174,33 +255,23 @@ def test_the_llm_answering_clears_the_failures(llm_on):
     with patch('llm.http.post', side_effect=OSError('down')), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY):
         _resolve()
-    with _llm_answers({'titles': []}):
+    with _llm_answers({'titles': []}, {'id': 42}), \
+         patch('resolver.search_games', return_value=[]), \
+         patch('resolver.fetch_by_name', return_value=_PLUCKY):
         entry = _resolve()
     assert (entry.resolution.attempts, entry.resolution.retry_at) == (0, None)
 
 
-def test_llm_and_legacy_rows_are_settled(llm_on):
+def test_legacy_answers_are_settled(llm_on):
     from dataclasses import replace
     from models import IgdbEntry
-    with _llm_answers({'titles': []}):
-        entry = _resolve()
-    assert not _pending(entry)
-    legacy = IgdbEntry(replace(entry.resolution, method=None), entry.game)
-    assert not _pending(legacy)   # pre-LLM row: left to the dev audit
-
-
-def test_a_provisional_search_result_goes_to_the_llm(llm_on):
-    with patch('llm.http.post', side_effect=OSError('down')), \
+    with _llm_answers({'titles': []}, {'id': 42}), \
+         patch('resolver.search_games', return_value=[]), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY):
-        _resolve()
-    with _llm_answers({'titles': ['The Plucky Squire']}, {'id': 42}), \
-         patch('resolver.search_games', return_value=[
-             {'id': 42, 'name': 'The Plucky Squire', 'released': '2024'}]), \
-         patch('resolver.fetch_by_name', return_value=None), \
-         patch('resolver.fetch_by_id', return_value=_PLUCKY) as by_id:
         entry = _resolve()
-    by_id.assert_called_once_with(42)        # canonical, like the name search
-    assert entry.resolution.method == 'llm'
+    legacy = IgdbEntry(replace(entry.resolution, method=None, titles=None, candidates=None),
+                       entry.game)
+    assert not _pending(legacy)     # pre-LLM answer: kept as is
 
 
 def test_a_correction_outranks_the_llm(llm_on):
@@ -323,24 +394,20 @@ def test_a_prompt_change_keeps_the_episodes_until_the_new_answers_come_in(llm_on
 
 def test_a_name_the_llm_already_read_skips_the_titles_question(llm_on):
     with _llm_answers({'id': 42}) as post, \
-         patch('resolver.search_games', return_value=[
-             {'id': 42, 'name': 'Saros', 'released': '2026'}]) as search, \
+         patch('resolver.search_games', return_value=[_hit(42, 'Saros', '2026')]) as search, \
          patch('resolver.fetch_by_id', return_value=_PLUCKY), \
-         patch('resolver.fetch_by_name', return_value=None), \
-         patch('resolver.metacritic.fetch_metascore', return_value=None), \
-         patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
-         patch('resolver.fetch_time_to_beat', return_value=None):
-        resolver.resolve_one('saros-tc1', 'Saros', 1_778_000_000, 'triple-click')
+         patch('resolver.fetch_by_name', return_value=None):
+        entry = _resolve(_question('Saros', 1_778_000_000, 'triple-click'))
     assert post.call_count == 1                 # only the pick
     search.assert_called_once_with('Saros')
-    assert state.entry('saros-tc1').resolution.method == 'llm'
+    assert entry.resolution.method == 'llm'
 
 
 def test_the_name_searchs_match_is_offered_beside_the_free_text_results(llm_on):
     # IGDB's search lists only DLCs and seasons for some base games.
     with _llm_answers({'titles': ['The Plucky Squire']}, {'id': 42}) as post, \
          patch('resolver.search_games', return_value=[
-             {'id': 9, 'name': 'The Plucky Squire - Season 2', 'released': '2025'}]), \
+             _hit(9, 'The Plucky Squire - Season 2', '2025')]), \
          patch('resolver.fetch_by_name', return_value=_PLUCKY), \
          patch('resolver.fetch_by_id') as by_id:
         entry = _resolve()

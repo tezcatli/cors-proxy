@@ -24,6 +24,7 @@ from igdb import search_games
 from limiter import limiter
 from models import PodcastGame
 from podcasts import PODCAST_BY_ID
+from questions import question_for
 from serializers import Member
 from utils import make_slug
 
@@ -133,16 +134,18 @@ def refresh():
 
 
 def _purge_and_resolve(members: list[Member], cache) -> None:
-    _purge_with_games([a.podcast_slug for _, a in members], cache)
+    _purge_with_games(members, cache)
     resolver.resolve_members(members)
 
 
-def _purge_with_games(podcast_slugs: list[str], cache) -> None:
-    """An explicit IGDB refresh: re-resolve these appearances, and re-fetch the
-    games they were on — a correction only re-resolves, but this is the one way
-    to get a game's data (and its Metacritic score) again before the TTL."""
-    state.expire_games(e.igdb_id for s in podcast_slugs if (e := cache.get(s)))
-    state.purge_cache(podcast_slugs)
+def _purge_with_games(members: list[Member], cache) -> int:
+    """An explicit IGDB refresh: ask these appearances' questions again, and
+    re-fetch the games they were answered with — the one way to get a game's data
+    (and its Metacritic score) again before the TTL. Returns how many questions."""
+    state.expire_games(e.igdb_id for _, a in members if (e := cache.get(a.podcast_slug)))
+    keys = {question_for(g, a.episode).key for g, a in members}
+    state.purge_cache(keys)
+    return len(keys)
 
 
 @games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
@@ -199,11 +202,12 @@ def _correction_target(payload: dict) -> tuple[PodcastGame, str, list[Member]]:
     return game, podcast_id, members
 
 
-def _purge_and_resolve_only(members: list[Member]) -> None:
-    """A correction re-decides which game these are; whichever it lands on, the
-    data already cached for it is still good."""
-    state.purge_cache([a.podcast_slug for _, a in members])
+def _answer_after_correction(members: list[Member]) -> None:
+    """A correction changes the question these appearances ask: answer the new
+    one, and drop the old one's answer, which nothing asks any more. Nothing to
+    purge — and the games already cached are still good."""
     resolver.resolve_members(members)
+    state.prune_igdb_cache()
 
 
 def _require_writable():
@@ -213,8 +217,8 @@ def _require_writable():
 
 
 def _reresolve(members: list[Member], name_slug: str) -> dict:
-    """Purge + re-resolve synchronously so the response reflects the edited file."""
-    worker.call(_purge_and_resolve_only, members)
+    """Answer synchronously, so the response reflects the edited file."""
+    worker.call(_answer_after_correction, members)
     return serializers.load_members(members, name_slug)
 
 
@@ -268,11 +272,10 @@ def podcast_igdb_refresh(podcast_id):
     if podcast_id not in PODCAST_BY_ID:
         abort(404, 'Unknown podcast')
     with state.lock:
-        podcast_slugs = [a.podcast_slug for game in state.game_index.values()
-                         for a in game.appearances
-                         if a.episode.podcast_id == podcast_id]
-    worker.call(lambda: _purge_with_games(podcast_slugs, state.entries()))
+        members = [(game, a) for game in state.game_index.values() for a in game.appearances
+                   if a.episode.podcast_id == podcast_id]
+    purged = worker.call(lambda: _purge_with_games(members, state.entries()))
     # Background sweep (this can be hundreds of rate-limited IGDB calls); the
     # console shows progress through `pending` in /resolution-stats.
     resolver.schedule_resolve()
-    return jsonify({'purged': len(podcast_slugs)})
+    return jsonify({'purged': purged})

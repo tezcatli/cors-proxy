@@ -347,7 +347,8 @@
           "games",
           "writable",
           "pending",
-          "resolving"
+          "resolving",
+          "transcription"
         ]
       },
       "unauthorized": {

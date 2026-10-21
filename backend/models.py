@@ -18,6 +18,12 @@ class GameMention:
     name: str
     timestamp: Optional[str]
     timestamp_seconds: int
+    # The hosts' verdict, read from the transcript (`llm.read_transcript`):
+    # {verdict, pros, cons, at}. None until the episode is transcribed and read.
+    critique: Optional[dict] = None
+    # Added from the transcript's reading rather than parsed from the title, so
+    # replaced by the next reading (`feeds._apply_readings`).
+    read: bool = False
 
 
 @dataclass
@@ -32,6 +38,7 @@ class Episode:
     games: list[GameMention]
     url_slug: str = ''      # human-readable make_slug(title), de-duplicated — used only for routing/URLs
     podcast_id: str = ''    # source podcast id (e.g. 'silence-on-joue', 'fin-du-game')
+    chapters_read: bool = False  # chapters from the transcript's reading, replaced by the next one
 
 
 @dataclass
@@ -39,7 +46,7 @@ class GameAppearance:
     """Links one PodcastGame to the Episode it appears in, with the game-specific timestamp."""
     episode: Episode        # reference into catalog_state.episodes — not a copy
     mention: GameMention
-    podcast_slug: str       # make_slug(name) + '-' + episode.slug (RSS guid); key into catalog_state.resolutions and DB
+    podcast_slug: str       # make_slug(name) + '-' + episode.slug (RSS guid); the appearance's identity
 
 
 @dataclass
@@ -59,21 +66,27 @@ class IgdbGame:
     name: str               # canonical IGDB name
     data: dict              # normalised IGDB data blob (JSON-serialisable)
     fetched_at: str         # ISO-8601 UTC; the IGDB TTL runs from here
-    enriched: bool = True   # False until Metacritic/HLTB have run (see resolver.resolve_one)
+    enriched: bool = True   # False until Metacritic/HLTB have run (see resolver._store_game)
 
 
 @dataclass
 class Resolution:
-    """Which IGDB game one appearance is, keyed by podcast_slug (make_slug(name) +
-    '-' + episode guid). The decision only: the game's data lives in IgdbGame."""
-    podcast_slug: str
-    igdb_id: Optional[int]  # None = IGDB was asked and had no match (a negative cache)
+    """The answer to one question (`questions.Question`), stored under its key:
+    which IGDB game the appearances asking it are. The decision only — the game's
+    data lives in IgdbGame — with what it was decided on, so the LLM is asked again
+    only when that changes."""
+    question: str
+    igdb_id: Optional[int]  # None = no candidate fits: the question stays open
     is_child: bool          # True when resolved to a parent/version_parent
-    resolved_at: str        # ISO-8601 UTC timestamp
-    correction_sig: str = ''  # fingerprint of the correction in force when resolved
-    method: str | None = None  # 'search' | 'llm' | 'pin'; None = legacy row, accepted as is
+    decided_at: str         # ISO-8601 UTC timestamp
+    method: str | None = None  # 'pin' (a curator) | 'llm' | 'search' (IGDB's ranking,
+                               # provisional while the LLM is on); None = legacy row
+    # The LLM's reading (titles it suggested searching) and the evidence judged
+    # (candidate ids). None = not asked, or a legacy row.
+    titles: list[str] | None = None
+    candidates: list[int] | None = None
     # Consecutive failures (IGDB error, LLM unavailable) and when to try again: a
-    # failing name is retried on a growing delay, not on every sweep.
+    # failing question is retried on a growing delay, not on every sweep.
     attempts: int = 0
     last_error: str | None = None
     retry_at: str | None = None   # ISO-8601 UTC; None = settled
@@ -86,8 +99,6 @@ class IgdbEntry:
     resolution: Resolution
     game: Optional[IgdbGame]
 
-    @property
-    def podcast_slug(self) -> str:        return self.resolution.podcast_slug
     @property
     def igdb_id(self) -> Optional[int]:   return self.resolution.igdb_id
     @property

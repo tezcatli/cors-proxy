@@ -11,6 +11,10 @@ services:
       # The app is opened through Vite (:5173); :5000 is the API alone, so
       # invite/reset links must point at Vite. Overrides backend_secrets.env.
       RESET_BASE_URL: "http://localhost:5173"
+      # Prod produces, dev consumes: no background ingestion of every episode
+      # here — pull prod's (pull-prod-data.sh), or ingest a sample by hand:
+      #   docker compose -f docker-compose.dev.yml run --rm backend python ingest.py <episode>...
+      INGEST: "false"
     env_file:
       - path: ./backend_secrets.env
         required: true

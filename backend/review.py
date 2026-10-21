@@ -1,6 +1,8 @@
 """The admin console's view of resolution quality: which games look mis-resolved."""
 import corrections
+import ingest
 import resolver
+import transcribe
 from corrections import find_by_podcast
 from models import IgdbEntry
 from podcasts import PODCASTS
@@ -97,10 +99,13 @@ def resolution_stats() -> dict:
 
     # Per-podcast tallies are counted over appearances (an appearance belongs to
     # exactly one podcast), while the lists below are per catalog entry.
+    ingestion = ingest.stats()
     per_podcast = {
         p.id: {'id': p.id, 'label': p.label, 'name': p.name,
                'appearances': 0, 'resolved': 0, 'failed': 0,
-               'retrying': 0, 'pending': 0, 'corrected': 0}
+               'retrying': 0, 'pending': 0, 'corrected': 0,
+               **ingestion.get(p.id, {'episodes': 0, 'transcribed': 0, 'read': 0,
+                                      'ingestErrors': 0})}
         for p in PODCASTS
     }
     rows = []
@@ -143,4 +148,7 @@ def resolution_stats() -> dict:
         'writable':  corrections.is_writable(),
         'pending':   resolver.count_pending(),
         'resolving': resolver.is_resolving(),
+        # Hours transcribed and their cost, all shows together; `enabled` = a
+        # DeepInfra key, without which nothing more gets transcribed.
+        'transcription': {'enabled': transcribe.enabled(), **transcribe.totals()},
     }
