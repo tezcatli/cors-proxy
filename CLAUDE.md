@@ -60,6 +60,14 @@ ssh user@tezcat.fr "cd ~/opt/silence && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<old-s
   && docker compose -f compose.yml up -d"
 ```
 
+### Prod data in dev
+
+```bash
+./pull-prod-data.sh        # prod's produced tables → the dev DB (stops/starts the dev backend)
+```
+
+**Prod produces, dev consumes.** Transcripts, LLM answers and IGDB resolutions are made by prod's pipeline; what dev decides travels by git (`corrections.json`, prompts and their versions) — so data only ever flows prod → dev, and dev needs no keys to see what prod shows (what you review in dev *is* what prod serves; an LLM recomputing in dev would not be). `tools/prod_data.py` exports an **allowlist** of tables (`PRODUCED`) in the prod container, so users, invitations and reset tokens never leave prod, and a table added later stays home until listed. The tables are copied with prod's schema and the dev backend migrates them at its next start, exactly as a deploy would.
+
 ### User management
 
 ```bash
