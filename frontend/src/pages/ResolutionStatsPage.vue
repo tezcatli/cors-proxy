@@ -174,7 +174,12 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
         <header class="console__head">
           <div>
             <h1 class="console__title">Résolution des noms</h1>
-            <p class="console__sub">Nom du podcast → fiche IGDB.</p>
+            <p class="console__sub">
+              Nom du podcast → fiche IGDB.
+              <template v-if="stats?.transcription?.hours">
+                · {{ stats.transcription.hours }} h transcrites ({{ stats.transcription.cost }} $)
+              </template>
+            </p>
           </div>
 
           <div v-if="stats" class="console__podcasts">
@@ -203,6 +208,14 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
               <div class="meter" :aria-label="`${pct(p.resolved, p.appearances)} % résolus`">
                 <span class="meter__fill" :style="{ width: pct(p.resolved, p.appearances) + '%' }" />
               </div>
+              <!-- The ingestion behind the games: what has been transcribed, and
+                   read by the current prompt, of the show's episodes. -->
+              <span v-if="p.transcribed || stats.transcription?.enabled" class="pstat__ingest">
+                {{ p.transcribed }}/{{ p.episodes }} transcrits · {{ p.read }} lus
+                <template v-if="p.ingestErrors">
+                  · <span class="text-warning" title="Transcription ou lecture en échec ; nouvel essai plus tard">{{ p.ingestErrors }} en erreur</span>
+                </template>
+              </span>
             </div>
           </div>
         </header>
@@ -397,6 +410,14 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
   color: rgba(var(--rgb-line), 0.5);
 }
 .pstat__nums b { color: rgba(var(--rgb-line), 0.9); font-weight: 700; }
+.pstat__ingest {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(var(--rgb-line), 0.45);
+}
 
 .meter { height: 3px; border-radius: 999px; background: rgba(var(--rgb-line), 0.08); overflow: hidden; }
 /* Green, not the brand accent: this gauge measures the same "resolved" the green

@@ -21,6 +21,14 @@ class Config:
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
     LLM_MODEL: str          = os.getenv("LLM_MODEL", "openai/gpt-6-luna")
 
+    # Transcription (DeepInfra Whisper): every episode, once, read by the LLM for
+    # its chapters, games and verdicts. Unset key = off.
+    DEEPINFRA_API_KEY: str  = os.getenv("DEEPINFRA_API_KEY", "")
+    TRANSCRIBE_MODEL: str   = os.getenv("TRANSCRIBE_MODEL", "openai/whisper-large-v3-turbo")
+    # The background ingestion of every episode. Off in dev, which consumes what
+    # prod produced (pull-prod-data.sh) and ingests a sample by hand (ingest.py).
+    INGEST: bool            = os.getenv("INGEST", "true").lower() == "true"
+
     # IGDB refresh
     IGDB_TTL_HOURS: int = int(os.getenv("IGDB_TTL_HOURS", "720"))  # 30 days
     # Background tick: poll the feeds (conditional GET) and retry pending resolutions

@@ -18,6 +18,12 @@ class GameMention:
     name: str
     timestamp: Optional[str]
     timestamp_seconds: int
+    # The hosts' verdict, read from the transcript (`llm.read_transcript`):
+    # {verdict, pros, cons, at}. None until the episode is transcribed and read.
+    critique: Optional[dict] = None
+    # Added from the transcript's reading rather than parsed from the title, so
+    # replaced by the next reading (`feeds._apply_readings`).
+    read: bool = False
 
 
 @dataclass
@@ -32,6 +38,7 @@ class Episode:
     games: list[GameMention]
     url_slug: str = ''      # human-readable make_slug(title), de-duplicated — used only for routing/URLs
     podcast_id: str = ''    # source podcast id (e.g. 'silence-on-joue', 'fin-du-game')
+    chapters_read: bool = False  # chapters from the transcript's reading, replaced by the next one
 
 
 @dataclass

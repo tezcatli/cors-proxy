@@ -24,6 +24,7 @@ class Podcast:
     name:  str                       # human-readable display name
     feed_url: str
     extractor: Callable[[str], list[str]]   # title -> list of raw game names
+    language: str                    # what the hosts speak: 'fr' | 'en' (transcription)
     # Whether the episode's publication date is a useful hint for *when the game
     # came out*. True for a news show covering new releases; False for a
     # retrospective show, where the episode date says nothing about the game's
@@ -50,6 +51,7 @@ PODCASTS: list[Podcast] = [
         feed_url=_feed_url('silence-on-joue',
                            'https://feeds.acast.com/public/shows/silence-on-joue'),
         extractor=rss.extract_game_names,
+        language='fr',
     ),
     Podcast(
         id='fin-du-game',
@@ -58,6 +60,7 @@ PODCASTS: list[Podcast] = [
         feed_url=_feed_url('fin-du-game',
                            'https://feeds.acast.com/public/shows/fin-du-game'),
         extractor=rss.extract_fdg_names,
+        language='fr',
         # Retrospective show: a 2026 episode on Symphony of the Night (1997) must
         # not search IGDB around 2026, or it lands on an unrelated recent game.
         use_date_hint=False,
@@ -68,6 +71,7 @@ PODCASTS: list[Podcast] = [
         name='Triple Click',
         feed_url=_feed_url('triple-click', 'https://feeds.simplecast.com/6WD3bDj7'),
         extractor=lambda _title: [],
+        language='en',
         games_by_llm=True,
         # Maximum Fun cross-promotes its other shows in this feed.
         skip_title=r'^Beanscast\b|\[TEASER\]',
@@ -78,6 +82,7 @@ PODCASTS: list[Podcast] = [
         name='The Besties',
         feed_url=_feed_url('the-besties', 'https://feeds.simplecast.com/Urk3897_'),
         extractor=lambda _title: [],
+        language='en',
         games_by_llm=True,
     ),
 ]

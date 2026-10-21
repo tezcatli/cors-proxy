@@ -1,7 +1,18 @@
+import datetime
 import re
 import threading
 import time
 import unicodedata
+from html import unescape
+
+from config import Config
+
+
+def backoff(attempts: int) -> datetime.timedelta:
+    """The delay before retry `attempts + 1` of something failing: the tick's
+    interval, doubling, up to a day."""
+    delay = datetime.timedelta(minutes=Config.RESOLVE_RETRY_MINUTES) * 2 ** (attempts - 1)
+    return min(delay, datetime.timedelta(days=1))
 
 
 class RateLimiter:
@@ -33,3 +44,8 @@ def norm_key(s):
 
 def make_slug(s):
     return norm(s).replace(' ', '-')
+
+
+def plain_text(html: str | None) -> str:
+    """An RSS description as plain text: tags dropped, entities decoded, spaces collapsed."""
+    return re.sub(r'\s+', ' ', unescape(re.sub(r'<[^>]+>', ' ', html or ''))).strip()

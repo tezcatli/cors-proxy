@@ -46,6 +46,10 @@ IGDB_CLIENT_SECRET=<your igdb client secret>
 # Set a spending limit on the key at openrouter.ai.
 OPENROUTER_API_KEY=<your openrouter key>
 
+# Transcription (optional): every episode, once, for its chapters, games and verdicts.
+# The backlog costs ~30 $ the first time, then a few dollars a year.
+DEEPINFRA_API_KEY=<your deepinfra key>
+
 # Base URL used to build invite and password-reset links.
 # In production this is the app's own subdomain: https://ludo.tezcat.fr
 RESET_BASE_URL=https://your-domain.com
@@ -267,6 +271,9 @@ is validated on load, so a malformed entry fails the tests rather than productio
 | `METACRITIC_SCRAPE`  | `true`                       | Scrape the real Metascore during resolution; falls back to IGDB's aggregate |
 | `IGDB_TTL_HOURS`     | `720` (30 days)              | How long a cached IGDB resolution stays fresh |
 | `OPENROUTER_API_KEY` | *(empty)*                    | LLM-assisted resolution; off when empty (the plain IGDB search is used) |
+| `DEEPINFRA_API_KEY`  | *(empty)*                    | Transcribes every episode (Whisper on DeepInfra, ~0,012 $/h of audio) for chapters, games and verdicts; off when empty |
+| `TRANSCRIBE_MODEL`   | `openai/whisper-large-v3-turbo` | DeepInfra speech-to-text model |
+| `INGEST`             | `true`                       | Background transcription and reading; `false` in dev (`docker-compose.dev.yml`) |
 | `LLM_MODEL`          | `openai/gpt-6-luna`          | OpenRouter model id |
 | `RESOLVE_RETRY_MINUTES` | `15`                      | Background tick: poll the feeds for new episodes, re-sweep pending appearances |
 | `<ID>_FEED_URL`    | *(see `podcasts.py`)*          | Repoint a podcast's feed (dashes → underscores, uppercased: `FIN_DU_GAME_FEED_URL`) |

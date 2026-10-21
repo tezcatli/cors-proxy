@@ -9,19 +9,19 @@ import logging
 import pathlib
 import re
 import time
-from html import unescape as _html_unescape
 
 import requests as http
 
 import catalog_state as state
 import llm
+import transcribe
 from config import Config
 from corrections import unmatched_slugs
 from db import utcnow
 from models import Chapter, Episode, GameAppearance, GameMention, PodcastGame
-from podcasts import PODCASTS
+from podcasts import PODCASTS, PODCAST_BY_ID
 from rss import parse_feed, assign_url_slugs, is_game_catalog_excluded, find_chapter_for_game
-from utils import make_slug
+from utils import make_slug, plain_text
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +71,88 @@ def inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
             and c['title'] not in ('Publicité', 'Transition')
         ]
         episode.chapters = chapters
-        for mention in episode.games:
-            matched = find_chapter_for_game(mention.name, chapters)
-            if matched:
-                mention.timestamp = matched.timestamp
-                mention.timestamp_seconds = matched.timestamp_seconds
+        _point_mentions(episode)
         injected += 1
     if injected:
         logger.info('Injected AI chapters into %d episodes', injected)
+
+
+def _point_mentions(episode: Episode) -> None:
+    """Start each game mention at its chapter, once the episode has chapters."""
+    for mention in episode.games:
+        matched = find_chapter_for_game(mention.name, episode.chapters)
+        if matched:
+            mention.timestamp = matched.timestamp
+            mention.timestamp_seconds = matched.timestamp_seconds
+
+
+# ── Transcript readings ───────────────────────────────────────────────────────
+# What the LLM read in an episode's transcript (`ingest.py`): its sections, the
+# game each is about and the hosts' verdict. Only cached readings are used while
+# rebuilding, as for the games read from descriptions.
+
+# A section shorter than this is a mention in passing, not a game the episode
+# is about — measured: a 1 min 30 s aside on a golf game against the 15-minute
+# segments of the games reviewed.
+MIN_GAME_SECTION_S = 180
+
+
+def _readings(episodes: list[Episode]) -> dict[str, list[dict]]:
+    """The cached reading of every transcribed episode, by guid."""
+    models = {guid: row.model for guid, row in transcribe.rows().items() if row.model}
+    return {ep.slug: sections for ep in episodes
+            if ep.slug in models and ep.podcast_id in PODCAST_BY_ID
+            and (sections := llm.read_transcript(transcribe.reading_input(ep, models[ep.slug])))
+            is not None}
+
+
+def _game_sections(sections: list[dict]) -> list[dict]:
+    """The sections an episode spends on a game — long enough, once per game."""
+    first: dict[str, dict] = {}
+    for s in sections:
+        if s['game'] and s['end'] - s['start'] >= MIN_GAME_SECTION_S:
+            first.setdefault(make_slug(s['game']), s)
+    return list(first.values())
+
+
+def _read_games(sections: list[dict]) -> list[str]:
+    """The games an episode is about, by its reading."""
+    return [s['game'] for s in _game_sections(sections)]
+
+
+def _as_chapter(section: dict, title: str) -> Chapter:
+    return Chapter(timestamp=_seconds_to_ts(section['start']),
+                   timestamp_seconds=section['start'], title=title, game_name=section['game'])
+
+
+def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) -> None:
+    """What an episode's reading adds to it: chapters when it has none of its own
+    (ads left out), the games it spends a section on that its title doesn't name
+    — a show's title names two games, its hour on Microïds' catalogue five more —
+    and each game's verdict. Idempotent: the Episode objects are reused across
+    304s, and what a reading added is replaced by the next reading's."""
+    for ep in episodes:
+        ep.games = [m for m in ep.games if not m.read]
+        for mention in ep.games:
+            mention.critique = None
+        sections = readings.get(ep.slug)
+        if not sections:
+            continue
+        if not ep.chapters or ep.chapters_read:
+            ep.chapters = [_as_chapter(s, s['title']) for s in sections if not s['ad']]
+            ep.chapters_read = True
+            _point_mentions(ep)
+        for section in _game_sections(sections):
+            named = [Chapter(m.timestamp or '', m.timestamp_seconds, m.name, m.name)
+                     for m in ep.games]
+            matched = find_chapter_for_game(section['game'], named)
+            if matched:
+                mention = ep.games[named.index(matched)]
+            else:
+                mention = GameMention(name=section['game'], timestamp=_seconds_to_ts(section['start']),
+                                      timestamp_seconds=section['start'], read=True)
+                ep.games.append(mention)
+            mention.critique = section['critique']
 
 
 # ── Indexes ───────────────────────────────────────────────────────────────────
@@ -203,10 +277,12 @@ def _rebuild(errors: list[str]) -> None:
     # buried at the bottom of the episodes feed. Stable sort keeps ties/undated
     # items in their existing intra-feed order.
     episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
-    episodes = _apply_llm_games(episodes)
+    readings = _readings(episodes)
+    episodes = _apply_llm_games(episodes, readings)
 
     assign_url_slugs(episodes)
     inject_ai_chapters(episodes, _load_ai_chapter_index())
+    _apply_readings(episodes, readings)
     episode_index, game_index = build_indexes(episodes)
     with state.lock:
         state.episodes      = episodes
@@ -238,20 +314,21 @@ def _llm_episode(podcast, ep: Episode) -> dict | None:
     """What the LLM is shown of `ep`, or None for an item that isn't the show."""
     if podcast.skip_title and re.search(podcast.skip_title, ep.title):
         return None
-    text = re.sub(r'\s+', ' ', _html_unescape(re.sub(r'<[^>]+>', ' ', ep.description or '')))
     return {
         'show':        podcast.name,
         'title':       ep.title,
         'date':        (datetime.datetime.fromtimestamp(ep.pub_ts, datetime.timezone.utc)
                         .date().isoformat() if ep.pub_ts else None),
-        'description': text.strip()[:2000],
+        'description': plain_text(ep.description)[:2000],
     }
 
 
-def _apply_llm_games(episodes: list[Episode]) -> list[Episode]:
-    """Give LLM-read episodes their games from the cache; keep out the ones not
-    read yet, and the ones that review no game. Idempotent: the Episode objects
-    are reused across 304s."""
+def _apply_llm_games(episodes: list[Episode],
+                     readings: dict[str, list[dict]] | None = None) -> list[Episode]:
+    """Give LLM-read episodes their games from the cache — from the transcript's
+    reading once there is one, from the description's until then; keep out the
+    ones not read yet, and the ones about no game. Idempotent: the Episode
+    objects are reused across 304s."""
     shows = _llm_shows()
     kept = []
     for ep in episodes:
@@ -261,8 +338,12 @@ def _apply_llm_games(episodes: list[Episode]) -> list[Episode]:
             # An older prompt's answer stands in until the current one is cached,
             # so a prompt change doesn't drop these episodes (and, with them,
             # their IGDB resolutions) for the half hour the re-read takes.
-            names = (llm.reviewed_games(payload, cached_only=True, any_version=True)
-                     if payload else None)
+            if payload is None:
+                names = None
+            elif (readings or {}).get(ep.slug) is not None:
+                names = _read_games(readings[ep.slug])
+            else:
+                names = llm.reviewed_games(payload, cached_only=True, any_version=True)
             if not names:
                 continue
             # A few episodes have chapters (The Besties, 2014–16): point each game
@@ -276,6 +357,14 @@ def _apply_llm_games(episodes: list[Episode]) -> list[Episode]:
                     timestamp_seconds=chapter.timestamp_seconds if chapter else 0))
         kept.append(ep)
     return kept
+
+
+def all_episodes() -> list[Episode]:
+    """Every fetched episode that is the show, newest first — the catalog leaves
+    out the LLM-read shows' episodes not read yet, the ingestion must not."""
+    return sorted((ep for podcast in PODCASTS for ep in _feed_episodes.get(podcast.id, [])
+                   if not (podcast.skip_title and re.search(podcast.skip_title, ep.title))),
+                  key=lambda e: e.pub_ts or 0, reverse=True)
 
 
 def unread_episodes() -> list[dict]:

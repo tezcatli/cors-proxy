@@ -29,6 +29,7 @@ import time
 import catalog_state as state
 import feeds
 import hltb
+import ingest
 import llm
 import metacritic
 import worker
@@ -38,7 +39,7 @@ from igdb import IgdbResult, fetch_by_id, fetch_by_name, fetch_time_to_beat, sea
 from models import IgdbEntry, IgdbGame, Resolution
 from podcasts import PODCAST_BY_ID
 from questions import Question, question_for
-from utils import make_slug
+from utils import backoff, make_slug
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ def resolve(question: Question, enrich: bool = True, use_llm: bool = True) -> No
     `method='search'`, which keeps the question pending too.
 
     A failure — IGDB erroring, or the LLM unavailable when it was wanted — is
-    recorded with a growing `retry_at` (`_backoff`), so a question that fails every
+    recorded with a growing `retry_at` (`utils.backoff`), so a question that fails every
     time costs a few calls a day rather than a round every sweep."""
     logger.info('Resolving %s', question.key)
     with state.lock:
@@ -173,19 +174,13 @@ def gather_evidence(question: Question, titles: list[str]) -> tuple[dict[int, di
     return candidates, ranked
 
 
-def _backoff(attempts: int) -> datetime.timedelta:
-    """The delay before retry `attempts + 1`: the tick's interval, doubling, up to a day."""
-    delay = datetime.timedelta(minutes=Config.RESOLVE_RETRY_MINUTES) * 2 ** (attempts - 1)
-    return min(delay, datetime.timedelta(days=1))
-
-
 def _store_failure(resolution: Resolution, previous: Resolution | None, error: str) -> None:
     attempts = (previous.attempts if previous else 0) + 1
     logger.info('Resolution of %r failed %d time(s) in a row; next try in %s',
-                resolution.question, attempts, _backoff(attempts))
+                resolution.question, attempts, backoff(attempts))
     state.store_resolution(dataclasses.replace(
         resolution, attempts=attempts, last_error=error[:500],
-        retry_at=(utcnow() + _backoff(attempts)).isoformat()))
+        retry_at=(utcnow() + backoff(attempts)).isoformat()))
 
 
 def _store_game(result, enrich: bool) -> None:
@@ -410,6 +405,8 @@ def _tick() -> None:
     # expired games alike (resolving or fetching moves the stamp, so this
     # self-limits).
     schedule_resolve()
+    # New episodes to transcribe, and failures whose delay has passed.
+    ingest.wake()
 
 
 def _periodic(stop: threading.Event) -> None:
@@ -438,6 +435,7 @@ def _startup() -> None:
     # On the first launch this reads every episode of the LLM-read shows — long,
     # but one job each, behind the sweep; their games then resolve in another.
     schedule_llm_reads()
+    ingest.wake()
 
 
 def startup_warmup() -> None:
@@ -446,3 +444,6 @@ def startup_warmup() -> None:
     # on the feed must find the IGDB cache already loaded.
     worker.submit(_startup, key='startup', priority=worker.HIGH)
     _start_periodic()
+    # Each episode read changes its games and chapters: rebuild, then resolve
+    # what it asks. Keyed, so a rebuild still waiting absorbs the next read.
+    ingest.start(on_read=lambda: worker.submit(_rebuild_and_sweep, key='rebuild'))

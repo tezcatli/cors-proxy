@@ -91,6 +91,22 @@ def init_db():
             );
             -- llm.ask(any_version=True): an older prompt's answer for this input.
             CREATE INDEX IF NOT EXISTS llm_cache_task_input ON llm_cache (task, input);
+
+            -- One row per episode (its guid) the ingestion has tried: the
+            -- transcript once it succeeded (`segments`, JSON [[start, end, text]];
+            -- NULL until then), what it cost, and the failure backoff of the
+            -- step that failed last (transcribing or reading).
+            CREATE TABLE IF NOT EXISTS transcripts (
+                guid        TEXT PRIMARY KEY,
+                model       TEXT,
+                segments    TEXT,
+                duration    REAL,
+                cost        REAL,
+                created_at  TEXT,
+                attempts    INTEGER NOT NULL DEFAULT 0,
+                last_error  TEXT,
+                retry_at    TEXT
+            );
         """)
         if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'igdb_cache'").fetchone():
             _split_igdb_cache(conn)

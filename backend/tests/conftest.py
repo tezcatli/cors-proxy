@@ -122,6 +122,7 @@ def clean_db():
             DELETE FROM resolutions;
             DELETE FROM igdb_games;
             DELETE FROM llm_cache;
+            DELETE FROM transcripts;
             DELETE FROM reset_tokens;
             DELETE FROM invitations;
             DELETE FROM users;
