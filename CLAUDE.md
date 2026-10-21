@@ -68,6 +68,14 @@ ssh user@tezcat.fr "cd ~/opt/silence && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<old-s
 
 **Prod produces, dev consumes.** Transcripts, LLM answers and IGDB resolutions are made by prod's pipeline; what dev decides travels by git (`corrections.json`, prompts and their versions) — so data only ever flows prod → dev, and dev needs no keys to see what prod shows (what you review in dev *is* what prod serves; an LLM recomputing in dev would not be). `tools/prod_data.py` exports an **allowlist** of tables (`PRODUCED`) in the prod container, so users, invitations and reset tokens never leave prod, and a table added later stays home until listed. The tables are copied with prod's schema and the dev backend migrates them at its next start, exactly as a deploy would.
 
+### Once, when the transcription is first deployed
+
+```bash
+./push-lab-transcripts.sh  # the lab's 601 SoJ transcripts (~715 h, WhisperX) → prod
+```
+
+Run after deploying, **before** setting `DEEPINFRA_API_KEY`, so the ingestion finds them and pays only for the rest (~9 $ and a day of backlog spared). The one exception to « prod produces »: the backlog happens once. `tools/lab_transcripts.py` packs them on the dev host and stores them in the prod container under each episode's guid (the lab keyed old episodes by `make_slug(guid)`), never over a transcript prod already has. Delete both with `chapters.json` once the backlog is through.
+
 ### User management
 
 ```bash
