@@ -59,9 +59,10 @@ def index():
     return render_template('index.html', rows=rows)
 
 
-@app.route('/episode/<path:guid>')
-def episode(guid):
-    ep = _episode(guid)
+@app.route('/episode')
+def episode():
+    # The guid as a query parameter: some are URLs with their own query string.
+    ep = _episode(request.args.get('guid', ''))
     variant = request.args.get('variant', 'current')
     if variant not in VARIANTS:
         abort(404, f'No variant {variant}')

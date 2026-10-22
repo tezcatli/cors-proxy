@@ -5,7 +5,7 @@
 <h1>{{ ep.title }}</h1>
 <p class="dim">{{ show }} · <span class="mono">{{ date }}</span>
   · variante
-  {% for v in variants %}<a href="?variant={{ v }}" class="chip"{% if v == variant %} style="color:var(--text)"{% endif %}>{{ v }}</a>{% endfor %}
+  {% for v in variants %}<a href="?guid={{ ep.slug | urlencode }}&variant={{ v }}" class="chip"{% if v == variant %} style="color:var(--text)"{% endif %}>{{ v }}</a>{% endfor %}
   {% if not out.read %}<span class="chip" style="color:var(--warn)">pas encore lu</span>{% endif %}
 </p>
 
