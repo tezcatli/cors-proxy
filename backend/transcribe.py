@@ -31,7 +31,11 @@ logger = logging.getLogger(__name__)
 _API       = 'https://api.deepinfra.com/v1/inference/'
 _CHUNK     = 1 << 20
 _MAX_BYTES = 600 << 20       # ~10 h of podcast audio: anything bigger isn't an episode
-_TIMEOUT   = (10, 900)       # connect, read: a 3-hour episode takes ~90 s
+# (connect, read). The first also bounds every socket write of the upload, not just
+# the connect: at 10 s, DeepInfra pausing its reads for a moment in a 180 MB upload
+# aborted it ("The write operation timed out"), every half hour in prod. The read
+# covers the transcription itself: a 3-hour episode takes ~90 s.
+_TIMEOUT   = (60, 900)
 
 _http = requests.Session()
 
