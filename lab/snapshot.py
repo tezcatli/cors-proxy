@@ -42,9 +42,12 @@ def _overlay(conn, table: str, pk: str) -> None:
 @contextlib.contextmanager
 def _lab():
     LAB_DB.parent.mkdir(exist_ok=True)
-    conn = _connect(f'file:{LAB_DB}', uri=True)  # so the snapshot attaches by URI, read-only
+    # By URI, so the snapshot attaches read-only; a wait, not a failure, when the
+    # scripts' threads write at once.
+    conn = _connect(f'file:{LAB_DB}', uri=True, timeout=30)
     conn.row_factory = sqlite3.Row
     try:
+        conn.execute('PRAGMA journal_mode=WAL')
         conn.execute('ATTACH DATABASE ? AS snapshot', (f'file:{db.DB_PATH}?mode=ro',))
         for table, pk in LAB_TABLES.items():
             _overlay(conn, table, pk)

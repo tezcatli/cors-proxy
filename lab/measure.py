@@ -17,14 +17,19 @@ Each test the chain proposes or the curator expects is one case:
   added: the reading that missed it can't say how long it is.
 
 Stop criterion: no `faux`, no `mauvaise fiche`, and at least 90 % of the
-expected tests proposed.
+expected tests proposed — judged on the « contrôle » set: the « référence »
+episodes are those the chain was tuned on, its score there is optimistic.
 """
 import argparse
+import json
+import pathlib
 
 import judge
 import scope
 import spec
 
+# The control set first: the verdict is its own.
+SETS = ('contrôle', 'référence')
 FOUND = ('juste', 'mauvaise fiche', 'fiche indécise', 'limite connue')
 THRESHOLD = 0.9
 
@@ -77,9 +82,22 @@ def summary(cases: list[dict]) -> dict:
                    and found >= THRESHOLD}
 
 
+def sets() -> dict[str, str]:
+    """guid → the set its episode belongs to (reference.json)."""
+    ref = json.loads((pathlib.Path(__file__).parent / 'reference.json').read_text())['episodes']
+    return {e['guid']: e.get('set', 'référence') for e in ref}
+
+
+def by_set(episodes: list[dict]) -> dict[str, dict]:
+    """{set: summary of its episodes' cases}, in `SETS` order."""
+    return {name: {**summary([c for e in episodes if e['set'] == name for c in e['cases']]),
+                   'episodes': sum(e['set'] == name for e in episodes)} for name in SETS}
+
+
 def score(run, find) -> list[dict]:
-    """[{guid, title, cases}] for every validated episode, `run` being a
+    """[{guid, title, set, cases}] for every validated episode, `run` being a
     variant's run(episode) and `find` guid → episode."""
+    of = sets()
     out = []
     for guid in spec._read()['episodes']:
         ep = find(guid)
@@ -87,23 +105,27 @@ def score(run, find) -> list[dict]:
             continue
         rows = judge.rows(run(ep)['tests'], spec.for_episode(guid))
         from variants import current   # the episode's reading: what scope measures minutes on
-        out.append({'guid': guid, 'title': ep.title,
+        out.append({'guid': guid, 'title': ep.title, 'set': of.get(guid, 'référence'),
                     'cases': outcomes(rows, scope.in_scope(ep, current._reading(ep)))})
     return out
 
 
 def _print(name: str, episodes: list[dict]) -> None:
-    s = summary([c for e in episodes for c in e['cases']])
+    for set_name, s in by_set(episodes).items():
+        _print_set(f'{name} [{set_name}]', s)
+    for e in episodes:
+        for c in e['cases']:
+            if c['outcome'] not in ('juste', 'hors champ'):
+                print(f"  {c['outcome']:15} {e['set'][:4]} {e['title'][:46]:46} {c['game']}")
+
+
+def _print_set(name: str, s: dict) -> None:
     found = f"{s['found']:.0%}" if s['found'] is not None else '—'
-    print(f"{name}: {len(episodes)} épisodes validés · {s['expected']} tests attendus · trouvés {found} · "
+    print(f"{name}: {s['episodes']} épisodes validés · {s['expected']} tests attendus · trouvés {found} · "
           f"faux {s['faux']} · mauvaise fiche {s['mauvaise fiche']} · manquants {s['manquant']} · "
           f"à juger {s['à juger']} · fiche indécise {s['fiche indécise']} · hors champ {s['hors champ']} · "
           f"limite connue {s['limite connue']} → "
           f"{'critère atteint' if s['met'] else 'critère non atteint'}")
-    for e in episodes:
-        for c in e['cases']:
-            if c['outcome'] not in ('juste', 'hors champ'):
-                print(f"  {c['outcome']:15} {e['title'][:50]:50} {c['game']}")
 
 
 def main() -> None:

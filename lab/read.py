@@ -22,8 +22,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobs', type=int, default=4)
     parser.add_argument('--tests', action='store_true', help='the reading variant (reader.py)')
+    parser.add_argument('--all', action='store_true', help='every transcribed episode, newest first')
+    parser.add_argument('--limit', type=int, help='at most N episodes to read')
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
+    logging.getLogger('httpx').setLevel(logging.WARNING)
     snapshot.load()
     import feeds
     import llm
@@ -31,7 +34,8 @@ def main() -> None:
     if not llm.enabled():
         raise SystemExit('OPENROUTER_API_KEY is not set')
 
-    guids = [e['guid'] for e in json.loads((HERE / 'reference.json').read_text())['episodes']]
+    import targets
+    guids = targets.guids(args.all)
     episodes = {e.slug: e for e in feeds.all_episodes() if e.slug in guids}
     rows = transcribe.rows()
     todo = []
@@ -45,6 +49,7 @@ def main() -> None:
                 todo.append(ep)
         elif not llm.has_current_reading(transcribe.reading_input(ep, row.model)):
             todo.append(ep)
+    todo = todo[:args.limit] if args.limit else todo
     logging.info('%d to read', len(todo))
 
     def read(ep):

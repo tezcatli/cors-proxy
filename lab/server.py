@@ -98,8 +98,9 @@ def index():
     rows = [{**ref, 'found': ep is not None, 'date': _date(ep.pub_ts) if ep else '?',
              'show': PODCAST_BY_ID[ep.podcast_id].label if ep else '?', 'status': st}
             for ref, ep, st in _statuses(variant)]
-    return render_template('index.html', rows=rows, variant=variant,
-                           done=sum(r['status'] == 'validé' for r in rows))
+    progress = {name: (sum(r['status'] == 'validé' for r in rows if r.get('set', 'référence') == name),
+                       sum(r.get('set', 'référence') == name for r in rows)) for name in measure.SETS}
+    return render_template('index.html', rows=rows, variant=variant, progress=progress)
 
 
 @app.route('/episode')
@@ -154,7 +155,7 @@ def measure_page():
     variant = _variant()
     episodes = measure.score(VARIANTS[variant].run, _find)
     return render_template('measure.html', variant=variant, episodes=episodes, threshold=measure.THRESHOLD,
-                           s=measure.summary([c for e in episodes for c in e['cases']]))
+                           sets=measure.by_set(episodes))
 
 
 @app.route('/transcript')

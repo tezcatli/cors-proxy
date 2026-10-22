@@ -33,3 +33,14 @@ def test_a_known_limit_is_counted_apart_and_holds_nothing_back():
     rows = [{'game': 'Dark Souls', 'shown': {'start': 0, 'igdb': A}, 'spec': {'test': True, 'igdb': B, 'limit': 'why'}}]
     [c] = outcomes(rows)
     assert c['outcome'] == 'limite connue' and summary([c])['met']
+
+
+from measure import by_set
+
+
+def test_each_set_is_scored_on_its_own():
+    eps = [{'set': 'référence', 'cases': [{'outcome': 'juste'}]},
+           {'set': 'contrôle', 'cases': [{'outcome': 'faux'}, {'outcome': 'juste'}]}]
+    s = by_set(eps)
+    assert list(s) == ['contrôle', 'référence']
+    assert (s['référence']['met'], s['contrôle']['met'], s['contrôle']['faux']) == (True, False, 1)

@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% block body %}
 <h1>Labo — épisodes de référence</h1>
-<p class="dim">Pour chaque épisode, les tests que le catalogue devrait référencer. Propositions <span class="mono">{{ variant }}</span> · <strong>{{ done }} / {{ rows | length }} validés</strong> · <a href="/mesure">mesure</a></p>
+<p class="dim">Pour chaque épisode, les tests que le catalogue devrait référencer. Propositions <span class="mono">{{ variant }}</span> · {% for name, (done, total) in progress.items() %}<strong>{{ done }} / {{ total }} {{ name }}</strong> · {% endfor %}validés · <a href="/mesure">mesure</a></p>
 <table>
-  <tr><th>Statut</th><th>Émission</th><th>Date</th><th>Épisode</th><th>Pourquoi</th></tr>
+  <tr><th>Statut</th><th>Ensemble</th><th>Émission</th><th>Date</th><th>Épisode</th><th>Pourquoi</th></tr>
   {% for r in rows %}
   <tr>
     <td><span class="chip status status--{{ (r.status or '') | replace(' ', '-') }}">{{ r.status or '—' }}</span></td>
+    <td class="dim">{{ r.set or 'référence' }}</td>
     <td>{{ r.show }}</td>
     <td class="mono">{{ r.date }}</td>
     <td>{% if r.found %}<a href="/episode?guid={{ r.guid | urlencode }}">{{ r.title }}</a>{% else %}{{ r.title }} <span class="chip">absent de l'instantané</span>{% endif %}</td>
