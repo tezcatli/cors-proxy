@@ -1,12 +1,13 @@
 """Prod's data, as pulled into dev (./pull-prod-data.sh), opened read-only.
 
 The lab reads the snapshot and never writes it, so a lab bug can't touch the dev
-database. What the lab asks the LLM itself — readings of reference episodes prod
-hasn't read, a variant's other prompt — goes to its own cache, `data/lab.db`:
-every connection the app's modules open is that file, with the snapshot attached
-read-only, and `llm_cache` a view over both whose writes land in the lab's. The
-app's modules are used as libraries and never modified: to them it is one
-database.
+database. What the lab produces itself — readings of reference episodes prod
+hasn't read, a variant's other prompt, the IGDB answers for the games those
+readings find — goes to its own cache, `data/lab.db`: every connection the
+app's modules open is that file, with the snapshot attached read-only, and each
+produced table (`LAB_TABLES`) a view over both, the lab's row winning, whose
+writes land in the lab's. The app's modules are used as libraries and never
+modified: to them it is one database.
 """
 import contextlib
 import functools
@@ -19,20 +20,23 @@ import db
 _connect = sqlite3.connect
 LAB_DB = pathlib.Path(__file__).parent / 'data' / 'lab.db'
 
-_SCHEMA = (
-    "CREATE TABLE IF NOT EXISTS lab_llm_cache (key TEXT PRIMARY KEY, task TEXT, version INTEGER, "
-    "input TEXT, answer TEXT, model TEXT, created_at TEXT)",
-)
-# Per connection: the view and its write trigger are temporary, so the
-# snapshot's own llm_cache is what « snapshot » means inside them.
-_VIEW = (
-    "CREATE TEMP VIEW llm_cache AS SELECT key, task, version, input, answer, model, created_at "
-    "FROM main.lab_llm_cache UNION ALL SELECT key, task, version, input, answer, model, created_at "
-    "FROM snapshot.llm_cache",
-    "CREATE TEMP TRIGGER llm_cache_write INSTEAD OF INSERT ON llm_cache BEGIN "
-    "INSERT OR REPLACE INTO main.lab_llm_cache VALUES (NEW.key, NEW.task, NEW.version, NEW.input, "
-    "NEW.answer, NEW.model, NEW.created_at); END",
-)
+# The tables the lab writes, by primary key.
+LAB_TABLES = {'llm_cache': 'key', 'resolutions': 'question', 'igdb_games': 'igdb_id'}
+
+
+def _overlay(conn, table: str, pk: str) -> None:
+    """`table` as a temporary view over the lab's copy and the snapshot's — per
+    connection, so « snapshot » inside it is this connection's attachment — and
+    a trigger sending its writes to the lab's copy."""
+    cols = [(r[1], r[2]) for r in conn.execute(f'PRAGMA snapshot.table_info({table})')]
+    names = ', '.join(c for c, _ in cols)
+    conn.execute(f'CREATE TABLE IF NOT EXISTS main.lab_{table} ('
+                 + ', '.join(f'{c} {t}{" PRIMARY KEY" if c == pk else ""}' for c, t in cols) + ')')
+    conn.execute(f'CREATE TEMP VIEW {table} AS SELECT {names} FROM main.lab_{table} UNION ALL '
+                 f'SELECT {names} FROM snapshot.{table} WHERE {pk} NOT IN (SELECT {pk} FROM main.lab_{table})')
+    conn.execute(f'CREATE TEMP TRIGGER {table}_write INSTEAD OF INSERT ON {table} BEGIN '
+                 f'INSERT OR REPLACE INTO main.lab_{table} ({names}) VALUES '
+                 f'({", ".join("NEW." + c for c, _ in cols)}); END')
 
 
 @contextlib.contextmanager
@@ -42,8 +46,8 @@ def _lab():
     conn.row_factory = sqlite3.Row
     try:
         conn.execute('ATTACH DATABASE ? AS snapshot', (f'file:{db.DB_PATH}?mode=ro',))
-        for sql in (*_SCHEMA, *_VIEW):
-            conn.execute(sql)
+        for table, pk in LAB_TABLES.items():
+            _overlay(conn, table, pk)
         yield conn
         conn.commit()
     finally:

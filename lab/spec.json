@@ -137,8 +137,8 @@
     },
     "65692b5b1cf196001342df41": {
       "title": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
-      "validated": "2026-10-22T19:55:46+00:00",
-      "variant": "sans_bande_annonce"
+      "validated": "2026-10-22T20:47:32+00:00",
+      "variant": "fiches_v2"
     },
     "68ba0ac82d913bd33066fbfd": {
       "title": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
@@ -217,8 +217,8 @@
     },
     "f5050f18-f9d9-11ea-acef-0bfa0d91c79c": {
       "title": "The Besties go to the Farm!",
-      "validated": "2026-10-22T19:42:39+00:00",
-      "variant": "sans_bande_annonce"
+      "validated": "2026-10-22T20:48:03+00:00",
+      "variant": "fiches_v2"
     },
     "84639c1e-256c-4eaa-b87e-c5e05685ee15": {
       "title": "The Big Switch 2 Episode – Plus the Best of SGF",
@@ -519,14 +519,14 @@
       "game": "Astérix et Obélix : Baffez-les tous ! 2",
       "test": true,
       "igdb": {
-        "id": 165094,
-        "name": "Asterix & Obelix: Slap Them All! - Limited Edition",
-        "slug": "asterix-and-obelix-slap-them-all-limited-edition",
-        "released": "2021",
-        "coverImageId": "co497n"
+        "id": 254845,
+        "name": "Asterix & Obelix: Slap Them All! 2",
+        "slug": "asterix-and-obelix-slap-them-all-2",
+        "released": "2023",
+        "coverImageId": "co6pc2"
       },
       "added": false,
-      "at": "2026-10-22T19:55:40+00:00"
+      "at": "2026-10-22T20:47:26+00:00"
     },
     {
       "episode": "65692b5b1cf196001342df41",
@@ -2921,14 +2921,14 @@
       "game": "Rune Factory 4 Special",
       "test": true,
       "igdb": {
-        "id": 6874,
-        "name": "Rune Factory 4",
-        "slug": "rune-factory-4",
-        "released": "2012",
-        "coverImageId": "co2xko"
+        "id": 115278,
+        "name": "Rune Factory 4 Special",
+        "slug": "rune-factory-4-special",
+        "released": "2019",
+        "coverImageId": "co40eo"
       },
       "added": false,
-      "at": "2026-10-22T19:42:27+00:00"
+      "at": "2026-10-22T20:48:01+00:00"
     },
     {
       "episode": "84639c1e-256c-4eaa-b87e-c5e05685ee15",

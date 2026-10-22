@@ -29,7 +29,7 @@
       <span class="seg__bar"><span style="width:{{ (((g.end or g.start) - g.start) / total * 100) | round(1) }}%"></span></span>
     </button><button class="txt" data-from="{{ g.start }}" data-to="{{ g.end if g.end is not none else '' }}">texte</button></div>
     <div class="tx" hidden></div>{% endif %}
-    {% for r in g.rows %}{% set sp = r.spec or {} %}{% set t = r.shown.start if r.shown else sp.start %}
+    {% for r in g.rows %}{% set sp = r.spec or {} %}{% set t = r.shown.start if r.shown else sp.get('start') %}
     <div class="test{% if sp.test == false %} test--no{% endif %}" data-game="{{ r.game }}"{% if r.shown %} data-shown{% endif %}>
       <div><button class="play"{% if t is not none %} data-t="{{ t }}" title="Écouter à {{ t | hms }}"{% else %} disabled{% endif %}>{% if t is not none %}▶ {% endif %}<strong>{{ r.game }}</strong>{% if t is not none %} <span class="dim mono">{{ t | hms }}{% if r.shown and r.shown.end %}–{{ r.shown.end | hms }} · {{ r.shown.minutes }} min{% endif %}</span>{% endif %}</button>
         <div>{% if r.shown %}{% if r.shown.verdict %}<span class="chip">avis : {{ r.shown.verdict }}</span>{% endif %}
