@@ -67,7 +67,7 @@ def _deepinfra(segments=_SEGMENTS, cost=0.0118):
     audio = MagicMock()
     audio.__enter__.return_value = audio
     audio.iter_content.return_value = [b'ID3', b'audio']
-    answer = MagicMock()
+    answer = MagicMock(status_code=200)
     answer.json.return_value = {'segments': segments, 'duration': 2840.0,
                                 'inference_status': {'cost': cost}}
     bodies = []
@@ -359,8 +359,8 @@ def _deepinfra_refuses(status=402):
     audio = MagicMock()
     audio.__enter__.return_value = audio
     audio.iter_content.return_value = [b'audio']
-    refused = MagicMock()
-    refused.raise_for_status.side_effect = requests.HTTPError(f'{status} Payment Required')
+    refused = MagicMock(status_code=status, text='refused')
+    refused.raise_for_status.side_effect = requests.HTTPError(f'{status} Client Error')
     return patch('transcribe._http.get', return_value=audio), \
         patch('transcribe._http.post', return_value=refused)
 
@@ -458,3 +458,21 @@ def test_deepinfra_failing_stops_the_backlog(keys, besties):
         assert ingest.transcribe_all(ingest.untranscribed(), jobs=1)[0] == 0
     assert upload.call_count == 1                 # not one try per episode
     assert transcribe.rows() == {}                # no episode blamed
+
+
+def test_a_file_deepinfra_cannot_read_is_the_episode_s_failure(keys, besties, no_pause):
+    get, post = _deepinfra_refuses(400)
+    with get, post:
+        assert ingest._step(lambda: None) == 0           # on to the next episode, no pause
+    assert transcribe.rows()['bes-control'].attempts == 1
+    with get, post as upload:
+        assert ingest.transcribe_all(ingest.untranscribed(), jobs=1)[0] == 0
+    assert upload.call_count == 2                        # both tried: one bad file stops nothing
+
+
+@pytest.mark.parametrize('status', [401, 402, 429, 503])
+def test_deepinfra_refusing_us_is_the_provider_s_failure(keys, besties, no_pause, status):
+    get, post = _deepinfra_refuses(status)
+    with get, post:
+        assert ingest._step(lambda: None) > 0             # paused
+    assert transcribe.rows() == {}

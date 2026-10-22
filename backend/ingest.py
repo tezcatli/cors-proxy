@@ -186,10 +186,11 @@ def transcribe_all(episodes: list[Episode], jobs: int) -> tuple[int, float]:
             t = transcribe.transcribe(episode.audio_url, PODCAST_BY_ID[episode.podcast_id].language)
         except transcribe.Unavailable as exc:
             stop.set()
-            logger.error('DeepInfra failing, stopping: %s', exc)
+            logger.error('DeepInfra failing, stopping (at %s): %s', episode.title[:60], exc)
             return None
         except Exception as exc:
             transcribe.store_failure(episode.slug, f'{type(exc).__name__}: {exc}')
+            logger.warning('%s: %s', episode.title[:60], exc)
             return None
         transcribe.store(episode.slug, t)
         return t
