@@ -68,6 +68,18 @@ ssh user@tezcat.fr "cd ~/opt/silence && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<old-s
 
 **Prod produces, dev consumes.** Transcripts, LLM answers and IGDB resolutions are made by prod's pipeline; what dev decides travels by git (`corrections.json`, prompts and their versions) — so data only ever flows prod → dev, and dev needs no keys to see what prod shows (what you review in dev *is* what prod serves; an LLM recomputing in dev would not be). `tools/prod_data.py` exports an **allowlist** of tables (`PRODUCED`) in the prod container, so users, invitations and reset tokens never leave prod, and a table added later stays home until listed. The tables are copied with prod's schema and the dev backend migrates them at its next start, exactly as a deploy would.
 
+### Defining the reading pipeline: prod only serves, the lab defines
+
+While the pipeline is being defined (which games an episode is about, at which level, on which IGDB entry, which chapters), **prod only serves**: `INGEST=false` in the server's `backend_secrets.env` (the file deploys don't rewrite). Everything else happens in dev, on a snapshot (`./pull-prod-data.sh`):
+
+```bash
+docker compose -f docker-compose.dev.yml run --rm backend python ingest.py --transcribe-all --jobs 4
+docker compose -f docker-compose.dev.yml up lab          # http://localhost:5050
+```
+
+- `ingest.py --transcribe-all` transcribes what isn't, oldest first, N at a time, with prod's own code (a transcribed episode is skipped; DeepInfra failing stops the run). It only transcribes.
+- **`lab/`** (see `lab/README.md`) is **not part of the app**: the app never imports it, and it isn't in the prod image. It has its own chain (`lab/variants/`, `current` = the app's as it stands) and uses the app's modules as libraries, on the dev DB opened **read-only**. Its page shows what a variant makes of each reference episode (`lab/reference.json`) and records what each game *should* be — consacré, évoqué, absent, mauvaise-fiche — in `lab/judgments.json`, git-tracked. Those judgments are the spec: once a variant meets the stop criterion (no wrong « consacré », ≥ 90 % of all judgments), it is ported to the app, which replays them as acceptance tests before it ships.
+
 ### Once, when the transcription is first deployed
 
 ```bash

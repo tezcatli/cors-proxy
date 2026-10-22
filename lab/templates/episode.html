@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{{ ep.title }}{% endblock %}
+{% block body %}
+<p><a href="/">← Épisodes de référence</a></p>
+<h1>{{ ep.title }}</h1>
+<p class="dim">{{ show }} · <span class="mono">{{ date }}</span>
+  · variante
+  {% for v in variants %}<a href="?variant={{ v }}" class="chip"{% if v == variant %} style="color:var(--text)"{% endif %}>{{ v }}</a>{% endfor %}
+  {% if not out.read %}<span class="chip" style="color:var(--warn)">pas encore lu</span>{% endif %}
+</p>
+
+{% if ep.audio_url %}<audio id="audio" controls preload="none" src="{{ ep.audio_url }}" style="width:100%"></audio>{% endif %}
+
+<details class="panel"><summary class="dim">Titre et description</summary>
+  <div style="margin-top:8px">{{ ep.description | safe }}</div></details>
+
+<div class="panel">
+  <table id="games">
+    <tr><th></th><th>Jeu</th><th>Ce que la chaîne en fait</th><th>Ce qu'il devrait être</th></tr>
+    {% for g in out.games %}
+    <tr data-game="{{ g.game }}" data-igdb="{{ g.igdb.slug if g.igdb else '' }}">
+      <td>{% if g.start is not none %}<button class="play" data-t="{{ g.start }}" title="Écouter">▶</button>{% endif %}</td>
+      <td><strong>{{ g.game }}</strong>
+        {% if g.igdb %}<div class="dim">→ {{ g.igdb.name }}{% if g.igdb.released %} ({{ g.igdb.released[:4] }}){% endif %}</div>
+        {% elif g.level %}<div style="color:var(--warn)">→ non résolu</div>{% endif %}</td>
+      <td class="mono">
+        {{ g.level or 'non rattaché' }} · {{ g.source }}
+        {% if g.kind %} · {{ g.kind }}{% endif %}{% if g.minutes is not none %} · {{ g.minutes }} min{% endif %}
+        {% if g.start is not none %} · à {{ '%d:%02d' % (g.start // 60, g.start % 60) }}{% endif %}
+        {% if g.verdict %} · avis {{ g.verdict }}{% endif %}
+      </td>
+      <td class="verdicts">{% for v in verdicts %}<button class="v{% if g.judgment == v %} on{% endif %}" data-v="{{ v }}">{{ v }}</button>{% endfor %}</td>
+    </tr>
+    {% endfor %}
+    {% for j in missed %}
+    <tr data-game="{{ j.game }}" data-igdb="{{ j.igdbSlug or '' }}">
+      <td></td><td><strong>{{ j.game }}</strong></td>
+      <td class="mono" style="color:var(--warn)">jugé, mais cette variante ne le voit pas</td>
+      <td class="verdicts">{% for v in verdicts %}<button class="v{% if j.verdict == v %} on{% endif %}" data-v="{{ v }}">{{ v }}</button>{% endfor %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not out.games and not missed %}<p class="dim">Aucun jeu vu dans cet épisode.</p>{% endif %}
+</div>
+
+<style>
+  button { font: inherit; cursor: pointer; }
+  .play { width: 28px; height: 28px; border-radius: 999px; border: 0; background: var(--line); color: var(--text); }
+  .v { font-size: 0.72rem; padding: 2px 8px; margin: 1px; border-radius: 999px;
+       border: 1px solid var(--line); background: none; color: var(--dim); }
+  .v.on { background: var(--accent); border-color: transparent; color: #fff; }
+</style>
+<script>
+  const audio = document.getElementById('audio')
+  document.querySelectorAll('.play').forEach(b => b.onclick = () => {
+    if (!audio) return
+    audio.currentTime = Number(b.dataset.t)
+    audio.play()
+  })
+  document.querySelectorAll('.verdicts').forEach(cell => cell.onclick = async e => {
+    const b = e.target.closest('.v'); if (!b) return
+    const row = cell.closest('tr')
+    const verdict = b.classList.contains('on') ? null : b.dataset.v
+    const r = await fetch('/judge', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ episode: {{ ep.slug | tojson }}, game: row.dataset.game, verdict,
+                             igdbSlug: row.dataset.igdb || null }) })
+    if (!r.ok) { alert(await r.text()); return }
+    cell.querySelectorAll('.v').forEach(x => x.classList.toggle('on', x === b && verdict !== null))
+  })
+</script>
+{% endblock %}

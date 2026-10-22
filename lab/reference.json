@@ -1,0 +1,184 @@
+{
+  "episodes": [
+    {
+      "guid": "632d71d3acd4d10012d046bd",
+      "title": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : critique dédiée"
+    },
+    {
+      "guid": "a9ce0b17-afd7-4e81-a7f4-34263a7467cc",
+      "title": "Triple Play: Control Resonant",
+      "podcast": "triple-click",
+      "why": "ciblé : critique dédiée"
+    },
+    {
+      "guid": "a59cbc9e-38e0-46e5-80d1-ff2877d36562",
+      "title": "Control Resonant Rewards Your Patience",
+      "podcast": "the-besties",
+      "why": "ciblé : critique dédiée + jeu annoncé en second"
+    },
+    {
+      "guid": "6b0d0dcc-2620-485b-a26c-2e45f713165c",
+      "title": "Resident Evil: Requiem is Two Games in One!",
+      "podcast": "the-besties",
+      "why": "ciblé : critique dédiée + courrier des auditeurs"
+    },
+    {
+      "guid": "660c3256b6119b01772ae8c4",
+      "title": "Episode 119 - Gears of War 2",
+      "podcast": "fin-du-game",
+      "why": "ciblé : rétrospective"
+    },
+    {
+      "guid": "683dc4cee646ff83253c75cb",
+      "title": "Episode 145 - Dragon Age: Origins (feat. Kabouka)",
+      "podcast": "fin-du-game",
+      "why": "ciblé : rétrospective, jeu ancien"
+    },
+    {
+      "guid": "879c3665-f69e-4705-a3ce-35ac21fb28de",
+      "title": "The Star Wars Game Renaissance Is Here!",
+      "podcast": "the-besties",
+      "why": "ciblé : apartés (Control Resonant 1 min)"
+    },
+    {
+      "guid": "6f188f7c-9061-4319-8cae-64243b723ecb",
+      "title": "Super Turbo Remake Plus",
+      "podcast": "triple-click",
+      "why": "ciblé : fourre-tout"
+    },
+    {
+      "guid": "65692b5b1cf196001342df41",
+      "title": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : jeux non nommés dans le titre (Microïds)"
+    },
+    {
+      "guid": "https://djpod.com/silence-on-joue/?id=221246",
+      "title": "Silence on joue ! Civilization Revolution, et la GDC",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : SoJ 2008, critique non annoncée, fausse mention"
+    },
+    {
+      "guid": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "title": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "why": "ciblé : fourre-tout, jeu ancien"
+    },
+    {
+      "guid": "695cd72ccff5303b49e18943",
+      "title": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : palmarès"
+    },
+    {
+      "guid": "f20e1a0f-8c94-4063-8235-2b493ddc4f6f",
+      "title": "Our Favorite Video Games of 2025",
+      "podcast": "triple-click",
+      "why": "ciblé : palmarès discuté"
+    },
+    {
+      "guid": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "title": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "why": "ciblé : liste de recommandations"
+    },
+    {
+      "guid": "23e5432b-985a-4473-9e51-9771f35b534f",
+      "title": "Besties Battle Bracket: Best Bathroom Game (Patreon Bonus)",
+      "podcast": "the-besties",
+      "why": "ciblé : tournoi"
+    },
+    {
+      "guid": "6ad0d9ec0c6b30397b2e1cc9",
+      "title": "Sur quel jeu avez-vous le plus triché ? - Bande-annonce S20E07",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : bande-annonce, anecdotes"
+    },
+    {
+      "guid": "65b93499289d85001780a077",
+      "title": "Gâchette Gauche #10 : IA, le jeu vidéo prompt à s'emballer ?",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : pas de jeu"
+    },
+    {
+      "guid": "https://www.polygon.com/gaming/2012/9/14/3334334/the-besties-podcast-wii-u-special",
+      "title": "The Besties Podcast: Wii U special",
+      "podcast": "the-besties",
+      "why": "ciblé : console, pas de critique"
+    },
+    {
+      "guid": "6a2b0cb8440b9d7bbf8121f0",
+      "title": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : démos de festival"
+    },
+    {
+      "guid": "6870f0bd610560d3ef3e6019",
+      "title": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : petits jeux indépendants, entité HTML"
+    },
+    {
+      "guid": "1a0c77ac-2356-45bc-9932-411557990022",
+      "title": "Saros is More Bullet Heaven Than Bullet Hell",
+      "podcast": "the-besties",
+      "why": "ciblé : jeu ancien dans une émission d’actualité"
+    },
+    {
+      "guid": "b7865a49-2b7f-4b55-815d-a6fb3b5c5208",
+      "title": "Esoteric Ebb Is D&D Meets Disco Elysium",
+      "podcast": "triple-click",
+      "why": "ciblé : jeu ancien dans une émission d’actualité"
+    },
+    {
+      "guid": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "title": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "why": "ciblé : jeux des années 90"
+    },
+    {
+      "guid": "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8",
+      "title": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
+      "podcast": "the-besties",
+      "why": "ciblé : nom parlé (RE3 Remake)"
+    },
+    {
+      "guid": "7fea62e6-2e07-41b0-970d-01e14a36b64c",
+      "title": "What Makes a Game Wear Out Its Welcome? (Mailbag)",
+      "podcast": "triple-click",
+      "why": "ciblé : nom mal transcrit (Donkey Kong Bonanza)"
+    },
+    {
+      "guid": "84639c1e-256c-4eaa-b87e-c5e05685ee15",
+      "title": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "podcast": "the-besties",
+      "why": "ciblé : noms mal transcrits"
+    },
+    {
+      "guid": "6931f633a63c6eaa591444c9",
+      "title": "S19E16 -  «Kirby Air Riders», «Marvel Cosmic Invasion», «DemonSchool»",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : nom mal transcrit (Carbia Riders)"
+    },
+    {
+      "guid": "68ba0ac82d913bd33066fbfd",
+      "title": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "why": "ciblé : chiffres romains (Little Nightmares III)"
+    },
+    {
+      "guid": "698af7c85fc77c932767b727",
+      "title": "Episode 159 - Astrobot (Feat. WTF'UX)",
+      "podcast": "fin-du-game",
+      "why": "ciblé : confirmation du titre (Astro Bot)"
+    },
+    {
+      "guid": "69a5b4c6ae870ee3d71cad2c",
+      "title": "Episode 160 - 1000XRESIST (feat. Lucie Ronfaut)",
+      "podcast": "fin-du-game",
+      "why": "ciblé : titre français"
+    }
+  ]
+}
