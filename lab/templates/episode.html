@@ -16,7 +16,7 @@
 
 <div class="panel">
   <div class="dim" style="margin-bottom:6px">Chapitres de l'épisode{% if ep.chapters_read %} (tirés de la lecture){% endif %}</div>
-  {% for c in ep.chapters %}<button class="seek" data-t="{{ c.timestamp_seconds }}">{{ c.timestamp_seconds | hms }} · {{ c.title }}</button>{% else %}<span class="dim">aucun</span>{% endfor %}
+  {% for c in out.chapters %}<button class="seek" data-t="{{ c.start }}">{{ c.start | hms }}–{{ c.end | hms or '?' }}{% if c.minutes is not none %} · {{ c.minutes }} min{% endif %} · {{ c.title }}</button>{% else %}<span class="dim">aucun</span>{% endfor %}
 </div>
 
 {% if out.sections %}
@@ -24,6 +24,7 @@
   <table style="margin-top:8px">
     {% for x in out.sections %}
     <tr><td class="mono"><button class="seek" data-t="{{ x.start }}">{{ x.start | hms }}–{{ x.end | hms }}</button></td>
+        <td class="mono">{{ ((x.end - x.start) / 60) | round(1) }} min</td>
         <td class="mono">{{ x.kind or '' }}</td><td><strong>{{ x.game or '' }}</strong></td><td class="dim">{{ x.title }}</td></tr>
     {% endfor %}
   </table>
@@ -41,8 +42,10 @@
         {% elif g.level %}<div style="color:var(--warn)">→ non résolu</div>{% endif %}</td>
       <td class="mono">
         {{ g.level or 'non rattaché' }} · {{ g.source }}
-        {% if g.kind %} · {{ g.kind }}{% endif %}{% if g.minutes is not none %} · {{ g.minutes }} min{% endif %}
-        {% if g.start is not none %} · à {{ g.start | hms }}{% if g.at == 'chapitre' %} (chapitre){% endif %}{% endif %}
+        {% if g.kind %} · {{ g.kind }}{% endif %}
+        {% if g.start is not none %} · {{ g.start | hms }}–{{ g.end | hms or '?' }}{% endif %}
+        {% if g.minutes is not none %} · {{ g.minutes }} min{% endif %}
+        {% if g.at and g.at != 'section' %} ({{ g.at }}){% endif %}
         {% if g.verdict %} · avis {{ g.verdict }}{% endif %}
       </td>
       <td class="verdicts">{% for v in verdicts %}<button class="v{% if g.judgment == v %} on{% endif %}" data-v="{{ v }}">{{ v }}</button>{% endfor %}</td>
