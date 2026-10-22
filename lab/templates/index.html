@@ -1,17 +1,22 @@
 {% extends 'base.html' %}
 {% block body %}
 <h1>Labo — épisodes de référence</h1>
-<p class="dim">Juger ce que la chaîne fait de chaque épisode : pour chaque jeu, ce qu'il <em>devrait</em> être.</p>
+<p class="dim">Pour chaque épisode, les tests que le catalogue devrait référencer. Propositions <span class="mono">{{ variant }}</span> · <strong>{{ done }} / {{ rows | length }} validés</strong> · <a href="/mesure">mesure</a></p>
 <table>
-  <tr><th>Émission</th><th>Date</th><th>Épisode</th><th>Pourquoi</th><th>Jugés</th></tr>
+  <tr><th>Statut</th><th>Émission</th><th>Date</th><th>Épisode</th><th>Pourquoi</th></tr>
   {% for r in rows %}
   <tr>
+    <td><span class="chip status status--{{ (r.status or '') | replace(' ', '-') }}">{{ r.status or '—' }}</span></td>
     <td>{{ r.show }}</td>
     <td class="mono">{{ r.date }}</td>
     <td>{% if r.found %}<a href="/episode?guid={{ r.guid | urlencode }}">{{ r.title }}</a>{% else %}{{ r.title }} <span class="chip">absent de l'instantané</span>{% endif %}</td>
     <td class="dim">{{ r.why }}</td>
-    <td class="mono">{{ r.judged }}</td>
   </tr>
   {% endfor %}
 </table>
+<style>
+  .chip.on { color: #fff; background: var(--accent); border-color: transparent; }
+  .status--validé { color: var(--ok); border-color: var(--ok); }
+  .status--à-revoir { color: var(--warn); border-color: var(--warn); }
+</style>
 {% endblock %}

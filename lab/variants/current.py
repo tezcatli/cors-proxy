@@ -1,108 +1,112 @@
-"""The app's chain as it stands: what it attaches to an episode, from the
-snapshot's readings and resolutions. The reference every other variant is
-measured against first."""
-import difflib
+"""The app's chain as it stands, from the snapshot: what a listener gets for an
+episode — the chapters its player shows, and the tests its catalog references
+(each game with its IGDB entry). The reference every other variant is measured
+against first."""
+import functools
 
 import catalog_state as state
+import igdb
 import llm
 import transcribe
-from feeds import CRITIQUE_KINDS, _as_chapter
-from podcasts import PODCAST_BY_ID
-from rss import find_chapter_for_game
-from utils import make_slug, norm
+from corrections import find_by_podcast
+from feeds import CRITIQUE_KINDS
+from judge import same
+from utils import make_slug
 
 NAME = 'current'
 
-# What a row says when the reading has nothing on the game (not read yet, or a
-# name the reading doesn't use): every field present, so a page never guesses.
-_NO_EVIDENCE = {'kind': None, 'start': None, 'end': None, 'minutes': None, 'verdict': None, 'at': None}
 
-
-def chapter_spans(episode, sections: list[dict] | None) -> list[dict]:
-    """The episode's chapters with their end — the next one's start; the last
-    ends with the reading, when there is one — and their length."""
-    chapters = episode.chapters
-    last = sections[-1]['end'] if sections else None
-    spans = []
-    for i, c in enumerate(chapters):
-        end = chapters[i + 1].timestamp_seconds if i + 1 < len(chapters) else last
-        spans.append({'title': c.title, 'start': c.timestamp_seconds, 'end': end,
-                      'minutes': round((end - c.timestamp_seconds) / 60, 1) if end else None})
-    return spans
-
-
-def _near_chapter(name: str, spans: list[dict]) -> dict | None:
-    """A chapter whose title is close to `name` — «Tinikin» for Tinykin — only
-    to show where to listen; the chain's own matching is left as it is."""
-    titles = [norm(s['title']) for s in spans]
-    close = difflib.get_close_matches(norm(name), titles, n=1, cutoff=0.8)
-    return spans[titles.index(close[0])] if close else None
-
-
-def _sections(episode) -> list[dict] | None:
+def _reading(episode) -> list[dict] | None:
     row = transcribe.rows().get(episode.slug)
     if not (row and row.model):
         return None
     return llm.read_transcript(transcribe.reading_input(episode, row.model))
 
 
-def _source(episode, mention, read: bool) -> str:
-    if mention.read:
-        return 'lecture'
-    if PODCAST_BY_ID[episode.podcast_id].games_by_llm:
-        return 'lecture' if read else 'description'
-    return 'titre'
+def chapters(episode, last_end: float | None) -> list[dict]:
+    """The player's chapters, each with its end: the next one's start; the last
+    ends with the reading, when there is one."""
+    cs = episode.chapters
+    return [{'start': c.timestamp_seconds, 'title': c.title,
+             'end': cs[i + 1].timestamp_seconds if i + 1 < len(cs) else last_end}
+            for i, c in enumerate(cs)]
+
+
+def _fiche(entry) -> dict | None:
+    if not (entry and entry.igdb_slug):
+        return None
+    data = entry.data or {}
+    return {'id': entry.igdb_id, 'name': entry.name, 'slug': entry.igdb_slug,
+            'released': data.get('released'), 'coverImageId': data.get('coverImageId')}
+
+
+@functools.cache
+def _pinned(igdb_id: int) -> dict | None:
+    """A fiche pinned in corrections.json that the snapshot hasn't resolved — the
+    app resolves it at its next start; the lab asks IGDB (once)."""
+    r = igdb.fetch_by_id(igdb_id, canonical=False)
+    return r and {'id': r.id, 'name': r.name, 'slug': r.slug, 'released': r.data.get('released'),
+                  'coverImageId': r.data.get('coverImageId')}
+
+
+def _test_fiche(mention, game, episode) -> tuple[dict | None, bool]:
+    """(the test's IGDB entry, whether corrections.json decides it)."""
+    pin = find_by_podcast(mention.name, episode.pub_ts, episode.podcast_id)
+    fiche = _fiche(state.entry(game, episode) if game else None)   # takes the lock itself
+    if pin and pin.get('igdb_id') and not (fiche and fiche['id'] == pin['igdb_id']):
+        fiche = _pinned(pin['igdb_id'])
+    return fiche, bool(pin and pin.get('igdb_id'))
 
 
 def run(episode) -> dict:
-    """Every game the chain sees in `episode`: attached (on the game's page) or
-    only read, with what decided it and the IGDB entry it lands on — and the
-    reading's sections, to see what it rests on."""
-    sections = _sections(episode)
-    groups: dict[str, list[dict]] = {}
-    for s in sections or []:
-        if s['game'] and not s['ad']:
-            groups.setdefault(make_slug(s['game']), []).append(s)
-    keys = list(groups)
-    chapters = [_as_chapter(groups[k][0], groups[k][0]['game']) for k in keys]
+    """{chapters, tests}: an episode the catalog leaves out references no test."""
+    reading = _reading(episode)
+    with state.lock:
+        shown = state.episode_index.get(episode.slug)
+        games = [(m, state.game_index.get(make_slug(m.name))) for m in shown.games] if shown else []
+    spans = chapters(shown or episode, reading[-1]['end'] if reading else None)
+    tests = []
+    for m, game in games:
+        fiche, corrected = _test_fiche(m, game, shown)
+        extent = _extent(m.name, reading)
+        tests.append({'game': m.name, 'start': extent['start'] if extent else _start(m, reading, spans),
+                      'end': extent and extent['end'], 'minutes': extent and extent['minutes'],
+                      'verdict': (m.critique or {}).get('verdict'), 'igdb': fiche, 'corrected': corrected})
+    return {'chapters': spans, 'tests': tests}
 
-    def evidence(name: str) -> tuple[str | None, dict]:
-        hit = find_chapter_for_game(name, chapters)
-        if hit is None:
-            return None, dict(_NO_EVIDENCE)
-        key = keys[chapters.index(hit)]
-        group = groups[key]
-        best = max(group, key=lambda s: (s['kind'] in CRITIQUE_KINDS, s['end'] - s['start']))
-        return key, {'kind': best['kind'], 'start': best['start'], 'end': best['end'], 'at': 'section',
-                     'minutes': round(sum(s['end'] - s['start'] for s in group) / 60, 1),
-                     'verdict': (best['opinion'] or {}).get('verdict')}
 
-    spans = chapter_spans(episode, sections)
-    rows, seen = [], set()
-    for mention in episode.games:
-        key, ev = evidence(mention.name)
-        seen.add(key)
-        if ev['start'] is None:
-            # Nothing read on it: its chapter is where to listen.
-            span = next((c for c in spans if c['start'] == mention.timestamp_seconds), None) \
-                if mention.timestamp else None
-            at = 'chapitre'
-            if span is None:
-                span, at = _near_chapter(mention.name, spans), 'chapitre approché'
-            if span:
-                ev = {**ev, 'start': span['start'], 'end': span['end'], 'minutes': span['minutes'], 'at': at}
-        game = state.game_index.get(make_slug(mention.name))
-        entry = state.entry(game, episode) if game else None
-        rows.append({'game': mention.name, 'level': 'consacré',
-                     'source': _source(episode, mention, sections is not None),
-                     'igdb': ({'slug': entry.igdb_slug, 'name': entry.name,
-                               'released': (entry.data or {}).get('released')}
-                              if entry and entry.igdb_slug else None), **ev})
-    for key in keys:
-        if key not in seen:
-            _, ev = evidence(groups[key][0]['game'])
-            rows.append({'game': groups[key][0]['game'], 'level': None, 'source': 'lecture',
-                         'igdb': None, **ev})
-    rows.sort(key=lambda r: (r['level'] is None, -(r.get('minutes') or 0)))
-    return {'read': sections is not None, 'games': rows, 'chapters': spans,
-            'sections': [s for s in sections or [] if not s['ad']]}
+def _extent(name: str, reading) -> dict | None:
+    """The stretch of the episode a test covers, from the reading. It starts
+    where the critique does — its longest critique section, not a teaser
+    before the intro (« Violence and Trading Cards ») nor a set-up — and goes on
+    over the sections on the game after it, which only a section on *another*
+    game ends (an ad or a plug in the middle is cut out of the talk, not the
+    end of it). {start, end, minutes on the game}."""
+    runs, run = [], None
+    for s in reading or []:
+        if s['game'] and same(s['game'], name):
+            if run is None:
+                run = []
+                runs.append(run)
+            run.append(s)
+        elif s['game']:
+            run = None
+    critiques = [(s, r) for r in runs for s in r if s['kind'] in CRITIQUE_KINDS]
+    if not critiques and not runs:
+        return None
+    main, run = max(critiques, key=lambda sr: sr[0]['end'] - sr[0]['start']) if critiques else (runs[0][0], runs[0])
+    rest = run[run.index(main):]
+    return {'start': main['start'], 'end': rest[-1]['end'],
+            'minutes': round(sum(s['end'] - s['start'] for s in rest) / 60)}
+
+
+def _start(mention, reading, spans) -> float | None:
+    """Where to listen to a test: its chapter as the app matched it, else — only
+    to listen, the app's matching left as it is — the reading's section on it,
+    or a chapter of a close name (« Tinikin » for Tinykin)."""
+    if mention.timestamp or mention.read:
+        return mention.timestamp_seconds
+    hit = next((s for s in reading or [] if s['game'] and same(s['game'], mention.name)), None) \
+        or next((c for c in spans if same(c['title'], mention.name)), None)
+    return hit['start'] if hit else None
+

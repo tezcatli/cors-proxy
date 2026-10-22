@@ -2,9 +2,10 @@
 
     docker compose -f docker-compose.dev.yml up lab      → http://localhost:5050
 
-« Juger » writes the specification: for each game of a reference episode, the
-level it should have and the IGDB entry it is — on the episode's structure and
-every game any source proposes, independent of any variant.
+« Juger » writes the specification on what a listener gets: the episode's
+chapters as the player shows them, each with the tests the catalog references
+from it — each right, not a test, or on the wrong IGDB entry — plus the ones
+missing; then « Valider »: the rest is right, on to the next episode.
 """
 import datetime
 import json
@@ -25,9 +26,17 @@ snapshot.load()
 
 import catalog_state as state                       # noqa: E402  (after the snapshot)
 import feeds                                        # noqa: E402
-from candidates import candidates                   # noqa: E402
+import judge                                        # noqa: E402
+import measure                                      # noqa: E402
+import transcribe                                   # noqa: E402
 from igdb import search_games                       # noqa: E402
 from podcasts import PODCAST_BY_ID                  # noqa: E402
+from variants import VARIANTS                        # noqa: E402
+
+app.jinja_env.globals['variants'] = list(VARIANTS)
+# The proposals « Juger » shows, whatever the URL says: the best variant so far.
+# The others are compared in /mesure.
+DEFAULT = 'cinq_minutes'
 
 
 def reference() -> list[dict]:
@@ -54,30 +63,68 @@ def _date(ts) -> str:
     return datetime.datetime.fromtimestamp(ts, datetime.UTC).date().isoformat() if ts else '?'
 
 
-@app.route('/')
-def index():
-    rows = []
+def _variant() -> str:
+    variant = request.args.get('variant') or (request.get_json(silent=True) or {}).get('variant') or DEFAULT
+    if variant not in VARIANTS:
+        abort(404, f'No variant {variant}')
+    return variant
+
+
+def _judged(ep, variant: str) -> tuple[dict, list[dict], str]:
+    """(the variant's output, the rows to judge, the episode's status)."""
+    out = VARIANTS[variant].run(ep)
+    rows = judge.rows(out['tests'], spec.for_episode(ep.slug))
+    return out, rows, judge.status(rows, spec.validated(ep.slug) is not None)
+
+
+def _statuses(variant: str) -> list[tuple[dict, object, str | None]]:
+    out = []
     for ref in reference():
         ep = _find(ref['guid'])
-        judged = [g for g in spec.for_episode(ref['guid']).values() if g['level']]
-        rows.append({**ref, 'found': ep is not None, 'date': _date(ep.pub_ts) if ep else '?',
-                     'show': PODCAST_BY_ID[ep.podcast_id].label if ep else '?',
-                     'judged': len(judged)})
-    return render_template('index.html', rows=rows)
+        out.append((ref, ep, _judged(ep, variant)[2] if ep else None))
+    return out
+
+
+def _next(guid: str, variant: str) -> str | None:
+    """The next reference episode not validated, after `guid`, wrapping round."""
+    todo = [(ref['guid'], st) for ref, ep, st in _statuses(variant)]
+    i = next((k for k, (g, _) in enumerate(todo) if g == guid), -1)
+    return next((g for g, st in todo[i + 1:] + todo[:i + 1] if st not in (None, 'validé') and g != guid), None)
+
+
+@app.route('/')
+def index():
+    variant = DEFAULT   # judging shows the best proposals; variants compare in /mesure
+    rows = [{**ref, 'found': ep is not None, 'date': _date(ep.pub_ts) if ep else '?',
+             'show': PODCAST_BY_ID[ep.podcast_id].label if ep else '?', 'status': st}
+            for ref, ep, st in _statuses(variant)]
+    return render_template('index.html', rows=rows, variant=variant,
+                           done=sum(r['status'] == 'validé' for r in rows))
 
 
 @app.route('/episode')
 def episode():
     # The guid as a query parameter: some are URLs with their own query string.
     ep = _episode(request.args.get('guid', ''))
-    written = spec.for_episode(ep.slug)
-    timeline, games, read = candidates(ep, [g for g, s in written.items() if s.get('added')])
-    for g in games:
-        g['spec'] = written.get(g['game'])
-    total = max((s['end'] or s['start'] for s in timeline), default=0) or 1
+    variant = DEFAULT   # judging shows the best proposals; variants compare in /mesure
+    out, rows, status = _judged(ep, variant)
+    chapters = out['chapters']
+    total = max((c['end'] or c['start'] for c in chapters), default=0) or 1
     return render_template('episode.html', ep=ep, show=PODCAST_BY_ID[ep.podcast_id].name,
-                           date=_date(ep.pub_ts), timeline=timeline, total=total, games=games,
-                           read=read, levels=spec.LEVELS)
+                           date=_date(ep.pub_ts), total=total, variant=variant, status=status,
+                           groups=judge.timeline(chapters, rows),
+                           unjudged=sum(1 for r in rows if r['shown'] and (r['spec'] or {}).get('test') is None))
+
+
+@app.route('/validate', methods=['POST'])
+def validate():
+    """The rest is right: what the variant proposes — run again here, not taken
+    from the page — and wasn't judged becomes a test, on the entry proposed."""
+    ep = _episode((request.get_json(silent=True) or {}).get('episode', ''))
+    variant = DEFAULT   # judging shows the best proposals; variants compare in /mesure
+    _, rows, _ = _judged(ep, variant)
+    spec.validate(ep, {r['game']: r['shown']['igdb'] for r in rows if r['shown']}, variant)
+    return jsonify({'status': _judged(ep, variant)[2], 'next': _next(ep.slug, variant)})
 
 
 @app.route('/spec', methods=['POST'])
@@ -90,11 +137,33 @@ def write_spec():
     if body.get('remove'):
         spec.remove(ep, game)
         return jsonify({'ok': True})
-    fields = {k: body[k] for k in ('level', 'igdb', 'added') if k in body}
+    if body.get('rename'):
+        try:
+            return jsonify(spec.rename(ep, game, body['rename'].strip()))
+        except ValueError as exc:
+            abort(400, str(exc))
+    fields = {k: body[k] for k in ('test', 'igdb', 'added', 'start') if k in body}
     try:
         return jsonify(spec.update(ep, game, **fields))
     except ValueError as exc:
         abort(400, str(exc))
+
+
+@app.route('/mesure')
+def measure_page():
+    variant = _variant()
+    episodes = measure.score(VARIANTS[variant].run, _find)
+    return render_template('measure.html', variant=variant, episodes=episodes, threshold=measure.THRESHOLD,
+                           s=measure.summary([c for e in episodes for c in e['cases']]))
+
+
+@app.route('/transcript')
+def transcript():
+    """The episode's transcript, to read under its chapters and tests."""
+    t = transcribe.load(request.args.get('guid', ''))
+    if t is None:
+        abort(404, 'Not transcribed')
+    return jsonify({'segments': t.segments})
 
 
 @app.route('/igdb')

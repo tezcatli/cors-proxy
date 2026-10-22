@@ -1,3 +1,3710 @@
 {
-  "games": []
+  "episodes": {
+    "d7629258-b596-4105-affd-4d3b3aad9932": {
+      "title": "Baldur's Gate 3 is Just Unbelievably Good",
+      "validated": "2026-10-22T19:44:40+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "23e5432b-985a-4473-9e51-9771f35b534f": {
+      "title": "Besties Battle Bracket: Best Bathroom Game (Patreon Bonus)",
+      "validated": "2026-10-22T19:14:27+00:00",
+      "variant": "sans_palmares"
+    },
+    "03facb65-cbdb-4ad2-8677-31e393aab1f4": {
+      "title": "Big Walk Made Us A Better Podcast",
+      "validated": "2026-10-22T19:47:12+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "a59cbc9e-38e0-46e5-80d1-ff2877d36562": {
+      "title": "Control Resonant Rewards Your Patience",
+      "validated": "2026-10-22T18:32:02+00:00",
+      "variant": "current"
+    },
+    "117e5afb-0354-4d97-98e9-087edd28efa4": {
+      "title": "Early Thoughts On The Last Of Us Part II",
+      "validated": "2026-10-22T19:46:02+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "5eb70f88732f3e0355c0585e": {
+      "title": "Episode 08 - What Remains of Edith Finch",
+      "validated": "2026-10-22T19:34:12+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "65a02f2e93557fe8ef3d55db": {
+      "title": "Episode 113 - Marvel's Spider-Man: Miles Morales",
+      "validated": "2026-10-22T19:34:43+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "660c3256b6119b01772ae8c4": {
+      "title": "Episode 119 - Gears of War 2",
+      "validated": "2026-10-22T18:35:11+00:00",
+      "variant": "current"
+    },
+    "683dc4cee646ff83253c75cb": {
+      "title": "Episode 145 - Dragon Age: Origins (feat. Kabouka)",
+      "validated": "2026-10-22T18:56:38+00:00",
+      "variant": "un_jeu"
+    },
+    "68779fee12713a20e149d0d8": {
+      "title": "Episode 147 - Lorelei And The Laser Eyes",
+      "validated": "2026-10-22T19:34:51+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "693c295e2bda36b35349e6b9": {
+      "title": "Episode 155 - Dredge (Feat. Sarah Beaulieu)",
+      "validated": "2026-10-22T19:34:59+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "698af7c85fc77c932767b727": {
+      "title": "Episode 159 - Astrobot (Feat. WTF'UX)",
+      "validated": "2026-10-22T19:33:32+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "69a5b4c6ae870ee3d71cad2c": {
+      "title": "Episode 160 - 1000XRESIST (feat. Lucie Ronfaut)",
+      "validated": "2026-10-22T19:33:59+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "5eb70f75732f3e0355c05803": {
+      "title": "Episode 20 - DOOM (2016)",
+      "validated": "2026-10-22T19:34:18+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "6376962db64991fed98c7105": {
+      "title": "Episode 89 : StarCraft II",
+      "validated": "2026-10-22T19:34:24+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "b7865a49-2b7f-4b55-815d-a6fb3b5c5208": {
+      "title": "Esoteric Ebb Is D&D Meets Disco Elysium",
+      "validated": "2026-10-22T19:23:30+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8": {
+      "title": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
+      "validated": "2026-10-22T19:24:39+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "65b93499289d85001780a077": {
+      "title": "Gâchette Gauche #10 : IA, le jeu vidéo prompt à s'emballer ?",
+      "validated": "2026-10-22T19:17:32+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "64807c6c2b317a0011828dcd": {
+      "title": "Gâchette Gauche #5 : Microsoft, c’est quoi le projet ?",
+      "validated": "2026-10-22T19:37:33+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "50019f99-1306-42ae-b7e5-5eec989c8708": {
+      "title": "Is The Video Game Review System Broken?",
+      "validated": "2026-10-22T19:45:12+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "2c418e0d-efda-4b46-8309-4d97092528cc": {
+      "title": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "validated": "2026-10-22T19:43:45+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "c6e8f1b4-beb2-43c6-b424-34aa306b765a": {
+      "title": "Nintendo Dares You to Become a Speedrunner",
+      "validated": "2026-10-22T19:44:13+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "f169a1b6-f9d9-11ea-acef-839761272c2e": {
+      "title": "No Spoilers for The Last of Us Part 2",
+      "validated": "2026-10-22T19:42:20+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "f20e1a0f-8c94-4063-8235-2b493ddc4f6f": {
+      "title": "Our Favorite Video Games of 2025",
+      "validated": "2026-10-22T19:54:55+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "64258d9f56d10b0011c25670": {
+      "title": "Quelle est la meilleure map d'un monde de jeu vidéo ? - Bande-annonce S16E35",
+      "validated": "2026-10-22T19:37:40+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "6b0d0dcc-2620-485b-a26c-2e45f713165c": {
+      "title": "Resident Evil: Requiem is Two Games in One!",
+      "validated": "2026-10-22T18:34:46+00:00",
+      "variant": "current"
+    },
+    "632d71d3acd4d10012d046bd": {
+      "title": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
+      "validated": "2026-10-22T18:08:26+00:00",
+      "variant": "current"
+    },
+    "65692b5b1cf196001342df41": {
+      "title": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "validated": "2026-10-22T19:55:46+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "68ba0ac82d913bd33066fbfd": {
+      "title": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "validated": "2026-10-22T19:29:26+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "68d5bded730cf5a747f61977": {
+      "title": "S19E04 - «Baby Steps», «Dying Light: The Beast», «No, I'm not a Human»",
+      "validated": "2026-10-22T19:38:06+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "6931f633a63c6eaa591444c9": {
+      "title": "S19E16 -  «Kirby Air Riders», «Marvel Cosmic Invasion», «DemonSchool»",
+      "validated": "2026-10-22T19:28:33+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "695cd72ccff5303b49e18943": {
+      "title": "S19E19 - Les «Silences d'or» 2025",
+      "validated": "2026-10-22T19:09:09+00:00",
+      "variant": "un_jeu"
+    },
+    "6a2b0cb8440b9d7bbf8121f0": {
+      "title": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "validated": "2026-10-22T19:20:18+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "1a0c77ac-2356-45bc-9932-411557990022": {
+      "title": "Saros is More Bullet Heaven Than Bullet Hell",
+      "validated": "2026-10-22T19:22:39+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "https://djpod.com/silence-on-joue/?id=221246": {
+      "title": "Silence on joue ! Civilization Revolution, et la GDC",
+      "validated": "2026-10-22T19:58:35+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "https://djpod.com/silence-on-joue/?id=134700": {
+      "title": "Silence on joue ! NBA 2K11, Sonic 4 et Game dev Story",
+      "validated": "2026-10-22T19:37:26+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "https://djpod.com/silence-on-joue/?id=221221": {
+      "title": "Silence, on joue: Street Fighter 4, GTA 4...",
+      "validated": "2026-10-22T19:35:45+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9": {
+      "title": "Silksong, Metal Gear Solid, Mafia, And More",
+      "validated": "2026-10-22T19:59:17+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "e73c2071-24a0-4b3d-b28b-711c92a74b63": {
+      "title": "Steam Deck, Switch, and the Rise of Handheld Gaming",
+      "validated": "2026-10-22T19:46:27+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "6f188f7c-9061-4319-8cae-64243b723ecb": {
+      "title": "Super Turbo Remake Plus",
+      "validated": "2026-10-22T19:54:47+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "6ad0d9ec0c6b30397b2e1cc9": {
+      "title": "Sur quel jeu avez-vous le plus triché ? - Bande-annonce S20E07",
+      "validated": "2026-10-22T19:54:58+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "30ea39df-782c-4e72-993b-bd27fd18f1a7": {
+      "title": "Terminator Time Travels to Save '90s Garbage Games",
+      "validated": "2026-10-22T19:24:15+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "https://www.polygon.com/gaming/2012/9/14/3334334/the-besties-podcast-wii-u-special": {
+      "title": "The Besties Podcast: Wii U special",
+      "validated": "2026-10-22T19:17:42+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "f5050f18-f9d9-11ea-acef-0bfa0d91c79c": {
+      "title": "The Besties go to the Farm!",
+      "validated": "2026-10-22T19:42:39+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "84639c1e-256c-4eaa-b87e-c5e05685ee15": {
+      "title": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "validated": "2026-10-22T20:04:35+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "879c3665-f69e-4705-a3ce-35ac21fb28de": {
+      "title": "The Star Wars Game Renaissance Is Here!",
+      "validated": "2026-10-22T18:59:21+00:00",
+      "variant": "un_jeu"
+    },
+    "7c482cf9-64ee-48a6-a5d1-6b83321ecb04": {
+      "title": "The Video Game Required Reading List: 2000-2004 [The Resties]",
+      "validated": "2026-10-22T19:42:44+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b": {
+      "title": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "validated": "2026-10-22T19:14:17+00:00",
+      "variant": "sans_palmares"
+    },
+    "a9ce0b17-afd7-4e81-a7f4-34263a7467cc": {
+      "title": "Triple Play: Control Resonant",
+      "validated": "2026-10-22T18:10:48+00:00",
+      "variant": "current"
+    },
+    "f80cfbdc-8b77-4422-a15c-fa45b48fdc1d": {
+      "title": "Triple Quest, Act 1: The Call of Adventure",
+      "validated": "2026-10-22T19:55:01+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "7fea62e6-2e07-41b0-970d-01e14a36b64c": {
+      "title": "What Makes a Game Wear Out Its Welcome? (Mailbag)",
+      "validated": "2026-10-22T19:25:01+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "39274c6f-a246-48d2-845c-6b936733575d": {
+      "title": "Zelda, Starfield, And The Year To Come",
+      "validated": "2026-10-22T19:46:53+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "6870f0bd610560d3ef3e6019": {
+      "title": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "validated": "2026-10-22T19:21:42+00:00",
+      "variant": "sans_bande_annonce"
+    },
+    "6a4e29821c8f5a97d84853cc": {
+      "title": "[Hors-série] La FAQ de la saison 19",
+      "validated": "2026-10-22T19:38:19+00:00",
+      "variant": "sans_bande_annonce"
+    }
+  },
+  "games": [
+    {
+      "episode": "5eb70f88732f3e0355c0585e",
+      "episodeTitle": "Episode 08 - What Remains of Edith Finch",
+      "podcast": "fin-du-game",
+      "game": "What Remains of Edith Finch",
+      "test": true,
+      "igdb": {
+        "id": 11233,
+        "name": "What Remains of Edith Finch",
+        "slug": "what-remains-of-edith-finch",
+        "released": "2017",
+        "coverImageId": "co1rbj"
+      },
+      "added": false,
+      "at": "2026-10-22T19:34:11+00:00"
+    },
+    {
+      "episode": "65a02f2e93557fe8ef3d55db",
+      "episodeTitle": "Episode 113 - Marvel's Spider-Man: Miles Morales",
+      "podcast": "fin-du-game",
+      "game": "Marvel's Spider-Man: Miles Morales",
+      "test": true,
+      "igdb": {
+        "id": 134581,
+        "name": "Marvel's Spider-Man: Miles Morales",
+        "slug": "marvels-spider-man-miles-morales",
+        "released": "2020",
+        "coverImageId": "cobg1j"
+      },
+      "added": false,
+      "at": "2026-10-22T19:34:41+00:00"
+    },
+    {
+      "episode": "660c3256b6119b01772ae8c4",
+      "episodeTitle": "Episode 119 - Gears of War 2",
+      "podcast": "fin-du-game",
+      "game": "Gears of War 2",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:34:51+00:00",
+      "igdb": {
+        "id": 548,
+        "name": "Gears of War 2",
+        "slug": "gears-of-war-2",
+        "released": "2008",
+        "coverImageId": "co28gg"
+      }
+    },
+    {
+      "episode": "683dc4cee646ff83253c75cb",
+      "episodeTitle": "Episode 145 - Dragon Age: Origins (feat. Kabouka)",
+      "podcast": "fin-du-game",
+      "game": "Dragon Age: Origins",
+      "test": true,
+      "igdb": {
+        "id": 76,
+        "name": "Dragon Age: Origins",
+        "slug": "dragon-age-origins",
+        "released": "2009",
+        "coverImageId": "co2mvs"
+      },
+      "added": false,
+      "at": "2026-10-22T18:56:38+00:00"
+    },
+    {
+      "episode": "68779fee12713a20e149d0d8",
+      "episodeTitle": "Episode 147 - Lorelei And The Laser Eyes",
+      "podcast": "fin-du-game",
+      "game": "Lorelei And The Laser Eyes",
+      "test": true,
+      "igdb": {
+        "id": 206806,
+        "name": "Lorelei and the Laser Eyes",
+        "slug": "lorelei-and-the-laser-eyes",
+        "released": "2024",
+        "coverImageId": "co4x7e"
+      },
+      "added": false,
+      "at": "2026-10-22T19:34:48+00:00"
+    },
+    {
+      "episode": "693c295e2bda36b35349e6b9",
+      "episodeTitle": "Episode 155 - Dredge (Feat. Sarah Beaulieu)",
+      "podcast": "fin-du-game",
+      "game": "Dredge",
+      "test": true,
+      "igdb": {
+        "id": 164867,
+        "name": "Dredge",
+        "slug": "dredge",
+        "released": "2023",
+        "coverImageId": "co9kyk"
+      },
+      "added": false,
+      "at": "2026-10-22T19:34:55+00:00"
+    },
+    {
+      "episode": "698af7c85fc77c932767b727",
+      "episodeTitle": "Episode 159 - Astrobot (Feat. WTF'UX)",
+      "podcast": "fin-du-game",
+      "game": "Astrobot",
+      "test": true,
+      "igdb": {
+        "id": 303811,
+        "name": "Astro Bot",
+        "slug": "astro-bot",
+        "released": "2024",
+        "coverImageId": "coba3k"
+      },
+      "added": false,
+      "at": "2026-10-22T19:33:32+00:00"
+    },
+    {
+      "episode": "69a5b4c6ae870ee3d71cad2c",
+      "episodeTitle": "Episode 160 - 1000XRESIST (feat. Lucie Ronfaut)",
+      "podcast": "fin-du-game",
+      "game": "1000XRESIST",
+      "test": true,
+      "igdb": {
+        "id": 218282,
+        "name": "1000xResist",
+        "slug": "1000xresist",
+        "released": "2024",
+        "coverImageId": "co87zq"
+      },
+      "added": false,
+      "at": "2026-10-22T19:33:56+00:00"
+    },
+    {
+      "episode": "5eb70f75732f3e0355c05803",
+      "episodeTitle": "Episode 20 - DOOM (2016)",
+      "podcast": "fin-du-game",
+      "game": "DOOM (2016)",
+      "test": true,
+      "igdb": {
+        "id": 7351,
+        "name": "Doom",
+        "slug": "doom--2",
+        "released": "2016",
+        "coverImageId": "co1nc7"
+      },
+      "added": false,
+      "at": "2026-10-22T19:34:17+00:00"
+    },
+    {
+      "episode": "6376962db64991fed98c7105",
+      "episodeTitle": "Episode 89 : StarCraft II",
+      "podcast": "fin-du-game",
+      "game": "StarCraft II",
+      "test": true,
+      "igdb": {
+        "id": 239,
+        "name": "StarCraft II: Wings of Liberty",
+        "slug": "starcraft-ii-wings-of-liberty",
+        "released": "2010",
+        "coverImageId": "co1tnn"
+      },
+      "added": false,
+      "at": "2026-10-22T19:34:23+00:00"
+    },
+    {
+      "episode": "632d71d3acd4d10012d046bd",
+      "episodeTitle": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
+      "podcast": "silence-on-joue",
+      "game": "NBA 2K23",
+      "added": false,
+      "test": true,
+      "at": "2026-10-22T17:37:41+00:00",
+      "igdb": {
+        "id": 207393,
+        "name": "NBA 2K23",
+        "slug": "nba-2k23",
+        "released": "2022",
+        "coverImageId": "co55zj"
+      }
+    },
+    {
+      "episode": "632d71d3acd4d10012d046bd",
+      "episodeTitle": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
+      "podcast": "silence-on-joue",
+      "game": "Return to Monkey Island",
+      "added": false,
+      "test": true,
+      "at": "2026-10-22T17:36:14+00:00",
+      "igdb": {
+        "id": 195517,
+        "name": "Return to Monkey Island",
+        "slug": "return-to-monkey-island",
+        "released": "2022",
+        "coverImageId": "co56kr"
+      }
+    },
+    {
+      "episode": "632d71d3acd4d10012d046bd",
+      "episodeTitle": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
+      "podcast": "silence-on-joue",
+      "game": "Splatoon 3",
+      "added": false,
+      "test": true,
+      "at": "2026-10-22T17:36:50+00:00",
+      "igdb": {
+        "id": 143613,
+        "name": "Splatoon 3",
+        "slug": "splatoon-3",
+        "released": "2022",
+        "coverImageId": "co59x3"
+      }
+    },
+    {
+      "episode": "632d71d3acd4d10012d046bd",
+      "episodeTitle": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
+      "podcast": "silence-on-joue",
+      "game": "Tinykin",
+      "added": false,
+      "test": true,
+      "at": "2026-10-22T17:37:22+00:00",
+      "igdb": {
+        "id": 152267,
+        "name": "Tinykin",
+        "slug": "tinykin",
+        "released": "2022",
+        "coverImageId": "co554t"
+      }
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Agatha Christie : Le Crime de l’Orient-Express",
+      "test": true,
+      "igdb": {
+        "id": 250890,
+        "name": "Agatha Christie: Murder on the Orient Express",
+        "slug": "agatha-christie-murder-on-the-orient-express--1",
+        "released": "2023",
+        "coverImageId": "co6zbz"
+      },
+      "added": false,
+      "at": "2026-10-22T19:04:34+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Astérix et Obélix : Baffez-les tous ! 2",
+      "test": true,
+      "igdb": {
+        "id": 165094,
+        "name": "Asterix & Obelix: Slap Them All! - Limited Edition",
+        "slug": "asterix-and-obelix-slap-them-all-limited-edition",
+        "released": "2021",
+        "coverImageId": "co497n"
+      },
+      "added": false,
+      "at": "2026-10-22T19:55:40+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Balatro",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:05:03+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Dredge",
+      "test": true,
+      "igdb": {
+        "id": 164867,
+        "name": "Dredge",
+        "slug": "dredge",
+        "released": "2023",
+        "coverImageId": "co9kyk"
+      },
+      "added": false,
+      "at": "2026-10-22T19:01:42+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Flashback 2",
+      "test": true,
+      "igdb": {
+        "id": 146699,
+        "name": "Flashback 2",
+        "slug": "flashback-2",
+        "released": "2023",
+        "coverImageId": "co7ech"
+      },
+      "added": false,
+      "at": "2026-10-22T19:03:59+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Goldorak, le festin des loups",
+      "test": true,
+      "igdb": {
+        "id": 239407,
+        "name": "UFO Robot Grendizer: The Feast of the Wolves",
+        "slug": "ufo-robot-grendizer-the-feast-of-the-wolves",
+        "released": "2023",
+        "coverImageId": "co7c80"
+      },
+      "added": false,
+      "at": "2026-10-22T19:03:40+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Karmazoo",
+      "test": true,
+      "igdb": {
+        "id": 246564,
+        "name": "KarmaZoo",
+        "slug": "karmazoo",
+        "released": "2023",
+        "coverImageId": "co6eo9"
+      },
+      "added": false,
+      "at": "2026-10-22T19:04:38+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Super Mario RPG",
+      "test": true,
+      "igdb": {
+        "id": 254327,
+        "name": "Super Mario RPG",
+        "slug": "super-mario-rpg",
+        "released": "2023",
+        "coverImageId": "coba9n"
+      },
+      "added": false,
+      "at": "2026-10-22T19:01:51+00:00"
+    },
+    {
+      "episode": "65692b5b1cf196001342df41",
+      "episodeTitle": "S17E16 -  «Karmazoo», «Super Mario RPG» et les «jeux» de Microids",
+      "podcast": "silence-on-joue",
+      "game": "Tintin Reporter : Les Cigares du Pharaon",
+      "test": true,
+      "igdb": {
+        "id": 223863,
+        "name": "Tintin Reporter: Cigars of the Pharaoh",
+        "slug": "tintin-reporter-cigars-of-the-pharaoh",
+        "released": "2023",
+        "coverImageId": "co6zlm"
+      },
+      "added": false,
+      "at": "2026-10-22T19:04:33+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "007 First Light",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:43+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Cronos: The New Dawn",
+      "test": true,
+      "igdb": {
+        "id": 320137,
+        "name": "Cronos: The New Dawn",
+        "slug": "cronos-the-new-dawn",
+        "released": "2025",
+        "coverImageId": "cobqq9"
+      },
+      "added": false,
+      "at": "2026-10-22T19:28:54+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Dead Format",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:47+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Halloween",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:46+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Herdling",
+      "test": true,
+      "igdb": {
+        "id": 314271,
+        "name": "Herdling",
+        "slug": "herdling",
+        "released": "2025",
+        "coverImageId": "co8pg0"
+      },
+      "added": false,
+      "at": "2026-10-22T19:28:58+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Heretic + Hexen",
+      "test": true,
+      "igdb": {
+        "id": 360141,
+        "name": "Heretic + Hexen",
+        "slug": "heretic-plus-hexen",
+        "released": "2025",
+        "coverImageId": "coa91h"
+      },
+      "added": false,
+      "at": "2026-10-22T19:29:18+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Keeper",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:45+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Little Nightmares 3",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:44+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Mafia : The Old Country",
+      "test": true,
+      "igdb": {
+        "id": 314276,
+        "name": "Mafia: The Old Country",
+        "slug": "mafia-the-old-country",
+        "released": "2025",
+        "coverImageId": "coa9dq"
+      },
+      "added": false,
+      "at": "2026-10-22T19:28:51+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Pragmata",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:48+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Reanimal",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:44+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Replaced",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:46+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Resident Evil Requiem",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:49+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Silent Hill f",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:28:48+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Sword of the Sea",
+      "test": true,
+      "igdb": {
+        "id": 250620,
+        "name": "Sword of the Sea",
+        "slug": "sword-of-the-sea",
+        "released": "2025",
+        "coverImageId": "co9xx2"
+      },
+      "added": false,
+      "at": "2026-10-22T19:29:15+00:00"
+    },
+    {
+      "episode": "68ba0ac82d913bd33066fbfd",
+      "episodeTitle": "S19E01 - «Cronos: The New Dawn», «Mafia : The Old Country», «Herdling»",
+      "podcast": "silence-on-joue",
+      "game": "Wheel World",
+      "test": true,
+      "igdb": {
+        "id": 255091,
+        "name": "Wheel World",
+        "slug": "wheel-world--1",
+        "released": "2025",
+        "coverImageId": "co8ycw"
+      },
+      "added": false,
+      "at": "2026-10-22T19:29:14+00:00"
+    },
+    {
+      "episode": "68d5bded730cf5a747f61977",
+      "episodeTitle": "S19E04 - «Baby Steps», «Dying Light: The Beast», «No, I'm not a Human»",
+      "podcast": "silence-on-joue",
+      "game": "Achilles Survivors",
+      "test": true,
+      "igdb": {
+        "id": 319802,
+        "name": "Achilles: Survivor",
+        "slug": "achilles-survivor",
+        "released": "2025",
+        "coverImageId": "co8y2z"
+      },
+      "added": false,
+      "at": "2026-10-22T19:37:54+00:00"
+    },
+    {
+      "episode": "68d5bded730cf5a747f61977",
+      "episodeTitle": "S19E04 - «Baby Steps», «Dying Light: The Beast», «No, I'm not a Human»",
+      "podcast": "silence-on-joue",
+      "game": "Baby Steps",
+      "test": true,
+      "igdb": {
+        "id": 252502,
+        "name": "Baby Steps",
+        "slug": "baby-steps",
+        "released": "2025",
+        "coverImageId": "co6llb"
+      },
+      "added": false,
+      "at": "2026-10-22T19:37:50+00:00"
+    },
+    {
+      "episode": "68d5bded730cf5a747f61977",
+      "episodeTitle": "S19E04 - «Baby Steps», «Dying Light: The Beast», «No, I'm not a Human»",
+      "podcast": "silence-on-joue",
+      "game": "Dying Light: The Beast",
+      "test": true,
+      "igdb": {
+        "id": 314252,
+        "name": "Dying Light: The Beast",
+        "slug": "dying-light-the-beast",
+        "released": "2025",
+        "coverImageId": "cocmja"
+      },
+      "added": false,
+      "at": "2026-10-22T19:37:47+00:00"
+    },
+    {
+      "episode": "68d5bded730cf5a747f61977",
+      "episodeTitle": "S19E04 - «Baby Steps», «Dying Light: The Beast», «No, I'm not a Human»",
+      "podcast": "silence-on-joue",
+      "game": "No, I'm not a Human",
+      "test": true,
+      "igdb": {
+        "id": 316987,
+        "name": "No, I'm Not A Human",
+        "slug": "no-im-not-a-human",
+        "released": "2025",
+        "coverImageId": "coajvh"
+      },
+      "added": false,
+      "at": "2026-10-22T19:37:51+00:00"
+    },
+    {
+      "episode": "68d5bded730cf5a747f61977",
+      "episodeTitle": "S19E04 - «Baby Steps», «Dying Light: The Beast», «No, I'm not a Human»",
+      "podcast": "silence-on-joue",
+      "game": "Shadow Labyrinth",
+      "test": true,
+      "igdb": {
+        "id": 325583,
+        "name": "Shadow Labyrinth",
+        "slug": "shadow-labyrinth--1",
+        "released": "2025",
+        "coverImageId": "co95ft"
+      },
+      "added": false,
+      "at": "2026-10-22T19:37:52+00:00"
+    },
+    {
+      "episode": "6931f633a63c6eaa591444c9",
+      "episodeTitle": "S19E16 -  «Kirby Air Riders», «Marvel Cosmic Invasion», «DemonSchool»",
+      "podcast": "silence-on-joue",
+      "game": "ARC Raiders",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:25:40+00:00"
+    },
+    {
+      "episode": "6931f633a63c6eaa591444c9",
+      "episodeTitle": "S19E16 -  «Kirby Air Riders», «Marvel Cosmic Invasion», «DemonSchool»",
+      "podcast": "silence-on-joue",
+      "game": "DemonSchool",
+      "test": true,
+      "igdb": {
+        "id": 204640,
+        "name": "Demonschool",
+        "slug": "demonschool",
+        "released": "2025",
+        "coverImageId": "coacd2"
+      },
+      "added": false,
+      "at": "2026-10-22T19:28:19+00:00"
+    },
+    {
+      "episode": "6931f633a63c6eaa591444c9",
+      "episodeTitle": "S19E16 -  «Kirby Air Riders», «Marvel Cosmic Invasion», «DemonSchool»",
+      "podcast": "silence-on-joue",
+      "game": "Kirby Air Riders",
+      "test": true,
+      "igdb": {
+        "id": 338105,
+        "name": "Kirby Air Riders",
+        "slug": "kirby-air-riders",
+        "released": "2025",
+        "coverImageId": "coaauz"
+      },
+      "added": false,
+      "at": "2026-10-22T19:25:41+00:00"
+    },
+    {
+      "episode": "6931f633a63c6eaa591444c9",
+      "episodeTitle": "S19E16 -  «Kirby Air Riders», «Marvel Cosmic Invasion», «DemonSchool»",
+      "podcast": "silence-on-joue",
+      "game": "Marvel Cosmic Invasion",
+      "test": true,
+      "igdb": {
+        "id": 337035,
+        "name": "Marvel Cosmic Invasion",
+        "slug": "marvel-cosmic-invasion",
+        "released": "2025",
+        "coverImageId": "coakkw"
+      },
+      "added": false,
+      "at": "2026-10-22T19:28:17+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "007 First Light",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:03+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "ARC Raiders",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:38+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Absolum",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:23+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Anno 117: Pax Romana",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:57+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Assassin's Creed Shadows",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:13+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Avowed",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:07+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Baby Steps",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:07+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Balatro",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:42+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Baldur's Gate 3",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:44+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Ball x Pit",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:10+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Battlefield 6",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:34+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Blue Prince",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:15+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Brain School",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:16+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Cairn",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:04+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Chants of Sennaar",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:39+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Citizen Sleeper",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:41+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Civilization VII",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:54+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Clair Obscur: Expedition 33",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:14+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Control Resonant",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:01+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Crimson Desert",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:59+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Crusader Kings III",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:47+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Cyberpunk 2077",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:43+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Dead Reset",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:17+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Death Stranding 2: On the Beach",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:28+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Dispatch",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:52+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Donkey Kong Bananza",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:11+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Doom: The Dark Ages",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:49+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Elden Ring Nightreign",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:35+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Eriksholm: The Stolen Dream",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:21+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Fire Emblem Fortune's Weave",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:00+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Ghost of Yōtei",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:29+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Grand Theft Auto VI",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:05+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Hades II",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:11+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Hell Is Us",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:08+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Hollow Knight: Silksong",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:14+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Indiana Jones and the Great Circle",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:44+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Jet Runner",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:17+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Karimara",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:22+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Kingdom Come: Deliverance II",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:06+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Lies of P",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:47+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Many Nights a Whisper",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:22+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Mario Kart World",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:30+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Merge Maestro",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:18+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Metroid Prime 4: Beyond",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:50+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Mille fois résiste",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:40+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Monster Hunter Wilds",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:09+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Monster Train 2",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:53+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Mouthwashing",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:41+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Neon Inferno",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:32+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "News Tower",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:54+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Old Skies",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:22+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Outer Wilds",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:40+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Peak",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:37+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Phasmophobia",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:59+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Pipistrello and the Cursed Yoyo",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:19+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Pokémon Legends: Z-A",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:49+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Popucom",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:32+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Pragmata",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:01+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Prince of Persia: The Lost Crown",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:42+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "RV There Yet?",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:33+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Randomize",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:55+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Rematch",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:34+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Resident Evil Requiem",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:04+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Saros",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:02+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Sea of Stars",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:46+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Shinobi: Art of Vengeance",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:52+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Shotgun Cop Man",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:51+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Skate Story",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:28+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Skin Deep",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:16+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Slay the Spire 2",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:02+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "South of Midnight",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:29+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Split Fiction",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:35+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "StarVaders",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:20+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Strange Jigsaws",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:20+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Subnautica 2",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:09:00+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "The Alters",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:06+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "The Lonesome Guild",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:51+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "The Outer Worlds 2",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:55+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "The Rift of the NecroDancer",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:30+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "The Rise of the Golden Idol",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:46+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Tormented Souls 2",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:26+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Trails in the Sky 1st Chapter",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:57+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Wednesdays",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:25+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Wheel World",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:26+00:00"
+    },
+    {
+      "episode": "695cd72ccff5303b49e18943",
+      "episodeTitle": "S19E19 - Les «Silences d'or» 2025",
+      "podcast": "silence-on-joue",
+      "game": "Öoo",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:08:24+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "1666 Amsterdam",
+      "test": true,
+      "igdb": {
+        "id": 404693,
+        "name": "1666: Amsterdam",
+        "slug": "1666-amsterdam",
+        "released": "2026",
+        "coverImageId": "coc6mk"
+      },
+      "added": false,
+      "at": "2026-10-22T19:17:55+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "About Fishing",
+      "test": true,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:21+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Ascenders: Beyond the Peak",
+      "test": true,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:20+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Blood Dungeon",
+      "test": true,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:14+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Cozy Game Restoration",
+      "test": true,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:15+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Crushed In Time",
+      "test": true,
+      "igdb": {
+        "id": 362089,
+        "name": "Crushed in Time",
+        "slug": "crushed-in-time",
+        "released": "2026",
+        "coverImageId": "coafof"
+      },
+      "added": false,
+      "at": "2026-10-22T19:18:02+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Hack 95",
+      "test": true,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:18+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Mr. Records",
+      "test": true,
+      "igdb": {
+        "id": 404712,
+        "name": "Mr. Records",
+        "slug": "mr-records",
+        "released": "2027",
+        "coverImageId": "coc6mf"
+      },
+      "added": false,
+      "at": "2026-10-22T20:00:17+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Shark Dentist",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:18:35+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "The Road of Dust and Sorrow",
+      "test": true,
+      "igdb": {
+        "id": 361053,
+        "name": "The Road of Dust and Sorrow",
+        "slug": "the-road-of-dust-and-sorrow",
+        "released": "2026",
+        "coverImageId": "cob3pt"
+      },
+      "added": false,
+      "at": "2026-10-22T20:00:19+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "There Are No Ghosts at the Grand",
+      "test": true,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:16+00:00"
+    },
+    {
+      "episode": "6a2b0cb8440b9d7bbf8121f0",
+      "episodeTitle": "S19E42 - «Crushed In Time» et un festival d'annonces jeux vidéo",
+      "podcast": "silence-on-joue",
+      "game": "Virtue & Sledgehammer",
+      "test": true,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:18+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=221246",
+      "episodeTitle": "Silence on joue ! Civilization Revolution, et la GDC",
+      "podcast": "silence-on-joue",
+      "game": "Call of Duty 5",
+      "test": false,
+      "igdb": {
+        "id": 625,
+        "name": "Call of Duty: World at War",
+        "slug": "call-of-duty-world-at-war",
+        "released": "2008",
+        "coverImageId": "co1wl8"
+      },
+      "added": true,
+      "at": "2026-10-22T19:58:26+00:00",
+      "start": 324
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=221246",
+      "episodeTitle": "Silence on joue ! Civilization Revolution, et la GDC",
+      "podcast": "silence-on-joue",
+      "game": "Civilization Revolution",
+      "test": true,
+      "igdb": {
+        "id": 2152,
+        "name": "Sid Meier's Civilization Revolution",
+        "slug": "sid-meiers-civilization-revolution",
+        "released": "2008",
+        "coverImageId": "co2h29"
+      },
+      "added": false,
+      "at": "2026-10-22T19:05:16+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=221246",
+      "episodeTitle": "Silence on joue ! Civilization Revolution, et la GDC",
+      "podcast": "silence-on-joue",
+      "game": "metal gear solid 4",
+      "test": true,
+      "igdb": {
+        "id": 380,
+        "name": "Metal Gear Solid 4: Guns of the Patriots",
+        "slug": "metal-gear-solid-4-guns-of-the-patriots",
+        "released": "2008",
+        "coverImageId": "co5eju"
+      },
+      "added": true,
+      "at": "2026-10-22T19:05:42+00:00",
+      "start": 513
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134700",
+      "episodeTitle": "Silence on joue ! NBA 2K11, Sonic 4 et Game dev Story",
+      "podcast": "silence-on-joue",
+      "game": "Game dev Story",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:36:42+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134700",
+      "episodeTitle": "Silence on joue ! NBA 2K11, Sonic 4 et Game dev Story",
+      "podcast": "silence-on-joue",
+      "game": "NBA 2K11",
+      "test": true,
+      "igdb": {
+        "id": 5056,
+        "name": "NBA 2K11",
+        "slug": "nba-2k11",
+        "released": "2010",
+        "coverImageId": "co2gih"
+      },
+      "added": false,
+      "at": "2026-10-22T19:36:49+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134700",
+      "episodeTitle": "Silence on joue ! NBA 2K11, Sonic 4 et Game dev Story",
+      "podcast": "silence-on-joue",
+      "game": "Sonic 4",
+      "test": true,
+      "igdb": {
+        "id": 9473,
+        "name": "Sonic the Hedgehog 4: Episode I",
+        "slug": "sonic-the-hedgehog-4-episode-i",
+        "released": "2010",
+        "coverImageId": "co1zvr"
+      },
+      "added": false,
+      "at": "2026-10-22T19:36:59+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134700",
+      "episodeTitle": "Silence on joue ! NBA 2K11, Sonic 4 et Game dev Story",
+      "podcast": "silence-on-joue",
+      "game": "troyes",
+      "test": false,
+      "igdb": null,
+      "added": true,
+      "at": "2026-10-22T19:37:22+00:00",
+      "start": 2127
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=221221",
+      "episodeTitle": "Silence, on joue: Street Fighter 4, GTA 4...",
+      "podcast": "silence-on-joue",
+      "game": "GTA IV: The Lost and Damned",
+      "test": true,
+      "igdb": {
+        "id": 3265,
+        "name": "Grand Theft Auto IV: The Lost and Damned",
+        "slug": "grand-theft-auto-iv-the-lost-and-damned",
+        "released": "2009",
+        "coverImageId": "co1th2"
+      },
+      "added": false,
+      "at": "2026-10-22T19:35:30+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=221221",
+      "episodeTitle": "Silence, on joue: Street Fighter 4, GTA 4...",
+      "podcast": "silence-on-joue",
+      "game": "House of the Dead: Overkill",
+      "test": true,
+      "igdb": {
+        "id": 4919,
+        "name": "The House of the Dead: Overkill",
+        "slug": "the-house-of-the-dead-overkill",
+        "released": "2009",
+        "coverImageId": "co28bb"
+      },
+      "added": false,
+      "at": "2026-10-22T19:35:17+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=221221",
+      "episodeTitle": "Silence, on joue: Street Fighter 4, GTA 4...",
+      "podcast": "silence-on-joue",
+      "game": "Street Fighter 4",
+      "test": true,
+      "igdb": {
+        "id": 884,
+        "name": "Street Fighter IV",
+        "slug": "street-fighter-iv",
+        "released": "2008",
+        "coverImageId": "co1w4t"
+      },
+      "added": false,
+      "at": "2026-10-22T19:35:20+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=221221",
+      "episodeTitle": "Silence, on joue: Street Fighter 4, GTA 4...",
+      "podcast": "silence-on-joue",
+      "game": "Warhammer 40,000: Dawn of War II",
+      "test": true,
+      "igdb": {
+        "id": 466,
+        "name": "Warhammer 40,000: Dawn of War II",
+        "slug": "warhammer-40-000-dawn-of-war-ii",
+        "released": "2009",
+        "coverImageId": "co3lu2"
+      },
+      "added": false,
+      "at": "2026-10-22T19:35:39+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Absolum",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:21:00+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Aphantasia",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:21:03+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Artis Impact",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:21:04+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Ascend to Zero",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:59+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Blood Rush: Undying Wish",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:58+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Dimwood",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:51+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Dungeons of Hinterberg",
+      "test": true,
+      "igdb": {
+        "id": 146917,
+        "name": "Dungeons of Hinterberg",
+        "slug": "dungeons-of-hinterberg",
+        "released": "2024",
+        "coverImageId": "co8oq4"
+      },
+      "added": false,
+      "at": "2026-10-22T19:20:41+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Eternal Strands",
+      "test": true,
+      "igdb": {
+        "id": 295199,
+        "name": "Eternal Strands",
+        "slug": "eternal-strands",
+        "released": "2025",
+        "coverImageId": "co94m1"
+      },
+      "added": false,
+      "at": "2026-10-22T19:20:43+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Everdeep Aurora",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:52+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Leap Galaxy",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:21:01+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Morbid Metal",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:57+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Morsels",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:56+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Outrider Mako",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:52+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Possessors",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:53+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Prison of Husks",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:21:05+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Raiders of Blackveil",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:21:01+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Shroom & Gloom",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:55+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Spark in the Dark",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:21:06+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "The Bleakest Keep",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:00:58+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "The Royal Writ",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:56+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Voidbreaker",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:54+00:00"
+    },
+    {
+      "episode": "6870f0bd610560d3ef3e6019",
+      "episodeTitle": "[Hors-série été 2025, épisode 6] «Dungeons of Hinterberg», «Eternal Strands»",
+      "podcast": "silence-on-joue",
+      "game": "Your Holy and Virtuous Heretic",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:20:54+00:00"
+    },
+    {
+      "episode": "6a4e29821c8f5a97d84853cc",
+      "episodeTitle": "[Hors-série] La FAQ de la saison 19",
+      "podcast": "silence-on-joue",
+      "game": "Defender of the Crown",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:38:16+00:00"
+    },
+    {
+      "episode": "6a4e29821c8f5a97d84853cc",
+      "episodeTitle": "[Hors-série] La FAQ de la saison 19",
+      "podcast": "silence-on-joue",
+      "game": "Hotel Barcelona",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:38:13+00:00"
+    },
+    {
+      "episode": "d7629258-b596-4105-affd-4d3b3aad9932",
+      "episodeTitle": "Baldur's Gate 3 is Just Unbelievably Good",
+      "podcast": "the-besties",
+      "game": "Baldur's Gate 3",
+      "test": true,
+      "igdb": {
+        "id": 119171,
+        "name": "Baldur's Gate III",
+        "slug": "baldurs-gate-iii",
+        "released": "2023",
+        "coverImageId": "co670h"
+      },
+      "added": false,
+      "at": "2026-10-22T19:44:24+00:00"
+    },
+    {
+      "episode": "a59cbc9e-38e0-46e5-80d1-ff2877d36562",
+      "episodeTitle": "Control Resonant Rewards Your Patience",
+      "podcast": "the-besties",
+      "game": "Control Resonant",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:23:20+00:00",
+      "igdb": {
+        "id": 225582,
+        "name": "Control Resonant",
+        "slug": "control-resonant--1",
+        "released": "2026",
+        "coverImageId": "coc64f"
+      }
+    },
+    {
+      "episode": "a59cbc9e-38e0-46e5-80d1-ff2877d36562",
+      "episodeTitle": "Control Resonant Rewards Your Patience",
+      "podcast": "the-besties",
+      "game": "Gears of War E-Day",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:23:30+00:00",
+      "igdb": {
+        "id": 305160,
+        "name": "Gears of War: E-Day",
+        "slug": "gears-of-war-e-day",
+        "released": "2026",
+        "coverImageId": "coc77n"
+      }
+    },
+    {
+      "episode": "a59cbc9e-38e0-46e5-80d1-ff2877d36562",
+      "episodeTitle": "Control Resonant Rewards Your Patience",
+      "podcast": "the-besties",
+      "game": "Normal Golf Game",
+      "test": false,
+      "added": false,
+      "at": "2026-10-22T18:32:00+00:00",
+      "igdb": null
+    },
+    {
+      "episode": "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8",
+      "episodeTitle": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
+      "podcast": "the-besties",
+      "game": "Chrono Trigger",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:24:35+00:00"
+    },
+    {
+      "episode": "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8",
+      "episodeTitle": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
+      "podcast": "the-besties",
+      "game": "Mewgenics",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:24:33+00:00"
+    },
+    {
+      "episode": "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8",
+      "episodeTitle": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
+      "podcast": "the-besties",
+      "game": "Raccoin",
+      "test": false,
+      "igdb": {
+        "id": 360748,
+        "name": "Raccoin: Coin Pusher Roguelike",
+        "slug": "raccoin-coin-pusher-roguelike",
+        "released": "2026",
+        "coverImageId": "coaa0s"
+      },
+      "added": false,
+      "at": "2026-10-22T20:03:13+00:00"
+    },
+    {
+      "episode": "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8",
+      "episodeTitle": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
+      "podcast": "the-besties",
+      "game": "Resident Evil 3 Remake",
+      "test": false,
+      "igdb": {
+        "id": 115115,
+        "name": "Resident Evil 3",
+        "slug": "resident-evil-3",
+        "released": "2020",
+        "coverImageId": "cocw1u"
+      },
+      "added": false,
+      "at": "2026-10-22T20:03:14+00:00"
+    },
+    {
+      "episode": "2c418e0d-efda-4b46-8309-4d97092528cc",
+      "episodeTitle": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "podcast": "the-besties",
+      "game": "God of War Ragnarök",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:43:22+00:00"
+    },
+    {
+      "episode": "2c418e0d-efda-4b46-8309-4d97092528cc",
+      "episodeTitle": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "podcast": "the-besties",
+      "game": "Mario + Rabbids Sparks of Hope",
+      "test": true,
+      "igdb": {
+        "id": 152201,
+        "name": "Mario + Rabbids Sparks of Hope",
+        "slug": "mario-plus-rabbids-sparks-of-hope",
+        "released": "2022",
+        "coverImageId": "cob89b"
+      },
+      "added": false,
+      "at": "2026-10-22T19:42:54+00:00"
+    },
+    {
+      "episode": "2c418e0d-efda-4b46-8309-4d97092528cc",
+      "episodeTitle": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "podcast": "the-besties",
+      "game": "Marvel Snap",
+      "test": true,
+      "igdb": {
+        "id": 202279,
+        "name": "Marvel Snap",
+        "slug": "marvel-snap",
+        "released": "2022",
+        "coverImageId": "co8l47"
+      },
+      "added": false,
+      "at": "2026-10-22T19:42:58+00:00"
+    },
+    {
+      "episode": "2c418e0d-efda-4b46-8309-4d97092528cc",
+      "episodeTitle": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "podcast": "the-besties",
+      "game": "Resident Evil 8",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:43:32+00:00"
+    },
+    {
+      "episode": "2c418e0d-efda-4b46-8309-4d97092528cc",
+      "episodeTitle": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "podcast": "the-besties",
+      "game": "Resident Evil 8 DLC",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:43:32+00:00"
+    },
+    {
+      "episode": "2c418e0d-efda-4b46-8309-4d97092528cc",
+      "episodeTitle": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "podcast": "the-besties",
+      "game": "Sonic plus Minions: The Power of Gru",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:42:52+00:00"
+    },
+    {
+      "episode": "2c418e0d-efda-4b46-8309-4d97092528cc",
+      "episodeTitle": "Mario and Rabbids and Marvel and Sonic and Minions",
+      "podcast": "the-besties",
+      "game": "The Case of the Golden Idol",
+      "test": true,
+      "igdb": {
+        "id": 166722,
+        "name": "The Case of the Golden Idol",
+        "slug": "the-case-of-the-golden-idol",
+        "released": "2022",
+        "coverImageId": "co9tog"
+      },
+      "added": false,
+      "at": "2026-10-22T19:43:02+00:00"
+    },
+    {
+      "episode": "c6e8f1b4-beb2-43c6-b424-34aa306b765a",
+      "episodeTitle": "Nintendo Dares You to Become a Speedrunner",
+      "podcast": "the-besties",
+      "game": "Cyberpunk 2077",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:44:11+00:00"
+    },
+    {
+      "episode": "c6e8f1b4-beb2-43c6-b424-34aa306b765a",
+      "episodeTitle": "Nintendo Dares You to Become a Speedrunner",
+      "podcast": "the-besties",
+      "game": "Dungeons of Hinterberg",
+      "test": true,
+      "igdb": {
+        "id": 146917,
+        "name": "Dungeons of Hinterberg",
+        "slug": "dungeons-of-hinterberg",
+        "released": "2024",
+        "coverImageId": "co8oq4"
+      },
+      "added": false,
+      "at": "2026-10-22T19:43:55+00:00"
+    },
+    {
+      "episode": "c6e8f1b4-beb2-43c6-b424-34aa306b765a",
+      "episodeTitle": "Nintendo Dares You to Become a Speedrunner",
+      "podcast": "the-besties",
+      "game": "Earth Defense Force 6",
+      "test": true,
+      "igdb": {
+        "id": 137427,
+        "name": "Earth Defense Force 6",
+        "slug": "earth-defense-force-6",
+        "released": "2022",
+        "coverImageId": "co8lgk"
+      },
+      "added": false,
+      "at": "2026-10-22T19:44:06+00:00"
+    },
+    {
+      "episode": "c6e8f1b4-beb2-43c6-b424-34aa306b765a",
+      "episodeTitle": "Nintendo Dares You to Become a Speedrunner",
+      "podcast": "the-besties",
+      "game": "Hades II",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:44:09+00:00"
+    },
+    {
+      "episode": "c6e8f1b4-beb2-43c6-b424-34aa306b765a",
+      "episodeTitle": "Nintendo Dares You to Become a Speedrunner",
+      "podcast": "the-besties",
+      "game": "Nintendo World Championships: NES Edition",
+      "test": true,
+      "igdb": {
+        "id": 299862,
+        "name": "Nintendo World Championships: NES Edition",
+        "slug": "nintendo-world-championships-nes-edition",
+        "released": "2024",
+        "coverImageId": "co86hd"
+      },
+      "added": false,
+      "at": "2026-10-22T19:43:52+00:00"
+    },
+    {
+      "episode": "f169a1b6-f9d9-11ea-acef-839761272c2e",
+      "episodeTitle": "No Spoilers for The Last of Us Part 2",
+      "podcast": "the-besties",
+      "game": "Cyberpunk 2077",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:42:07+00:00"
+    },
+    {
+      "episode": "f169a1b6-f9d9-11ea-acef-839761272c2e",
+      "episodeTitle": "No Spoilers for The Last of Us Part 2",
+      "podcast": "the-besties",
+      "game": "Hardspace: Shipbreaker",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:42:13+00:00"
+    },
+    {
+      "episode": "f169a1b6-f9d9-11ea-acef-839761272c2e",
+      "episodeTitle": "No Spoilers for The Last of Us Part 2",
+      "podcast": "the-besties",
+      "game": "Slay the Spire",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:42:10+00:00"
+    },
+    {
+      "episode": "f169a1b6-f9d9-11ea-acef-839761272c2e",
+      "episodeTitle": "No Spoilers for The Last of Us Part 2",
+      "podcast": "the-besties",
+      "game": "The Last of Us Part II",
+      "test": true,
+      "igdb": {
+        "id": 26192,
+        "name": "The Last of Us Part II",
+        "slug": "the-last-of-us-part-ii",
+        "released": "2020",
+        "coverImageId": "co5ziw"
+      },
+      "added": false,
+      "at": "2026-10-22T19:42:03+00:00"
+    },
+    {
+      "episode": "6b0d0dcc-2620-485b-a26c-2e45f713165c",
+      "episodeTitle": "Resident Evil: Requiem is Two Games in One!",
+      "podcast": "the-besties",
+      "game": "Metal Gear Solid 4",
+      "test": false,
+      "added": false,
+      "at": "2026-10-22T18:34:45+00:00",
+      "igdb": null
+    },
+    {
+      "episode": "6b0d0dcc-2620-485b-a26c-2e45f713165c",
+      "episodeTitle": "Resident Evil: Requiem is Two Games in One!",
+      "podcast": "the-besties",
+      "game": "Resident Evil Requiem",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:32:49+00:00",
+      "igdb": {
+        "id": 347668,
+        "name": "Resident Evil Requiem",
+        "slug": "resident-evil-requiem",
+        "released": "2026",
+        "coverImageId": "cobmj0"
+      }
+    },
+    {
+      "episode": "6b0d0dcc-2620-485b-a26c-2e45f713165c",
+      "episodeTitle": "Resident Evil: Requiem is Two Games in One!",
+      "podcast": "the-besties",
+      "game": "Super Battle Golf",
+      "test": false,
+      "added": false,
+      "at": "2026-10-22T19:49:22+00:00",
+      "igdb": null
+    },
+    {
+      "episode": "6b0d0dcc-2620-485b-a26c-2e45f713165c",
+      "episodeTitle": "Resident Evil: Requiem is Two Games in One!",
+      "podcast": "the-besties",
+      "game": "Vampire Crawlers",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:33:18+00:00",
+      "igdb": {
+        "id": 378229,
+        "name": "Vampire Crawlers: The Turbo Wildcard from Vampire Survivors",
+        "slug": "vampire-crawlers-the-turbo-wildcard-from-vampire-survivors",
+        "released": "2026",
+        "coverImageId": "cobyj9"
+      }
+    },
+    {
+      "episode": "6b0d0dcc-2620-485b-a26c-2e45f713165c",
+      "episodeTitle": "Resident Evil: Requiem is Two Games in One!",
+      "podcast": "the-besties",
+      "game": "a knight of the seven kingdoms",
+      "test": false,
+      "igdb": null,
+      "added": true,
+      "at": "2026-10-22T19:49:17+00:00",
+      "start": 2929
+    },
+    {
+      "episode": "1a0c77ac-2356-45bc-9932-411557990022",
+      "episodeTitle": "Saros is More Bullet Heaven Than Bullet Hell",
+      "podcast": "the-besties",
+      "game": "Blue Prince",
+      "test": true,
+      "igdb": {
+        "id": 149657,
+        "name": "Blue Prince",
+        "slug": "blue-prince",
+        "released": "2025",
+        "coverImageId": "co9mzd"
+      },
+      "added": false,
+      "at": "2026-10-22T19:21:54+00:00"
+    },
+    {
+      "episode": "1a0c77ac-2356-45bc-9932-411557990022",
+      "episodeTitle": "Saros is More Bullet Heaven Than Bullet Hell",
+      "podcast": "the-besties",
+      "game": "Chain Staff",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:01:17+00:00"
+    },
+    {
+      "episode": "1a0c77ac-2356-45bc-9932-411557990022",
+      "episodeTitle": "Saros is More Bullet Heaven Than Bullet Hell",
+      "podcast": "the-besties",
+      "game": "Gambonanza",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:22:24+00:00"
+    },
+    {
+      "episode": "1a0c77ac-2356-45bc-9932-411557990022",
+      "episodeTitle": "Saros is More Bullet Heaven Than Bullet Hell",
+      "podcast": "the-besties",
+      "game": "Idle Obelisk Miner",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:22:01+00:00"
+    },
+    {
+      "episode": "1a0c77ac-2356-45bc-9932-411557990022",
+      "episodeTitle": "Saros is More Bullet Heaven Than Bullet Hell",
+      "podcast": "the-besties",
+      "game": "Nubby's Number Factory",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:22:03+00:00"
+    },
+    {
+      "episode": "1a0c77ac-2356-45bc-9932-411557990022",
+      "episodeTitle": "Saros is More Bullet Heaven Than Bullet Hell",
+      "podcast": "the-besties",
+      "game": "Saros",
+      "test": true,
+      "igdb": {
+        "id": 331215,
+        "name": "Saros",
+        "slug": "saros",
+        "released": "2026",
+        "coverImageId": "coajye"
+      },
+      "added": false,
+      "at": "2026-10-22T19:21:46+00:00"
+    },
+    {
+      "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "episodeTitle": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "game": "ActRaiser",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:23:58+00:00"
+    },
+    {
+      "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "episodeTitle": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "game": "Peter Jackson's King Kong: The Official Game of the Movie",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:24:14+00:00"
+    },
+    {
+      "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "episodeTitle": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "game": "Pixel Art Academy: Learn Mode",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:24:00+00:00"
+    },
+    {
+      "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "episodeTitle": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "game": "Satisfactory",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:23:54+00:00"
+    },
+    {
+      "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "episodeTitle": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "game": "Sonic Racing: CrossWorlds",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:24:03+00:00"
+    },
+    {
+      "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "episodeTitle": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "game": "Terminator 2D: No Fate",
+      "test": true,
+      "igdb": {
+        "id": 327500,
+        "name": "Terminator 2D: No Fate",
+        "slug": "terminator-2d-no-fate",
+        "released": "2025",
+        "coverImageId": "co9s6r"
+      },
+      "added": false,
+      "at": "2026-10-22T19:23:36+00:00"
+    },
+    {
+      "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
+      "episodeTitle": "Terminator Time Travels to Save '90s Garbage Games",
+      "podcast": "the-besties",
+      "game": "The Thing",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:23:55+00:00"
+    },
+    {
+      "episode": "https://www.polygon.com/gaming/2012/9/14/3334334/the-besties-podcast-wii-u-special",
+      "episodeTitle": "The Besties Podcast: Wii U special",
+      "podcast": "the-besties",
+      "game": "Call of Duty: Black Ops II",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:17:41+00:00"
+    },
+    {
+      "episode": "f5050f18-f9d9-11ea-acef-0bfa0d91c79c",
+      "episodeTitle": "The Besties go to the Farm!",
+      "podcast": "the-besties",
+      "game": "Rune Factory 4 Special",
+      "test": true,
+      "igdb": {
+        "id": 6874,
+        "name": "Rune Factory 4",
+        "slug": "rune-factory-4",
+        "released": "2012",
+        "coverImageId": "co2xko"
+      },
+      "added": false,
+      "at": "2026-10-22T19:42:27+00:00"
+    },
+    {
+      "episode": "84639c1e-256c-4eaa-b87e-c5e05685ee15",
+      "episodeTitle": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "podcast": "the-besties",
+      "game": "Art Is Rifle",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:25:25+00:00"
+    },
+    {
+      "episode": "84639c1e-256c-4eaa-b87e-c5e05685ee15",
+      "episodeTitle": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "podcast": "the-besties",
+      "game": "Mario Kart World",
+      "test": true,
+      "igdb": {
+        "id": 338067,
+        "name": "Mario Kart World",
+        "slug": "mario-kart-world",
+        "released": "2025",
+        "coverImageId": "cob9s9"
+      },
+      "added": false,
+      "at": "2026-10-22T20:03:43+00:00"
+    },
+    {
+      "episode": "84639c1e-256c-4eaa-b87e-c5e05685ee15",
+      "episodeTitle": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "podcast": "the-besties",
+      "game": "SELACO",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:25:32+00:00"
+    },
+    {
+      "episode": "84639c1e-256c-4eaa-b87e-c5e05685ee15",
+      "episodeTitle": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "podcast": "the-besties",
+      "game": "Sea of Stars",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:25:31+00:00"
+    },
+    {
+      "episode": "84639c1e-256c-4eaa-b87e-c5e05685ee15",
+      "episodeTitle": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "podcast": "the-besties",
+      "game": "The Legend of Zelda: Tears of the Kingdom",
+      "test": true,
+      "igdb": {
+        "id": 119388,
+        "name": "The Legend of Zelda: Tears of the Kingdom",
+        "slug": "the-legend-of-zelda-tears-of-the-kingdom",
+        "released": "2023",
+        "coverImageId": "co5vmg"
+      },
+      "added": false,
+      "at": "2026-10-22T20:04:16+00:00"
+    },
+    {
+      "episode": "84639c1e-256c-4eaa-b87e-c5e05685ee15",
+      "episodeTitle": "The Big Switch 2 Episode – Plus the Best of SGF",
+      "podcast": "the-besties",
+      "game": "Welcome Park",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T20:04:12+00:00"
+    },
+    {
+      "episode": "879c3665-f69e-4705-a3ce-35ac21fb28de",
+      "episodeTitle": "The Star Wars Game Renaissance Is Here!",
+      "podcast": "the-besties",
+      "game": "Ace Combat 8: Wings of Theve",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T18:58:15+00:00"
+    },
+    {
+      "episode": "879c3665-f69e-4705-a3ce-35ac21fb28de",
+      "episodeTitle": "The Star Wars Game Renaissance Is Here!",
+      "podcast": "the-besties",
+      "game": "Control Resonant",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T18:58:23+00:00"
+    },
+    {
+      "episode": "879c3665-f69e-4705-a3ce-35ac21fb28de",
+      "episodeTitle": "The Star Wars Game Renaissance Is Here!",
+      "podcast": "the-besties",
+      "game": "Minecraft Dungeons 2",
+      "test": true,
+      "igdb": {
+        "id": 395525,
+        "name": "Minecraft Dungeons II",
+        "slug": "minecraft-dungeons-ii",
+        "released": "2026",
+        "coverImageId": "coc75p"
+      },
+      "added": false,
+      "at": "2026-10-22T18:59:18+00:00"
+    },
+    {
+      "episode": "879c3665-f69e-4705-a3ce-35ac21fb28de",
+      "episodeTitle": "The Star Wars Game Renaissance Is Here!",
+      "podcast": "the-besties",
+      "game": "Star Wars: Galactic Racer",
+      "test": true,
+      "igdb": {
+        "id": 381248,
+        "name": "Star Wars: Galactic Racer",
+        "slug": "star-wars-galactic-racer",
+        "released": "2026",
+        "coverImageId": "cobihx"
+      },
+      "added": false,
+      "at": "2026-10-22T18:57:34+00:00"
+    },
+    {
+      "episode": "879c3665-f69e-4705-a3ce-35ac21fb28de",
+      "episodeTitle": "The Star Wars Game Renaissance Is Here!",
+      "podcast": "the-besties",
+      "game": "Well Dweller",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T18:59:01+00:00"
+    },
+    {
+      "episode": "03facb65-cbdb-4ad2-8677-31e393aab1f4",
+      "episodeTitle": "Big Walk Made Us A Better Podcast",
+      "podcast": "triple-click",
+      "game": "Big Walk",
+      "test": true,
+      "igdb": {
+        "id": 279624,
+        "name": "Big Walk",
+        "slug": "big-walk",
+        "released": "2026",
+        "coverImageId": "co7h9m"
+      },
+      "added": false,
+      "at": "2026-10-22T19:46:57+00:00"
+    },
+    {
+      "episode": "117e5afb-0354-4d97-98e9-087edd28efa4",
+      "episodeTitle": "Early Thoughts On The Last Of Us Part II",
+      "podcast": "triple-click",
+      "game": "Control",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:45:23+00:00"
+    },
+    {
+      "episode": "117e5afb-0354-4d97-98e9-087edd28efa4",
+      "episodeTitle": "Early Thoughts On The Last Of Us Part II",
+      "podcast": "triple-click",
+      "game": "Fire Emblem: Three Houses",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:45:24+00:00"
+    },
+    {
+      "episode": "117e5afb-0354-4d97-98e9-087edd28efa4",
+      "episodeTitle": "Early Thoughts On The Last Of Us Part II",
+      "podcast": "triple-click",
+      "game": "Just Dance 2020",
+      "test": true,
+      "igdb": {
+        "id": 119256,
+        "name": "Just Dance 2020",
+        "slug": "just-dance-2020",
+        "released": "2019",
+        "coverImageId": "co1lyp"
+      },
+      "added": false,
+      "at": "2026-10-22T19:45:59+00:00"
+    },
+    {
+      "episode": "117e5afb-0354-4d97-98e9-087edd28efa4",
+      "episodeTitle": "Early Thoughts On The Last Of Us Part II",
+      "podcast": "triple-click",
+      "game": "The Last of Us Part II",
+      "test": true,
+      "igdb": {
+        "id": 26192,
+        "name": "The Last of Us Part II",
+        "slug": "the-last-of-us-part-ii",
+        "released": "2020",
+        "coverImageId": "co5ziw"
+      },
+      "added": false,
+      "at": "2026-10-22T19:45:18+00:00"
+    },
+    {
+      "episode": "117e5afb-0354-4d97-98e9-087edd28efa4",
+      "episodeTitle": "Early Thoughts On The Last Of Us Part II",
+      "podcast": "triple-click",
+      "game": "The Legend of Zelda: Breath of the Wild",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:45:26+00:00"
+    },
+    {
+      "episode": "117e5afb-0354-4d97-98e9-087edd28efa4",
+      "episodeTitle": "Early Thoughts On The Last Of Us Part II",
+      "podcast": "triple-click",
+      "game": "the long ships",
+      "test": false,
+      "igdb": null,
+      "added": true,
+      "at": "2026-10-22T19:45:53+00:00",
+      "start": 2800
+    },
+    {
+      "episode": "b7865a49-2b7f-4b55-815d-a6fb3b5c5208",
+      "episodeTitle": "Esoteric Ebb Is D&D Meets Disco Elysium",
+      "podcast": "triple-click",
+      "game": "Esoteric Ebb",
+      "test": true,
+      "igdb": {
+        "id": 213016,
+        "name": "Esoteric Ebb",
+        "slug": "esoteric-ebb",
+        "released": "2026",
+        "coverImageId": "cobakp"
+      },
+      "added": false,
+      "at": "2026-10-22T19:22:45+00:00"
+    },
+    {
+      "episode": "b7865a49-2b7f-4b55-815d-a6fb3b5c5208",
+      "episodeTitle": "Esoteric Ebb Is D&D Meets Disco Elysium",
+      "podcast": "triple-click",
+      "game": "Void Stranger",
+      "test": true,
+      "igdb": {
+        "id": 178900,
+        "name": "Void Stranger",
+        "slug": "void-stranger",
+        "released": "2023",
+        "coverImageId": "co6xgv"
+      },
+      "added": false,
+      "at": "2026-10-22T19:23:05+00:00"
+    },
+    {
+      "episode": "50019f99-1306-42ae-b7e5-5eec989c8708",
+      "episodeTitle": "Is The Video Game Review System Broken?",
+      "podcast": "triple-click",
+      "game": "Death Stranding Director’s Cut",
+      "test": true,
+      "igdb": {
+        "id": 152063,
+        "name": "Death Stranding: Director's Cut",
+        "slug": "death-stranding-directors-cut",
+        "released": "2021",
+        "coverImageId": "cobksg"
+      },
+      "added": false,
+      "at": "2026-10-22T19:45:08+00:00"
+    },
+    {
+      "episode": "50019f99-1306-42ae-b7e5-5eec989c8708",
+      "episodeTitle": "Is The Video Game Review System Broken?",
+      "podcast": "triple-click",
+      "game": "ElecHead",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:45:04+00:00"
+    },
+    {
+      "episode": "50019f99-1306-42ae-b7e5-5eec989c8708",
+      "episodeTitle": "Is The Video Game Review System Broken?",
+      "podcast": "triple-click",
+      "game": "Marvel's Guardians of the Galaxy",
+      "test": true,
+      "igdb": {
+        "id": 152249,
+        "name": "Marvel's Guardians of the Galaxy",
+        "slug": "marvels-guardians-of-the-galaxy",
+        "released": "2021",
+        "coverImageId": "co39pu"
+      },
+      "added": false,
+      "at": "2026-10-22T19:44:54+00:00"
+    },
+    {
+      "episode": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "episodeTitle": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "game": "CrossCode",
+      "test": true,
+      "igdb": {
+        "id": 35282,
+        "name": "CrossCode",
+        "slug": "crosscode",
+        "released": "2018",
+        "coverImageId": "co28wy"
+      },
+      "added": false,
+      "at": "2026-10-22T19:07:51+00:00"
+    },
+    {
+      "episode": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "episodeTitle": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "game": "Gears of War: Reloaded",
+      "test": true,
+      "igdb": {
+        "id": 342721,
+        "name": "Gears of War: Reloaded",
+        "slug": "gears-of-war-reloaded",
+        "released": "2025",
+        "coverImageId": "co9rr2"
+      },
+      "added": false,
+      "at": "2026-10-22T19:06:36+00:00"
+    },
+    {
+      "episode": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "episodeTitle": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "game": "King of the Hill (2025)",
+      "test": true,
+      "igdb": {
+        "id": 365459,
+        "name": "King of the Hill",
+        "slug": "king-of-the-hill--2",
+        "released": "2025",
+        "coverImageId": "coaemg"
+      },
+      "added": true,
+      "at": "2026-10-22T19:59:06+00:00",
+      "start": 3403
+    },
+    {
+      "episode": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "episodeTitle": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "game": "Mafia: The Old Country",
+      "test": true,
+      "igdb": {
+        "id": 314276,
+        "name": "Mafia: The Old Country",
+        "slug": "mafia-the-old-country",
+        "released": "2025",
+        "coverImageId": "coa9dq"
+      },
+      "added": false,
+      "at": "2026-10-22T19:06:29+00:00"
+    },
+    {
+      "episode": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "episodeTitle": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "game": "Metal Gear Solid Delta: Snake Eater",
+      "test": true,
+      "igdb": {
+        "id": 250634,
+        "name": "Metal Gear Solid Delta: Snake Eater",
+        "slug": "metal-gear-solid-delta-snake-eater",
+        "released": "2025",
+        "coverImageId": "coac1n"
+      },
+      "added": false,
+      "at": "2026-10-22T19:06:18+00:00"
+    },
+    {
+      "episode": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "episodeTitle": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "game": "Wagotabi",
+      "test": true,
+      "igdb": {
+        "id": 283132,
+        "name": "Wagotabi",
+        "slug": "wagotabi",
+        "released": "2024",
+        "coverImageId": "co7nc3"
+      },
+      "added": false,
+      "at": "2026-10-22T19:06:32+00:00"
+    },
+    {
+      "episode": "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9",
+      "episodeTitle": "Silksong, Metal Gear Solid, Mafia, And More",
+      "podcast": "triple-click",
+      "game": "alien earth",
+      "test": false,
+      "igdb": null,
+      "added": true,
+      "at": "2026-10-22T19:07:16+00:00",
+      "start": 3589
+    },
+    {
+      "episode": "e73c2071-24a0-4b3d-b28b-711c92a74b63",
+      "episodeTitle": "Steam Deck, Switch, and the Rise of Handheld Gaming",
+      "podcast": "triple-click",
+      "game": "The Legend of Heroes: Trails from Zero",
+      "test": true,
+      "igdb": {
+        "id": 23322,
+        "name": "The Legend of Heroes: Trails from Zero",
+        "slug": "the-legend-of-heroes-trails-from-zero",
+        "released": "2020",
+        "coverImageId": "cob8gm"
+      },
+      "added": false,
+      "at": "2026-10-22T19:46:19+00:00"
+    },
+    {
+      "episode": "e73c2071-24a0-4b3d-b28b-711c92a74b63",
+      "episodeTitle": "Steam Deck, Switch, and the Rise of Handheld Gaming",
+      "podcast": "triple-click",
+      "game": "Trombone Champ",
+      "test": true,
+      "igdb": {
+        "id": 149821,
+        "name": "Trombone Champ",
+        "slug": "trombone-champ",
+        "released": "2022",
+        "coverImageId": "co44zl"
+      },
+      "added": false,
+      "at": "2026-10-22T19:46:14+00:00"
+    },
+    {
+      "episode": "6f188f7c-9061-4319-8cae-64243b723ecb",
+      "episodeTitle": "Super Turbo Remake Plus",
+      "podcast": "triple-click",
+      "game": "Dark Souls",
+      "test": true,
+      "igdb": {
+        "id": 81085,
+        "name": "Dark Souls: Remastered",
+        "slug": "dark-souls-remastered",
+        "released": "2018",
+        "coverImageId": "cobazz"
+      },
+      "added": false,
+      "at": "2026-10-22T19:54:31+00:00"
+    },
+    {
+      "episode": "6f188f7c-9061-4319-8cae-64243b723ecb",
+      "episodeTitle": "Super Turbo Remake Plus",
+      "podcast": "triple-click",
+      "game": "Final Fantasy VII Remake",
+      "test": true,
+      "igdb": {
+        "id": 11169,
+        "name": "Final Fantasy VII Remake",
+        "slug": "final-fantasy-vii-remake",
+        "released": "2020",
+        "coverImageId": "cobcwt"
+      },
+      "added": false,
+      "at": "2026-10-22T19:49:58+00:00"
+    },
+    {
+      "episode": "6f188f7c-9061-4319-8cae-64243b723ecb",
+      "episodeTitle": "Super Turbo Remake Plus",
+      "podcast": "triple-click",
+      "game": "Mass Effect Trilogy",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:01:20+00:00"
+    },
+    {
+      "episode": "6f188f7c-9061-4319-8cae-64243b723ecb",
+      "episodeTitle": "Super Turbo Remake Plus",
+      "podcast": "triple-click",
+      "game": "The Dead Space Remake",
+      "test": true,
+      "igdb": {
+        "id": 159119,
+        "name": "Dead Space",
+        "slug": "dead-space--1",
+        "released": "2023",
+        "coverImageId": "cobkv5"
+      },
+      "added": true,
+      "at": "2026-10-22T19:53:35+00:00",
+      "start": 1889
+    },
+    {
+      "episode": "6f188f7c-9061-4319-8cae-64243b723ecb",
+      "episodeTitle": "Super Turbo Remake Plus",
+      "podcast": "triple-click",
+      "game": "The Forgotten City",
+      "test": true,
+      "igdb": {
+        "id": 103320,
+        "name": "The Forgotten City",
+        "slug": "the-forgotten-city",
+        "released": "2021",
+        "coverImageId": "co3muu"
+      },
+      "added": false,
+      "at": "2026-10-22T19:54:44+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Animal Well",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:04+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Balatro",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:00+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Blue Prince",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:13:56+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Control",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:11+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Cyberpunk 2077",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:01+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Disco Elysium",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:13:57+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Dispatch",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:06+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Esoteric Ebb",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:13:59+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Final Fantasy Tactics",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:14+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Hollow Knight: Silksong",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:03+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Marvel's Midnight Suns",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:13:57+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Mina the Hollower",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:07+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Outer Wilds",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:09+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Prince of Persia: The Lost Crown",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:13+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Resident Evil 2",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:10+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Return of the Obra Dinn",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:08+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "Tactical Breach Wizards",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:12+00:00"
+    },
+    {
+      "episode": "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b",
+      "episodeTitle": "Triple Click Picks: The Games You Should Play (2026 Edition)",
+      "podcast": "triple-click",
+      "game": "The Case of the Golden Idol",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:14:07+00:00"
+    },
+    {
+      "episode": "a9ce0b17-afd7-4e81-a7f4-34263a7467cc",
+      "episodeTitle": "Triple Play: Control Resonant",
+      "podcast": "triple-click",
+      "game": "Control Resonant",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:00:36+00:00",
+      "igdb": {
+        "id": 225582,
+        "name": "Control Resonant",
+        "slug": "control-resonant--1",
+        "released": "2026",
+        "coverImageId": "coc64f"
+      }
+    },
+    {
+      "episode": "a9ce0b17-afd7-4e81-a7f4-34263a7467cc",
+      "episodeTitle": "Triple Play: Control Resonant",
+      "podcast": "triple-click",
+      "game": "Final Fantasy Resonance",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:00:37+00:00",
+      "igdb": {
+        "id": 405454,
+        "name": "Final Fantasy Resonance",
+        "slug": "final-fantasy-resonance",
+        "released": "2026",
+        "coverImageId": "coc7q4"
+      }
+    },
+    {
+      "episode": "a9ce0b17-afd7-4e81-a7f4-34263a7467cc",
+      "episodeTitle": "Triple Play: Control Resonant",
+      "podcast": "triple-click",
+      "game": "Star Wars Galactic Racer",
+      "test": true,
+      "added": false,
+      "at": "2026-10-22T18:00:38+00:00",
+      "igdb": {
+        "id": 381248,
+        "name": "Star Wars: Galactic Racer",
+        "slug": "star-wars-galactic-racer",
+        "released": "2026",
+        "coverImageId": "cobihx"
+      }
+    },
+    {
+      "episode": "7fea62e6-2e07-41b0-970d-01e14a36b64c",
+      "episodeTitle": "What Makes a Game Wear Out Its Welcome? (Mailbag)",
+      "podcast": "triple-click",
+      "game": "Donkey Kong Bonanza",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:24:50+00:00"
+    },
+    {
+      "episode": "7fea62e6-2e07-41b0-970d-01e14a36b64c",
+      "episodeTitle": "What Makes a Game Wear Out Its Welcome? (Mailbag)",
+      "podcast": "triple-click",
+      "game": "Kingdom Come: Deliverance II",
+      "test": true,
+      "igdb": {
+        "id": 298526,
+        "name": "Kingdom Come: Deliverance II",
+        "slug": "kingdom-come-deliverance-ii",
+        "released": "2025",
+        "coverImageId": "co8qmv"
+      },
+      "added": false,
+      "at": "2026-10-22T19:24:53+00:00"
+    },
+    {
+      "episode": "39274c6f-a246-48d2-845c-6b936733575d",
+      "episodeTitle": "Zelda, Starfield, And The Year To Come",
+      "podcast": "triple-click",
+      "game": "Destiny 2",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-22T19:46:50+00:00"
+    }
+  ]
 }

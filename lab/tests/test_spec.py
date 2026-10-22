@@ -5,8 +5,8 @@ import pytest
 
 import spec
 
+CR = {'id': 1, 'name': 'Control Resonant'}
 EP = SimpleNamespace(slug='g1', title='Control Resonant Rewards Your Patience', podcast_id='the-besties')
-CR = {'id': 1, 'name': 'Control Resonant', 'slug': 'control-resonant', 'released': '2026'}
 
 
 @pytest.fixture(autouse=True)
@@ -16,21 +16,38 @@ def tmp_file(tmp_path, monkeypatch):
     monkeypatch.setattr(spec, 'PATH', path)
 
 
-def test_a_game_s_level_and_entry_are_decided_separately():
-    spec.update(EP, 'Control Resonant', level='consacré')
-    spec.update(EP, 'Control Resonant', igdb=CR)
-    [g] = spec.load()
-    assert (g['level'], g['igdb']['id'], g['added']) == ('consacré', 1, False)
-
-
-def test_a_game_can_be_absent_from_igdb_or_added_by_hand():
-    spec.update(EP, 'Some Indie', added=True, level='évoqué', igdb='absent')
-    assert spec.for_episode('g1')['Some Indie']['igdb'] == 'absent'
+def test_whether_it_is_a_test_is_recorded_and_a_missing_one_where_it_was_added():
+    spec.update(EP, 'Control Resonant', test=True)
+    spec.update(EP, 'Some Indie', added=True, test=True, start=1800)
+    assert {g['game']: (g['test'], g['added'], g.get('start')) for g in spec.load()} == {
+        'Control Resonant': (True, False, None), 'Some Indie': (True, True, 1800)}
     spec.remove(EP, 'Some Indie')
-    assert spec.load() == []
+    assert [g['game'] for g in spec.load()] == ['Control Resonant']
 
 
-@pytest.mark.parametrize('fields', [{'level': 'bof'}, {'igdb': 'nope'}, {'igdb': {'name': 'no id'}}])
+@pytest.mark.parametrize('fields', [{'test': 'bof'}, {'test': 1}, {'igdb': 'nope'}, {'igdb': {'name': 'no id'}}])
 def test_nonsense_is_refused(fields):
     with pytest.raises(ValueError):
         spec.update(EP, 'X', **fields)
+
+
+def test_validating_accepts_what_is_not_judged_on_its_proposed_entry_and_keeps_what_is():
+    spec.update(EP, 'Gears of War: E-Day', test=False)
+    spec.update(EP, 'Hades', igdb='absent')
+    spec.validate(EP, {'Control Resonant': CR, 'Gears of War: E-Day': None, 'Hades': CR}, 'current')
+    assert {g['game']: (g['test'], g['igdb']) for g in spec.load()} == {
+        'Control Resonant': (True, CR), 'Gears of War: E-Day': (False, None), 'Hades': (True, 'absent')}
+    assert spec.validated('g1')['variant'] == 'current'
+
+
+def test_a_spec_without_episodes_still_reads(tmp_file):
+    assert spec.validated('g1') is None and spec.load() == []
+
+
+def test_a_test_added_by_hand_can_be_renamed_but_not_onto_another():
+    spec.update(EP, 'Les gros machins', added=True, test=True)
+    spec.update(EP, 'Hades', test=True)
+    spec.rename(EP, 'Les gros machins', 'Hollow Knight')
+    assert sorted(g['game'] for g in spec.load()) == ['Hades', 'Hollow Knight']
+    with pytest.raises(ValueError):
+        spec.rename(EP, 'Hollow Knight', 'Hades')
