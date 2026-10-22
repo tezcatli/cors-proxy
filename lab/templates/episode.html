@@ -1,92 +1,152 @@
 {% extends 'base.html' %}
 {% block title %}{{ ep.title }}{% endblock %}
 {% block body %}
-<p><a href="/">← Épisodes de référence</a></p>
-<h1>{{ ep.title }}</h1>
-<p class="dim">{{ show }} · <span class="mono">{{ date }}</span>
-  · variante
-  {% for v in variants %}<a href="?guid={{ ep.slug | urlencode }}&variant={{ v }}" class="chip"{% if v == variant %} style="color:var(--text)"{% endif %}>{{ v }}</a>{% endfor %}
-  {% if not out.read %}<span class="chip" style="color:var(--warn)">pas encore lu</span>{% endif %}
-</p>
+<div class="top">
+  <p style="margin:0 0 6px"><a href="/">← Épisodes de référence</a></p>
+  <h1>{{ ep.title }}</h1>
+  <p class="dim" style="margin:0 0 8px">{{ show }} · <span class="mono">{{ date }}</span>
+    {% if not read %}· <span class="chip" style="color:var(--warn)">pas encore lu : structure tirée des chapitres</span>{% endif %}</p>
+  {% if ep.audio_url %}<audio id="audio" controls preload="none" src="{{ ep.audio_url }}"></audio>{% endif %}
+</div>
 
-{% if ep.audio_url %}<audio id="audio" controls preload="none" src="{{ ep.audio_url }}" style="width:100%"></audio>{% endif %}
-
-<details class="panel"><summary class="dim">Titre et description</summary>
+<details class="panel"><summary class="dim">Description</summary>
   <div style="margin-top:8px">{{ ep.description | safe }}</div></details>
 
 <div class="panel">
-  <div class="dim" style="margin-bottom:6px">Chapitres de l'épisode{% if ep.chapters_read %} (tirés de la lecture){% endif %}</div>
-  {% for c in out.chapters %}<button class="seek" data-t="{{ c.start }}">{{ c.start | hms }}–{{ c.end | hms or '?' }}{% if c.minutes is not none %} · {{ c.minutes }} min{% endif %} · {{ c.title }}</button>{% else %}<span class="dim">aucun</span>{% endfor %}
+  <div class="label">Structure</div>
+  {% for s in timeline %}
+  <button class="seg{% if s.game %} seg--game{% endif %}" data-t="{{ s.start }}">
+    <span class="mono seg__t">{{ s.start | hms }}–{{ s.end | hms }}</span>
+    <span class="mono seg__d">{% if s.end %}{{ ((s.end - s.start) / 60) | round(1) }} min{% endif %}</span>
+    <span class="seg__title">{{ s.title }}{% if s.game and s.game != s.title %} · <strong>{{ s.game }}</strong>{% endif %}</span>
+    <span class="seg__bar"><span style="width:{{ (((s.end or s.start) - s.start) / total * 100) | round(1) }}%"></span></span>
+  </button>
+  {% else %}<p class="dim">Ni chapitres ni lecture pour cet épisode.</p>{% endfor %}
 </div>
 
-{% if out.sections %}
-<details class="panel"><summary class="dim">Sections de la lecture ({{ out.sections | length }})</summary>
-  <table style="margin-top:8px">
-    {% for x in out.sections %}
-    <tr><td class="mono"><button class="seek" data-t="{{ x.start }}">{{ x.start | hms }}–{{ x.end | hms }}</button></td>
-        <td class="mono">{{ ((x.end - x.start) / 60) | round(1) }} min</td>
-        <td class="mono">{{ x.kind or '' }}</td><td><strong>{{ x.game or '' }}</strong></td><td class="dim">{{ x.title }}</td></tr>
-    {% endfor %}
-  </table>
-</details>
-{% endif %}
-
 <div class="panel">
-  <table id="games">
-    <tr><th></th><th>Jeu</th><th>Ce que la chaîne en fait</th><th>Ce qu'il devrait être</th></tr>
-    {% for g in out.games %}
-    <tr data-game="{{ g.game }}" data-igdb="{{ g.igdb.slug if g.igdb else '' }}">
-      <td>{% if g.start is not none %}<button class="play" data-t="{{ g.start }}" title="Écouter">▶</button>{% endif %}</td>
-      <td><strong>{{ g.game }}</strong>
-        {% if g.igdb %}<div class="dim">→ {{ g.igdb.name }}{% if g.igdb.released %} ({{ g.igdb.released[:4] }}){% endif %}</div>
-        {% elif g.level %}<div style="color:var(--warn)">→ non résolu</div>{% endif %}</td>
-      <td class="mono">
-        {{ g.level or 'non rattaché' }} · {{ g.source }}
-        {% if g.kind %} · {{ g.kind }}{% endif %}
-        {% if g.start is not none %} · {{ g.start | hms }}–{{ g.end | hms or '?' }}{% endif %}
-        {% if g.minutes is not none %} · {{ g.minutes }} min{% endif %}
-        {% if g.at and g.at != 'section' %} ({{ g.at }}){% endif %}
-        {% if g.verdict %} · avis {{ g.verdict }}{% endif %}
-      </td>
-      <td class="verdicts">{% for v in verdicts %}<button class="v{% if g.judgment == v %} on{% endif %}" data-v="{{ v }}">{{ v }}</button>{% endfor %}</td>
-    </tr>
-    {% endfor %}
-    {% for j in missed %}
-    <tr data-game="{{ j.game }}" data-igdb="{{ j.igdbSlug or '' }}">
-      <td></td><td><strong>{{ j.game }}</strong></td>
-      <td class="mono" style="color:var(--warn)">jugé, mais cette variante ne le voit pas</td>
-      <td class="verdicts">{% for v in verdicts %}<button class="v{% if j.verdict == v %} on{% endif %}" data-v="{{ v }}">{{ v }}</button>{% endfor %}</td>
+  <div class="label">Jeux de l'épisode — ce que chacun devrait être</div>
+  <table>
+    {% for g in games %}{% set sp = g.spec or {} %}
+    <tr class="game" data-game="{{ g.game }}">
+      <td style="width:28%"><strong>{{ g.game }}</strong>
+        <div>{% for s in g.sources %}<span class="chip">{{ s }}</span> {% endfor %}</div></td>
+      <td style="width:24%">{% for s in g.segments %}
+        <button class="seg-chip" data-t="{{ s.start }}">{{ s.start | hms }}{% if s.end %} · {{ ((s.end - s.start) / 60) | round(1) }} min{% endif %}{% if s.kind %} · {{ s.kind }}{% endif %}</button>
+        {% else %}<span class="dim">aucun segment</span>{% endfor %}</td>
+      <td class="levels">{% for l in levels %}<button class="lv{% if sp.level == l %} on{% endif %}" data-l="{{ l }}">{{ l }}</button>{% endfor %}</td>
+      <td class="igdb" data-app='{{ g.appIgdb | tojson }}' data-spec='{{ sp.get("igdb") | tojson }}'{% if sp.level == 'absent' %} hidden{% endif %}></td>
     </tr>
     {% endfor %}
   </table>
-  {% if not out.games and not missed %}<p class="dim">Aucun jeu vu dans cet épisode.</p>{% endif %}
+  <form id="add" style="margin-top:10px"><input name="game" placeholder="Ajouter un jeu que personne n'a proposé…" size="40"> <button>Ajouter</button></form>
 </div>
 
 <style>
+  .top { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line); }
+  #audio { width: 100%; }
+  .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 8px; }
   button { font: inherit; cursor: pointer; }
-  .seek { font-size: 0.75rem; margin: 2px 4px 2px 0; padding: 2px 8px; border-radius: 6px;
-          border: 1px solid var(--line); background: none; color: var(--text); }
-  .play { width: 28px; height: 28px; border-radius: 999px; border: 0; background: var(--line); color: var(--text); }
-  .v { font-size: 0.72rem; padding: 2px 8px; margin: 1px; border-radius: 999px;
-       border: 1px solid var(--line); background: none; color: var(--dim); }
-  .v.on { background: var(--accent); border-color: transparent; color: #fff; }
+  .seg { display: grid; grid-template-columns: 150px 70px 1fr 160px; gap: 8px; align-items: center; width: 100%;
+         text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--dim); padding: 4px 2px; }
+  .seg--game { color: var(--text); }
+  .seg:hover { background: var(--line); }
+  .seg__bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .seg__bar span { display: block; height: 100%; background: var(--dim); }
+  .seg--game .seg__bar span { background: var(--accent); }
+  .seg-chip { font-size: .72rem; margin: 1px; padding: 1px 7px; border-radius: 6px; border: 1px solid var(--line); background: none; color: var(--text); }
+  .lv, .ig { font-size: .72rem; padding: 2px 9px; margin: 1px; border-radius: 999px; border: 1px solid var(--line); background: none; color: var(--dim); }
+  .lv.on { background: var(--accent); border-color: transparent; color: #fff; }
+  .ig.on { background: var(--ok); border-color: transparent; color: #fff; }
+  .cover { width: 34px; height: 46px; object-fit: cover; border-radius: 3px; vertical-align: middle; margin-right: 6px; background: var(--line); }
+  .results { margin-top: 6px; max-height: 260px; overflow: auto; }
+  .results button { display: flex; align-items: center; width: 100%; text-align: left; background: none; border: 0; color: var(--text); padding: 2px; }
+  .results button:hover { background: var(--line); }
+  input { font: inherit; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
 </style>
 <script>
-  const audio = document.getElementById('audio')
-  document.querySelectorAll('.play, .seek').forEach(b => b.onclick = () => {
-    if (!audio) return
-    audio.currentTime = Number(b.dataset.t)
-    audio.play()
-  })
-  document.querySelectorAll('.verdicts').forEach(cell => cell.onclick = async e => {
-    const b = e.target.closest('.v'); if (!b) return
-    const row = cell.closest('tr')
-    const verdict = b.classList.contains('on') ? null : b.dataset.v
-    const r = await fetch('/judge', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ episode: {{ ep.slug | tojson }}, game: row.dataset.game, verdict,
-                             igdbSlug: row.dataset.igdb || null }) })
-    if (!r.ok) { alert(await r.text()); return }
-    cell.querySelectorAll('.v').forEach(x => x.classList.toggle('on', x === b && verdict !== null))
-  })
+const EPISODE = {{ ep.slug | tojson }}
+const audio = document.getElementById('audio')
+const cover = id => id ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${id}.jpg` : ''
+const year = r => r ? ` (${String(r).slice(0, 4)})` : ''
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-t]')
+  if (t && audio) { audio.currentTime = Number(t.dataset.t); audio.play() }
+})
+
+async function save(game, fields) {
+  const r = await fetch('/spec', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({ episode: EPISODE, game, ...fields }) })
+  if (!r.ok) { alert(await r.text()); throw new Error('save failed') }
+  return r.json()
+}
+
+document.querySelectorAll('.levels').forEach(cell => cell.onclick = async e => {
+  const b = e.target.closest('.lv'); if (!b) return
+  const row = cell.closest('tr')
+  await save(row.dataset.game, { level: b.dataset.l })
+  cell.querySelectorAll('.lv').forEach(x => x.classList.toggle('on', x === b))
+  row.querySelector('.igdb').hidden = b.dataset.l === 'absent'
+})
+
+// The IGDB cell: the entry decided (or the app's, to confirm), « absent d'IGDB »,
+// and a search to pick the right one.
+function renderIgdb(cell) {
+  const app = JSON.parse(cell.dataset.app || 'null'), chosen = JSON.parse(cell.dataset.spec || 'null')
+  const game = cell.closest('tr').dataset.game
+  const shown = chosen && chosen !== 'absent' ? chosen : app
+  cell.innerHTML = ''
+  if (chosen === 'absent') cell.insertAdjacentHTML('beforeend', `<span class="chip" style="color:var(--ok)">absent d'IGDB</span> `)
+  else if (shown) cell.insertAdjacentHTML('beforeend',
+    `<img class="cover" src="${cover(shown.coverImageId)}" alt=""><span>${esc(shown.name)}${year(shown.released)}</span> `)
+  else cell.insertAdjacentHTML('beforeend', `<span class="dim">pas de fiche proposée</span> `)
+  const actions = document.createElement('div')
+  if (app && !chosen) actions.insertAdjacentHTML('beforeend', `<button class="ig" data-a="ok">✓ bonne fiche</button>`)
+  if (chosen && chosen !== 'absent') actions.insertAdjacentHTML('beforeend', `<button class="ig on" data-a="ok">✓ choisie</button>`)
+  actions.insertAdjacentHTML('beforeend', `<button class="ig" data-a="search">changer</button><button class="ig${chosen === 'absent' ? ' on' : ''}" data-a="absent">absent d'IGDB</button>`)
+  cell.append(actions)
+  actions.onclick = async e => {
+    const a = e.target.closest('.ig')?.dataset.a; if (!a) return
+    if (a === 'ok' && app && !chosen) { await save(game, { igdb: app }); cell.dataset.spec = JSON.stringify(app); renderIgdb(cell) }
+    if (a === 'absent') { await save(game, { igdb: 'absent' }); cell.dataset.spec = '"absent"'; renderIgdb(cell) }
+    if (a === 'search') search(cell, game)
+  }
+}
+
+function search(cell, game) {
+  const box = document.createElement('div')
+  box.innerHTML = `<input placeholder="Chercher dans IGDB" value="${esc(game)}"> <div class="results"></div>`
+  cell.append(box)
+  const input = box.querySelector('input'), results = box.querySelector('.results')
+  let seq = 0
+  const run = async () => {
+    const mine = ++seq
+    const hits = await (await fetch('/igdb?q=' + encodeURIComponent(input.value))).json()
+    if (mine !== seq) return
+    results.innerHTML = ''
+    hits.forEach(h => {
+      const b = document.createElement('button')
+      b.innerHTML = `<img class="cover" src="${cover(h.coverImageId)}" alt=""><span>${esc(h.name)}${year(h.released)}</span>`
+      b.onclick = async () => {
+        const pick = { id: h.id, name: h.name, slug: h.slug, released: h.released, coverImageId: h.coverImageId }
+        await save(game, { igdb: pick }); cell.dataset.spec = JSON.stringify(pick); renderIgdb(cell)
+      }
+      results.append(b)
+    })
+  }
+  let timer; input.oninput = () => { clearTimeout(timer); timer = setTimeout(run, 250) }
+  input.focus(); run()
+}
+
+document.querySelectorAll('.igdb').forEach(renderIgdb)
+
+document.getElementById('add').onsubmit = async e => {
+  e.preventDefault()
+  const game = e.target.game.value.trim(); if (!game) return
+  await save(game, { added: true })
+  location.reload()
+}
 </script>
 {% endblock %}

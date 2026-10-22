@@ -9,7 +9,8 @@ docker compose -f docker-compose.dev.yml run --rm lab python -m pytest tests
 ```
 
 - **`reference.json`** : les épisodes de référence. Une part est tirée au hasard par émission et par période, ce qui la rend représentative ; l'autre part regroupe les modes d'échec connus.
-- **`judgments.json`** (versionné) : pour chaque jeu d'un épisode de référence, ce qu'il *devrait* être (`consacré`, `évoqué`, `absent`, `mauvaise-fiche`). C'est la spécification, et l'app la rejouera comme test d'acceptation une fois la variante portée.
+- **`spec.json`** (versionné) : la spécification, **indépendante de toute variante**. Pour chaque jeu d'un épisode de référence, le niveau qu'il *devrait* avoir (`consacré`, `évoqué`, `absent`) et la fiche IGDB qu'il est (une fiche, ou `absent` d'IGDB). On la remplit dans la page « Juger » : la frise de l'épisode, et tous les jeux qu'une source propose (titre, description, chapitres, lecture), plus ceux que tu ajoutes. L'app la rejouera comme test d'acceptation une fois la variante portée.
+- **`candidates.py`** : ces candidats et la frise ; **`spec.py`** : la lecture et l'écriture de la spécification.
 - **`variants/`** : les chaînes comparées, chacune avec `run(episode) -> {read, games}`. `current` est la chaîne de l'app telle qu'elle est.
 - **`snapshot.py`** : la base de dev, ouverte en **lecture seule**. Les modules de l'app sont utilisés comme bibliothèques et ne sont jamais modifiés.
 
