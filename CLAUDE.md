@@ -68,16 +68,6 @@ ssh user@tezcat.fr "cd ~/opt/silence && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<old-s
 
 **Prod produces, dev consumes.** Transcripts, LLM answers and IGDB resolutions are made by prod's pipeline; what dev decides travels by git (`corrections.json`, prompts and their versions) — so data only ever flows prod → dev, and dev needs no keys to see what prod shows (what you review in dev *is* what prod serves; an LLM recomputing in dev would not be). `tools/prod_data.py` exports an **allowlist** of tables (`PRODUCED`) in the prod container, so users, invitations and reset tokens never leave prod, and a table added later stays home until listed. The tables are copied with prod's schema and the dev backend migrates them at its next start, exactly as a deploy would.
 
-### The lab (dev only): defining the reading pipeline against your judgment
-
-While the pipeline is being defined (which games an episode is about, at which level, on which IGDB entry, which chapters), **prod only serves** (`INGEST=false` in the server's `backend_secrets.env`) and the definition happens in dev, on a snapshot (`./pull-prod-data.sh`):
-
-```bash
-docker compose -f docker-compose.dev.yml run --rm backend python ingest.py --transcribe-all --jobs 4
-```
-
-transcribes what prod hasn't, oldest first, N at a time, with prod's own code (an episode already transcribed is skipped; DeepInfra failing stops the run). On an episode's page, an admin in dev gets a **Labo** panel (`backend/lab.py`, `GET /games/lab/episode`, `PUT /games/lab/judgments`, `LabPanel.vue`): every game the pipeline sees in the episode — attached, or only read — with its source (title, description, reading), the kind and minutes of its section, the IGDB entry, and four verdicts of what it *should* be: consacré, évoqué, absent, mauvaise-fiche. They are written to `backend/lab/judgments.json` — git-tracked, reviewed in a PR like `corrections.json`, writable only in dev (prod answers 404). Each judgment states the expected outcome, so it stays a reference case whatever the pipeline produces next. **Stop criterion**, agreed before iterating: no wrong « consacré » (neither an episode attached to a game it isn't about, nor a wrong IGDB entry), and ≥ 90 % of all judgments met.
-
 ### Once, when the transcription is first deployed
 
 ```bash

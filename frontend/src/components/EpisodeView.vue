@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
@@ -12,11 +12,6 @@ import PodcastBadge from './PodcastBadge.vue'
 import { useArtworkAccent } from '../composables/useArtworkAccent.js'
 import { useProgress } from '../composables/useProgress.js'
 import { Play, Pause, ExternalLink, Check } from 'lucide-vue-next'
-import { isAdmin } from '../lib/auth.js'
-
-// Dev-only curation (admin): loaded on demand so readers never download it.
-const LabPanel = defineAsyncComponent(() => import('./LabPanel.vue'))
-const showLab  = isAdmin()
 
 const route = useRoute()
 const router = useRouter()
@@ -253,9 +248,6 @@ const resumeEntry = computed(() => {
               </div>
             </div>
           </div>
-
-          <LabPanel v-if="showLab && episode" :episode-slug="episode.slug"
-                    @play="ts => playFrom(ts, formatTime(ts))" />
 
         </div>
       </div>

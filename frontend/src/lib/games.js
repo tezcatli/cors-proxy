@@ -76,19 +76,3 @@ export async function refreshPodcastIgdb(podcastId) {
                            { method: 'POST' })
   return r.json()
 }
-
-// The lab (dev only, admin): what the pipeline makes of an episode, and the
-// curator's judgment of each game in it. Prod answers 404 — the lab is not there.
-export async function fetchLabEpisode(episodeSlug) {
-  const r = await apiFetch(`/games/lab/episode?slug=${encodeURIComponent(episodeSlug)}`)
-  return r.json()
-}
-
-export async function setLabJudgment(episodeSlug, game, verdict, igdbSlug) {
-  const r = await apiFetch('/games/lab/judgments', {
-    method:  'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ episode: episodeSlug, game, verdict, igdbSlug: igdbSlug ?? null }),
-  })
-  return r.json()
-}
