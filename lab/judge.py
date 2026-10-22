@@ -8,6 +8,7 @@ judged before (it should be there, or it shouldn't) or the curator adds it as
 missing. Validating an episode says the rest is right.
 """
 import difflib
+import functools
 
 from utils import norm, norm_key
 
@@ -20,6 +21,7 @@ def _numbers(name: str) -> list[str]:
     return [_ROMAN.get(w, w) for w in norm(name).split() if w.isdigit() or w in _ROMAN]
 
 
+@functools.lru_cache(maxsize=None)   # 30 000 calls a measure, on a few thousand names
 def same(a: str, b: str) -> bool:
     """One game under two spellings: the same letters but for spaces and
     punctuation (« Astro Bot »), or close (« Tinikin ») with the same numbers —
@@ -32,11 +34,21 @@ def same(a: str, b: str) -> bool:
 
 def rows(tests: list[dict], judged: dict[str, dict]) -> list[dict]:
     """One row per game: {game, shown (the variant's test, or None), spec (the
-    judgment, or None)}. A judged game keeps its judged name, whatever the
+    judgment, or None)} — a test and a judgment are one game when their names
+    are (`same`) or their IGDB entries. A judged game keeps its judged name, whatever the
     variant calls it, so the judgment is found again."""
     out = [{'game': t['game'], 'shown': t, 'spec': None} for t in tests]
+
+    def one_game(r, name, entry) -> bool:
+        """The same name however spelled, or the same IGDB entry: « Sonic the
+        Hedgehog 4: Episode I » is the « Sonic 4 » judged."""
+        if same(r['game'], name):
+            return True
+        a, b = (r['shown'] or {}).get('igdb'), entry.get('igdb')
+        return isinstance(a, dict) and isinstance(b, dict) and a['id'] == b['id']
+
     for name, entry in judged.items():
-        row = next((r for r in out if r['spec'] is None and same(r['game'], name)), None)
+        row = next((r for r in out if r['spec'] is None and one_game(r, name, entry)), None)
         if row is None:
             out.append({'game': name, 'shown': None, 'spec': entry})
         else:

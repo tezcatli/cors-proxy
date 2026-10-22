@@ -55,3 +55,10 @@ def test_a_test_over_the_whole_episode_lies_in_the_first_chapter_and_the_others_
                 {'start': 1477, 'end': 5064, 'title': 'Critique'}, {'start': 5064, 'end': 5091, 'title': 'Merci'}]
     assert [(g['title'], len(g['rows']), g['within']) for g in timeline(chapters, rows)] == [
         ('Présentation', 1, []), ('Genèse', 0, ['Astro Bot']), ('Critique', 0, ['Astro Bot']), ('Merci', 0, ['Astro Bot'])]
+
+
+
+def test_a_judgment_is_found_again_by_its_igdb_entry():
+    tests = [{'game': 'Sonic the Hedgehog 4: Episode I', 'igdb': {'id': 7}}]
+    judged = {'Sonic 4': {'test': True, 'igdb': {'id': 7}}}
+    assert [(r['game'], r['shown'] is not None) for r in rows(tests, judged)] == [('Sonic 4', True)]

@@ -10,6 +10,8 @@ Each test the chain proposes or the curator expects is one case:
 - `manquant`: a test the chain doesn't propose;
 - `à juger`: proposed, never judged (the episode is back to « à revoir »);
 - `fiche indécise`: a test, proposed, whose entry nobody chose yet;
+- `limite connue`: a wrong entry the curator recorded as one no chain can find
+  (`limit` in the spec: the episode doesn't say it) — counted apart;
 - `hors champ`: judged a test, but out of scope (`scope.py`: under five minutes
   and not in the title) — neither expected nor wrong. Never one the curator
   added: the reading that missed it can't say how long it is.
@@ -23,7 +25,7 @@ import judge
 import scope
 import spec
 
-FOUND = ('juste', 'mauvaise fiche', 'fiche indécise')
+FOUND = ('juste', 'mauvaise fiche', 'fiche indécise', 'limite connue')
 THRESHOLD = 0.9
 
 
@@ -48,6 +50,8 @@ def outcomes(rows: list[dict], in_scope=lambda game: True) -> list[dict]:
             outcome = 'hors champ'
         elif shown and sp.get('test') is True:
             outcome = _fiche_outcome(sp.get('igdb'), shown['igdb'])
+            if outcome == 'mauvaise fiche' and sp.get('limit'):
+                outcome = 'limite connue'
         elif shown and sp.get('test') is False:
             outcome = 'faux'
         elif shown:
@@ -64,7 +68,8 @@ def outcomes(rows: list[dict], in_scope=lambda game: True) -> list[dict]:
 def summary(cases: list[dict]) -> dict:
     """Counts per outcome, the share of expected tests found, and the verdict."""
     counts = {k: sum(c['outcome'] == k for c in cases)
-              for k in ('juste', 'mauvaise fiche', 'fiche indécise', 'faux', 'manquant', 'à juger', 'hors champ')}
+              for k in ('juste', 'mauvaise fiche', 'fiche indécise', 'faux', 'manquant', 'à juger', 'hors champ',
+                        'limite connue')}
     expected = sum(counts[k] for k in (*FOUND, 'manquant'))
     found = sum(counts[k] for k in FOUND) / expected if expected else None
     return {**counts, 'expected': expected, 'found': found,
@@ -92,7 +97,8 @@ def _print(name: str, episodes: list[dict]) -> None:
     found = f"{s['found']:.0%}" if s['found'] is not None else '—'
     print(f"{name}: {len(episodes)} épisodes validés · {s['expected']} tests attendus · trouvés {found} · "
           f"faux {s['faux']} · mauvaise fiche {s['mauvaise fiche']} · manquants {s['manquant']} · "
-          f"à juger {s['à juger']} · fiche indécise {s['fiche indécise']} · hors champ {s['hors champ']} → "
+          f"à juger {s['à juger']} · fiche indécise {s['fiche indécise']} · hors champ {s['hors champ']} · "
+          f"limite connue {s['limite connue']} → "
           f"{'critère atteint' if s['met'] else 'critère non atteint'}")
     for e in episodes:
         for c in e['cases']:

@@ -36,7 +36,7 @@ from variants import VARIANTS                        # noqa: E402
 app.jinja_env.globals['variants'] = list(VARIANTS)
 # The proposals « Juger » shows, whatever the URL says: the best variant so far.
 # The others are compared in /mesure.
-DEFAULT = 'fiches_v2'
+DEFAULT = 'formats'
 
 
 def reference() -> list[dict]:

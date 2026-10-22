@@ -82,8 +82,8 @@
     },
     "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8": {
       "title": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
-      "validated": "2026-10-22T19:24:39+00:00",
-      "variant": "sans_bande_annonce"
+      "validated": "2026-10-22T21:30:05+00:00",
+      "variant": "fiches_v2"
     },
     "65b93499289d85001780a077": {
       "title": "Gâchette Gauche #10 : IA, le jeu vidéo prompt à s'emballer ?",
@@ -177,8 +177,8 @@
     },
     "https://djpod.com/silence-on-joue/?id=134700": {
       "title": "Silence on joue ! NBA 2K11, Sonic 4 et Game dev Story",
-      "validated": "2026-10-22T19:37:26+00:00",
-      "variant": "sans_bande_annonce"
+      "validated": "2026-10-22T21:29:17+00:00",
+      "variant": "fiches_v2"
     },
     "https://djpod.com/silence-on-joue/?id=221221": {
       "title": "Silence, on joue: Street Fighter 4, GTA 4...",
@@ -252,8 +252,8 @@
     },
     "7fea62e6-2e07-41b0-970d-01e14a36b64c": {
       "title": "What Makes a Game Wear Out Its Welcome? (Mailbag)",
-      "validated": "2026-10-22T19:25:01+00:00",
-      "variant": "sans_bande_annonce"
+      "validated": "2026-10-22T21:32:15+00:00",
+      "variant": "fiches_v2"
     },
     "39274c6f-a246-48d2-845c-6b936733575d": {
       "title": "Zelda, Starfield, And The Year To Come",
@@ -2017,10 +2017,16 @@
       "episodeTitle": "Silence on joue ! NBA 2K11, Sonic 4 et Game dev Story",
       "podcast": "silence-on-joue",
       "game": "Game dev Story",
-      "test": false,
-      "igdb": null,
+      "test": true,
+      "igdb": {
+        "id": 19815,
+        "name": "Game Dev Story",
+        "slug": "game-dev-story",
+        "released": "1997",
+        "coverImageId": "co4mcq"
+      },
       "added": false,
-      "at": "2026-10-22T19:36:42+00:00"
+      "at": "2026-10-22T21:27:10+00:00"
     },
     {
       "episode": "https://djpod.com/silence-on-joue/?id=134700",
@@ -2464,7 +2470,7 @@
       "episodeTitle": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
       "podcast": "the-besties",
       "game": "Raccoin",
-      "test": false,
+      "test": true,
       "igdb": {
         "id": 360748,
         "name": "Raccoin: Coin Pusher Roguelike",
@@ -2473,7 +2479,7 @@
         "coverImageId": "coaa0s"
       },
       "added": false,
-      "at": "2026-10-22T20:03:13+00:00"
+      "at": "2026-10-22T21:30:01+00:00"
     },
     {
       "episode": "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8",
@@ -3381,7 +3387,8 @@
         "coverImageId": "cobazz"
       },
       "added": false,
-      "at": "2026-10-22T19:54:31+00:00"
+      "at": "2026-10-22T19:54:31+00:00",
+      "limit": "L'épisode ne dit pas la version : Remastered est déduit du thème de l'émission (les remakes)."
     },
     {
       "episode": "6f188f7c-9061-4319-8cae-64243b723ecb",
@@ -3675,10 +3682,16 @@
       "episodeTitle": "What Makes a Game Wear Out Its Welcome? (Mailbag)",
       "podcast": "triple-click",
       "game": "Donkey Kong Bonanza",
-      "test": false,
-      "igdb": null,
+      "test": true,
+      "igdb": {
+        "id": 338106,
+        "name": "Donkey Kong Bananza",
+        "slug": "donkey-kong-bananza",
+        "released": "2025",
+        "coverImageId": "cobd1q"
+      },
       "added": false,
-      "at": "2026-10-22T19:24:50+00:00"
+      "at": "2026-10-22T21:32:06+00:00"
     },
     {
       "episode": "7fea62e6-2e07-41b0-970d-01e14a36b64c",

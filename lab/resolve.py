@@ -9,7 +9,8 @@ prod answered it.
     docker compose -f docker-compose.dev.yml run --rm lab python resolve.py --fiches
 
 `--fiches` instead decides, with the resolution variant (`fiches.py`), the
-entry of every test `cinq_minutes` proposes in the reference episodes.
+entry of every test `cinq_minutes` or the reading variant proposes in the
+reference episodes.
 
 Needs OPENROUTER_API_KEY (and the IGDB credentials of backend_secrets.env).
 Restart the lab's server afterwards: it loads the answers at start.
@@ -27,10 +28,11 @@ HERE = pathlib.Path(__file__).parent
 def _fiches(guids) -> None:
     import fiches
     import server   # the episodes as the pages see them
+    import reader
     from variants import cinq_minutes
     for guid in guids:
         ep = server._find(guid)
-        for t in cinq_minutes.run(ep)['tests']:
+        for t in [*cinq_minutes.run(ep)['tests'], *(reader.tests(ep) or [])]:
             if not fiches.lookup(t['game'], ep)[0]:
                 f = fiches.decide(t['game'], ep)
                 logging.info('%s → %s', t['game'], f and f'{f["name"]} ({f["released"]})')

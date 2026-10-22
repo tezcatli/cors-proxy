@@ -27,3 +27,9 @@ def test_the_criterion_needs_no_false_test_no_wrong_entry_and_ninety_percent_fou
     assert not summary(ok + [{'outcome': 'manquant'}])['met']
     assert not summary(ok + [{'outcome': 'faux'}])['met']
     assert not summary(ok + [{'outcome': 'mauvaise fiche'}])['met']
+
+
+def test_a_known_limit_is_counted_apart_and_holds_nothing_back():
+    rows = [{'game': 'Dark Souls', 'shown': {'start': 0, 'igdb': A}, 'spec': {'test': True, 'igdb': B, 'limit': 'why'}}]
+    [c] = outcomes(rows)
+    assert c['outcome'] == 'limite connue' and summary([c])['met']

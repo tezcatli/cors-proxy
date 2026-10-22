@@ -9,7 +9,10 @@ Written by the curator on a chain's proposals:
 - `igdb`: the IGDB entry the test is — {id, name, slug, released, coverImageId}
   — or 'absent' when IGDB has none; None while undecided;
 - `added`: the curator added it as missing (no chain proposed it), and `start`,
-  the chapter it was added in.
+  the chapter it was added in;
+- `limit`: why the entry is one no chain can be expected to find — the
+  episode doesn't say it (Dark Souls: Remastered, inferred from the show's
+  theme). Measured apart, it doesn't hold the stop criterion back.
 
 And per episode, `validated`: the curator has seen it whole — every proposed
 test not judged otherwise is right, on the entry proposed, and nothing else is

@@ -7,10 +7,15 @@ the app's. What it changes, from the measured misses:
 - the entry is the one named, never redirected to a parent game (« Miles
   Morales » isn't Marvel's Spider-Man, « The Lost and Damned » isn't GTA IV);
 - the episode's date is always given, even for a retrospective show: the game
-  existed by then.
+  existed by then;
+- other titles are searched for every show, the LLM-read ones included: the
+  name they read can be misspelled (« Donkey Kong Bonanza »).
 
 Its answers are kept in the lab's cache (`lab_fiches`), filled by
 `python resolve.py --fiches`; the pages read them, cached only.
+
+Measured and dropped: the episode's description as context (v5) changed no
+entry — Dark Souls stayed the original, the episode never says Remastered.
 """
 import datetime
 import json
@@ -24,13 +29,15 @@ from podcasts import PODCAST_BY_ID
 from questions import question_for
 from utils import make_slug
 
-VERSION = 1
+VERSION = 4
 _PICK = """You help match a video game named in a podcast episode to the IGDB database.
 Given the name as the podcast wrote it, the episode (show, what it covers, its
 title and date) and IGDB candidates (id, name, other names, release date), pick
 the candidate that IS the game named.
 - Judge from the names first: the candidate whose name or other name is the game
-  named, however spelled. The game may be newer than anything you know.
+  named, however spelled. When one candidate's name is exactly the name given,
+  it is that one: the rules below only choose between candidates that all match
+  the name. The game may be newer than anything you know.
 - A podcast discusses games of any age — a show covering new releases talks
   about older games too — so a release date never rules a candidate out, except
   a game released long after the episode.
@@ -40,7 +47,8 @@ the candidate that IS the game named.
   likely given the episode's title.
 - Pick exactly what is named: a standalone expansion or spin-off named as such
   is that entry, not its parent game; prefer the original release over a bundle,
-  edition or port unless the name says otherwise.
+  edition or port unless the name says otherwise — never a differently named
+  original over the release named.
 If no candidate is the game named, answer null.
 Answer with JSON only: {"id": <candidate id or null>}"""
 
@@ -79,7 +87,9 @@ def decide(name: str, episode) -> dict | None:
                    'show_covers': 'new releases' if podcast.use_date_hint else 'retrospectives of older games',
                    'episode_date': (datetime.datetime.fromtimestamp(episode.pub_ts, datetime.UTC).date().isoformat()
                                     if episode.pub_ts else None)}
-        titles = [] if podcast.games_by_llm else (llm.suggest_titles(name, context) or [])
+        # Every show: a name an LLM wrote from a description can be misspelled
+        # too (« Donkey Kong Bonanza »).
+        titles = llm.suggest_titles(name, context) or []
         candidates, _ = resolver.gather_evidence(question, titles)
         ids = sorted(candidates)
         answer = llm.ask('lab_pick', VERSION, _PICK,
