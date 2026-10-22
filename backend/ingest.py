@@ -161,18 +161,71 @@ def _loop(on_read) -> None:
             _wake.wait(wait)     # the tick's wake ends it early: a pause is then re-checked
 
 
-def main(names: list[str]) -> None:
-    """Ingest the named episodes (guid or URL slug) at once — a sample, in dev."""
+def untranscribed(oldest_first: bool = True) -> list[Episode]:
+    """The episodes with audio and no transcript yet, oldest first by default."""
+    rows = transcribe.rows()
+    todo = [ep for ep in feeds.all_episodes()
+            if ep.audio_url and not (rows.get(ep.slug) and rows[ep.slug].model)]
+    return todo[::-1] if oldest_first else todo
+
+
+def transcribe_all(episodes: list[Episode], jobs: int) -> tuple[int, float]:
+    """Transcribe `episodes`, `jobs` at a time — the backlog, from dev, while prod
+    only serves. Transcribing only: the readings are the lab's to make. An episode
+    already transcribed is skipped, so a rerun pays nothing twice. DeepInfra failing
+    stops the run (it would fail every episode in turn); a failing episode is
+    recorded and the others go on. Returns how many were transcribed, and the cost."""
+    import concurrent.futures
+    stop = threading.Event()
+    done, cost = 0, 0.0
+
+    def one(episode: Episode):
+        if stop.is_set() or transcribe.load(episode.slug) is not None:
+            return None
+        try:
+            t = transcribe.transcribe(episode.audio_url, PODCAST_BY_ID[episode.podcast_id].language)
+        except transcribe.Unavailable as exc:
+            stop.set()
+            logger.error('DeepInfra failing, stopping: %s', exc)
+            return None
+        except Exception as exc:
+            transcribe.store_failure(episode.slug, f'{type(exc).__name__}: {exc}')
+            return None
+        transcribe.store(episode.slug, t)
+        return t
+
+    with concurrent.futures.ThreadPoolExecutor(jobs) as pool:
+        for i, (episode, t) in enumerate(zip(episodes, pool.map(one, episodes)), 1):
+            if t is not None:
+                done += 1
+                cost += t.cost or 0
+                logger.info('%d/%d  %s · %.1f h · $%.4f  (total $%.2f)', i, len(episodes),
+                            episode.title[:60], t.duration / 3600, t.cost or 0, cost)
+    return done, cost
+
+
+def main(argv: list[str]) -> None:
+    """In dev:
+      python ingest.py <guid or url_slug>...         ingest (transcribe + read) these episodes
+      python ingest.py --transcribe-all [--jobs N]   transcribe every episode not yet transcribed,
+                                                     oldest first, N at a time (default 8)"""
     import db
     from rss import assign_url_slugs
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s %(message)s')
     db.init_db()
     for podcast in feeds.PODCASTS:
         feeds._fetch_feed(podcast)
+    if argv and argv[0] == '--transcribe-all':
+        jobs = int(argv[argv.index('--jobs') + 1]) if '--jobs' in argv else 8
+        todo = untranscribed()
+        logger.info('%d episode(s) to transcribe, %d at a time', len(todo), jobs)
+        done, cost = transcribe_all(todo, jobs)
+        logger.info('Transcribed %d episode(s), $%.2f', done, cost)
+        return
     episodes = feeds.all_episodes()
     assign_url_slugs(episodes)
     by_name = {key: ep for ep in episodes for key in (ep.slug, ep.url_slug)}
-    for name in names:
+    for name in argv:
         episode = by_name.get(name)
         if episode is None:
             logger.error('No episode %r', name)

@@ -431,3 +431,30 @@ def test_without_a_reading_the_title_s_games_stand():
     feeds._apply_readings([ep], {'soj-500': _SPECIAL})
     feeds._apply_readings([ep], {})
     assert [g.name for g in ep.games] == ['Le 500e épisode en public', 'Hades II', 'GTA VI']
+
+
+# ── The backlog, transcribed from dev ─────────────────────────────────────────
+
+def test_the_backlog_is_the_untranscribed_episodes_oldest_first(keys, besties):
+    with _deepinfra():
+        ingest.ingest(_episode('bes-control'))
+    assert [ep.slug for ep in ingest.untranscribed()] == ['bes-mail']
+    with get_db() as conn:
+        conn.execute('DELETE FROM transcripts')
+    assert [ep.slug for ep in ingest.untranscribed()] == ['bes-mail', 'bes-control']
+
+
+def test_transcribing_the_backlog_skips_what_is_done_and_reads_nothing(keys, besties):
+    with _deepinfra() as (_, post, _), patch('llm.http.post') as read:
+        assert ingest.transcribe_all(ingest.untranscribed(), jobs=2)[0] == 2
+        assert ingest.transcribe_all(ingest.untranscribed() + [_episode('bes-mail')], jobs=2)[0] == 0
+    assert post.call_count == 2
+    read.assert_not_called()
+
+
+def test_deepinfra_failing_stops_the_backlog(keys, besties):
+    get, post = _deepinfra_refuses()
+    with get, post as upload:
+        assert ingest.transcribe_all(ingest.untranscribed(), jobs=1)[0] == 0
+    assert upload.call_count == 1                 # not one try per episode
+    assert transcribe.rows() == {}                # no episode blamed
