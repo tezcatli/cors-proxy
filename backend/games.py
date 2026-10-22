@@ -15,6 +15,7 @@ from flask import Blueprint, abort, jsonify, request, Response
 import catalog_state as state
 import corrections
 import feeds
+import lab
 import resolver
 import review
 import serializers
@@ -155,6 +156,38 @@ def game_igdb_refresh(slug):
     members, cache, _ = serializers.match_appearances(slug)
     worker.call(_purge_and_resolve, members, cache)
     return jsonify(serializers.load_members(members, make_slug(slug)))
+
+
+# ── Admin, dev only: the lab ──────────────────────────────────────────────────
+
+def _lab_episode():
+    require_admin()
+    if not lab.enabled():
+        abort(404, 'The lab runs in dev only.')
+    slug = (request.args.get('slug') or (request.get_json(silent=True) or {}).get('episode') or '').strip()
+    with state.lock:
+        episode = state.episode_index.get(slug)
+    if episode is None:
+        abort(404, 'Episode not found')
+    return episode
+
+
+@games_bp.route('/lab/episode')
+def lab_episode():
+    return jsonify(lab.episode_view(_lab_episode()))
+
+
+@games_bp.route('/lab/judgments', methods=['PUT'])
+def lab_judge():
+    episode = _lab_episode()
+    payload = request.get_json(silent=True) or {}
+    game, verdict = (payload.get('game') or '').strip(), payload.get('verdict')
+    if not game:
+        abort(400, 'game is required')
+    if verdict is not None and verdict not in lab.VERDICTS:
+        abort(400, f"verdict must be one of {', '.join(lab.VERDICTS)} or null")
+    lab.judge(episode, game, verdict, payload.get('igdbSlug'))
+    return jsonify(lab.episode_view(episode))
 
 
 # ── Admin: resolution stats & corrections ─────────────────────────────────────
