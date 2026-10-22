@@ -19,6 +19,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s %(message
 snapshot.load()
 
 import catalog_state as state                       # noqa: E402  (after the snapshot)
+import feeds                                        # noqa: E402
 from podcasts import PODCAST_BY_ID                  # noqa: E402
 
 
@@ -27,11 +28,18 @@ def reference() -> list[dict]:
         return json.load(f)['episodes']
 
 
-def _episode(guid: str):
+def _find(guid: str):
+    """Any episode of the feeds — the catalog leaves out the LLM-read shows'
+    episodes not read yet, and those are to be judged too."""
     with state.lock:
         ep = state.episode_index.get(guid)
+    return ep or next((e for e in feeds.all_episodes() if e.slug == guid), None)
+
+
+def _episode(guid: str):
+    ep = _find(guid)
     if ep is None:
-        abort(404, f'No episode {guid} in the snapshot')
+        abort(404, f'No episode {guid} in the feeds')
     return ep
 
 
@@ -43,8 +51,7 @@ def _date(ts) -> str:
 def index():
     rows = []
     for ref in reference():
-        with state.lock:
-            ep = state.episode_index.get(ref['guid'])
+        ep = _find(ref['guid'])
         judged = judgments.for_episode(ref['guid'])
         rows.append({**ref, 'found': ep is not None, 'date': _date(ep.pub_ts) if ep else '?',
                      'show': PODCAST_BY_ID[ep.podcast_id].label if ep else '?',

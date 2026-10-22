@@ -11,6 +11,10 @@ from utils import make_slug
 
 NAME = 'current'
 
+# What a row says when the reading has nothing on the game (not read yet, or a
+# name the reading doesn't use): every field present, so a page never guesses.
+_NO_EVIDENCE = {'kind': None, 'start': None, 'minutes': None, 'verdict': None}
+
 
 def _sections(episode) -> list[dict] | None:
     row = transcribe.rows().get(episode.slug)
@@ -41,7 +45,7 @@ def run(episode) -> dict:
     def evidence(name: str) -> tuple[str | None, dict]:
         hit = find_chapter_for_game(name, chapters)
         if hit is None:
-            return None, {}
+            return None, dict(_NO_EVIDENCE)
         key = keys[chapters.index(hit)]
         group = groups[key]
         best = max(group, key=lambda s: (s['kind'] in CRITIQUE_KINDS, s['end'] - s['start']))
