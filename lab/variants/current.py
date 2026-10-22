@@ -13,7 +13,7 @@ NAME = 'current'
 
 # What a row says when the reading has nothing on the game (not read yet, or a
 # name the reading doesn't use): every field present, so a page never guesses.
-_NO_EVIDENCE = {'kind': None, 'start': None, 'minutes': None, 'verdict': None}
+_NO_EVIDENCE = {'kind': None, 'start': None, 'minutes': None, 'verdict': None, 'at': None}
 
 
 def _sections(episode) -> list[dict] | None:
@@ -33,7 +33,8 @@ def _source(episode, mention, read: bool) -> str:
 
 def run(episode) -> dict:
     """Every game the chain sees in `episode`: attached (on the game's page) or
-    only read, with what decided it and the IGDB entry it lands on."""
+    only read, with what decided it and the IGDB entry it lands on — and the
+    reading's sections, to see what it rests on."""
     sections = _sections(episode)
     groups: dict[str, list[dict]] = {}
     for s in sections or []:
@@ -49,7 +50,7 @@ def run(episode) -> dict:
         key = keys[chapters.index(hit)]
         group = groups[key]
         best = max(group, key=lambda s: (s['kind'] in CRITIQUE_KINDS, s['end'] - s['start']))
-        return key, {'kind': best['kind'], 'start': best['start'],
+        return key, {'kind': best['kind'], 'start': best['start'], 'at': 'section',
                      'minutes': round(sum(s['end'] - s['start'] for s in group) / 60, 1),
                      'verdict': (best['opinion'] or {}).get('verdict')}
 
@@ -57,6 +58,9 @@ def run(episode) -> dict:
     for mention in episode.games:
         key, ev = evidence(mention.name)
         seen.add(key)
+        if ev['start'] is None and mention.timestamp:
+            # Nothing read on it: its chapter is where to listen.
+            ev = {**ev, 'start': mention.timestamp_seconds, 'at': 'chapitre'}
         game = state.game_index.get(make_slug(mention.name))
         entry = state.entry(game, episode) if game else None
         rows.append({'game': mention.name, 'level': 'consacré',
@@ -70,4 +74,5 @@ def run(episode) -> dict:
             rows.append({'game': groups[key][0]['game'], 'level': None, 'source': 'lecture',
                          'igdb': None, **ev})
     rows.sort(key=lambda r: (r['level'] is None, -(r.get('minutes') or 0)))
-    return {'read': sections is not None, 'games': rows}
+    return {'read': sections is not None, 'games': rows,
+            'sections': [s for s in sections or [] if not s['ad']]}

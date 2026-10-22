@@ -15,6 +15,22 @@
   <div style="margin-top:8px">{{ ep.description | safe }}</div></details>
 
 <div class="panel">
+  <div class="dim" style="margin-bottom:6px">Chapitres de l'épisode{% if ep.chapters_read %} (tirés de la lecture){% endif %}</div>
+  {% for c in ep.chapters %}<button class="seek" data-t="{{ c.timestamp_seconds }}">{{ c.timestamp_seconds | hms }} · {{ c.title }}</button>{% else %}<span class="dim">aucun</span>{% endfor %}
+</div>
+
+{% if out.sections %}
+<details class="panel"><summary class="dim">Sections de la lecture ({{ out.sections | length }})</summary>
+  <table style="margin-top:8px">
+    {% for x in out.sections %}
+    <tr><td class="mono"><button class="seek" data-t="{{ x.start }}">{{ x.start | hms }}–{{ x.end | hms }}</button></td>
+        <td class="mono">{{ x.kind or '' }}</td><td><strong>{{ x.game or '' }}</strong></td><td class="dim">{{ x.title }}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+{% endif %}
+
+<div class="panel">
   <table id="games">
     <tr><th></th><th>Jeu</th><th>Ce que la chaîne en fait</th><th>Ce qu'il devrait être</th></tr>
     {% for g in out.games %}
@@ -26,7 +42,7 @@
       <td class="mono">
         {{ g.level or 'non rattaché' }} · {{ g.source }}
         {% if g.kind %} · {{ g.kind }}{% endif %}{% if g.minutes is not none %} · {{ g.minutes }} min{% endif %}
-        {% if g.start is not none %} · à {{ '%d:%02d' % (g.start // 60, g.start % 60) }}{% endif %}
+        {% if g.start is not none %} · à {{ g.start | hms }}{% if g.at == 'chapitre' %} (chapitre){% endif %}{% endif %}
         {% if g.verdict %} · avis {{ g.verdict }}{% endif %}
       </td>
       <td class="verdicts">{% for v in verdicts %}<button class="v{% if g.judgment == v %} on{% endif %}" data-v="{{ v }}">{{ v }}</button>{% endfor %}</td>
@@ -45,6 +61,8 @@
 
 <style>
   button { font: inherit; cursor: pointer; }
+  .seek { font-size: 0.75rem; margin: 2px 4px 2px 0; padding: 2px 8px; border-radius: 6px;
+          border: 1px solid var(--line); background: none; color: var(--text); }
   .play { width: 28px; height: 28px; border-radius: 999px; border: 0; background: var(--line); color: var(--text); }
   .v { font-size: 0.72rem; padding: 2px 8px; margin: 1px; border-radius: 999px;
        border: 1px solid var(--line); background: none; color: var(--dim); }
@@ -52,7 +70,7 @@
 </style>
 <script>
   const audio = document.getElementById('audio')
-  document.querySelectorAll('.play').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.play, .seek').forEach(b => b.onclick = () => {
     if (!audio) return
     audio.currentTime = Number(b.dataset.t)
     audio.play()
