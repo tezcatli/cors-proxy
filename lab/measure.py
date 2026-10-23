@@ -28,8 +28,9 @@ import judge
 import scope
 import spec
 
-# The control set first: the verdict is its own.
-SETS = ('contrôle', 'référence')
+# The latest control set first: the verdict is its own — each earlier one
+# was used to choose the chain, the reference set to tune it.
+SETS = ('contrôle 2', 'contrôle', 'référence')
 FOUND = ('juste', 'mauvaise fiche', 'fiche indécise', 'limite connue')
 THRESHOLD = 0.9
 
