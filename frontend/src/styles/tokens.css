@@ -20,13 +20,30 @@
   --c-accent-fg: #0b0b0b;
   --c-danger:    #ff6b4a;
 
-  /* Older names, still read by the admin consoles' scoped styles. */
+  /* Older names, still read by the admin consoles' scoped styles (and the
+     IGDB picker): aliases onto the system above. Resolution status keeps
+     three steps: fg (resolved), accent (doubtful), danger (unresolved). */
   --game-accent:    var(--c-accent);
   --game-accent-fg: var(--c-accent-fg);
   --rgb-base:  11, 11, 11;
   --rgb-light: 245, 245, 245;
+  --rgb-line:  255, 255, 255;
+  --rgb-high:  245, 245, 245;
+  --rgb-mid:   255, 210, 63;
+  --rgb-low:   255, 107, 74;
+  --col-mid-text: var(--c-accent);
+  --col-low-text: var(--c-danger);
   --border-subtle: var(--c-line);
   --border-strong: var(--c-line-strong);
+  --border-accent: var(--c-accent);
+  --panel-bg:      var(--c-surface);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-pill: 999px;
+  --back-clear: 24px;   /* the back bar is in flow now: just air under it */
+  --ease-std: var(--ease-out-soft);
 
   /* ─── Type ─────────────────────────────────────────────────────────── */
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
