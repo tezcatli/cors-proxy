@@ -2670,11 +2670,11 @@
       "game": "Picross 3D",
       "test": true,
       "igdb": {
-        "id": 10631,
-        "name": "Picross 3D",
-        "slug": "picross-3d",
-        "released": "2009",
-        "coverImageId": "co2dzy"
+        "id": 26176,
+        "name": "Picross 3D: Round 2",
+        "slug": "picross-3d-round-2",
+        "released": "2015",
+        "coverImageId": "co2api"
       },
       "added": false,
       "at": "2026-10-23T06:33:39+00:00"

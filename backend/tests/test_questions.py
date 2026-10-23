@@ -48,6 +48,19 @@ def test_a_question_is_judged_as_of_its_first_airing():
     assert question.aired == _2024_MAR
 
 
+def test_the_names_that_tell_an_episode_s_games_apart_are_asked_and_answering_rebuilds():
+    from unittest.mock import patch
+    import resolver
+    episode = Episode(title='«Wolfenstein»', slug='g', audio_url=None, pub_ts=_2024_MAR, image_url=None,
+                      description=None, chapters=[], games=[], podcast_id='silence-on-joue')
+    episode.identified = ['Wolfenstein', 'Wolfenstein: The Old Blood']
+    state.episodes = [episode]
+    question = state.asked()[_ask('Wolfenstein: The Old Blood').key]
+    with patch('resolver.resolve'), patch('worker.submit') as submit:
+        resolver._resolve_if_pending(question)
+    submit.assert_called_once_with(resolver._rebuild_and_sweep, key='rebuild')
+
+
 def test_a_retrospective_show_asks_one_undated_question_whatever_the_year():
     old = _ask('Chrono Trigger', _2024_MAR, 'fin-du-game')
     assert old.key == _ask('Chrono Trigger', _2025_JAN, 'fin-du-game').key

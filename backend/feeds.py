@@ -21,6 +21,7 @@ from corrections import unmatched_slugs
 from db import utcnow
 from models import Chapter, Episode, GameAppearance, GameMention, PodcastGame
 from podcasts import PODCASTS, PODCAST_BY_ID
+from questions import question_for
 from rss import parse_feed, assign_url_slugs, is_game_catalog_excluded, find_chapter_for_game
 from utils import make_slug, plain_text
 
@@ -129,16 +130,14 @@ def _as_chapter(section: dict, title: str) -> Chapter:
 
 
 def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) -> None:
-    """What an episode's reading makes of it. The title proposes, the reading
-    confirms: a game the title names is kept when the reading finds a section of
-    it, whatever kind — a special's title is not a game («Le 500e épisode en
-    public», «et plein d'autres»). The reading adds the games it critiques that
-    the title doesn't name — a show's title names two games, its hour on
-    Microïds' catalogue five more — gives each game its critique, and chapters
-    an episode that has none of its own (ads left out). Which of those games
-    are tests, and where each starts, is `critiques.select`'s. Idempotent: the Episode
-    objects are reused across 304s; what the title proposed is set aside, and
-    the games are rebuilt from it on every pass."""
+    """What an episode's reading makes of it: its tests (`critiques.select`, from
+    the games its title proposed and the ones its reading finds), with their
+    critiques, and chapters for an episode that has none of its own (ads left
+    out). The names whose IGDB answers tell its games apart are noted
+    (`Episode.identified`), for the catalog to ask; the answers already cached
+    are used (`_page`), and the catalog is rebuilt when one comes. Idempotent:
+    the Episode objects are reused across 304s; what the title proposed is set
+    aside, and the games are rebuilt from it on every pass."""
     for ep in episodes:
         if ep.proposed is None:
             ep.proposed = list(ep.games)
@@ -146,26 +145,25 @@ def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) ->
             mention.critique = None
         sections = readings.get(ep.slug)
         if not sections:
-            ep.games = list(ep.proposed)
+            ep.games, ep.identified = list(ep.proposed), []
             continue
-        spoken = [_as_chapter(s, s['game']) for s in sections if s['game']]
-        ep.games = [m for m in ep.proposed if find_chapter_for_game(m.name, spoken)]
         if not ep.chapters or ep.chapters_read:
             ep.chapters = [_as_chapter(s, s['title']) for s in sections if not s['ad']]
             ep.chapters_read = True
-            _point_mentions(ep)
-        for section in _game_sections(sections):
-            named = [Chapter(m.timestamp or '', m.timestamp_seconds, m.name, m.name)
-                     for m in ep.games]
-            matched = find_chapter_for_game(section['game'], named)
-            if matched:
-                mention = ep.games[named.index(matched)]
-            else:
-                mention = GameMention(name=section['game'], timestamp=_seconds_to_ts(section['start']),
-                                      timestamp_seconds=section['start'], read=True)
-                ep.games.append(mention)
-            mention.critique = section['opinion']
-        ep.games = critiques.select(PODCAST_BY_ID[ep.podcast_id], ep, sections)
+        podcast = PODCAST_BY_ID[ep.podcast_id]
+        listed = not (is_game_catalog_excluded(ep.title) or critiques.palmares(podcast, ep.title))
+        ep.identified = critiques.identify(podcast, ep, sections) if listed else []
+        ep.games = critiques.select(podcast, ep, sections, page=lambda name, ep=ep: _page(name, ep))
+
+
+def _page(name: str, episode: Episode) -> int | None:
+    """The catalog page `name`'s answer in `episode` is on, None while it has none.
+    A curator's pin is its answer already."""
+    question = question_for(PodcastGame(make_slug(name), name), episode)
+    if question.pin:
+        return question.pin
+    answer = state.resolutions.get(question.key)
+    return answer.igdb_id if answer else None
 
 
 # ── Indexes ───────────────────────────────────────────────────────────────────

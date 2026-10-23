@@ -35,10 +35,31 @@ def test_a_palmares_entry_is_no_test_even_long():
     assert names(critiques.select(SOJ, episode(read=['Ranked', 'Both']), sections)) == ['Both']
 
 
-def test_the_title_s_game_stands_unless_heard_only_in_the_news():
+def test_the_title_s_game_is_one_when_found_unless_heard_only_in_the_news():
     sections = [section('Nine Lives', 'news', 0, 7), section('Red Steel 2', 'review', 420, 9)]
-    assert names(critiques.select(SOJ, episode('Red Steel 2', 'Nine Lives', 'Sonic 4'), sections)) == [
-        'Red Steel 2', 'Sonic 4']   # Sonic 4: no section, silence is no veto
+    assert names(critiques.select(SOJ, episode('Red Steel 2', 'Nine Lives', 'Le 500e épisode'), sections)) == [
+        'Red Steel 2']   # a title that names no game the reading finds is no test
+
+
+def test_names_are_one_game_by_their_catalog_page_not_their_words():
+    sections = [section('Wolfenstein: The Old Blood', 'review', 0, 20), section('Broken Sword 5', 'review', 1200, 14),
+                section('Broken Age', 'review', 2100, 20)]
+    pages = {'Wolfenstein': 1, 'Wolfenstein: The Old Blood': 1, 'Broken Sword 5': 2, 'Broken Age': 3}
+    tests = critiques.select(SOJ, episode('Wolfenstein', 'Broken Age'), sections, page=pages.get)
+    assert sorted(names(tests)) == ['Broken Age', 'Broken Sword 5', 'Wolfenstein']
+
+
+def test_without_an_answer_the_words_decide_but_a_sequel_is_another_game():
+    sections = [section('Pokémon X et Pokémon Y', 'review', 0, 20), section('Assassin’s Creed II', 'review', 1200, 10)]
+    tests = critiques.select(SOJ, episode('Pokémon X & Y', 'Assassin’s Creed'), sections)
+    assert names(tests) == ['Pokémon X & Y', 'Assassin’s Creed II']
+
+
+def test_a_game_is_never_two_pages():
+    sections = [section('Tomb Raider', 'review', 0, 20), section('Tomb Raider II', 'review', 1200, 16)]
+    pages = {"L'histoire de Tomb Raider": None, 'Tomb Raider': 1, 'Tomb Raider II': 2}
+    tests = critiques.select(SOJ, episode("L'histoire de Tomb Raider"), sections, page=pages.get)
+    assert sorted(names(tests)) == ["L'histoire de Tomb Raider", 'Tomb Raider II']
 
 
 def test_for_the_llm_read_shows_every_game_is_the_reading_s():

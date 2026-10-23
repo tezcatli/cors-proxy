@@ -10,6 +10,7 @@ missing. Validating an episode says the rest is right.
 import difflib
 import functools
 
+import groups
 from utils import norm, norm_key
 
 _ROMAN = {'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5', 'vi': '6', 'vii': '7',
@@ -35,17 +36,18 @@ def same(a: str, b: str) -> bool:
 def rows(tests: list[dict], judged: dict[str, dict]) -> list[dict]:
     """One row per game: {game, shown (the variant's test, or None), spec (the
     judgment, or None)} — a test and a judgment are one game when their names
-    are (`same`) or their IGDB entries. A judged game keeps its judged name, whatever the
+    are (`same`) or their catalog pages. A judged game keeps its judged name, whatever the
     variant calls it, so the judgment is found again."""
     out = [{'game': t['game'], 'shown': t, 'spec': None} for t in tests]
 
     def one_game(r, name, entry) -> bool:
-        """The same name however spelled, or the same IGDB entry: « Sonic the
-        Hedgehog 4: Episode I » is the « Sonic 4 » judged."""
+        """The same name however spelled, or the same page of the catalog
+        (`groups.py`): « Sonic the Hedgehog 4: Episode I » is the « Sonic 4 »
+        judged, « GTA 4 » the « GTA IV: The Lost and Damned » judged."""
         if same(r['game'], name):
             return True
         a, b = (r['shown'] or {}).get('igdb'), entry.get('igdb')
-        return isinstance(a, dict) and isinstance(b, dict) and a['id'] == b['id']
+        return isinstance(a, dict) and isinstance(b, dict) and groups.page(a['id']) == groups.page(b['id'])
 
     for name, entry in judged.items():
         row = next((r for r in out if r['spec'] is None and one_game(r, name, entry)), None)

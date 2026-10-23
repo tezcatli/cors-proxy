@@ -43,6 +43,9 @@ class Episode:
     # transcript's reading confirms them; `games` is what is kept. None until the
     # first rebuild sets it aside (`feeds._apply_readings`).
     proposed: Optional[list[GameMention]] = None
+    # The names whose IGDB answers tell its games apart (`critiques.identify`):
+    # asked by the catalog like its games' own, so the next build can use them.
+    identified: list[str] = field(default_factory=list)
 
 
 @dataclass

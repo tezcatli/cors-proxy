@@ -1,5 +1,5 @@
 {
- "variant": "titre_critique",
+ "variant": "identite_fiche",
  "episodes": {
   "632d71d3acd4d10012d046bd": [
    {
@@ -337,7 +337,7 @@
   ],
   "https://djpod.com/silence-on-joue/?id=221221": [
    {
-    "game": "GTA IV: The Lost and Damned",
+    "game": "GTA 4",
     "start": 1211,
     "page": 731
    },
@@ -543,7 +543,7 @@
    },
    {
     "game": "Evil Dead",
-    "start": 3668,
+    "start": 3695,
     "page": 141544
    },
    {
@@ -777,9 +777,9 @@
     "page": 14746
    },
    {
-    "game": "Picross 3D",
+    "game": "Picross 3D Round 2",
     "start": 853,
-    "page": 10631
+    "page": 26176
    }
   ],
   "6661b1a10ef935001225cd6f": [],

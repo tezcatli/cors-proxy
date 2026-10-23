@@ -22,6 +22,7 @@ from db import get_db
 from corrections import find_by_podcast
 from models import Episode, IgdbEntry, IgdbGame, PodcastGame, Resolution
 from questions import Question, question_for
+from utils import make_slug
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +76,22 @@ def asked() -> dict[str, Question]:
     episode nearest to the game's release (see `questions.py`)."""
     first: dict[str, Question] = {}
     with lock:
-        for game in game_index.values():
-            for a in game.appearances:
-                q = question_for(game, a.episode)
-                held = first.get(q.key)
-                if held is None or (q.aired or 0) < (held.aired or 0):
-                    first[q.key] = q
+        asking = [(game, a.episode) for game in game_index.values() for a in game.appearances]
+        asking += [(PodcastGame(make_slug(name), name), ep) for ep in episodes for name in ep.identified]
+    for game, episode in asking:
+        q = question_for(game, episode)
+        held = first.get(q.key)
+        if held is None or (q.aired or 0) < (held.aired or 0):
+            first[q.key] = q
     return first
+
+
+def identifying() -> set[str]:
+    """The questions whose answers tell an episode's games apart
+    (`Episode.identified`): one answered calls for a rebuild."""
+    with lock:
+        return {question_for(PodcastGame(make_slug(name), name), ep).key
+                for ep in episodes for name in ep.identified}
 
 
 # ── Writing ───────────────────────────────────────────────────────────────────
