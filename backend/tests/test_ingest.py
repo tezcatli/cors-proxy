@@ -296,7 +296,8 @@ def test_an_episode_s_own_chapters_win_over_its_reading(keys):
     feeds._apply_readings([ep], {'soj-1': sections})
     assert [c.title for c in ep.chapters] == ['Super Mario RPG']
     assert ep.games[0].critique['verdict'] == 'positive'
-    assert (ep.games[0].timestamp_seconds, ep.games[0].critique['at']) == (2226, 3097)
+    # A test starts where its critique does — the reading's section, not the chapter.
+    assert (ep.games[0].timestamp_seconds, ep.games[0].critique['at']) == (2227, 3097)
 
 
 def _soj_episode():
@@ -323,7 +324,7 @@ def test_a_reading_adds_the_games_the_title_doesnt_name():
     for _ in range(2):                      # a rebuild replaces, never piles up
         feeds._apply_readings([ep], {'soj-16': _S17E16})
     assert [(g.name, g.timestamp_seconds, g.read, g.critique['verdict']) for g in ep.games] == [
-        ('Karmazoo', 9294, False, 'positive'),                 # the title's, with its verdict
+        ('Karmazoo', 9365, False, 'positive'),                 # the title's, from its critique
         ('Goldorak : Le Festin des Loups', 3755, True, 'negative')]   # not the trailer in the news
 
 
@@ -420,10 +421,10 @@ _SPECIAL = llm._sections({'sections': [
     {'title': 'GTA VI', 'game': 'GTA VI', 'kind': 'news', 'start_s': 3000, 'end_s': 3300}]})
 
 
-def test_a_title_s_game_the_reading_finds_no_section_of_is_dropped():
+def test_a_title_s_game_the_reading_finds_no_section_of_or_only_in_the_news_is_dropped():
     ep = _special_episode()
     feeds._apply_readings([ep], {'soj-500': _SPECIAL})
-    assert [g.name for g in ep.games] == ['Hades II', 'GTA VI']   # GTA VI: in the news, still there
+    assert [g.name for g in ep.games] == ['Hades II']   # GTA VI: only in the news
 
 
 def test_without_a_reading_the_title_s_games_stand():

@@ -50,8 +50,9 @@ def test_a_question_is_judged_as_of_its_first_airing():
 
 def test_a_retrospective_show_asks_one_undated_question_whatever_the_year():
     old = _ask('Chrono Trigger', _2024_MAR, 'fin-du-game')
-    assert old == _ask('Chrono Trigger', _2025_JAN, 'fin-du-game')
+    assert old.key == _ask('Chrono Trigger', _2025_JAN, 'fin-du-game').key
     assert (old.window, old.aired) == (None, None)
+    assert old.dated == _2024_MAR   # the LLM is still told when the episode aired
 
 
 def test_a_pin_is_the_question_and_its_answer():

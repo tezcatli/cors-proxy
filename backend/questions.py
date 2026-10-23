@@ -40,6 +40,11 @@ class Question:
     query:      str              # what IGDB is searched for
     window:     Window | None    # release dates the search prefers, around `aired`
     pin:        int | None = None
+    # What the LLM is told of the first airing, whatever the show: its title, and
+    # its date even when it doesn't bound the release (a retrospective's game
+    # still existed by then).
+    title:      str = ''
+    dated:      int | None = None
 
 
 def _year(ts: int | None) -> int | None:
@@ -55,7 +60,7 @@ def question_for(game: PodcastGame, episode: Episode) -> Question:
         igdb_id = correction['igdb_id']
         return Question(key=f'pin|{igdb_id}', kind='pin', name=game.name,
                         podcast_id=episode.podcast_id, aired=aired, query=game.name,
-                        window=None, pin=igdb_id)
+                        window=None, pin=igdb_id, title=episode.title, dated=episode.pub_ts)
 
     # What the episode's date says of the game's. A curated day is the most precise;
     # a show covering new games was talking about a recent one — one question per
@@ -75,7 +80,8 @@ def question_for(game: PodcastGame, episode: Episode) -> Question:
         query = correction.get('search_name') or game.name
         return Question(key=f'search|{make_slug(query)}|{scope}', kind='search',
                         name=game.name, podcast_id=episode.podcast_id, aired=aired,
-                        query=query, window=window)
+                        query=query, window=window, title=episode.title, dated=episode.pub_ts)
     return Question(key=f'name|{episode.podcast_id}|{scope}|{game.name_slug}', kind='name',
                     name=game.name, podcast_id=episode.podcast_id, aired=aired,
-                    query=game.name, window=window)
+                    query=game.name, window=window, title=episode.title,
+                    dated=episode.pub_ts)

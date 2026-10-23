@@ -37,6 +37,13 @@ class Podcast:
     # podcast's teaser) before anything is asked.
     games_by_llm: bool = False
     skip_title: str | None = None
+    # Every episode is about the one game its title names (`critiques.select`).
+    one_game: bool = False
+    # The show's palmarès formats, by title (a regex on `utils.norm(title)`): a
+    # best-of, an awards show, a reading list holds no test, even when the
+    # reading calls each entry a review. Only explicit formats — « … Is GOTY
+    # Quality » is a review.
+    palmares_titles: str | None = None
 
 
 def _feed_url(podcast_id: str, default: str) -> str:
@@ -52,6 +59,7 @@ PODCASTS: list[Podcast] = [
                            'https://feeds.acast.com/public/shows/silence-on-joue'),
         extractor=rss.extract_game_names,
         language='fr',
+        palmares_titles=r'\bsilences d or\b',
     ),
     Podcast(
         id='fin-du-game',
@@ -64,6 +72,7 @@ PODCASTS: list[Podcast] = [
         # Retrospective show: a 2026 episode on Symphony of the Night (1997) must
         # not search IGDB around 2026, or it lands on an unrelated recent game.
         use_date_hint=False,
+        one_game=True,
     ),
     Podcast(
         id='triple-click',
@@ -75,6 +84,7 @@ PODCASTS: list[Podcast] = [
         games_by_llm=True,
         # Maximum Fun cross-promotes its other shows in this feed.
         skip_title=r'^Beanscast\b|\[TEASER\]',
+        palmares_titles=r'^triple click picks\b|^our favou?rite (video )?games of\b',
     ),
     Podcast(
         id='the-besties',
@@ -84,6 +94,8 @@ PODCASTS: list[Podcast] = [
         extractor=lambda _title: [],
         language='en',
         games_by_llm=True,
+        palmares_titles=(r'\bbattle bracket\b|\brequired reading list\b|\bgoty spectacular\b'
+                         r'|\bthe besties game of the year is\b'),
     ),
 ]
 

@@ -1,0 +1,879 @@
+{
+ "variant": "titre_critique",
+ "episodes": {
+  "632d71d3acd4d10012d046bd": [
+   {
+    "game": "NBA 2K23",
+    "start": 6201,
+    "page": 207393
+   },
+   {
+    "game": "Return to Monkey Island",
+    "start": 3393,
+    "page": 195517
+   },
+   {
+    "game": "Splatoon 3",
+    "start": 2388,
+    "page": 143613
+   },
+   {
+    "game": "Tinykin",
+    "start": 5420,
+    "page": 152267
+   }
+  ],
+  "a9ce0b17-afd7-4e81-a7f4-34263a7467cc": [
+   {
+    "game": "Control Resonant",
+    "start": 152,
+    "page": 225582
+   },
+   {
+    "game": "Final Fantasy Resonance",
+    "start": 3037,
+    "page": 405454
+   },
+   {
+    "game": "Star Wars Galactic Racer",
+    "start": 3803,
+    "page": 381248
+   }
+  ],
+  "a59cbc9e-38e0-46e5-80d1-ff2877d36562": [
+   {
+    "game": "Control Resonant",
+    "start": 363,
+    "page": 225582
+   },
+   {
+    "game": "Gears of War E-Day",
+    "start": 2034,
+    "page": 305160
+   }
+  ],
+  "6b0d0dcc-2620-485b-a26c-2e45f713165c": [
+   {
+    "game": "Resident Evil Requiem",
+    "start": 340,
+    "page": 347668
+   }
+  ],
+  "660c3256b6119b01772ae8c4": [
+   {
+    "game": "Gears of War 2",
+    "start": 0,
+    "page": 548
+   }
+  ],
+  "683dc4cee646ff83253c75cb": [
+   {
+    "game": "Dragon Age: Origins",
+    "start": 0,
+    "page": 76
+   }
+  ],
+  "879c3665-f69e-4705-a3ce-35ac21fb28de": [
+   {
+    "game": "Minecraft Dungeons 2",
+    "start": 2729,
+    "page": 395525
+   },
+   {
+    "game": "Star Wars: Galactic Racer",
+    "start": 310,
+    "page": 381248
+   }
+  ],
+  "6f188f7c-9061-4319-8cae-64243b723ecb": [
+   {
+    "game": "Dark Souls",
+    "start": 2708,
+    "page": 2155
+   }
+  ],
+  "65692b5b1cf196001342df41": [
+   {
+    "game": "Agatha Christie : Le Crime de l’Orient-Express",
+    "start": 7794,
+    "page": 250890
+   },
+   {
+    "game": "Astérix et Obélix : Baffez-les tous ! 2",
+    "start": 7473,
+    "page": 254845
+   },
+   {
+    "game": "Dredge",
+    "start": 1511,
+    "page": 164867
+   },
+   {
+    "game": "Flashback 2",
+    "start": 5045,
+    "page": 146699
+   },
+   {
+    "game": "Goldorak, le festin des loups",
+    "start": 3712,
+    "page": 239407
+   },
+   {
+    "game": "Karmazoo",
+    "start": 9365,
+    "page": 246564
+   },
+   {
+    "game": "Super Mario RPG",
+    "start": 2260,
+    "page": 254327
+   },
+   {
+    "game": "Tintin Reporter : Les Cigares du Pharaon",
+    "start": 6301,
+    "page": 223863
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=221246": [
+   {
+    "game": "Civilization Revolution",
+    "start": 1043,
+    "page": 2152
+   }
+  ],
+  "b4f0bc35-b6c3-4c76-9e69-a5daf11c91c9": [
+   {
+    "game": "CrossCode",
+    "start": 4040,
+    "page": 35282
+   },
+   {
+    "game": "Gears of War: Reloaded",
+    "start": 2845,
+    "page": 547
+   },
+   {
+    "game": "Mafia: The Old Country",
+    "start": 1894,
+    "page": 314276
+   },
+   {
+    "game": "Metal Gear Solid Delta: Snake Eater",
+    "start": 939,
+    "page": 250634
+   }
+  ],
+  "695cd72ccff5303b49e18943": [],
+  "f20e1a0f-8c94-4063-8235-2b493ddc4f6f": [],
+  "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b": [],
+  "23e5432b-985a-4473-9e51-9771f35b534f": [],
+  "6ad0d9ec0c6b30397b2e1cc9": [],
+  "65b93499289d85001780a077": [],
+  "https://www.polygon.com/gaming/2012/9/14/3334334/the-besties-podcast-wii-u-special": [],
+  "6a2b0cb8440b9d7bbf8121f0": [
+   {
+    "game": "Crushed In Time",
+    "start": 4145,
+    "page": 362089
+   }
+  ],
+  "6870f0bd610560d3ef3e6019": [
+   {
+    "game": "Dungeons of Hinterberg",
+    "start": 77,
+    "page": 146917
+   },
+   {
+    "game": "Eternal Strands",
+    "start": 3755,
+    "page": 295199
+   }
+  ],
+  "1a0c77ac-2356-45bc-9932-411557990022": [
+   {
+    "game": "Saros",
+    "start": 338,
+    "page": 331215
+   }
+  ],
+  "b7865a49-2b7f-4b55-815d-a6fb3b5c5208": [
+   {
+    "game": "Esoteric Ebb",
+    "start": 119,
+    "page": 213016
+   },
+   {
+    "game": "Void Stranger",
+    "start": 3940,
+    "page": 178900
+   }
+  ],
+  "30ea39df-782c-4e72-993b-bd27fd18f1a7": [
+   {
+    "game": "Terminator 2D: No Fate",
+    "start": 339,
+    "page": 327500
+   }
+  ],
+  "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8": [
+   {
+    "game": "Raccoin",
+    "start": 2265,
+    "page": 360748
+   }
+  ],
+  "7fea62e6-2e07-41b0-970d-01e14a36b64c": [
+   {
+    "game": "Donkey Kong Bonanza",
+    "start": 1205,
+    "page": null
+   },
+   {
+    "game": "Kingdom Come: Deliverance II",
+    "start": 3591,
+    "page": 298526
+   }
+  ],
+  "84639c1e-256c-4eaa-b87e-c5e05685ee15": [],
+  "6931f633a63c6eaa591444c9": [
+   {
+    "game": "DemonSchool",
+    "start": 5981,
+    "page": 204640
+   },
+   {
+    "game": "Kirby Air Riders",
+    "start": 1919,
+    "page": 338105
+   },
+   {
+    "game": "Marvel Cosmic Invasion",
+    "start": 3735,
+    "page": 337035
+   }
+  ],
+  "68ba0ac82d913bd33066fbfd": [
+   {
+    "game": "Cronos: The New Dawn",
+    "start": 4608,
+    "page": 320137
+   },
+   {
+    "game": "Herdling",
+    "start": 6194,
+    "page": 314271
+   },
+   {
+    "game": "Heretic + Hexen",
+    "start": 7957,
+    "page": 360141
+   },
+   {
+    "game": "Mafia : The Old Country",
+    "start": 2569,
+    "page": 314276
+   },
+   {
+    "game": "Sword of the Sea",
+    "start": 7607,
+    "page": 250620
+   }
+  ],
+  "698af7c85fc77c932767b727": [
+   {
+    "game": "Astrobot",
+    "start": 25,
+    "page": 303811
+   }
+  ],
+  "69a5b4c6ae870ee3d71cad2c": [
+   {
+    "game": "1000XRESIST",
+    "start": 24,
+    "page": 218282
+   }
+  ],
+  "5eb70f88732f3e0355c0585e": [
+   {
+    "game": "What Remains of Edith Finch",
+    "start": 25,
+    "page": 11233
+   }
+  ],
+  "5eb70f75732f3e0355c05803": [
+   {
+    "game": "DOOM (2016)",
+    "start": 0,
+    "page": 7351
+   }
+  ],
+  "6376962db64991fed98c7105": [
+   {
+    "game": "StarCraft II",
+    "start": 27,
+    "page": 239
+   }
+  ],
+  "65a02f2e93557fe8ef3d55db": [
+   {
+    "game": "Marvel's Spider-Man: Miles Morales",
+    "start": 0,
+    "page": 19565
+   }
+  ],
+  "68779fee12713a20e149d0d8": [
+   {
+    "game": "Lorelei And The Laser Eyes",
+    "start": 0,
+    "page": 206806
+   }
+  ],
+  "693c295e2bda36b35349e6b9": [
+   {
+    "game": "Dredge",
+    "start": 0,
+    "page": 164867
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=221221": [
+   {
+    "game": "GTA IV: The Lost and Damned",
+    "start": 1211,
+    "page": 731
+   },
+   {
+    "game": "Street Fighter 4",
+    "start": 659,
+    "page": 884
+   },
+   {
+    "game": "Warhammer 40,000: Dawn of War II",
+    "start": 1683,
+    "page": 466
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=134700": [
+   {
+    "game": "Game dev Story",
+    "start": 926,
+    "page": 19815
+   },
+   {
+    "game": "NBA 2K11",
+    "start": 1414,
+    "page": 5056
+   },
+   {
+    "game": "Sonic 4",
+    "start": 2648,
+    "page": 9473
+   }
+  ],
+  "64807c6c2b317a0011828dcd": [],
+  "64258d9f56d10b0011c25670": [],
+  "68d5bded730cf5a747f61977": [
+   {
+    "game": "Baby Steps",
+    "start": 3344,
+    "page": 252502
+   },
+   {
+    "game": "Dying Light: The Beast",
+    "start": 2043,
+    "page": 314252
+   },
+   {
+    "game": "No, I'm not a Human",
+    "start": 6398,
+    "page": 316987
+   },
+   {
+    "game": "Shadow Labyrinth",
+    "start": 7678,
+    "page": 325583
+   }
+  ],
+  "6a4e29821c8f5a97d84853cc": [],
+  "f169a1b6-f9d9-11ea-acef-839761272c2e": [
+   {
+    "game": "The Last of Us Part II",
+    "start": 162,
+    "page": 26192
+   }
+  ],
+  "f5050f18-f9d9-11ea-acef-0bfa0d91c79c": [
+   {
+    "game": "Rune Factory 4 Special",
+    "start": 192,
+    "page": 6874
+   }
+  ],
+  "7c482cf9-64ee-48a6-a5d1-6b83321ecb04": [],
+  "2c418e0d-efda-4b46-8309-4d97092528cc": [
+   {
+    "game": "Mario + Rabbids Sparks of Hope",
+    "start": 318,
+    "page": 152201
+   },
+   {
+    "game": "Marvel Snap",
+    "start": 1678,
+    "page": 202279
+   }
+  ],
+  "c6e8f1b4-beb2-43c6-b424-34aa306b765a": [
+   {
+    "game": "Dungeons of Hinterberg",
+    "start": 1985,
+    "page": 146917
+   },
+   {
+    "game": "Nintendo World Championships: NES Edition",
+    "start": 287,
+    "page": 299862
+   }
+  ],
+  "d7629258-b596-4105-affd-4d3b3aad9932": [
+   {
+    "game": "Baldur's Gate 3",
+    "start": 456,
+    "page": 119171
+   }
+  ],
+  "50019f99-1306-42ae-b7e5-5eec989c8708": [],
+  "117e5afb-0354-4d97-98e9-087edd28efa4": [
+   {
+    "game": "The Last of Us Part II",
+    "start": 385,
+    "page": 26192
+   }
+  ],
+  "e73c2071-24a0-4b3d-b28b-711c92a74b63": [
+   {
+    "game": "The Legend of Heroes: Trails from Zero",
+    "start": 3183,
+    "page": 192133
+   },
+   {
+    "game": "Trombone Champ",
+    "start": 2721,
+    "page": 149821
+   }
+  ],
+  "39274c6f-a246-48d2-845c-6b936733575d": [],
+  "03facb65-cbdb-4ad2-8677-31e393aab1f4": [
+   {
+    "game": "Big Walk",
+    "start": 186,
+    "page": 279624
+   }
+  ],
+  "f80cfbdc-8b77-4422-a15c-fa45b48fdc1d": [],
+  "5eb70f89732f3e0355c05865": [
+   {
+    "game": "Her Story",
+    "start": 0,
+    "page": 11346
+   }
+  ],
+  "5eb70f69732f3e0355c057b6": [
+   {
+    "game": "Transistor",
+    "start": 0,
+    "page": 3022
+   }
+  ],
+  "615f4aaf1c82620c43d9540b": [
+   {
+    "game": "Star Wars Jedi: Fallen Order",
+    "start": 0,
+    "page": 74701
+   }
+  ],
+  "60cb87bdd294a3005322206f": [
+   {
+    "game": "Dead Space",
+    "start": 0,
+    "page": 37
+   }
+  ],
+  "6970f9338c404bc5232e4729": [
+   {
+    "game": "Split Fiction",
+    "start": 0,
+    "page": 325594
+   }
+  ],
+  "67643e0e621cdde43ae4566c": [
+   {
+    "game": "Chrono Trigger",
+    "start": 30,
+    "page": 1802
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=134589": [
+   {
+    "game": "BattleBlock Theater",
+    "start": 1180,
+    "page": 2605
+   },
+   {
+    "game": "Fire Emblem",
+    "start": 2622,
+    "page": 1443
+   },
+   {
+    "game": "Guacamelee",
+    "start": 443,
+    "page": 4838
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=134721": [
+   {
+    "game": "Red Steel 2",
+    "start": 1104,
+    "page": 2179
+   }
+  ],
+  "629114b8ba4322001316ce6c": [
+   {
+    "game": "Dolmen",
+    "start": 5339,
+    "page": 75304
+   },
+   {
+    "game": "Evil Dead",
+    "start": 3668,
+    "page": 141544
+   },
+   {
+    "game": "Rogue Legacy 2",
+    "start": 1911,
+    "page": 132058
+   },
+   {
+    "game": "Tennis Manager 2022",
+    "start": 6322,
+    "page": 197470
+   },
+   {
+    "game": "Uninvited",
+    "start": 2416,
+    "page": 8708
+   }
+  ],
+  "5ce6d2b1ec776e457f5510a8": [
+   {
+    "game": "Descenders",
+    "start": 3611,
+    "page": 52200
+   },
+   {
+    "game": "Mortal Kombat 11",
+    "start": 1035,
+    "page": 112916
+   },
+   {
+    "game": "Rage 2",
+    "start": 2552,
+    "page": 101211
+   },
+   {
+    "game": "Yuppie Psycho",
+    "start": 1472,
+    "page": 26565
+   }
+  ],
+  "67ee9dadda5ebf87643a9ecc": [],
+  "6ab52c8bbd67ce4b5307343c": [],
+  "https://www.polygon.com/2013/2/15/3993544/the-besties-podcast-45-fire-emblem-awakening-and-dead-space-3": [
+   {
+    "game": "Dead Space 3",
+    "start": 1857,
+    "page": 1216
+   },
+   {
+    "game": "Fire Emblem: Awakening",
+    "start": 155,
+    "page": 1443
+   }
+  ],
+  "https://www.polygon.com/2013/9/6/4700952/the-besties-70-the-avuncular-episode": [
+   {
+    "game": "Outlast",
+    "start": 831,
+    "page": 1910
+   },
+   {
+    "game": "Splinter Cell Blacklist Spiderbot",
+    "start": 2102,
+    "page": null
+   }
+  ],
+  "f99dd8ba-09e9-4e24-9fe8-6ccba535c9e2": [
+   {
+    "game": "Roblox",
+    "start": 914,
+    "page": 17269
+   }
+  ],
+  "a2909803-043d-4f58-bb61-318ddd4b7bc2": [
+   {
+    "game": "Diablo 4",
+    "start": 409,
+    "page": 125165
+   }
+  ],
+  "5b778f3f-e3e7-4202-8e33-46e14ad5d6a6": [
+   {
+    "game": "Alien Hominid Invasion",
+    "start": 449,
+    "page": 131817
+   },
+   {
+    "game": "KarmaZoo",
+    "start": 1577,
+    "page": 246564
+   }
+  ],
+  "0be682e5-9294-4d2b-aa7b-2d19825b1f23": [
+   {
+    "game": "Blood Dungeon",
+    "start": 334,
+    "page": 404724
+   }
+  ],
+  "00b9c232-d769-4fd4-a6cb-a1d3ce969f54": [],
+  "69a54b23-3da4-4422-9d4a-917ea7a664c0": [
+   {
+    "game": "Super Mario 3D World + Bowser's Fury",
+    "start": 150,
+    "page": 138227
+   }
+  ],
+  "67da3b54-213c-40ae-818a-e75dd3a75f9f": [
+   {
+    "game": "Resident Evil 4",
+    "start": 144,
+    "page": 132181
+   },
+   {
+    "game": "The Legend of Heroes: Trails from Zero",
+    "start": 2722,
+    "page": 192133
+   }
+  ],
+  "ff233624-f3e9-49d6-ac9a-a4a670fdb0bf": [
+   {
+    "game": "MultiVersus",
+    "start": 2824,
+    "page": 182278
+   }
+  ],
+  "f4930de6-fb75-46a1-b5c5-c0c9e8caabef": [
+   {
+    "game": "Expelled",
+    "start": 1202,
+    "page": 331180
+   },
+   {
+    "game": "Split Fiction",
+    "start": 1754,
+    "page": 325594
+   },
+   {
+    "game": "Wanderstop",
+    "start": 450,
+    "page": 305019
+   }
+  ],
+  "6ebbdcb4-dfeb-4bb3-8379-91854fd11dae": [],
+  "5eb70f6f732f3e0355c057e0": [
+   {
+    "game": "Outer Wilds",
+    "start": 0,
+    "page": 11737
+   }
+  ],
+  "60945063c90cef0016d8e059": [
+   {
+    "game": "Mutazione",
+    "start": 0,
+    "page": 64957
+   }
+  ],
+  "61ed9f6ec21a35000bd84972": [
+   {
+    "game": "Monster Hunter: World",
+    "start": 27,
+    "page": 36926
+   }
+  ],
+  "6494768ada5ba132cb7288aa": [
+   {
+    "game": "Psychonauts 2",
+    "start": 0,
+    "page": 14741
+   }
+  ],
+  "65c1119799d033d6dcb8e38c": [],
+  "67b60160d7f65bb045084b77": [
+   {
+    "game": "Vampire Survivors",
+    "start": 0,
+    "page": 186725
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=134611": [
+   {
+    "game": "NBA 2K13",
+    "start": 476,
+    "page": 5058
+   },
+   {
+    "game": "Resident Evil 6",
+    "start": 1139,
+    "page": 1082
+   },
+   {
+    "game": "Tokyo Jungle",
+    "start": 2498,
+    "page": 7467
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=134675": [
+   {
+    "game": "Mortal Kombat",
+    "start": 1421,
+    "page": 119
+   }
+  ],
+  "5c8235c30a7430ca65334b87": [
+   {
+    "game": "Ape Out",
+    "start": 2033,
+    "page": 27719
+   },
+   {
+    "game": "Metro Exodus",
+    "start": 1110,
+    "page": 37016
+   },
+   {
+    "game": "Toejam & Earl",
+    "start": 3777,
+    "page": 11122
+   },
+   {
+    "game": "Trials Rising",
+    "start": 3015,
+    "page": 103316
+   }
+  ],
+  "https://djpod.com/silence-on-joue/?id=174420": [
+   {
+    "game": "Batman",
+    "start": 2387,
+    "page": 14746
+   },
+   {
+    "game": "Picross 3D",
+    "start": 853,
+    "page": 10631
+   }
+  ],
+  "6661b1a10ef935001225cd6f": [],
+  "67924779850b1ddbd30174c2": [],
+  "8b30003a-ef82-44f4-900c-4191210d6ed9": [],
+  "dea523ca-2567-11eb-9e03-c31b334a06a6": [
+   {
+    "game": "Assassin's Creed Valhalla",
+    "start": 1752,
+    "page": 133004
+   }
+  ],
+  "68e3a1d4-e5c7-4562-bc0d-b511f3da2113": [
+   {
+    "game": "Stray",
+    "start": 326,
+    "page": 110248
+   }
+  ],
+  "04ac25d8-2643-4b7c-9743-c08eb7d38cd8": [
+   {
+    "game": "Atomic Heart",
+    "start": 1509,
+    "page": 76747
+   },
+   {
+    "game": "Metal Gear Solid: Ghost Babel",
+    "start": 413,
+    "page": 5600
+   }
+  ],
+  "86d37d09-becb-4a57-8928-f9ccd5d3dc4c": [
+   {
+    "game": "Baldur's Gate 3",
+    "start": 822,
+    "page": 119171
+   },
+   {
+    "game": "Hammerwatch II",
+    "start": 463,
+    "page": 245805
+   }
+  ],
+  "70845310-7f16-4cbc-9f11-6177040d1d56": [
+   {
+    "game": "Tomodachi Life: Living the Dream",
+    "start": 266,
+    "page": 337036
+   }
+  ],
+  "3be593cd-1176-4c5e-8103-64b0703b51f9": [],
+  "b4e72c24-f238-46ea-b729-c1eb210bf370": [
+   {
+    "game": "Guardians of the Galaxy",
+    "start": 743,
+    "page": 152249
+   }
+  ],
+  "d1024947-40a0-4716-8e90-f5bc4533777b": [],
+  "1ff61935-aee0-4587-bda6-6f9d4068b2da": [
+   {
+    "game": "Marvel’s Spider-Man Remastered",
+    "start": 2820,
+    "page": 19565
+   }
+  ],
+  "a7be0fd7-bfeb-4e1f-b407-8d5a2542aa51": [
+   {
+    "game": "Control Resonant",
+    "start": 3820,
+    "page": 225582
+   },
+   {
+    "game": "Fire Emblem: Fortune's Weave",
+    "start": 228,
+    "page": 366896
+   },
+   {
+    "game": "Marvel's Wolverine",
+    "start": 1158,
+    "page": 168667
+   }
+  ],
+  "af6aba09-dc32-4bd2-956d-8f13480537ac": [
+   {
+    "game": "Mewgenics",
+    "start": 344,
+    "page": 8042
+   },
+   {
+    "game": "Overwatch",
+    "start": 2888,
+    "page": 125174
+   }
+  ]
+ }
+}

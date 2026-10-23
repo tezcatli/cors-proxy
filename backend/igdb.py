@@ -284,10 +284,11 @@ def _to_game_data(game: dict) -> dict:
 # ── Canonical game selection ──────────────────────────────────────────────────
 
 def _resolve_canonical(game: dict) -> dict:
-    """Return version_parent > parent_game (unless remake/remaster) > self.
+    """Return version_parent > parent_game (unless a remake) > self.
 
-    Categories 8 (remake) and 9 (remaster) are intentional standalone titles,
-    so we don't redirect them to their parent game.
+    One catalog page per game: its DLCs and expansions, its editions and ports,
+    and its remasters join it (Dark Souls: Remastered is Dark Souls to the
+    catalog); only a remake (category 8) is a game of its own.
     """
     category = game.get('category') if game.get('category') is not None \
                else (game.get('game_type') or {}).get('id', 0)
@@ -296,7 +297,7 @@ def _resolve_canonical(game: dict) -> dict:
     if isinstance(version_parent, dict) and version_parent.get('id'):
         return version_parent
 
-    if category not in (8, 9):
+    if category != 8:
         parent_game = game.get('parent_game')
         if isinstance(parent_game, dict) and parent_game.get('id'):
             return parent_game
