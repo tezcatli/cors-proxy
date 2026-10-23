@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { formatShortDate, formatEpisodeCount } from '../lib/utils.js'
+import { formatShortDate, formatEpisodeCount, formatTime } from '../lib/utils.js'
+import { frLabel } from '../lib/igdbLabels.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
-import { verdictCounts } from '../lib/verdicts.js'
+import { verdictCounts, VERDICTS } from '../lib/verdicts.js'
 import { podcastMeta } from '../lib/podcasts.js'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
@@ -14,7 +15,7 @@ import { playInto } from '../lib/flipTransition.js'
 import BackBar from './BackBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import IgdbPickerModal from './IgdbPickerModal.vue'
-import { RotateCw, ChevronLeft, ChevronRight, X, Play, Pause, Wrench, ArrowUpRight } from 'lucide-vue-next'
+import { RotateCw, ChevronLeft, ChevronRight, X, Play, Pause, Wrench } from 'lucide-vue-next'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -36,24 +37,55 @@ const coverFailed  = ref(false)
 const lightboxAt   = ref(null)    // index into lightboxImages, null = closed
 const trailerOpen  = ref(false)
 
-// Key art first, then gameplay screenshots.
+// Screenshots first: they show the game, where key art often repeats its logo
+// (already on the cover and in the title). Artworks follow.
+const screenshotIds = computed(() => igdb.value?.screenshotIds ?? [])
 const mediaImages = computed(() => [
+  ...screenshotIds.value,
   ...(igdb.value?.artworkIds ?? []),
-  ...(igdb.value?.screenshotIds ?? []),
 ])
-// The band: the first artwork, else the first screenshot, else none.
+// The band: the first screenshot, else the first artwork, else none.
 const bandId = computed(() => mediaImages.value[0] ?? null)
 // The lightbox runs through the cover, then the images.
 const lightboxImages = computed(() => [
   ...(coverImageId.value && !coverFailed.value ? [coverImageId.value] : []),
   ...mediaImages.value,
 ])
-function openLightbox(id) { lightboxAt.value = Math.max(0, lightboxImages.value.indexOf(id)) }
+// The lightbox takes the focus and gives it back to what opened it.
+const lightboxEl = ref(null)
+let lightboxOpener = null
+async function openLightbox(id) {
+  lightboxOpener = document.activeElement
+  lightboxAt.value = Math.max(0, lightboxImages.value.indexOf(id))
+  await nextTick()
+  lightboxEl.value?.querySelector('.lightbox__close')?.focus()
+}
+function closeLightbox() {
+  lightboxAt.value = null
+  lightboxOpener?.focus?.()
+  lightboxOpener = null
+}
+// Tab stays inside the lightbox while it is open.
+function trapTab(e) {
+  const els = [...(lightboxEl.value?.querySelectorAll('button') ?? [])]
+  if (!els.length) return
+  const i = els.indexOf(document.activeElement)
+  e.preventDefault()
+  els[(i + (e.shiftKey ? -1 : 1) + els.length) % els.length].focus()
+}
 const lightboxId = computed(() => lightboxAt.value == null ? null : lightboxImages.value[lightboxAt.value])
 
 // The board shows six tiles (the trailer counts as one); the last says « +n ».
 const BOARD_TILES = 6
-const boardImages = computed(() => mediaImages.value.slice(0, BOARD_TILES - (igdb.value?.trailerId ? 1 : 0)))
+const boardImages = computed(() => {
+  const shown = mediaImages.value.slice(0, BOARD_TILES - (igdb.value?.trailerId ? 1 : 0))
+  // The « +n » tile wears a screenshot: an artwork may be a logo on nothing.
+  if (mediaImages.value.length > shown.length) {
+    const i = shown.findLastIndex(id => screenshotIds.value.includes(id))
+    if (i >= 0 && i < shown.length - 1) shown.push(...shown.splice(i, 1))
+  }
+  return shown
+})
 const boardMore   = computed(() => mediaImages.value.length - boardImages.value.length)
 
 // The back bar floats over the band until the page scrolls past it.
@@ -173,6 +205,11 @@ watch(coverImageId, id => {
 
 // ── The tests ────────────────────────────────────────────────────────────────
 const counts = computed(() => verdictCounts(episodes.value.map(ep => ep.critique?.verdict ?? null)))
+// « ▲ 2 POSITIF · ◆ 2 MITIGÉ · ○ 1 NON LU »: the summary under the title.
+const verdictLine = computed(() => [
+  ...Object.entries(VERDICTS).map(([k, m]) => counts.value[k] ? `${m.glyph} ${counts.value[k]} ${m.label}` : null),
+  counts.value.none ? `○ ${counts.value.none} Non lu` : null,
+].filter(Boolean).join(' · '))
 
 const gameCtx = computed(() => ({
   name:         game.value?.name,
@@ -197,9 +234,45 @@ function onPlay(ep) {
   else playEp(ep)
 }
 
+// The main button: resume the test of this game left partway, else play the
+// newest. `playEp` resumes on its own (`resumeTimeFor`); this only picks which.
+const resumeEntry = computed(() =>
+  playerStore.inProgress.find(p => p.gameSlug === game.value?.slug && episodes.value.some(ep => ep.slug === p.episodeSlug)) ?? null)
+const leadEp = computed(() =>
+  (resumeEntry.value && episodes.value.find(ep => ep.slug === resumeEntry.value.episodeSlug)) ?? episodes.value[0] ?? null)
+const leadLabel = computed(() => {
+  const ep = leadEp.value
+  if (!ep) return ''
+  const sigle = podcastMeta(ep.podcast?.id)?.label ?? ''
+  if (isEpPlaying(ep)) return playerStore.paused ? `Reprendre · ${sigle}` : 'Pause'
+  if (resumeEntry.value) return `Reprendre à ${formatTime(resumeEntry.value.currentTime)} · ${sigle}`
+  return `Écouter le dernier test · ${sigle}`
+})
+
+// Other games tested in this game's episodes: the way out of the page.
+const SAME_MAX = 12
+const sameEpisodeGames = computed(() => {
+  const seen = new Set([game.value?.slug])
+  const out = []
+  for (const ep of episodes.value)
+    for (const g of ep.games ?? [])
+      if (g.slug && !seen.has(g.slug) && out.length < SAME_MAX) {
+        seen.add(g.slug)
+        out.push({ slug: g.slug, name: g.resolvedName ?? g.name, cover: g.coverImageId ?? null })
+      }
+  return out
+})
+
 function viewEp(ep) {
   router.push({ path: `/episode/${encodeURIComponent(ep.urlSlug)}`, query: game.value.slug ? { game: game.value.slug } : {} })
 }
+
+// Say where « back » goes when we know it.
+const backFrom  = String(router.options.history.state?.back ?? '')
+const backLabel = backFrom.startsWith('/jeux') ? 'Jeux'
+  : backFrom === '/' || backFrom.startsWith('/?') ? 'Tests'
+  : backFrom.startsWith('/episode/') ? 'Épisode'
+  : 'Retour'
 
 function close() {
   if (router.options.history.state?.back) router.back()
@@ -212,7 +285,8 @@ function onKeydown(e) {
     return
   }
   if (lightboxAt.value != null) {
-    if (e.key === 'Escape')     { lightboxAt.value = null; return }
+    if (e.key === 'Escape')     { closeLightbox(); return }
+    if (e.key === 'Tab')        { trapTab(e); return }
     if (e.key === 'ArrowLeft')  stepLightbox(-1)
     if (e.key === 'ArrowRight') stepLightbox(1)
     return
@@ -237,19 +311,18 @@ const facts = computed(() => {
     ['Sortie',      d.released],
     ['Studio',      studio],
     ['Plateformes', platforms.value.join(' · ')],
-    ['Genres',      (d.genres ?? []).join(' · ')],
-    ['Mode',        [...(d.modes ?? []), ...(d.perspectives ?? [])].join(' · ')],
+    ['Genres',      (d.genres ?? []).map(frLabel).join(' · ')],
+    ['Mode',        [...(d.modes ?? []), ...(d.perspectives ?? [])].map(frLabel).join(' · ')],
     ['Série',       d.franchise],
     ['Durée',       d.timeToBeatHours ? `${d.timeToBeatHours} h` : null],
     ['Metacritic',  d.metacritic],
-    ['Classement',  d.esrb],
   ].filter(([, v]) => v)
 })
 </script>
 
 <template>
   <div class="overlay-page" :style="{ zIndex: 'var(--z-detail)' }">
-    <BackBar label="Retour" :overlay="!!(game && bandId)" :solid="pastBand" @back="close">
+    <BackBar :label="backLabel" :overlay="!!(game && bandId)" :solid="pastBand" @back="close">
       <template #actions>
         <button
           v-if="admin && pickerTarget"
@@ -303,7 +376,7 @@ const facts = computed(() => {
             <img
               :src="igdbUrl(coverImageId, 't_cover_big_2x')"
               :srcset="`${igdbUrl(coverImageId,'t_cover_big')} 264w, ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w, ${igdbUrl(coverImageId,'t_720p')} 720w`"
-              sizes="(min-width: 768px) 360px, 148px"
+              sizes="(min-width: 768px) 300px, 148px"
               :alt="`Pochette de ${game.name}`"
               @error="coverFailed = true"
             />
@@ -317,13 +390,12 @@ const facts = computed(() => {
               <span v-if="igdb?.metacritic">MC {{ igdb.metacritic }}</span>
             </div>
             <h1 class="gamehead__title cond">{{ game.name }}</h1>
-            <dl class="counts">
-              <div><dt class="lab">Tests</dt><dd class="cond">{{ episodes.length || game.episodeCount }}</dd></div>
-              <div v-if="counts.positive"><dt class="lab">Positif</dt><dd class="cond">▲ {{ counts.positive }}</dd></div>
-              <div v-if="counts.mixed"><dt class="lab">Mitigé</dt><dd class="cond">◆ {{ counts.mixed }}</dd></div>
-              <div v-if="counts.negative"><dt class="lab">Négatif</dt><dd class="cond">▼ {{ counts.negative }}</dd></div>
-              <div v-if="counts.none"><dt class="lab">Non lu</dt><dd class="cond counts__none">○ {{ counts.none }}</dd></div>
-            </dl>
+            <p v-if="verdictLine" class="mono gamehead__verdicts">{{ verdictLine }}</p>
+            <button v-if="leadEp?.audioUrl" type="button" class="btn-play gamehead__play" @click="onPlay(leadEp)">
+              <Pause v-if="isEpPlaying(leadEp) && !playerStore.paused" :size="14" fill="currentColor" :stroke-width="0" />
+              <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
+              {{ leadLabel }}
+            </button>
           </div>
         </section>
 
@@ -354,13 +426,12 @@ const facts = computed(() => {
                 type="button"
                 class="test__toggle"
                 :aria-expanded="openSlug === ep.slug"
-                :aria-label="`${ep.podcast?.name ?? ''}, ${formatShortDate(ep.pubTs)} : pour et contre`"
                 @click="toggleRow(ep)"
               >
-                <span class="test__show">{{ ep.podcast?.name ?? '' }}<span class="test__sigle mono">{{ podcastMeta(ep.podcast?.id)?.label }}</span></span>
+                <span class="test__show"><span class="mono test__chev" aria-hidden="true">{{ openSlug === ep.slug ? '▾' : '▸' }}</span>{{ ep.podcast?.name ?? '' }}<span class="test__sigle mono">{{ podcastMeta(ep.podcast?.id)?.label }}</span></span>
                 <span class="mono test__date">{{ formatShortDate(ep.pubTs) }}</span>
                 <VerdictMark :verdict="ep.critique?.verdict ?? null" class="test__verdict" />
-                <span class="mono test__start">{{ ep.timestamp ?? '0:00' }}</span>
+                <span class="mono test__start">{{ formatTime(ep.timestampSeconds) }}</span>
                 <span class="test__title ellipsis">{{ ep.title }}</span>
               </button>
               <div class="test__actions">
@@ -368,15 +439,15 @@ const facts = computed(() => {
                   type="button"
                   :class="isEpPlaying(ep) ? 'btn-play' : 'btn-line'"
                   :disabled="!ep.audioUrl"
-                  :aria-label="isEpPlaying(ep) && !playerStore.paused ? 'Pause' : `Écouter le test de ${ep.podcast?.name ?? ''} à ${ep.timestamp ?? '0:00'}`"
+                  :aria-label="isEpPlaying(ep) && !playerStore.paused ? 'Pause' : `Écouter le test de ${ep.podcast?.name ?? ''} à ${formatTime(ep.timestampSeconds)}`"
                   @click="onPlay(ep)"
                 >
                   <Pause v-if="isEpPlaying(ep) && !playerStore.paused" :size="12" fill="currentColor" :stroke-width="0" />
                   <Play v-else :size="12" fill="currentColor" :stroke-width="0" />
                   Écouter
                 </button>
-                <button type="button" class="icon-action icon-action--boxed" :aria-label="`L'épisode : ${ep.title}`" @click="viewEp(ep)">
-                  <ArrowUpRight :size="16" :stroke-width="2" />
+                <button type="button" class="btn-line test__ep" :aria-label="`L'épisode : ${ep.title}`" @click="viewEp(ep)">
+                  <span class="test__ep-word">Épisode</span><ChevronRight :size="16" :stroke-width="2" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -429,6 +500,21 @@ const facts = computed(() => {
           </div>
         </section>
 
+        <!-- Way out: the other games these episodes test -->
+        <section v-if="sameEpisodeGames.length" class="same" aria-labelledby="h-same">
+          <div class="section-head">
+            <h2 id="h-same">Dans les mêmes épisodes</h2>
+            <span class="lab">{{ sameEpisodeGames.length }}</span>
+          </div>
+          <div class="same__grid">
+            <RouterLink v-for="g in sameEpisodeGames" :key="g.slug" :to="`/game/${encodeURIComponent(g.slug)}`" class="same__tile">
+              <img v-if="g.cover" :src="igdbUrl(g.cover, 't_cover_big')" alt="" loading="lazy" />
+              <span v-else class="same__nocover"></span>
+              <span class="cond same__name clamp-2">{{ g.name }}</span>
+            </RouterLink>
+          </div>
+        </section>
+
         <!-- Fiche technique -->
         <section v-if="facts.length || igdb?.steamUrl || igdb?.officialUrl || igdb?.wikiUrl" class="facts" aria-labelledby="h-facts">
           <h2 id="h-facts" class="lab facts__title">Fiche technique</h2>
@@ -457,8 +543,8 @@ const facts = computed(() => {
 
     <!-- Lightbox: the cover, then the images -->
     <Teleport to="body">
-      <div v-if="lightboxId" class="lightbox" role="dialog" aria-modal="true" aria-label="Images" @click.self="lightboxAt = null">
-        <button type="button" class="icon-action lightbox__close" aria-label="Fermer" @click="lightboxAt = null"><X :size="20" :stroke-width="2" /></button>
+      <div v-if="lightboxId" ref="lightboxEl" class="lightbox" role="dialog" aria-modal="true" aria-label="Images" @click.self="closeLightbox">
+        <button type="button" class="icon-action lightbox__close" aria-label="Fermer" @click="closeLightbox"><X :size="20" :stroke-width="2" /></button>
         <button v-if="lightboxImages.length > 1" type="button" class="icon-action lightbox__prev" aria-label="Précédente" @click="stepLightbox(-1)"><ChevronLeft :size="24" :stroke-width="2" /></button>
         <button v-if="lightboxImages.length > 1" type="button" class="icon-action lightbox__next" aria-label="Suivante" @click="stepLightbox(1)"><ChevronRight :size="24" :stroke-width="2" /></button>
         <img
@@ -513,7 +599,7 @@ const facts = computed(() => {
 /* ─── Band: one key art, full bleed, flat gradient into the page ───────── */
 .band {
   position: relative;
-  height: 56vw;
+  height: 48vw;
   max-height: 520px;
   overflow: hidden;
   background: var(--c-surface);
@@ -527,7 +613,7 @@ const facts = computed(() => {
     rgba(11, 11, 11, 0.55) 0%, rgba(11, 11, 11, 0) 22%,
     rgba(11, 11, 11, 0) 55%, var(--c-bg) 100%);
 }
-@media (min-width: 768px) { .band { height: clamp(280px, 38vw, 520px); } }
+@media (min-width: 768px) { .band { height: clamp(200px, 24vw, 340px); } }
 
 .gamehead__cover {
   position: relative;
@@ -564,26 +650,24 @@ const facts = computed(() => {
   line-height: 0.86;
   overflow-wrap: anywhere;
 }
-.counts {
+.gamehead__verdicts {
   grid-column: 1 / -1;
-  justify-self: stretch;
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
   margin: 0;
-  box-shadow: inset 0 0 0 1px var(--c-line);
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.counts > div { flex: 1 1 0; min-width: 80px; padding: 12px 16px; box-shadow: 1px 0 0 var(--c-line); }
-.counts dd { margin: 4px 0 0; font-size: 32px; }
-.counts__none { color: var(--c-fg-3); }
+.gamehead__play { grid-column: 1 / -1; justify-self: start; align-self: flex-start; }
 
 @media (min-width: 768px) {
-  .gamehead { grid-template-columns: 360px minmax(0, 1fr); gap: 48px; padding: 48px 0 64px; }
-  .gamehead__cover { width: 360px; grid-column: 1; grid-row: 1; }
-  .has-band .gamehead__cover { margin-top: -160px; }
+  .gamehead { grid-template-columns: 300px minmax(0, 1fr); gap: 48px; padding: 40px 0 48px; }
+  .gamehead__cover { width: 300px; grid-column: 1; grid-row: 1; }
+  .has-band .gamehead__cover { margin-top: -120px; }
   .gamehead__main { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 24px; min-width: 0; }
   .gamehead__facts { flex-direction: row; flex-wrap: wrap; gap: 8px 24px; align-self: flex-start; }
-  .gamehead__title { font-size: clamp(56px, 8vw, 132px); }
+  .gamehead__title { font-size: clamp(56px, 7vw, 112px); }
+  .gamehead__verdicts { font-size: var(--text-lg); }
 }
 
 /* ─── Tests table ─────────────────────────────────────────────────────── */
@@ -606,7 +690,12 @@ const facts = computed(() => {
   padding: 0;
   cursor: pointer;
 }
-.test__show { grid-area: show; font-weight: 600; font-size: var(--text-lg); }
+.test__show { grid-area: show; font-weight: 600; font-size: var(--text-lg); display: inline-flex; align-items: baseline; gap: 8px; }
+.test__chev { color: var(--c-fg-3); width: 12px; flex-shrink: 0; }
+.test.is-open .test__chev { color: var(--c-accent); }
+.test__toggle:hover .test__show { text-decoration: underline; text-underline-offset: 3px; }
+.test__ep { padding: 0 12px; flex: 0 0 44px !important; width: 44px; }
+.test__ep-word { display: none; }
 .test__sigle { display: none; }
 .test__date { grid-area: date; color: var(--c-fg-2); }
 .test__verdict { grid-area: verdict; justify-self: end; }
@@ -633,7 +722,9 @@ const facts = computed(() => {
     grid-template-areas: none;
     align-items: center;
   }
-  .tests__head { display: grid; gap: 16px; padding: 0 172px 10px 12px; }
+  .tests__head { display: grid; gap: 16px; padding: 0 264px 10px 32px; }
+  .test__ep { flex: 0 0 auto !important; width: 120px; }
+  .test__ep-word { display: inline; }
   .test__row { flex-direction: row; align-items: center; gap: 16px; min-height: 64px; padding: 8px 12px; }
   .test__toggle { flex: 1 1 0; min-width: 0; overflow: hidden; gap: 16px; }
   .test__toggle > * { grid-area: auto; justify-self: start; }
@@ -643,6 +734,23 @@ const facts = computed(() => {
   .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 12px 24px; }
 }
 
+/* ─── Dans les mêmes épisodes ───────────────────────────────────────── */
+.same { margin-bottom: 56px; }
+.same__grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 128px;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 8px;
+}
+@media (min-width: 900px) { .same__grid { grid-auto-columns: 168px; gap: 16px; } }
+.same__tile { display: flex; flex-direction: column; gap: 8px; color: var(--c-fg); text-decoration: none; min-width: 0; scroll-snap-align: start; }
+.same__tile img, .same__nocover { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; background: var(--c-surface); }
+.same__tile:hover .same__name { text-decoration: underline; text-underline-offset: 3px; }
+.same__name { font-size: 17px; line-height: 1.05; }
+
 /* ─── Fiche technique ─────────────────────────────────────────────────── */
 .facts { margin-bottom: 56px; }
 .facts__title { margin: 0; padding: 14px 16px; box-shadow: inset 0 0 0 1px var(--c-line); }
@@ -650,12 +758,10 @@ const facts = computed(() => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
-  gap: 1px;
-  background: var(--c-line);
-  box-shadow: 0 0 0 1px var(--c-line);
+  border-left: 1px solid var(--c-line);
 }
 @media (min-width: 900px) { .facts__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.facts__cell { background: var(--c-bg); padding: 14px 16px; min-width: 0; }
+.facts__cell { padding: 14px 16px; min-width: 0; border-right: 1px solid var(--c-line); border-bottom: 1px solid var(--c-line); }
 .facts__cell dd { margin: 6px 0 0; color: var(--c-fg); overflow-wrap: anywhere; }
 .facts__links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .facts__links a { color: var(--c-fg); text-decoration: underline; text-underline-offset: 3px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
