@@ -1,3 +1,23 @@
+"""Blueprint at /auth: accounts, invitations, password resets, and the admin gate.
+
+Access is invite-only. Every token (invite, reset, session) is a random
+`secrets.token_urlsafe` string stored in SQLite. `require_admin()` gates the
+admin routes here and in `games.py`, and re-reads `users.is_admin` on every call:
+the JWT's `admin` claim only decides what the SPA shows, so a demotion applies at
+once, and deleting a user revokes their sessions (`_bearer_user_claims` checks the
+subject still exists).
+
+Two invariants are enforced in the same transaction as the write, since either
+failure would lock everyone out of the console with no way back: you may not
+delete or demote yourself (409), and the last admin may not disappear (409).
+
+`POST /auth/invite` takes either the `X-Admin-Key` secret (`invite.py`, CI) or an
+admin session; its `is_admin` is copied into the account at registration
+(`invite.py --admin` bootstraps the first admin). A mail that fails to send is
+logged, not raised: the invitation is stored, so it answers 201 with
+`email_sent: false` (and `reset-request` still 204 — a 500 would reveal which
+addresses have an account).
+"""
 import secrets
 import datetime
 import bcrypt

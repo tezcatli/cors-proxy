@@ -1,3 +1,11 @@
+"""All configuration, from environment variables.
+
+`DEBUG` only relaxes dev ergonomics (no insecure-`JWT_SECRET` refusal, full
+invite/reset links in the logs, warm-up in the reloader child) — never auth.
+Optional keys switch features off rather than fail: no `OPENROUTER_API_KEY`, no
+LLM; no `DEEPINFRA_API_KEY`, no transcription; `INGEST=false` stops the
+background ingestion (dev, and prod while the lab defines the chain).
+"""
 import os
 
 class Config:

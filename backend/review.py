@@ -36,6 +36,9 @@ def is_suspect(podcast_name: str, igdb_name: str) -> bool:
     names differ only in spacing ("Astrobot"/"Astro Bot"), numeral style
     ("Hades 2"/"Hades II"), a subtitle ("Kirby" → "Kirby and the Forgotten
     World"), or word order/plurals. Flags "Astrobot" → "Astrobotanica".
+    Tuned on the live catalogue from 68 mostly-noise rows to ~50 mostly-real ones;
+    known false positives: abbreviations ("GTA V") and French titles ("Le Vaillant
+    Petit Page" → "The Plucky Squire").
     """
     if norm_key(podcast_name) == norm_key(igdb_name):
         return False
