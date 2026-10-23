@@ -34,6 +34,8 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 
 - Le nom : « Ludothèque », « Ludo » en court (écran d'accueil, mot-symbole `LUDO//`). (2026-10-24)
 
+- Fiche jeu : un artwork en bandeau et une grande pochette qui le chevauche ; les images en planche après les tests, bande-annonce en tête. (2026-10-24)
+
 ## Écarté (et pourquoi)
 - RAG / questions sur les transcriptions (« intégrale des Jiknep ») : abandonné. (2026-10)
 - Lexique Whisper (`initial_prompt`) : DeepInfra perdait 60 % des mots ; c'était statique, et ça demandait des informations venues d'ailleurs. Les noms sont corrigés à la lecture, à partir du titre et de la description. (2026-10)
