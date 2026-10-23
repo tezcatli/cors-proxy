@@ -19,7 +19,11 @@ PALMARES_TITLES = {
 }
 
 
+def palmares(episode) -> bool:
+    marker = PALMARES_TITLES.get(episode.podcast_id)
+    return bool(marker and marker.search(norm(episode.title)))
+
+
 def run(episode) -> dict:
     out = fiches_v2.run(episode)
-    marker = PALMARES_TITLES.get(episode.podcast_id)
-    return {**out, 'tests': []} if marker and marker.search(norm(episode.title)) else out
+    return {**out, 'tests': []} if palmares(episode) else out

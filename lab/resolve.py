@@ -35,7 +35,7 @@ def _pool(jobs: int, fn, items) -> None:
         list(pool.map(safe, items))
 
 
-def _fiches(guids, jobs: int) -> None:
+def _fiches(guids, jobs: int, version: int) -> None:
     import fiches
     import server   # the episodes as the pages see them
     from variants import cinq_minutes
@@ -45,13 +45,13 @@ def _fiches(guids, jobs: int) -> None:
         if ep is None:
             continue
         for t in cinq_minutes.run(ep)['tests']:
-            if not fiches.lookup(t['game'], ep)[0]:
-                todo.setdefault(fiches._key(t['game'], ep), (t['game'], ep))
+            if not fiches.lookup(t['game'], ep, version)[0]:
+                todo.setdefault(fiches._key(t['game'], ep, version), (t['game'], ep))
     logging.info('%d entries to decide', len(todo))
 
     def decide(item):
         name, ep = item
-        f = fiches.decide(name, ep)
+        f = fiches.decide(name, ep, version)
         logging.info('%s → %s', name, f and f'{f["name"]} ({f["released"]})')
     _pool(jobs, decide, list(todo.values()))
 
@@ -61,6 +61,7 @@ def main() -> None:
     parser.add_argument('--fiches', action='store_true', help="the tests' entries, by the resolution variant")
     parser.add_argument('--all', action='store_true', help='every transcribed episode, not just the reference ones')
     parser.add_argument('--jobs', type=int, default=4)
+    parser.add_argument('--version', type=int, help='the resolution version (fiches.VERSIONS; default fiches.DEFAULT)')
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     logging.getLogger('httpx').setLevel(logging.WARNING)
@@ -69,7 +70,8 @@ def main() -> None:
         raise SystemExit('OPENROUTER_API_KEY is not set')
     if args.fiches:
         import server  # noqa: F401  (loads the snapshot)
-        _fiches(targets.guids(args.all), args.jobs)
+        import fiches
+        _fiches(targets.guids(args.all), args.jobs, args.version or fiches.DEFAULT)
         return
     snapshot.load()
     import catalog_state as state
