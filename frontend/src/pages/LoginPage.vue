@@ -73,106 +73,100 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[200] bg-base-100 flex items-center justify-center p-4 overflow-hidden">
-    <!-- Animated gradient backdrop -->
-    <div
-      class="hero-drift absolute inset-0 -z-10 pointer-events-none"
-      style="background-image:
-        radial-gradient(80% 60% at 15% 0%,   rgba(139,92,246,0.30), transparent 60%),
-        radial-gradient(70% 50% at 90% 100%, rgba(233,69,96,0.28),  transparent 60%),
-        radial-gradient(60% 50% at 50% 50%,  rgba(34,211,238,0.10), transparent 60%);"
-    />
-    <div class="hero-drift absolute inset-0 -z-10 opacity-40 pointer-events-none"
-         style="background-image:
-           radial-gradient(40% 30% at 30% 80%, rgba(255,138,160,0.20), transparent 60%);" />
-
-    <div class="w-full max-w-sm">
-
-      <div class="text-center mb-7">
-        <div class="text-5xl mb-2 drop-shadow-[0_4px_16px_rgba(233,69,96,0.5)]">🎮</div>
-        <h1 class="text-2xl font-extrabold tracking-[-0.02em]">Ludothèque</h1>
-        <p class="text-xs text-white/45 mt-1 font-medium">Les jeux de vos podcasts</p>
+  <div class="login">
+    <div class="login__col">
+      <div class="login__brand">
+        <span class="cond login__mark">Ludo<span>//</span></span>
+        <span class="lab">Les tests de jeux vidéo de vos podcasts</span>
       </div>
 
-      <div class="panel p-7 shadow-e4">
-
-        <div v-if="view === 'login'">
-          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Connexion</h2>
+      <div class="login__box">
+        <template v-if="view === 'login'">
+          <h1 class="cond login__title">Connexion</h1>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
-          <form @submit.prevent="submitLogin" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">E-mail</label>
-              <input v-model="loginEmail" class="app-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <div class="flex items-center justify-between">
-                <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Mot de passe</label>
-                <button type="button" class="text-xs text-white/55 hover:text-white transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('reset-request')">Oublié ?</button>
-              </div>
-              <input v-model="loginPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
-            </div>
+          <form class="login__form" @submit.prevent="submitLogin">
+            <label class="field"><span class="lab">E-mail</span>
+              <input v-model="loginEmail" class="app-input" type="email" autocomplete="email" required />
+            </label>
+            <label class="field"><span class="field__row"><span class="lab">Mot de passe</span>
+              <button type="button" class="login__link lab" @click.prevent="setView('reset-request')">Oublié ?</button></span>
+              <input v-model="loginPassword" class="app-input" type="password" autocomplete="current-password" required />
+            </label>
             <SubmitBtn :busy="busy" label="Se connecter" />
           </form>
-        </div>
+        </template>
 
-        <div v-else-if="view === 'register'">
-          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Créer un compte</h2>
+        <template v-else-if="view === 'register'">
+          <h1 class="cond login__title">Créer un compte</h1>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
-          <form @submit.prevent="submitRegister" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">E-mail</label>
-              <input v-model="regEmail" class="app-input" type="email" placeholder="vous@exemple.com" :readonly="regEmailReadOnly" autocomplete="email" required />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Mot de passe</label>
-              <input v-model="regPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Confirmer</label>
-              <input v-model="regPassword2" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
-            </div>
+          <form class="login__form" @submit.prevent="submitRegister">
+            <label class="field"><span class="lab">E-mail</span>
+              <input v-model="regEmail" class="app-input" type="email" :readonly="regEmailReadOnly" autocomplete="email" required />
+            </label>
+            <label class="field"><span class="lab">Mot de passe</span>
+              <input v-model="regPassword" class="app-input" type="password" autocomplete="new-password" required />
+            </label>
+            <label class="field"><span class="lab">Confirmer</span>
+              <input v-model="regPassword2" class="app-input" type="password" autocomplete="new-password" required />
+            </label>
             <SubmitBtn :busy="busy" label="Créer le compte" />
           </form>
-          <p class="text-center text-sm mt-4">
-            <button type="button" class="text-white/70 hover:text-white font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('login')">Déjà un compte ?</button>
-          </p>
-        </div>
+          <button type="button" class="login__link lab login__back" @click="setView('login')">Déjà un compte ?</button>
+        </template>
 
-        <div v-else-if="view === 'reset-request'">
-          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Mot de passe oublié</h2>
+        <template v-else-if="view === 'reset-request'">
+          <h1 class="cond login__title">Mot de passe oublié</h1>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
-          <form @submit.prevent="submitResetRequest" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">E-mail</label>
-              <input v-model="resetEmail" class="app-input" type="email" placeholder="vous@exemple.com" autocomplete="email" required />
-            </div>
+          <form class="login__form" @submit.prevent="submitResetRequest">
+            <label class="field"><span class="lab">E-mail</span>
+              <input v-model="resetEmail" class="app-input" type="email" autocomplete="email" required />
+            </label>
             <SubmitBtn :busy="busy" label="Envoyer le lien" />
           </form>
-          <p class="text-center text-sm mt-4">
-            <button type="button" class="text-white/70 hover:text-white font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('login')">Retour à la connexion</button>
-          </p>
-        </div>
+          <button type="button" class="login__link lab login__back" @click="setView('login')">Retour à la connexion</button>
+        </template>
 
-        <div v-else-if="view === 'reset'">
-          <h2 class="text-xl font-extrabold mb-4 tracking-[-0.01em]">Nouveau mot de passe</h2>
+        <template v-else-if="view === 'reset'">
+          <h1 class="cond login__title">Nouveau mot de passe</h1>
           <FormAlerts :error-msg="errorMsg" :info-msg="infoMsg" />
-          <form @submit.prevent="submitReset" class="flex flex-col gap-3">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Nouveau mot de passe</label>
-              <input v-model="newPassword" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold text-white/55 uppercase tracking-wider">Confirmer</label>
-              <input v-model="newPassword2" class="app-input" type="password" placeholder="••••••••" autocomplete="new-password" required />
-            </div>
+          <form class="login__form" @submit.prevent="submitReset">
+            <label class="field"><span class="lab">Nouveau mot de passe</span>
+              <input v-model="newPassword" class="app-input" type="password" autocomplete="new-password" required />
+            </label>
+            <label class="field"><span class="lab">Confirmer</span>
+              <input v-model="newPassword2" class="app-input" type="password" autocomplete="new-password" required />
+            </label>
             <SubmitBtn :busy="busy" label="Enregistrer" />
           </form>
-          <p class="text-center text-sm mt-4">
-            <button type="button" class="text-white/70 hover:text-white font-medium transition-colors bg-transparent border-0 p-0 cursor-pointer" @click="setView('login')">Retour à la connexion</button>
-          </p>
-        </div>
-
+          <button type="button" class="login__link lab login__back" @click="setView('login')">Retour à la connexion</button>
+        </template>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.login {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--c-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px var(--gutter);
+  overflow-y: auto;
+}
+.login__col { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 32px; }
+.login__brand { display: flex; flex-direction: column; gap: 8px; }
+.login__mark { font-size: 72px; font-weight: 800; line-height: 0.85; }
+.login__mark span { color: var(--c-accent); }
+.login__box { border-top: 1px solid var(--c-line); padding-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+.login__title { margin: 0; font-size: var(--text-2xl); }
+.login__form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field__row { display: flex; justify-content: space-between; align-items: center; }
+.login__link { border: 0; background: transparent; padding: 0; min-height: 32px; cursor: pointer; color: var(--c-fg-2); text-decoration: underline; text-underline-offset: 3px; }
+.login__link:hover { color: var(--c-fg); }
+.login__back { align-self: flex-start; }
+</style>

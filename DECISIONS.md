@@ -26,6 +26,20 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - On transcrit nous-mêmes (Whisper turbo sur DeepInfra), et seulement pour en tirer les tests : on ne diffuse pas de transcriptions. (2026-10)
 - Verdicts : moyenne sur trois niveaux ; « enthousiaste » compte comme positif. (2026-10)
 
+## Interface
+- Direction visuelle *Studio radio* : noir pur, un seul accent jaune (`#ffd23f`) réservé à ce qui joue, Barlow Condensed (titres), Barlow (texte), JetBrains Mono (libellés, timecodes), angles droits et filets, verdict en glyphe et mot (▲ POSITIF, ◆ MITIGÉ, ▼ NÉGATIF, ○ NON LU) ; plus d'accent tiré des pochettes. Maquettes : https://claude.ai/artifact/NT5XTroWYFNjRkMEXyBNnX. (2026-10-24)
+
+- L'accueil est le flux des tests (Reprendre, puis les derniers tests) ; le catalogue des jeux est un onglet, trié par récence. (2026-10-24)
+- Un verdict par test, jamais de moyenne par jeu : la tuile montre un glyphe par test, la fiche le compte par verdict. (2026-10-24)
+
+- Le nom : « Ludothèque », « Ludo » en court (écran d'accueil, mot-symbole `LUDO//`). (2026-10-24)
+
+- Fiche jeu : un artwork en bandeau et une grande pochette qui le chevauche ; les images en planche après les tests, bande-annonce en tête. (2026-10-24)
+
+- Fiche jeu : les tests et un bouton d'écoute au premier écran ; le bandeau et la case « +n » prennent une capture (un artwork répète souvent le logo) ; la fiche technique est en français. (2026-10-24)
+
+- Fiche jeu sur téléphone : le bandeau est la scène de la pochette (assombri, jusqu'aux deux tiers de la pochette), la pochette grande et centrée ; une seule image vedette par écran de téléphone. (2026-10-24)
+
 ## Écarté (et pourquoi)
 - RAG / questions sur les transcriptions (« intégrale des Jiknep ») : abandonné. (2026-10)
 - Lexique Whisper (`initial_prompt`) : DeepInfra perdait 60 % des mots ; c'était statique, et ça demandait des informations venues d'ailleurs. Les noms sont corrigés à la lecture, à partir du titre et de la description. (2026-10)

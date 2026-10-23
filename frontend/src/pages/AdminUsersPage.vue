@@ -137,7 +137,7 @@ function askConfirm(key) { confirming.value = confirming.value === key ? null : 
 <template>
   <!-- Fixed shell + inner scroller, like the resolution console: the back pill
        is positioned absolute, so a page scrolling its own root scrolls it away. -->
-  <div class="fixed inset-0 z-[var(--z-detail)] bg-base-100 flex flex-col">
+  <div class="fixed inset-0 z-[var(--z-detail)] bg-page flex flex-col">
     <BackBar label="Retour" @back="router.push('/')" />
 
     <div class="flex-1 min-h-0 overflow-y-auto">

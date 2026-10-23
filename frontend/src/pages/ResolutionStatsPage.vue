@@ -166,7 +166,7 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
 <template>
   <!-- Fixed shell + inner scroller, like DetailView: the back pill is positioned
        absolute, so a page that scrolls its own root scrolls the pill away. -->
-  <div class="fixed inset-0 z-[var(--z-detail)] bg-base-100 flex flex-col">
+  <div class="fixed inset-0 z-[var(--z-detail)] bg-page flex flex-col">
     <BackBar label="Retour" @back="router.push('/')" />
 
     <div ref="scroller" class="flex-1 min-h-0 overflow-y-auto">
@@ -188,9 +188,9 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
                 <PodcastBadge :id="p.id" />
                 <span class="pstat__nums">
                   <b>{{ p.resolved }}</b>/{{ p.appearances }}
-                  <template v-if="p.failed"> · <span class="text-error">{{ p.failed }} échec</span></template>
+                  <template v-if="p.failed"> · <span class="text-danger">{{ p.failed }} échec</span></template>
                   <template v-if="p.retrying">
-                    · <span class="text-warning" title="IGDB ou le LLM a échoué ; nouvel essai plus tard">{{ p.retrying }} en erreur</span>
+                    · <span class="text-accent" title="IGDB ou le LLM a échoué ; nouvel essai plus tard">{{ p.retrying }} en erreur</span>
                   </template>
                   <template v-if="p.pending"> · {{ p.pending }} en attente</template>
                 </span>
@@ -213,7 +213,7 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
               <span v-if="p.transcribed || stats.transcription?.enabled" class="pstat__ingest">
                 {{ p.transcribed }}/{{ p.episodes }} transcrits · {{ p.read }} lus
                 <template v-if="p.ingestErrors">
-                  · <span class="text-warning" title="Transcription ou lecture en échec ; nouvel essai plus tard">{{ p.ingestErrors }} en erreur</span>
+                  · <span class="text-accent" title="Transcription ou lecture en échec ; nouvel essai plus tard">{{ p.ingestErrors }} en erreur</span>
                 </template>
               </span>
             </div>
@@ -224,7 +224,7 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
           <div v-for="i in 12" :key="i" class="skeleton-shimmer h-[42px] rounded-lg" aria-hidden="true" />
         </div>
 
-        <p v-else-if="error" class="text-sm text-error py-8">Erreur : {{ error }}</p>
+        <p v-else-if="error" class="text-sm text-danger py-8">Erreur : {{ error }}</p>
 
         <template v-else-if="stats">
           <!-- A sweep in flight means these numbers are still moving. Say so: a

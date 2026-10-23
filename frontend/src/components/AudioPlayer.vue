@@ -3,281 +3,318 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
-import { useArtworkAccent } from '../composables/useArtworkAccent.js'
+import { formatTime } from '../lib/utils.js'
+import { podcastMeta } from '../lib/podcasts.js'
 import { useMediaSession } from '../composables/useMediaSession.js'
-import { useBottomSheetDrag } from '../composables/useBottomSheetDrag.js'
-import Marquee from './Marquee.vue'
 import SeekBar from './SeekBar.vue'
-import { Play, Pause, SkipBack, RotateCw, RotateCcw, ChevronRight, Volume2, VolumeX, Gamepad2, X, Loader2, AlertTriangle, RefreshCw } from 'lucide-vue-next'
+import VerdictMark from './VerdictMark.vue'
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, RotateCw, Volume2, VolumeX, X, Loader2, RefreshCw, ChevronDown, ArrowUpRight } from 'lucide-vue-next'
+
+// The mini player (a bar over the bottom of the base views) and, on a phone,
+// the full « En lecture » sheet it opens into. All audio goes through the store.
+const RATES = [1, 1.25, 1.5, 1.75, 2]
 
 const router      = useRouter()
 const playerStore = usePlayerStore()
-const playerEl    = ref(null)
 
-// ── Per-track accent ────────────────────────────────────────────────────────
-const currentCoverId = computed(() => playerStore.current?.coverImageId ?? null)
-const { cssVars } = useArtworkAccent(currentCoverId)
+const cur      = computed(() => playerStore.current)
+const test     = computed(() => playerStore.currentTest)
+const duration = computed(() => playerStore.audioDuration)
+const sigle    = computed(() => podcastMeta(cur.value?.podcast?.id)?.label ?? '')
 
-const playerCoverSrc = computed(() => {
-  const chapter = playerStore.currentChapter
-  if (chapter) {
-    return chapter.coverImageId
-      ? igdbUrl(chapter.coverImageId, 't_cover_small')
-      : (playerStore.current?.episodeImageUrl ?? null)
-  }
-  const id = playerStore.current?.coverImageId
-  return id ? igdbUrl(id, 't_cover_small') : (playerStore.current?.episodeImageUrl ?? null)
+// What is on air: the test being heard, else the game the track was started for.
+const title = computed(() => test.value ? (test.value.resolvedName ?? test.value.name) : (cur.value?.game || cur.value?.episode || ''))
+const coverId = computed(() => test.value?.coverImageId ?? playerStore.currentChapter?.coverImageId ?? cur.value?.coverImageId ?? null)
+const coverSrc = computed(() => coverId.value ? igdbUrl(coverId.value, 't_cover_big') : (cur.value?.episodeImageUrl ?? null))
+
+const nextMark = computed(() => playerStore.marks.find(m => m.timestampSeconds > playerStore.currentTime + 1) ?? null)
+const segmentLabel = computed(() => {
+  const now  = test.value ? title.value : (playerStore.currentChapter?.title ?? '')
+  const next = nextMark.value ? (nextMark.value.resolvedName ?? nextMark.value.name ?? nextMark.value.title) : null
+  return next ? `${now} ▸ ${next}` : now
 })
 
-// ── Player state (audio itself lives in the store's engine) ─────────────────
-const collapsed = ref(true)
-const duration  = computed(() => playerStore.audioDuration)
-const volume    = computed(() => playerStore.volume)
-
-// Spinner shows while playback is wanted but hasn't started; once the engine
-// gives up, the retry affordance takes over instead of spinning forever.
 const showSpinner = computed(() => playerStore.buffering && !playerStore.failed)
+const playLabel = computed(() => playerStore.failed ? 'Réessayer'
+  : playerStore.restored && playerStore.paused ? 'Reprendre'
+  : playerStore.paused ? 'Lire' : 'Pause')
 
-const seekProgress = computed(() =>
-  duration.value > 0 ? (playerStore.currentTime / duration.value) * 100 : 0
-)
+function togglePlay() { playerStore.failed ? playerStore.retry() : playerStore.togglePlayback() }
+function jump(d)      { playerStore.seek(Math.min(duration.value || Infinity, Math.max(0, playerStore.currentTime + d))) }
+function cycleRate() {
+  const i = RATES.indexOf(playerStore.rate)
+  playerStore.setRate(RATES[(i + 1) % RATES.length])
+}
+function rateLabel(r) { return `${String(r).replace('.', ',')}×` }
 
-const visibleChapters = computed(() =>
-  (playerStore.current?.chapters ?? []).filter(c => c.timestampSeconds > 0)
-)
+// ── « En lecture » sheet (phone) ────────────────────────────────────────────
+const expanded = ref(false)
+function openInfo() {
+  if (window.matchMedia('(min-width: 768px)').matches) goEpisode()
+  else expanded.value = true
+}
+function goEpisode() {
+  const c = cur.value
+  if (!c) return
+  expanded.value = false
+  if (c.episodeUrlSlug || c.episodeSlug)
+    router.push({ path: `/episode/${encodeURIComponent(c.episodeUrlSlug ?? c.episodeSlug)}`, query: c.slug ? { game: c.slug } : {} })
+  else if (c.slug)
+    router.push('/game/' + encodeURIComponent(c.slug))
+}
+function goGame() {
+  const slug = test.value?.slug ?? cur.value?.slug
+  if (!slug) return
+  expanded.value = false
+  router.push('/game/' + encodeURIComponent(slug))
+}
 
 // ── MediaSession (lock-screen / OS controls) ─────────────────────────────────
 const { initMediaSession, setMSState, updatePositionState } = useMediaSession(playerStore)
 
-// ── Controls ────────────────────────────────────────────────────────────────
-function togglePlay() {
-  playerStore.failed ? playerStore.retry() : playerStore.togglePlayback()
-}
-function toggleCollapsed() { collapsed.value = !collapsed.value }
-function onGripKey(e) {
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapsed() }
-}
-function closePlayer() { playerStore.close() }
-
-function goToChapterStart() { playerStore.seek(playerStore.currentChapter?.timestampSeconds ?? 0) }
-function jumpForward() { playerStore.seek(Math.min(duration.value || Infinity, playerStore.currentTime + 30)) }
-function jumpBack()    { playerStore.seek(Math.max(0, playerStore.currentTime - 30)) }
-function onSeek(time)  { playerStore.seek(time) }
-function onVolume(e)   { playerStore.setVolume(parseFloat(e.target.value)) }
-
-function onArtInfoClick() {
-  const chapter = playerStore.currentChapter
-  if (chapter?.slug) router.push('/game/' + encodeURIComponent(chapter.slug))
-  else navigateToEpisode()
-}
-function onArtKey(e) {
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onArtInfoClick() }
-}
-
-function navigateToEpisode() {
-  const cur = playerStore.current
-  if (!cur) return
-  if (cur.episodeSlug)
-    router.push({ path: `/episode/${encodeURIComponent(cur.episodeUrlSlug ?? cur.episodeSlug)}`, query: cur.slug ? { game: cur.slug } : {} })
-  else if (cur.slug)
-    router.push('/game/' + encodeURIComponent(cur.slug))
-}
-
-// ── Alternating episode / chapter title ──────────────────────────────────────
-const showEpisode = ref(true)
-let flipTimer = null
-
-function startFlip() {
-  clearInterval(flipTimer)
-  showEpisode.value = true
-  flipTimer = setInterval(() => { showEpisode.value = !showEpisode.value }, 5000)
-}
-function stopFlip() {
-  clearInterval(flipTimer)
-  flipTimer = null
-  showEpisode.value = true
-}
-
-const currentLabel = computed(() => {
-  if (!playerStore.current) return ''
-  return (showEpisode.value || !playerStore.currentChapter)
-    ? playerStore.current.episode
-    : playerStore.currentChapter.title
-})
-
-const tickKey          = computed(() => showEpisode.value ? 'ep' : 'ch')
-const isShowingChapter = computed(() => !showEpisode.value && !!playerStore.currentChapter)
-
-// ── Bottom-sheet swipe (mobile only) ─────────────────────────────────────────
-const {
-  dragExpand, isDragging, sheetStyle, reset: resetDrag,
-  onPointerDown, onPointerMove, onPointerUp, onPointerCancel,
-} = useBottomSheetDrag(playerEl, collapsed, closePlayer)
-
-// ── Store-driven side effects ────────────────────────────────────────────────
-watch(collapsed, v => {
-  document.body.classList.toggle('player-expanded', !v)
-}, { immediate: true })
-
-// New track: restart the title flip and rebuild the OS media card.
-watch(() => playerStore.current?.url, () => {
-  const cur = playerStore.current
-  if (!cur) { stopFlip(); return }
-  resetDrag()
-  cur.chapters?.length ? startFlip() : stopFlip()
-  initMediaSession(cur)
-}, { immediate: true })
-
+watch(() => cur.value?.url, () => { if (cur.value) initMediaSession(cur.value) }, { immediate: true })
 watch(() => playerStore.status, s => {
   if (s === 'playing') {
     setMSState('playing')
-    if (playerStore.current) initMediaSession(playerStore.current)
+    if (cur.value) initMediaSession(cur.value)
   } else {
     setMSState(s === 'idle' ? 'none' : 'paused')
   }
 })
-
 watch(() => playerStore.currentTime, () => updatePositionState())
-
-onUnmounted(() => {
-  stopFlip()
-  document.body.classList.remove('player-expanded')
-})
-
-watch(() => playerStore.visible, visible => {
-  if (!visible) {
-    stopFlip()
-    collapsed.value = true
-    resetDrag()
+watch(() => playerStore.visible, v => {
+  if (!v) {
+    expanded.value = false
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
   }
 })
+watch(expanded, v => document.body.classList.toggle('player-expanded', v))
+onUnmounted(() => document.body.classList.remove('player-expanded'))
 </script>
 
 <template>
-  <div
-    ref="playerEl"
-    class="audio-player glass-chrome"
-    :class="{ active: playerStore.visible, 'is-expanded': !collapsed, 'player--resume': playerStore.restored && playerStore.paused }"
-    :style="[cssVars, sheetStyle]"
-    @pointerdown="onPointerDown"
-    @pointermove="onPointerMove"
-    @pointerup="onPointerUp"
-    @pointercancel="onPointerCancel"
-  >
-    <template v-if="playerStore.current">
-      <!-- Mobile grab handle: tap toggles expand/collapse (drag still works) -->
-      <div class="player-grip" @click="toggleCollapsed" @keydown="onGripKey" :aria-label="collapsed ? 'Développer le lecteur' : 'Réduire le lecteur'" role="button" tabindex="0"></div>
-
-      <!-- Row 1: always visible -->
-      <div class="player-row1">
-        <!-- Cover thumb -->
-        <div class="player-art" @click="onArtInfoClick" @keydown="onArtKey" role="button" tabindex="0" :aria-label="`Voir : ${playerStore.current.episode}`">
-          <img v-if="playerCoverSrc" :src="playerCoverSrc" :alt="playerStore.current.episode" />
-          <div v-else class="w-full h-full flex items-center justify-center text-white/40">
-            <Gamepad2 :size="20" :stroke-width="1.75" />
-          </div>
-        </div>
-
-        <!-- Info -->
-        <div class="player-info" @click="onArtInfoClick" @keydown="onArtKey" role="button" tabindex="0" :aria-label="`Voir : ${playerStore.current.episode}`">
-          <Transition name="player-tick">
-            <Marquee
-              :key="tickKey"
-              :text="currentLabel"
-              class="player-marquee"
-              :inner-class="isShowingChapter ? 'player-chapter' : 'player-episode'"
-            />
-          </Transition>
-        </div>
-
-        <!-- Desktop-only controls -->
-        <div class="player-desktop-controls">
-          <button class="player-ctrl-btn" @click.stop="goToChapterStart" aria-label="Début du chapitre">
-            <SkipBack :size="15" :stroke-width="2" />
-          </button>
-          <button class="player-ctrl-btn" @click.stop="jumpBack" aria-label="Reculer 30 secondes">
-            <RotateCcw :size="15" :stroke-width="2" /><span class="player-ctrl-label">30</span>
-          </button>
-          <button class="player-ctrl-btn" @click.stop="jumpForward" aria-label="Avancer 30 secondes">
-            <RotateCw :size="15" :stroke-width="2" /><span class="player-ctrl-label">30</span>
-          </button>
-          <button class="player-ctrl-btn" @click.stop="navigateToEpisode" aria-label="Aller à l'épisode">
-            <ChevronRight :size="15" :stroke-width="2" />
-          </button>
-        </div>
-
-        <!-- Desktop-only seek -->
-        <div class="player-desktop-seek">
-          <SeekBar :progress="seekProgress" :duration="duration" :chapters="visibleChapters" :current-time="playerStore.currentTime" @seek="onSeek" />
-        </div>
-
-        <!-- Play/pause: always visible. Becomes « Réessayer » once the engine
-             has exhausted its recovery attempts. -->
-        <button
-          class="icon-action"
-          :class="{ 'is-failed': playerStore.failed }"
-          @click.stop="togglePlay"
-          :aria-label="playerStore.failed ? 'Réessayer' : (playerStore.restored && playerStore.paused ? 'Reprendre' : (playerStore.paused ? 'Lire' : 'Pause'))"
-        >
-          <RefreshCw v-if="playerStore.failed" :size="18" :stroke-width="2" />
-          <Loader2  v-else-if="showSpinner"   :size="18" :stroke-width="2" class="player-spin" />
-          <Pause    v-else-if="!playerStore.paused" :size="18" :stroke-width="2" />
-          <Play     v-else                    :size="18" :stroke-width="2" />
-        </button>
-
-        <!-- Desktop-only volume -->
-        <div class="player-desktop-volume">
-          <component :is="volume === 0 ? VolumeX : Volume2" :size="14" :stroke-width="2" class="flex-shrink-0 opacity-60" />
-          <input
-            type="range" class="volume-input"
-            min="0" max="1" step="0.01"
-            :value="volume"
-            @input="onVolume"
-            aria-label="Volume"
-          />
-        </div>
-
-        <!-- Desktop-only close -->
-        <button class="player-close-btn" @click.stop="closePlayer" aria-label="Fermer le lecteur">
-          <X :size="14" :stroke-width="2" />
-        </button>
-      </div>
-
-      <!-- Playback gave up: say so and offer the retry (never a stuck spinner) -->
-      <button v-if="playerStore.failed" class="player-error" @click.stop="playerStore.retry()">
-        <AlertTriangle :size="13" :stroke-width="2" />
-        <span>Lecture interrompue — touchez pour réessayer</span>
+  <div v-if="playerStore.visible && cur" class="player" :class="{ 'is-resume': playerStore.restored && playerStore.paused }">
+    <!-- Mini bar -->
+    <div class="bar">
+      <button type="button" class="bar__info" :aria-label="`En lecture : ${title}. Ouvrir`" @click="openInfo">
+        <span class="onair" :class="{ 'is-off': playerStore.paused }" aria-hidden="true"></span>
+        <img v-if="coverSrc" :src="coverSrc" alt="" class="bar__cover" />
+        <span class="bar__text">
+          <span class="cond bar__title ellipsis">{{ title }}</span>
+          <span class="mono bar__sub ellipsis">{{ sigle }} · {{ formatTime(playerStore.currentTime) }}<span class="bar__ep"> · {{ cur.episode }}</span></span>
+        </span>
       </button>
 
-      <!-- Mobile seek bar (hidden when collapsed) -->
-      <div class="player-mobile-seek"
-        :style="dragExpand !== null ? { maxHeight: Math.round(52 * dragExpand) + 'px', opacity: dragExpand, ...(isDragging ? { transition: 'none' } : {}) } : {}">
-        <SeekBar :progress="seekProgress" :duration="duration" :chapters="visibleChapters" :current-time="playerStore.currentTime" @seek="onSeek" />
+      <div class="bar__controls">
+        <button type="button" class="icon-action desk" aria-label="Test précédent" @click="playerStore.skip(-1)"><SkipBack :size="18" :stroke-width="2" /></button>
+        <button type="button" class="bar__play" :class="{ 'is-failed': playerStore.failed }" :aria-label="playLabel" @click="togglePlay">
+          <RefreshCw v-if="playerStore.failed" :size="18" :stroke-width="2" />
+          <Loader2 v-else-if="showSpinner" :size="18" :stroke-width="2" class="animate-spin" />
+          <Pause v-else-if="!playerStore.paused" :size="18" fill="currentColor" :stroke-width="0" />
+          <Play v-else :size="18" fill="currentColor" :stroke-width="0" />
+        </button>
+        <button type="button" class="icon-action" aria-label="Test suivant" :disabled="!nextMark" @click="playerStore.skip(1)"><SkipForward :size="18" :stroke-width="2" /></button>
       </div>
 
-      <!-- Mobile controls row (hidden when collapsed) -->
-      <div class="player-mobile-controls"
-        :style="dragExpand !== null ? { maxHeight: Math.round(62 * dragExpand) + 'px', opacity: dragExpand, ...(isDragging ? { transition: 'none' } : {}) } : {}">
-        <div class="player-controls-inner">
-          <button class="player-ctrl-btn" @click="goToChapterStart" aria-label="Début du chapitre">
-            <SkipBack :size="18" :stroke-width="2" />
+      <div class="bar__seek desk">
+        <SeekBar :duration="duration" :current-time="playerStore.currentTime" :marks="playerStore.marks" :label="segmentLabel" @seek="playerStore.seek" />
+      </div>
+
+      <div class="bar__tools desk">
+        <button type="button" class="bar__rate mono" :aria-label="`Vitesse ${rateLabel(playerStore.rate)}, changer`" @click="cycleRate">{{ rateLabel(playerStore.rate) }}</button>
+        <label class="bar__vol">
+          <component :is="playerStore.volume === 0 ? VolumeX : Volume2" :size="16" :stroke-width="2" aria-hidden="true" />
+          <input type="range" min="0" max="1" step="0.01" :value="playerStore.volume" aria-label="Volume" @input="playerStore.setVolume(parseFloat($event.target.value))" />
+        </label>
+        <button type="button" class="icon-action" aria-label="Fermer le lecteur" @click="playerStore.close()"><X :size="16" :stroke-width="2" /></button>
+      </div>
+
+      <!-- Collapsed phone bar: a hairline of progress along the top edge -->
+      <span class="bar__hair" aria-hidden="true"><span :style="{ width: (duration ? playerStore.currentTime / duration * 100 : 0) + '%' }"></span></span>
+    </div>
+
+    <button v-if="playerStore.failed" type="button" class="failed lab" @click="playerStore.retry()">Lecture interrompue — toucher pour réessayer</button>
+
+    <!-- « En lecture » sheet (phone). Teleported: the bar's entry transform
+         would otherwise be the containing block of its `position: fixed`. -->
+    <Teleport to="body">
+    <div v-if="expanded" class="sheet" role="dialog" aria-modal="true" aria-label="En lecture">
+      <div class="sheet__top">
+        <button type="button" class="icon-action" aria-label="Réduire" @click="expanded = false"><ChevronDown :size="22" :stroke-width="2" /></button>
+        <span class="lab"><span class="onair" :class="{ 'is-off': playerStore.paused }"></span> En lecture</span>
+        <button type="button" class="icon-action" aria-label="Fermer le lecteur" @click="playerStore.close()"><X :size="20" :stroke-width="2" /></button>
+      </div>
+
+      <div class="sheet__body">
+        <img v-if="coverSrc" :src="coverSrc" alt="" class="sheet__cover" />
+        <div class="sheet__titles">
+          <h2 class="cond sheet__title">{{ title }}</h2>
+          <VerdictMark v-if="test" :verdict="test.critique?.verdict ?? test.verdict ?? null" />
+          <p class="mono sheet__ep">{{ sigle }} · {{ cur.episode }}</p>
+        </div>
+
+        <SeekBar :duration="duration" :current-time="playerStore.currentTime" :marks="playerStore.marks" :label="segmentLabel" @seek="playerStore.seek" />
+
+        <div class="sheet__controls">
+          <button type="button" class="icon-action" aria-label="Test précédent" @click="playerStore.skip(-1)"><SkipBack :size="22" :stroke-width="2" /></button>
+          <button type="button" class="icon-action" aria-label="Reculer de 30 secondes" @click="jump(-30)"><RotateCcw :size="22" :stroke-width="2" /></button>
+          <button type="button" class="sheet__play" :aria-label="playLabel" @click="togglePlay">
+            <RefreshCw v-if="playerStore.failed" :size="26" :stroke-width="2" />
+            <Loader2 v-else-if="showSpinner" :size="26" :stroke-width="2" class="animate-spin" />
+            <Pause v-else-if="!playerStore.paused" :size="26" fill="currentColor" :stroke-width="0" />
+            <Play v-else :size="26" fill="currentColor" :stroke-width="0" />
           </button>
-          <button class="player-ctrl-btn" @click="jumpBack" aria-label="Reculer 30 secondes">
-            <RotateCcw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
-          </button>
-          <button class="player-ctrl-btn" @click="jumpForward" aria-label="Avancer 30 secondes">
-            <RotateCw :size="18" :stroke-width="2" /><span class="player-ctrl-label">30</span>
-          </button>
-          <button class="player-ctrl-btn" @click="navigateToEpisode" aria-label="Aller à l'épisode">
-            <ChevronRight :size="18" :stroke-width="2" />
-          </button>
+          <button type="button" class="icon-action" aria-label="Avancer de 30 secondes" @click="jump(30)"><RotateCw :size="22" :stroke-width="2" /></button>
+          <button type="button" class="icon-action" aria-label="Test suivant" :disabled="!nextMark" @click="playerStore.skip(1)"><SkipForward :size="22" :stroke-width="2" /></button>
+        </div>
+
+        <div class="sheet__rates" role="group" aria-label="Vitesse">
+          <button
+            v-for="r in RATES"
+            :key="r"
+            type="button"
+            class="chip-btn"
+            :class="{ 'is-on': playerStore.rate === r }"
+            :aria-pressed="playerStore.rate === r"
+            @click="playerStore.setRate(r)"
+          >{{ rateLabel(r) }}</button>
+        </div>
+
+        <div class="sheet__links">
+          <button v-if="test?.slug || cur.slug" type="button" class="btn-line" @click="goGame">La fiche <ArrowUpRight :size="14" :stroke-width="2" /></button>
+          <button type="button" class="btn-line" @click="goEpisode">L'épisode <ArrowUpRight :size="14" :stroke-width="2" /></button>
         </div>
       </div>
-      <!-- Collapsed-state progress hairline (mobile only) -->
-      <div v-if="collapsed" class="player-hairline">
-        <div class="player-hairline__fill" :style="{ width: seekProgress + '%' }"></div>
-      </div>
-    </template>
+    </div>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-player);
+  animation: slideUpPlayer var(--dur-med) var(--ease-out-soft) both;
+}
+.onair.is-off { background: var(--c-fg-3); box-shadow: none; }
+
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--player-h);
+  padding: 0 4px 0 12px;
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-line);
+}
+.bar__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--c-fg);
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+.bar__cover { width: 36px; height: 48px; object-fit: cover; flex-shrink: 0; }
+.bar__text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.bar__title { font-size: 19px; line-height: 1; }
+.bar__sub { color: var(--c-fg-3); font-size: var(--text-xs); }
+.bar__ep { display: none; }
+.bar__controls { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.bar__play {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: var(--c-accent);
+  color: var(--c-accent-fg);
+  cursor: pointer;
+}
+.bar__play.is-failed { background: var(--c-danger); }
+.player.is-resume .bar__play { animation: resumePulse 1.6s ease-in-out infinite; }
+@keyframes resumePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 63, 0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 210, 63, 0); }
+}
+.bar__hair { position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: transparent; }
+.bar__hair span { display: block; height: 100%; background: var(--c-accent); }
+.desk { display: none !important; }
+
+.bar__tools { align-items: center; gap: 4px; }
+.bar__rate {
+  min-width: 56px;
+  height: 32px;
+  border: 0;
+  background: var(--c-raised);
+  color: var(--c-fg);
+  cursor: pointer;
+  font-weight: 700;
+}
+.bar__vol { display: flex; align-items: center; gap: 8px; color: var(--c-fg-2); padding: 0 8px; }
+.bar__vol input { width: 80px; accent-color: var(--c-accent); }
+
+.failed {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  border: 0;
+  background: var(--c-danger);
+  color: var(--c-accent-fg);
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .bar { gap: 20px; padding: 0 12px 0 var(--gutter); }
+  .bar__info { flex: 0 1 300px; }
+  .bar__ep { display: inline; }
+  .desk { display: flex !important; }
+  .bar__seek.desk { display: block !important; flex: 1; min-width: 160px; }
+  .bar__hair { display: none; }
+}
+
+/* ─── Sheet ───────────────────────────────────────────────────────────── */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  animation: slideUpPlayer var(--dur-med) var(--ease-out-soft) both;
+}
+.sheet__top { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px; border-bottom: 1px solid var(--c-line); }
+.sheet__top .lab { display: inline-flex; align-items: center; gap: 8px; }
+.sheet__body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
+.sheet__cover { width: min(64vw, 280px); aspect-ratio: 3 / 4; object-fit: cover; align-self: center; box-shadow: var(--shadow-cover); }
+.sheet__titles { display: flex; flex-direction: column; gap: 8px; }
+.sheet__title { margin: 0; font-size: 40px; font-weight: 800; line-height: 0.92; }
+.sheet__ep { margin: 0; color: var(--c-fg-3); font-size: var(--text-xs); }
+.sheet__controls { display: flex; align-items: center; justify-content: space-between; }
+.sheet__play {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: var(--c-accent);
+  color: var(--c-accent-fg);
+  cursor: pointer;
+}
+.sheet__rates { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.sheet__links { display: flex; gap: 8px; }
+.sheet__links .btn-line { flex: 1; }
+</style>

@@ -21,48 +21,41 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4">
-    <Transition name="modal-pop" appear>
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="emit('close')" />
-    </Transition>
-    <Transition name="modal-pop" appear>
-      <div class="panel relative p-6 w-full max-w-xs shadow-e4">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-extrabold tracking-[-0.01em]">Mon compte</h2>
-          <button
-            class="btn btn-circle btn-ghost !size-8 !min-h-8 hover:bg-white/10"
-            aria-label="Fermer"
-            @click="emit('close')"
-          ><X :size="16" :stroke-width="2.25" /></button>
-        </div>
-        <div class="flex items-center gap-3 mb-5 p-3 bg-white/[0.04] rounded-xl border border-white/5">
-          <div class="size-10 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0"
-               style="background: color-mix(in srgb, var(--game-accent) 22%, transparent); color: var(--game-accent);">
-            {{ userEmail?.[0]?.toUpperCase() || '?' }}
-          </div>
-          <p class="text-sm text-white/75 truncate flex-1 min-w-0">{{ userEmail }}</p>
-        </div>
-        <button
-          v-if="admin"
-          class="btn btn-outline w-full font-semibold gap-2 mb-2 border-white/15 hover:bg-white/10"
-          @click="openAdmin('/admin/resolution')"
-        >
-          <SlidersHorizontal :size="16" :stroke-width="2.25" />
-          Résolution des noms
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
+    <div class="modal__scrim" @click="emit('close')" />
+    <div class="modal__box panel">
+      <div class="modal__head">
+        <h2 id="account-title" class="cond modal__title">Mon compte</h2>
+        <button type="button" class="icon-action" aria-label="Fermer" @click="emit('close')"><X :size="18" :stroke-width="2" /></button>
+      </div>
+      <p class="mono modal__email ellipsis">{{ userEmail }}</p>
+      <div class="modal__actions">
+        <button v-if="admin" type="button" class="btn-line" @click="openAdmin('/admin/resolution')">
+          <SlidersHorizontal :size="14" :stroke-width="2" /> Résolution des noms
         </button>
-        <button
-          v-if="admin"
-          class="btn btn-outline w-full font-semibold gap-2 mb-2 border-white/15 hover:bg-white/10"
-          @click="openAdmin('/admin/users')"
-        >
-          <Users :size="16" :stroke-width="2.25" />
-          Comptes
+        <button v-if="admin" type="button" class="btn-line" @click="openAdmin('/admin/users')">
+          <Users :size="14" :stroke-width="2" /> Comptes
         </button>
-        <button class="btn btn-outline btn-error w-full font-semibold gap-2" @click="emit('logout')">
-          <LogOut :size="16" :stroke-width="2.25" />
-          Se déconnecter
+        <button type="button" class="btn-line modal__logout" @click="emit('logout')">
+          <LogOut :size="14" :stroke-width="2" /> Se déconnecter
         </button>
       </div>
-    </Transition>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.modal { position: fixed; inset: 0; z-index: var(--z-modal); display: flex; align-items: flex-end; justify-content: center; }
+.modal__scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); }
+.modal__box { position: relative; width: 100%; max-width: 420px; padding: 16px var(--gutter) calc(24px + env(safe-area-inset-bottom, 0px)); animation: slideUpPlayer var(--dur-med) var(--ease-out-soft) both; }
+.modal__head { display: flex; align-items: center; justify-content: space-between; }
+.modal__title { margin: 0; font-size: var(--text-2xl); }
+.modal__email { color: var(--c-fg-2); margin: 8px 0 20px; }
+.modal__actions { display: flex; flex-direction: column; gap: 8px; }
+.modal__actions .btn-line { justify-content: flex-start; }
+.modal__logout { color: var(--c-danger); }
+@media (min-width: 768px) {
+  .modal { align-items: center; }
+  .modal__box { padding: 20px 24px 24px; }
+}
+</style>

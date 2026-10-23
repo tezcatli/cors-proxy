@@ -47,18 +47,6 @@
 /* ─── Audio player entry ─────────────────────────────────────────────── */
 @keyframes slideUpPlayer { from { transform: translateY(110%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* ─── Player info marquee ────────────────────────────────────────────── */
-@keyframes player-marquee {
-  0%, 12%   { transform: translateX(0); }
-  88%, 100% { transform: translateX(-100%); }
-}
-
-/* ─── Player info vertical ticker ────────────────────────────────────── */
-.player-tick-enter-active { transition: transform var(--dur-med) var(--ease-out-soft), opacity var(--dur-med) var(--ease-out-soft); }
-.player-tick-leave-active { transition: transform var(--dur-med) var(--ease-out-soft), opacity var(--dur-med) var(--ease-out-soft); position: absolute; inset-inline: 0; }
-.player-tick-enter-from   { transform: translateY(100%); opacity: 0; }
-.player-tick-leave-to     { transform: translateY(-100%); opacity: 0; }
-
 /* ─── Shimmer (skeleton loaders) ─────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
@@ -69,14 +57,3 @@
 .modal-pop-enter-active { transition: transform var(--dur-med) var(--ease-spring), opacity var(--dur-med) var(--ease-out-soft); }
 .modal-pop-leave-active { transition: transform var(--dur-fast) var(--ease-in-soft), opacity var(--dur-fast) var(--ease-in-soft); }
 .modal-pop-enter-from, .modal-pop-leave-to { transform: scale(0.96) translateY(4px); opacity: 0; }
-
-/* Animated gradient backdrop (login hero) */
-@keyframes hueDrift {
-  0%   { background-position:   0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position:   0% 50%; }
-}
-.hero-drift {
-  background-size: 200% 200%;
-  animation: hueDrift 18s ease-in-out infinite;
-}

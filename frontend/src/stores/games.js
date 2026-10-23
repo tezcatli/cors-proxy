@@ -11,8 +11,9 @@ const collator = new Intl.Collator('fr', { sensitivity: 'base' })
 export const useGamesStore = defineStore('games', () => {
   const all             = ref([])
   const lastFetch       = ref(null)
-  const sortMode        = ref(localStorage.getItem('soj-sort-mode') || 'alpha')
-  const sortAsc         = ref(localStorage.getItem('soj-sort-asc') !== 'false')
+  // Newest tests first by default: what's new is the first question.
+  const sortMode        = ref(localStorage.getItem('soj-sort-mode') || 'date')
+  const sortAsc         = ref(localStorage.getItem('soj-sort-asc') === 'true')
   const selectedPodcast = ref(localStorage.getItem('soj-podcast-filter') || 'all')
   const loading         = ref(false)
   const error           = ref(null)

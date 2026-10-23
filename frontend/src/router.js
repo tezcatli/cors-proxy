@@ -9,8 +9,11 @@ const Empty = { render: () => null }
 const router = createRouter({
   history: createWebHistory('/'),
   routes: [
+    // The two base views (Tests, Jeux) are rendered by App.vue, kept mounted
+    // under the overlays; `/jeux`, not `/games`, which Vite proxies to Flask.
     { path: '/',                                  component: Empty,       meta: { depth: 0 } },
-    { path: '/episodes',                          component: Empty,       meta: { depth: 0 } },
+    { path: '/jeux',                              component: Empty,       meta: { depth: 0 } },
+    { path: '/episodes',                          redirect: '/' },
     { path: '/game/:slug',                        component: DetailView,  meta: { depth: 1 } },
     { path: '/episode/:episodeSlug',              component: EpisodeView, meta: { depth: 1 } },
     { path: '/login',                             component: LoginPage,   meta: { depth: 1 } },

@@ -85,45 +85,34 @@ describe('podcast filter', () => {
 // ── setSort ───────────────────────────────────────────────────────────────
 
 describe('setSort', () => {
+  it('defaults to the newest tests first', () => {
+    const store = useGamesStore()
+    expect(store.sortMode).toBe('date')
+    expect(store.sortAsc).toBe(false)
+  })
+
   it('switches to a new mode with its default direction', () => {
     const store = useGamesStore()
-    store.setSort('date')
-    expect(store.sortMode).toBe('date')
-    expect(store.sortAsc).toBe(false)   // date defaults to descending
+    store.setSort('alpha')
+    expect(store.sortMode).toBe('alpha')
+    expect(store.sortAsc).toBe(true)    // alpha defaults to ascending
   })
 
   it('toggles direction when same mode is selected again', () => {
     const store = useGamesStore()
-    expect(store.sortAsc).toBe(true)    // alpha default = ascending
-    store.setSort('alpha')
-    expect(store.sortAsc).toBe(false)
-    store.setSort('alpha')
+    store.setSort('date')
     expect(store.sortAsc).toBe(true)
+    store.setSort('date')
+    expect(store.sortAsc).toBe(false)
   })
 })
 
 // ── sorting ───────────────────────────────────────────────────────────────
 
 describe('sorting', () => {
-  it('sorts alphabetically ascending by default', () => {
+  it('sorts by date descending (newest first) by default', () => {
     const store = useGamesStore()
     store.all = GAMES
-    const result = store.filtered('')
-    expect(result.map(g => g.name)).toEqual(['Hollow Knight', 'Mario', 'Zelda'])
-  })
-
-  it('sorts alphabetically descending when toggled', () => {
-    const store = useGamesStore()
-    store.all = GAMES
-    store.setSort('alpha')              // toggles asc→desc
-    const result = store.filtered('')
-    expect(result.map(g => g.name)).toEqual(['Zelda', 'Mario', 'Hollow Knight'])
-  })
-
-  it('sorts by date descending (newest first)', () => {
-    const store = useGamesStore()
-    store.all = GAMES
-    store.setSort('date')
     const result = store.filtered('')
     expect(result[0].name).toBe('Zelda')        // June 2024 — newest
     expect(result[2].name).toBe('Mario')        // Jan 2024  — oldest
@@ -132,10 +121,26 @@ describe('sorting', () => {
   it('sorts by date ascending when toggled', () => {
     const store = useGamesStore()
     store.all = GAMES
-    store.setSort('date')
     store.setSort('date')               // toggle → ascending
     const result = store.filtered('')
     expect(result[0].name).toBe('Mario')        // oldest first
+  })
+
+  it('sorts alphabetically ascending', () => {
+    const store = useGamesStore()
+    store.all = GAMES
+    store.setSort('alpha')
+    const result = store.filtered('')
+    expect(result.map(g => g.name)).toEqual(['Hollow Knight', 'Mario', 'Zelda'])
+  })
+
+  it('sorts alphabetically descending when toggled', () => {
+    const store = useGamesStore()
+    store.all = GAMES
+    store.setSort('alpha')
+    store.setSort('alpha')              // toggles asc→desc
+    const result = store.filtered('')
+    expect(result.map(g => g.name)).toEqual(['Zelda', 'Mario', 'Hollow Knight'])
   })
 
   it('meta sort ranks by metacritic descending, nulls last', () => {

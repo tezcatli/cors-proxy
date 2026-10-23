@@ -4,6 +4,14 @@ export function formatDate(ts) {
   catch { return String(ts); }
 }
 
+/** Unix seconds → `02.10.2026`, the mono date of rows and tables. */
+export function formatShortDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
 export function timeAgo(iso) {
   if (!iso) return '';
   const mins = Math.floor((Date.now() - new Date(iso)) / 60000);

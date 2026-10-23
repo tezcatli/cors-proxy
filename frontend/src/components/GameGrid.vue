@@ -1,7 +1,5 @@
 <script setup>
 import GameCard from './GameCard.vue'
-import SkeletonTile from './SkeletonTile.vue'
-import { AlertTriangle, SearchX } from 'lucide-vue-next'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
 
 const props = defineProps({
@@ -20,34 +18,47 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
 </script>
 
 <template>
-  <div class="grid-area">
-    <!-- Loading: skeleton shimmer grid -->
-    <div
-      v-if="loading"
-      class="grid grid-cols-3 gap-2 px-[var(--gutter)] pt-3.5 pb-6  sm:grid-cols-4 sm:gap-3 sm:pt-4 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:pt-5"
-    >
-      <SkeletonTile v-for="i in 18" :key="i" />
-    </div>
+  <div class="scroll-area games-scroll">
+    <div class="content">
+      <div v-if="!loading && !error && games.length" class="lab grid-count">{{ games.length }} jeux</div>
 
-    <!-- Empty / error -->
-    <div
-      v-else-if="error || games.length === 0"
-      class="flex flex-col items-center gap-3 py-20 px-6 text-base-content/50"
-    >
-      <component :is="error ? AlertTriangle : SearchX" :size="48" :stroke-width="1.5" class="opacity-70" />
-      <p v-if="error" class="text-sm text-center max-w-sm">{{ error }}</p>
-      <p v-else-if="total === 0" class="text-sm text-center">Aucun jeu dans le catalogue. Essayez d'actualiser.</p>
-      <p v-else-if="hasQuery" class="text-sm text-center">Aucun jeu ne correspond à votre recherche.</p>
-      <p v-else class="text-sm text-center max-w-sm">Aucun jeu résolu pour l'instant. Désactivez « Jeux résolus uniquement » pour voir les autres.</p>
-    </div>
+      <div v-if="loading" class="grid" aria-hidden="true">
+        <div v-for="i in 18" :key="i" class="skel">
+          <div class="skeleton-shimmer skel__cover" />
+          <div class="skeleton-shimmer skel__line" />
+        </div>
+      </div>
 
-    <!-- Grid -->
-    <div
-      v-else
-      class="grid grid-cols-3 gap-2 px-[var(--gutter)] pt-3.5 pb-6  sm:grid-cols-4 sm:gap-3 sm:pt-4 sm:pb-8 lg:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] lg:gap-4 lg:pt-5 lg:pb-10"
-    >
-      <GameCard v-for="game in visibleGames" :key="game.slug" :game="game" />
+      <div v-else-if="error || games.length === 0" class="empty">
+        <p class="cond empty__title">{{ error ? 'Hors antenne' : 'Rien ici' }}</p>
+        <p v-if="error" class="empty__text">{{ error }}</p>
+        <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Tirez vers le bas pour actualiser.</p>
+        <p v-else-if="hasQuery" class="empty__text">Aucun jeu ne correspond à votre recherche.</p>
+        <p v-else class="empty__text">Aucun jeu pour cette émission.</p>
+      </div>
+
+      <div v-else class="grid">
+        <GameCard v-for="game in visibleGames" :key="game.slug" :game="game" />
+      </div>
+      <div ref="sentinel" class="h-1" />
     </div>
-    <div ref="sentinel" class="h-1" />
   </div>
 </template>
+
+<style scoped>
+.grid-count { padding: 16px 0 12px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 12px;
+  padding-top: 4px;
+}
+@media (min-width: 600px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 32px 20px; } }
+.skel { display: flex; flex-direction: column; gap: 8px; }
+.skel__cover { aspect-ratio: 3 / 4; }
+.skel__line { height: 14px; width: 70%; }
+.empty { padding: 80px 0; text-align: center; }
+.empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
+.empty__text { color: var(--c-fg-2); margin: 0 auto; max-width: 36ch; }
+</style>

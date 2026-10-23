@@ -133,7 +133,8 @@ onUnmounted(() => {
             </p>
           </div>
           <button
-            class="btn btn-circle btn-ghost !size-8 !min-h-8 hover:bg-white/10 flex-shrink-0"
+            type="button"
+            class="icon-action"
             aria-label="Fermer"
             @click="emit('close')"
           ><X :size="16" :stroke-width="2.25" /></button>
@@ -175,7 +176,7 @@ onUnmounted(() => {
           />
         </label>
         <div v-if="nameDirty" class="picker-save">
-          <button class="btn btn-sm btn-outline gap-2 border-white/15 hover:bg-white/10"
+          <button type="button" class="btn-line"
                   :disabled="saving" @click="save()">
             <Check :size="14" :stroke-width="2.5" />
             {{ displayName.trim() ? 'Enregistrer le nom' : 'Utiliser le nom IGDB' }}
@@ -197,7 +198,7 @@ onUnmounted(() => {
           />
         </label>
 
-        <p v-if="error" class="text-xs text-error mb-2">{{ error }}</p>
+        <p v-if="error" class="text-xs text-danger mb-2">{{ error }}</p>
 
         <div class="flex-1 overflow-y-auto -mx-1 px-1">
           <div v-if="searching && !results.length" class="flex flex-col gap-2">
@@ -233,7 +234,7 @@ onUnmounted(() => {
         </div>
 
         <div v-if="hasCorrection && writable" class="pt-3 mt-1 border-t border-white/[0.08]">
-          <button class="btn btn-ghost btn-sm gap-2 text-white/60 hover:text-white" :disabled="saving" @click="clearCorrection">
+          <button type="button" class="btn-line" :disabled="saving" @click="clearCorrection">
             <Undo2 :size="14" :stroke-width="2.25" />
             Retirer la correction
           </button>

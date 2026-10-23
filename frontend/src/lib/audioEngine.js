@@ -38,6 +38,7 @@ export function createAudioEngine({ onState = () => {} } = {}) {
     position: 0,
     duration: 0,
     volume:   1,
+    rate:     1,        // playback speed; reapplied after every load, which resets it
     anchor:   0,        // last trusted position; the only thing a reload seeks back to
     attempts: 0,        // consecutive recovery reloads
   }
@@ -77,6 +78,7 @@ export function createAudioEngine({ onState = () => {} } = {}) {
     try {
       el.preload = 'metadata'
       el.volume  = state.volume
+      applyRate(el)
       el.setAttribute?.('playsinline', '')
       // Keep it in the document: some engines only keep background playback
       // alive for connected elements.
@@ -103,7 +105,12 @@ export function createAudioEngine({ onState = () => {} } = {}) {
     try {
       e.src = _pendingSeek > 0 ? `${track.url}#t=${Math.floor(_pendingSeek)}` : track.url
       e.load()
+      applyRate(e)
     } catch (_) {}
+  }
+
+  function applyRate(e) {
+    try { e.defaultPlaybackRate = state.rate; e.playbackRate = state.rate } catch (_) {}
   }
 
   function tryPlay() {
@@ -354,6 +361,12 @@ export function createAudioEngine({ onState = () => {} } = {}) {
     emit()
   }
 
+  function setRate(r) {
+    state.rate = Math.min(3, Math.max(0.5, r || 1))
+    if (el) applyRate(el)
+    emit()
+  }
+
   /** Drop the current track but keep the element for the next one. */
   function stop() {
     clearWatchdog()
@@ -394,7 +407,7 @@ export function createAudioEngine({ onState = () => {} } = {}) {
 
   return {
     state,
-    load, play, pause, toggle, seek, retry, setVolume, stop, destroy,
+    load, play, pause, toggle, seek, retry, setVolume, setRate, stop, destroy,
     get element() { return el },
   }
 }
