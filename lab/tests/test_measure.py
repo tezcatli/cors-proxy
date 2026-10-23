@@ -42,5 +42,5 @@ def test_each_set_is_scored_on_its_own():
     eps = [{'set': 'référence', 'cases': [{'outcome': 'juste'}]},
            {'set': 'contrôle', 'cases': [{'outcome': 'faux'}, {'outcome': 'juste'}]}]
     s = by_set(eps)
-    assert list(s) == ['contrôle 2', 'contrôle', 'référence']
+    assert list(s) == ['nouvelles émissions', 'contrôle 2', 'contrôle', 'référence']
     assert (s['référence']['met'], s['contrôle']['met'], s['contrôle']['faux']) == (True, False, 1)
