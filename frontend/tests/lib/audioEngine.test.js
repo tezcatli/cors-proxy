@@ -163,3 +163,17 @@ describe('pause and stop', () => {
     expect(engine.state.status).toBe('idle')
   })
 })
+
+// A load resets the element's speed; the user's choice must survive reloads.
+describe('playback rate', () => {
+  it('applies the rate and keeps it across a recovery reload', async () => {
+    engine.setRate(1.5)
+    engine.load({ url: 'https://ex.com/a.mp3', at: 0 }, { autoplay: true })
+    expect(media.playbackRate).toBe(1.5)
+    media.playbackRate = 1
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(media.load).toHaveBeenCalled()
+    expect(media.playbackRate).toBe(1.5)
+    expect(engine.state.rate).toBe(1.5)
+  })
+})

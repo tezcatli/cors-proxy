@@ -85,31 +85,11 @@ export function useMediaSession(playerStore) {
       updatePositionState()
     })
 
-    if (cur.chapters?.length) {
-      navigator.mediaSession.setActionHandler('previoustrack', () => {
-        const chapters = playerStore.current?.chapters
-        const t = playerStore.currentTime
-        if (!chapters?.length) { playerStore.seek(0); return }
-        let idx = -1
-        for (let i = 0; i < chapters.length; i++) {
-          if (chapters[i].timestampSeconds <= t) idx = i
-          else break
-        }
-        if (idx >= 0 && t - chapters[idx].timestampSeconds > 3) {
-          playerStore.seek(chapters[idx].timestampSeconds)
-        } else if (idx > 0) {
-          playerStore.seek(chapters[idx - 1].timestampSeconds)
-        } else {
-          playerStore.seek(0)
-        }
-      })
-      navigator.mediaSession.setActionHandler('nexttrack', () => {
-        const chapters = playerStore.current?.chapters
-        const t = playerStore.currentTime
-        if (!chapters?.length) return
-        const next = chapters.find(ch => ch.timestampSeconds > t)
-        if (next) playerStore.seek(next.timestampSeconds)
-      })
+    // Track buttons jump between the episode's tests (or its chapters while
+    // unread): the store's `skip` is the one rule, shared with the player.
+    if (playerStore.marks.length) {
+      navigator.mediaSession.setActionHandler('previoustrack', () => playerStore.skip(-1))
+      navigator.mediaSession.setActionHandler('nexttrack',     () => playerStore.skip(1))
     } else {
       navigator.mediaSession.setActionHandler('previoustrack', null)
       navigator.mediaSession.setActionHandler('nexttrack', null)

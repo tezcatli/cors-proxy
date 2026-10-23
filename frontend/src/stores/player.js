@@ -23,6 +23,7 @@ export const usePlayerStore = defineStore('player', () => {
   const status = ref('idle')
   const intent = ref('pause')
   const volume = ref(1)
+  const rate   = ref(1)
 
   const engine = createAudioEngine({
     onState(s) {
@@ -31,6 +32,7 @@ export const usePlayerStore = defineStore('player', () => {
       currentTime.value   = s.position
       audioDuration.value = s.duration
       volume.value        = s.volume
+      rate.value          = s.rate
       if (s.status === 'playing') restored.value = false
     },
   })
@@ -38,15 +40,22 @@ export const usePlayerStore = defineStore('player', () => {
   // `paused` follows *intent*, so a tap flips the icon immediately; `buffering`
   // is the gap between intent and reality, and `failed` is where that gap stops
   // being temporary (see lib/audioEngine.js).
+  // The listener's speed outlives tracks and reloads (`soj-rate`).
+  try { engine.setRate(parseFloat(localStorage.getItem('soj-rate')) || 1) } catch (_) {}
+  function setRate(r) {
+    engine.setRate(r)
+    try { localStorage.setItem('soj-rate', String(rate.value)) } catch (_) {}
+  }
+
   const paused    = computed(() => intent.value !== 'play')
   const buffering = computed(() => intent.value === 'play' && status.value !== 'playing')
   const failed    = computed(() => status.value === 'failed')
 
-  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, episodeUrlSlug = null, coverImageId = null, chapters = null, podcast = null }) {
+  function play({ game, slug, episode, url, ts = 0, timestamp = null, episodeImageUrl = null, pubTs = null, episodeSlug = null, episodeUrlSlug = null, coverImageId = null, chapters = null, podcast = null, tests = null }) {
     clearTimeout(_progressTimer)
     _updateProgress()
     restored.value = false
-    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, podcast, chapters: chapters ?? [] }
+    current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, podcast, chapters: chapters ?? [], tests: tests ?? [] }
     visible.value = true
     engine.load({ url, at: ts }, { autoplay: true })
   }
@@ -79,6 +88,37 @@ export const usePlayerStore = defineStore('player', () => {
     }
     return active
   })
+
+  // The episode's tests in order — its review starts — or, for an unread
+  // episode, its chapters: what « test suivant / précédent » jumps between.
+  const marks = computed(() => {
+    const cur = current.value
+    const tests = (cur?.tests ?? []).filter(t => t.timestampSeconds != null)
+    const list  = tests.length ? tests : (cur?.chapters ?? [])
+    return [...list].sort((a, b) => a.timestampSeconds - b.timestampSeconds)
+  })
+
+  const currentTest = computed(() => {
+    let active = null
+    for (const t of current.value?.tests ?? []) {
+      if (t.timestampSeconds <= currentTime.value && (!active || t.timestampSeconds >= active.timestampSeconds)) active = t
+    }
+    return active
+  })
+
+  // Back within the first seconds of a mark goes to the one before, as on a CD.
+  const BACK_GRACE = 4
+  function skip(dir) {
+    const t = currentTime.value
+    const list = marks.value
+    if (dir > 0) {
+      const next = list.find(m => m.timestampSeconds > t + 1)
+      if (next) seek(next.timestampSeconds)
+    } else {
+      const prev = [...list].reverse().find(m => m.timestampSeconds < t - BACK_GRACE)
+      seek(prev ? prev.timestampSeconds : 0)
+    }
+  }
 
   function setEpisodeImageUrl(url) {
     if (current.value) current.value = { ...current.value, episodeImageUrl: url }
@@ -209,6 +249,21 @@ export const usePlayerStore = defineStore('player', () => {
     return entries.sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))[0]
   }
 
+  // Episodes started and not finished, most recent first (one entry each): the
+  // home's « Reprendre » shelf.
+  const inProgress = computed(() => {
+    const seen = new Set()
+    return Object.entries(progressMap.value)
+      .map(([k, v]) => ({ ...v, episodeSlug: k.slice(0, k.lastIndexOf('|')) }))
+      .filter(e => {
+        if (!e.chapterEnd) return false
+        const pct = progressPct(e.currentTime, e.ts ?? 0, e.chapterEnd)
+        return pct >= PROGRESS_MIN_PCT && pct < PROGRESS_DONE_PCT
+      })
+      .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))
+      .filter(e => !seen.has(e.episodeSlug) && seen.add(e.episodeSlug))
+  })
+
   // ── Persistence ─────────────────────────────────────────────────────────────
   const STORAGE_KEY = 'soj-player'
 
@@ -234,10 +289,10 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     current, visible, currentTime, currentChapter, audioDuration, restored,
-    status, paused, buffering, failed, volume,
+    status, paused, buffering, failed, volume, rate, marks, currentTest,
     play, close, restore, setEpisodeImageUrl,
-    resume, pauseAudio, togglePlayback, seek, retry, setVolume,
+    resume, pauseAudio, togglePlayback, seek, retry, setVolume, setRate, skip,
     liveProgress, getEpisodeProgress, getGameProgress,
-    resumeTimeFor, getEpisodeLatestProgress,
+    resumeTimeFor, getEpisodeLatestProgress, inProgress,
   }
 })

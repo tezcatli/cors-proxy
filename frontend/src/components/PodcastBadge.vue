@@ -11,26 +11,17 @@ const meta = computed(() => podcastMeta(props.id))
 </script>
 
 <template>
-  <span
-    v-if="meta"
-    class="podcast-badge"
-    :style="{ color: meta.color, backgroundColor: meta.color + '22', borderColor: meta.color + '55' }"
-    :title="meta.name"
-  >{{ full ? meta.name : meta.label }}</span>
+  <span v-if="meta" class="podcast-badge" :class="{ 'podcast-badge--full': full }" :title="meta.name">{{ full ? meta.name : meta.label }}</span>
 </template>
 
 <style scoped>
 .podcast-badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid transparent;
-  border-radius: 0.35rem;
-  padding: 0 0.3rem;
-  font-size: 0.6rem;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: 0.02em;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--c-fg-2);
   white-space: nowrap;
 }
+.podcast-badge--full { font-family: var(--font-body); font-size: var(--text-md); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--c-fg); }
 </style>

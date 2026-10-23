@@ -37,6 +37,7 @@ export function useEpisodePlayer(gameContext = null) {
       coverImageId:    coverId,
       chapters:        ep.chapters ?? [],
       podcast:         ep.podcast ?? null,
+      tests:           ep.games ?? [],
     })
   }
 

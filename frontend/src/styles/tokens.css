@@ -1,103 +1,84 @@
+/* Studio radio (DECISIONS.md, « Interface »): pure black, hairlines, square
+   corners, one accent — the on-air yellow — kept for what plays, the active
+   choice and the main action. Covers are the only colour. Verdicts are told by
+   their glyph (▲ ◆ ▼ ○), never by a hue. */
 :root {
-  /* ─── Surface ramp (deeper near-black for hero artwork to pop) ────────── */
-  --rgb-base:     8,   8,  15;   /* #08080f — abyss */
-  --rgb-surface: 15,  15,  28;   /* #0f0f1c — main surface */
-  --rgb-raised:  26,  26,  46;   /* #1a1a2e — raised cards */
-  --rgb-line:    255, 255, 255;  /* used at low alpha for hairline borders */
+  /* ─── Surfaces & lines ─────────────────────────────────────────────── */
+  --c-bg:          #0b0b0b;
+  --c-surface:     #141414;
+  --c-raised:      #1c1c1c;
+  --c-line:        #262626;
+  --c-line-strong: #3a3a3a;
 
-  --rgb-primary: 233,  69,  96;  /* #e94560 retained for CTAs */
-  --rgb-muted:   148, 148, 168;
-  --rgb-light:   232, 232, 240;
+  /* ─── Text (all ≥ 7:1 on --c-bg) ───────────────────────────────────── */
+  --c-fg:   #f5f5f5;
+  --c-fg-2: #bdbdbd;
+  --c-fg-3: #9a9a9a;
 
-  /* ─── Score palette ───────────────────────────────────────────────────── */
-  --rgb-high: 74,  222, 128;     /* tailwind green-400 family */
-  --rgb-mid:  251, 191,  36;     /* tailwind amber-400 */
-  --rgb-low:  239,  68,  68;     /* tailwind red-500 */
+  /* ─── The one accent ───────────────────────────────────────────────── */
+  --c-accent:    #ffd23f;
+  --c-accent-fg: #0b0b0b;
+  --c-danger:    #ff6b4a;
 
-  --col-high-text:   #4ade80;
-  --col-mid-text:    #fbbf24;
-  --col-low-text:    #f87171;
-  --col-rating-text: #ff8aa0;
+  /* Older names, still read by the admin consoles' scoped styles. */
+  --game-accent:    var(--c-accent);
+  --game-accent-fg: var(--c-accent-fg);
+  --rgb-base:  11, 11, 11;
+  --rgb-light: 245, 245, 245;
+  --border-subtle: var(--c-line);
+  --border-strong: var(--c-line-strong);
 
-  /* ─── Glass / surface tokens ──────────────────────────────────────────── */
-  --glass-blur:    18px;
+  /* ─── Type ─────────────────────────────────────────────────────────── */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body:    'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
-  --panel-bg:        rgba(var(--rgb-raised), 0.45);
+  --text-label: 11px;   /* mono, upper case, tracked: labels only */
+  --text-xs:    12px;
+  --text-sm:    13px;
+  --text-md:    15px;
+  --text-lg:    18px;
+  --text-xl:    24px;
+  --text-2xl:   32px;
+  --text-hero:  clamp(48px, 9vw, 132px);
 
-  /* Unified border ramp — every panel/control uses one of these three */
-  --border-subtle: rgba(var(--rgb-line), 0.07);   /* default hairline */
-  --border-strong: rgba(var(--rgb-line), 0.14);   /* hover / raised */
-  --border-accent: color-mix(in srgb, var(--game-accent) 38%, transparent);  /* active / focus */
+  /* ─── Elevation: only covers cast a shadow ─────────────────────────── */
+  --shadow-cover: 0 24px 48px -20px rgba(0, 0, 0, 0.8);
 
-  /* ─── Per-view artwork-driven accents (set inline by useArtworkAccent) ── */
-  --game-accent:     rgb(var(--rgb-primary));
-  --game-accent-fg:  #ffffff;
-  --game-backdrop:   rgb(var(--rgb-surface));
-  /* Shared accent CTA gradient (tab pill, steam pill, …) */
-  --accent-gradient: linear-gradient(135deg,
-    var(--game-accent),
-    color-mix(in srgb, var(--game-accent) 65%, #ffffff 35%));
-  /* Accent glow used on the floating glass chrome */
-  --glow-accent: 0 0 36px -18px var(--game-accent);
-
-  /* ─── Elevation ──────────────────────────────────────────────────────── */
-  --elev-1: 0 1px  2px rgba(0,0,0,0.30);
-  --elev-2: 0 6px  16px -4px rgba(0,0,0,0.45);
-  --elev-3: 0 14px 32px -8px rgba(0,0,0,0.55);
-  --elev-4: 0 28px 60px -12px rgba(0,0,0,0.65);
-
-  /* ─── Radii ──────────────────────────────────────────────────────────── */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
-  --radius-pill: 999px;
-
-  /* ─── Z-index layers ─────────────────────────────────────────────────── */
-  --z-player:   300;
+  /* ─── Z-index layers ───────────────────────────────────────────────── */
   --z-detail:   150;
   --z-episode:  200;
-  --z-modal:    350;   /* account modal — above the player */
+  --z-player:   300;
+  --z-tabbar:   310;
+  --z-modal:    350;
   --z-lightbox: 400;
 
-  /* ─── Horizontal gutter (shared by floating chrome + grid content) ─────
-     Keeps the command bar, audio player, and grid edges on one line. */
-  --gutter: 12px;
-  /* Top clearance under the floating back pill (DetailView / EpisodeView) */
-  --back-clear: 56px;
+  /* ─── Layout ───────────────────────────────────────────────────────── */
+  --gutter:    16px;
+  --content-w: 1280px;
+  --topbar-h:  56px;
+  --tabbar-h:  56px;   /* mobile only; 0 from md */
+  --player-h:  64px;   /* mini player; set to 0 by App.vue while nothing plays */
 
-  /* ─── Utility face for data ──────────────────────────────────────────
-     Tabular figures, slugs, ids — anything read as a column rather than as
-     prose. Mirrors tailwind.config.js `fontFamily.mono`; the face is already
-     loaded in base.css. Pair it with `font-variant-numeric: tabular-nums`. */
-  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace,
-               SFMono-Regular, monospace;
-
-  /* ─── Motion ─────────────────────────────────────────────────────────── */
+  /* ─── Motion ───────────────────────────────────────────────────────── */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-soft:  cubic-bezier(0.4, 0, 1, 1);
   --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-std:      var(--ease-out-soft);
-
-  --dur-fast: 160ms;
-  --dur-med:  280ms;
-  --dur-slow: 480ms;
-  --dur-hero: 640ms;
-
+  --dur-fast: 140ms;
+  --dur-med:  240ms;
+  --dur-slow: 420ms;
 }
 
-@media (min-width: 600px) { :root { --gutter: 20px; } }
-@media (min-width: 900px) { :root { --gutter: 28px; } }
+@media (min-width: 768px) {
+  :root { --gutter: 32px; --tabbar-h: 0px; --player-h: 72px; }
+}
+@media (min-width: 1200px) {
+  :root { --gutter: 40px; }
+}
 
-/* ─── Reduced motion: kill non-essential animation, keep opacity fades ─── */
+/* ─── Reduced motion: kill non-essential animation ─────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --dur-fast: 0ms;
-    --dur-med:  0ms;
-    --dur-slow: 0ms;
-    --dur-hero: 0ms;
-  }
+  :root { --dur-fast: 0ms; --dur-med: 0ms; --dur-slow: 0ms; }
   *, *::before, *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;

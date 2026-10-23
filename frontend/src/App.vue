@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loggedIn, getUserEmail, logout, refresh } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
@@ -7,11 +7,11 @@ import { usePlayerStore } from './stores/player.js'
 import { useNavDirection } from './composables/useNavDirection.js'
 import { usePullToRefresh } from './composables/usePullToRefresh.js'
 import AppHeader    from './components/AppHeader.vue'
+import TabBar       from './components/TabBar.vue'
 import GameGrid     from './components/GameGrid.vue'
 import EpisodesFeed from './components/EpisodesFeed.vue'
 import AudioPlayer  from './components/AudioPlayer.vue'
 import AccountModal from './components/AccountModal.vue'
-import { User } from 'lucide-vue-next'
 
 const route  = useRoute()
 const router = useRouter()
@@ -25,78 +25,57 @@ const { navDir } = useNavDirection(route, router)
 
 const showAccountModal = ref(false)
 
-function handleShowAccount() {
-  showAccountModal.value = true
-}
-
-// ── Base route (only / or /episodes) ─────────────────────────────────────────
+// ── Base route: Tests (/) or Jeux (/jeux) ────────────────────────────────────
 // Overlay routes (/game/:slug, /episode/:slug, /login) must NOT update this,
-// so the background view stays visible during the slide-in transition.
-const BASE_ROUTES = new Set(['/', '/episodes'])
+// so the base view stays visible under the slide-in transition.
+const BASE_ROUTES = new Set(['/', '/jeux'])
 const baseRoute   = ref(BASE_ROUTES.has(route.path) ? route.path : '/')
 
 watch(() => route.path, path => {
   if (BASE_ROUTES.has(path)) baseRoute.value = path
 })
 
-// ── Search ────────────────────────────────────────────────────────────────────
-const searchQuery         = ref(route.query.q || '')
-const episodesSearchQuery = ref('')
+const isJeux = computed(() => baseRoute.value === '/jeux')
 
-const isEpisodes = computed(() => baseRoute.value === '/episodes')
+// Mount the catalog only once Jeux is first opened, then keep it mounted (and
+// scrolled) under the overlays and across tab switches.
+const jeuxVisited = ref(false)
+watch(isJeux, v => { if (v) jeuxVisited.value = true }, { immediate: true })
 
-// Mount the episodes feed only once the Épisodes tab is first opened, then keep
-// it mounted — avoids fetching the (large) feed for grid-only sessions.
-const episodesVisited = ref(false)
-watch(isEpisodes, v => { if (v) episodesVisited.value = true }, { immediate: true })
+// ── Search: one query per tab ────────────────────────────────────────────────
+const gamesQuery = ref(route.query.q || '')
+const testsQuery = ref('')
 
-const activeSearchQuery = computed(() =>
-  isEpisodes.value ? episodesSearchQuery.value : searchQuery.value
-)
+const activeSearchQuery = computed(() => isJeux.value ? gamesQuery.value : testsQuery.value)
 
 function handleSearchUpdate(q) {
-  if (isEpisodes.value) episodesSearchQuery.value = q
-  else searchQuery.value = q
+  if (isJeux.value) gamesQuery.value = q
+  else testsQuery.value = q
 }
 
-// Reset active search when switching tabs
-watch(() => route.path, (newPath, oldPath) => {
-  if (newPath !== oldPath) {
-    if (newPath === '/episodes') episodesSearchQuery.value = ''
-    else if (newPath === '/') searchQuery.value = ''
-  }
-})
+// URL → input (back/forward on Jeux)
+watch(() => route.query.q, q => { if (route.path === '/jeux') gamesQuery.value = q || '' })
 
-// URL → input (back/forward on games view)
-watch(() => route.query.q, q => { if (route.path === '/') searchQuery.value = q || '' })
-
-// Auto-load catalog when navigating to / after login
-watch(() => route.path, path => {
-  if (path === '/' && loggedIn.value && !gamesStore.all.length && !gamesStore.loading)
-    gamesStore.load()
-})
-
-// Input → URL (debounced, games view only)
+// Input → URL (debounced, Jeux only)
 let searchTimer
-watch(searchQuery, q => {
+watch(gamesQuery, q => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    if (route.path === '/') {
-      router.replace({ query: q ? { q } : {} })
-    }
+    if (route.path === '/jeux') router.replace({ query: q ? { q } : {} })
   }, 350)
 })
 
-const hideUnresolved = ref(true)
-
 // Debounce the query that drives the (filter + locale-sort of ~1600 games) so fast
 // typing doesn't re-run it on every keystroke. Separate from the 350 ms URL sync.
-const debouncedQuery = ref(searchQuery.value)
+const debouncedQuery = ref(gamesQuery.value)
 let filterTimer
-watch(searchQuery, q => {
+watch(gamesQuery, q => {
   clearTimeout(filterTimer)
   filterTimer = setTimeout(() => { debouncedQuery.value = q }, 140)
 })
+
+// Admin only: a game with no page is a pipeline matter, not a reader's.
+const hideUnresolved = ref(true)
 
 const displayedGames = computed(() => {
   let games = gamesStore.filtered(debouncedQuery.value.trim())
@@ -110,15 +89,20 @@ const gridResetKey = computed(() =>
 
 watch(
   [() => gamesStore.sortMode, () => gamesStore.sortAsc, hideUnresolved],
-  () => { document.querySelector('.grid-area')?.scrollTo({ top: 0 }) }
+  () => { document.querySelector('.games-scroll')?.scrollTo({ top: 0 }) }
 )
 
-// Body classes for layout context
-watch(() => playerStore.visible, v => {
-  document.body.classList.toggle('player-open', v)
+// Auto-load the catalog after login
+watch(() => route.path, path => {
+  if (BASE_ROUTES.has(path) && loggedIn.value && !gamesStore.all.length && !gamesStore.loading)
+    gamesStore.load()
 })
-watch(() => route.path, p => {
-  document.body.classList.toggle('detail-open', p.startsWith('/game/'))
+
+// The mini player floats over the bottom of the base views: they clear it
+// only while it shows.
+watch(() => playerStore.visible, v => {
+  if (v) document.documentElement.style.removeProperty('--player-h')
+  else document.documentElement.style.setProperty('--player-h', '0px')
 }, { immediate: true })
 
 function handleLogout() {
@@ -127,33 +111,29 @@ function handleLogout() {
   router.push('/login')
 }
 
-// The player floats above the login page (z 300 vs 200) and would keep playing
-// after logout. Watching `loggedIn` covers both the account-modal logout and
-// apiFetch's 401 auto-logout; close() also clears the resume snapshot.
+// The player floats above the login page and would keep playing after logout.
+// Watching `loggedIn` covers both the account-modal logout and apiFetch's 401
+// auto-logout; close() also clears the resume snapshot.
 watch(loggedIn, v => { if (!v) playerStore.close() })
 
-// Bumped on every pull-to-refresh so the (separately-mounted) EpisodesFeed
-// reloads in step with the games catalog — a pull on either tab refreshes both.
-const episodesRefreshSignal = ref(0)
+// Bumped on every pull-to-refresh so the (separately-mounted) feed reloads in
+// step with the catalog — a pull on either tab refreshes both.
+const feedRefreshSignal = ref(0)
 function handleRefresh() {
   gamesStore.refresh()
-  episodesRefreshSignal.value++
+  feedRefreshSignal.value++
 }
 
 // ── Pull-to-refresh ───────────────────────────────────────────────────────────
 const PULL_THRESHOLD = 80
 const { pullY, isPulling, setScrollEl } = usePullToRefresh(handleRefresh)
 
-// Point pull-to-refresh at whichever tab's scroll container is currently shown,
-// so its "at the top?" guard reads the right element (the inactive tab's grid is
-// v-show-hidden with scrollTop 0, which would otherwise arm the gesture mid-scroll).
+// Point pull-to-refresh at the shown tab's scroll container, so its "at the
+// top?" guard reads the right element.
 function syncPullScrollEl() {
-  nextTick(() => {
-    const grids = document.querySelectorAll('.grid-area')
-    setScrollEl(isEpisodes.value ? (grids[grids.length - 1] ?? grids[0]) : grids[0])
-  })
+  nextTick(() => setScrollEl(document.querySelector(isJeux.value ? '.games-scroll' : '.feed-scroll')))
 }
-watch(isEpisodes, syncPullScrollEl)
+watch(isJeux, syncPullScrollEl)
 
 onMounted(() => {
   if (loggedIn.value) {
@@ -168,20 +148,7 @@ onMounted(() => {
     refresh().catch(() => {})
   }
   syncPullScrollEl()
-
-  // Publish the command bar's measured height so .grid-area can clear it
-  // robustly (survives font-scaling / wrap) instead of a fixed padding.
-  const bar = document.querySelector('.command-bar')
-  if (bar && 'ResizeObserver' in window) {
-    _barObserver = new ResizeObserver(() => {
-      document.documentElement.style.setProperty('--command-bar-h', `${bar.offsetHeight}px`)
-    })
-    _barObserver.observe(bar)
-  }
 })
-
-let _barObserver = null
-onUnmounted(() => _barObserver?.disconnect())
 </script>
 
 <template>
@@ -190,61 +157,47 @@ onUnmounted(() => _barObserver?.disconnect())
       :search-query="activeSearchQuery"
       :sort-mode="gamesStore.sortMode"
       :sort-asc="gamesStore.sortAsc"
-      :loading="gamesStore.loading"
-      :last-fetch="gamesStore.lastFetch"
       :hide-unresolved="hideUnresolved"
       :selected-podcast="gamesStore.selectedPodcast"
-      :is-episodes="isEpisodes"
+      :is-jeux="isJeux"
       @update:searchQuery="handleSearchUpdate"
       @set-sort="gamesStore.setSort"
       @set-podcast="gamesStore.setPodcast"
-      @refresh="handleRefresh"
       @toggle-hide-unresolved="hideUnresolved = !hideUnresolved"
-    >
-      <template #account>
-        <button
-          class="icon-action"
-          :class="loggedIn ? 'text-primary' : 'text-base-content/50'"
-          :aria-label="loggedIn ? 'Mon compte' : 'Connexion'"
-          @click="handleShowAccount"
-        ><User :size="17" :stroke-width="2.25" /></button>
-      </template>
-    </AppHeader>
+      @show-account="showAccountModal = true"
+    />
 
     <main class="main-region">
       <!-- Pull-to-refresh indicator -->
       <div
-        class="flex justify-center items-center overflow-hidden"
-        :style="{
-          height: isPulling ? pullY + 'px' : '0px',
-          transition: isPulling ? 'none' : 'height 0.2s ease',
-        }"
+        class="pull"
+        :style="{ height: isPulling ? pullY + 'px' : '0px', transition: isPulling ? 'none' : 'height 0.2s ease' }"
       >
-        <span
-          class="loading loading-spinner loading-sm"
-          :style="{ color: 'var(--game-accent)', opacity: Math.min(pullY / PULL_THRESHOLD, 1) }"
-        />
+        <span class="lab" :style="{ opacity: Math.min(pullY / PULL_THRESHOLD, 1) }">
+          {{ pullY >= PULL_THRESHOLD ? '↻ Relâcher' : '↓ Actualiser' }}
+        </span>
       </div>
 
-      <GameGrid
+      <EpisodesFeed
         v-show="baseRoute === '/'"
+        :search-query="testsQuery"
+        :refresh-signal="feedRefreshSignal"
+      />
+
+      <GameGrid
+        v-if="jeuxVisited"
+        v-show="baseRoute === '/jeux'"
         :games="displayedGames"
         :loading="gamesStore.loading"
         :error="gamesStore.error"
         :total="gamesStore.all.length"
         :reset-key="gridResetKey"
-        :has-query="!!searchQuery.trim()"
-      />
-
-      <EpisodesFeed
-        v-if="episodesVisited"
-        v-show="baseRoute === '/episodes'"
-        :search-query="episodesSearchQuery"
-        :refresh-signal="episodesRefreshSignal"
+        :has-query="!!gamesQuery.trim()"
       />
     </main>
 
     <AudioPlayer />
+    <TabBar :is-jeux="isJeux" @show-account="showAccountModal = true" />
   </div>
 
   <!-- Outside #mainView so overflow:hidden doesn't clip slide transitions -->
@@ -261,3 +214,13 @@ onUnmounted(() => _barObserver?.disconnect())
     @logout="handleLogout"
   />
 </template>
+
+<style scoped>
+.pull {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+</style>

@@ -1,9 +1,10 @@
 # Où on en est
 
-À **réécrire** (pas à compléter) quand l'état change. Dernière mise à jour : 2026-10-23.
+À **réécrire** (pas à compléter) quand l'état change. Dernière mise à jour : 2026-10-24.
 
 - **Livré.** La chaîne du labo est portée (PR #14, #15). Les données du labo sont chargées en prod : 1 998 transcriptions et 1 998 lectures. `INGEST=true` depuis le 2026-10-23 ; sauvegarde de l'ancien fichier : `backend_secrets.env.bak-ingest2`.
 - **Vérifié (2026-10-23).** L'ingestion en prod transcrit et lit les nouveaux épisodes (Triple Click « Castlevania, Ace Combat… », SoJ ép. 175 « Age of Empires II »). Six anciens épisodes échouent (DeepInfra 400 ou acast 429 sur le MP3 : 5 SoJ `djpod … id=167739, 172373, 179092, 182847, 192378`, Besties « games of 2014 ») ; ils réessaient avec un délai qui double, au plus une fois par jour.
+- **En cours : refonte de l'interface « Studio radio »** (branche `feat/ui-studio-radio`, pas encore poussée). Faits : le verdict, les pour et contre de chaque test remontent dans l'API (`critique`, `verdicts` au catalogue, pochette et fiche de chaque test du flux) ; nouveau système visuel (noir, jaune « on air », Barlow / Barlow Condensed / JetBrains Mono, angles droits) ; accueil = « Tests » (Reprendre + derniers tests), catalogue sur `/jeux` trié par récence ; fiche jeu = tableau des tests avec verdicts et pour/contre ; page épisode = tests d'abord, toujours un bouton Écouter ; lecteur : test suivant/précédent, vitesse, vue « En lecture » sur téléphone ; barre d'onglets en bas sur mobile ; icône `LUDO//`. Reste : DaisyUI encore là (rethémé, sert aux consoles admin) ; recherche unique jeux + épisodes ; nom de l'app à trancher.
 - **Ouvert.**
   - Les six épisodes en échec : voir si c'est le fichier (400) ou acast qui limite (429), ou les laisser.
   - Les épisodes « [Reportage] » sont toujours exclus du catalogue.

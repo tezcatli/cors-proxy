@@ -26,6 +26,9 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - On transcrit nous-mêmes (Whisper turbo sur DeepInfra), et seulement pour en tirer les tests : on ne diffuse pas de transcriptions. (2026-10)
 - Verdicts : moyenne sur trois niveaux ; « enthousiaste » compte comme positif. (2026-10)
 
+## Interface
+- Direction visuelle *Studio radio* : noir pur, un seul accent jaune (`#ffd23f`) réservé à ce qui joue, Barlow Condensed (titres), Barlow (texte), JetBrains Mono (libellés, timecodes), angles droits et filets, verdict en glyphe et mot (▲ POSITIF, ◆ MITIGÉ, ▼ NÉGATIF, ○ NON LU) ; plus d'accent tiré des pochettes. Maquettes : https://claude.ai/artifact/NT5XTroWYFNjRkMEXyBNnX. (2026-10-24)
+
 ## Écarté (et pourquoi)
 - RAG / questions sur les transcriptions (« intégrale des Jiknep ») : abandonné. (2026-10)
 - Lexique Whisper (`initial_prompt`) : DeepInfra perdait 60 % des mots ; c'était statique, et ça demandait des informations venues d'ailleurs. Les noms sont corrigés à la lecture, à partir du titre et de la description. (2026-10)
