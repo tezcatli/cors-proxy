@@ -8,6 +8,6 @@
   - Les six épisodes en échec : voir si c'est le fichier (400) ou acast qui limite (429), ou les laisser.
   - Les épisodes « [Reportage] » sont toujours exclus du catalogue.
   - Nettoyage, branches : fait (19 branches locales mergées supprimées ; reste `v1.4.0_dev`, mergée dans `main` mais en avance sur son origin).
-  - Nettoyage, corrections : 6 ne correspondent plus à aucun nom du catalogue (prod, `unmatched_slugs`) : `beyond-good-and-evil-remastered`, `danganrompa`, `donkey-kong`, `l-orange-box`, `la-legende-de-pac-man`, `les-chevalier-de-baphomet`. Pour les autres, savoir lesquelles la chaîne résout seule sur la même fiche demande de résoudre sans corrections : `lab_fiches` les applique déjà (`question_for`), et la clé OpenRouter manque dans le `backend_secrets.env` de dev.
+  - Corrections : PR #17 en relecture (76 → 21). Mesurées sans corrections sur tout l'historique : 52 redondantes, 6 mortes, 10 gardées. Après le déploiement, vérifier dans `/admin/resolution` que la prod tombe sur les mêmes fiches (elle redemande au LLM ~60 questions).
 - **En attente.** `feat/more-shows` (ORIGAMI, ZQSD, The Back Page, The Game Informer Show).
 - **Pour plus tard.** La prochaine relecture de tout l'historique passera par l'API batch d'OpenRouter (−50 %), avec un mode `--batch` dans `lab/read.py`.
