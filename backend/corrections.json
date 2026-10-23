@@ -1,6 +1,14 @@
 {
   "corrections": [
     {
+      "podcast_name": "1001 Spikes",
+      "igdb_id": 8617
+    },
+    {
+      "podcast_name": "1348: ex-voto",
+      "search_name": "1348: Ex Voto"
+    },
+    {
       "podcast_name": "Anno 1404",
       "display_name": "Anno 1404"
     },
@@ -21,16 +29,20 @@
       "display_name": "Indiana Jones et le Cercle Ancien"
     },
     {
-      "podcast_name": "L’Amerzone",
-      "display_name": "L’Amerzone"
-    },
-    {
       "podcast_name": "l'ordre des géants",
       "display_name": "Indiana Jones et le Cercle Ancien: L'Ordre des Géants"
     },
     {
       "podcast_name": "la chance du locataire",
       "display_name": "La chance du locataire"
+    },
+    {
+      "podcast_name": "la rentrée avec Batman",
+      "search_name": "Batman: Arkham Asylum"
+    },
+    {
+      "podcast_name": "Left 4 Dead (1&2)",
+      "igdb_id": 122
     },
     {
       "podcast_name": "Les tortues ninja",
@@ -40,6 +52,15 @@
     {
       "podcast_name": "Little Big Planet",
       "search_name": "LittleBigPlanet"
+    },
+    {
+      "podcast_name": "L’Amerzone",
+      "display_name": "L’Amerzone"
+    },
+    {
+      "podcast_name": "Mario et Luigi",
+      "search_name": "Mario & Luigi: Paper Jam",
+      "hint_date": "2015-12-17"
     },
     {
       "podcast_name": "Pokémon Ecarlate et Violet",
@@ -84,6 +105,10 @@
     {
       "podcast_name": "Summer of Arcade",
       "igdb_id": 3160
+    },
+    {
+      "podcast_name": "The 7th Guest Remake",
+      "igdb_id": 394668
     },
     {
       "podcast_name": "vendran las aves",
