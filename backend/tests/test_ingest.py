@@ -67,7 +67,7 @@ def _deepinfra(segments=_SEGMENTS, cost=0.0118):
     audio = MagicMock()
     audio.__enter__.return_value = audio
     audio.iter_content.return_value = [b'ID3', b'audio']
-    answer = MagicMock()
+    answer = MagicMock(status_code=200)
     answer.json.return_value = {'segments': segments, 'duration': 2840.0,
                                 'inference_status': {'cost': cost}}
     bodies = []
@@ -296,7 +296,8 @@ def test_an_episode_s_own_chapters_win_over_its_reading(keys):
     feeds._apply_readings([ep], {'soj-1': sections})
     assert [c.title for c in ep.chapters] == ['Super Mario RPG']
     assert ep.games[0].critique['verdict'] == 'positive'
-    assert (ep.games[0].timestamp_seconds, ep.games[0].critique['at']) == (2226, 3097)
+    # A test starts where its critique does — the reading's section, not the chapter.
+    assert (ep.games[0].timestamp_seconds, ep.games[0].critique['at']) == (2227, 3097)
 
 
 def _soj_episode():
@@ -323,7 +324,7 @@ def test_a_reading_adds_the_games_the_title_doesnt_name():
     for _ in range(2):                      # a rebuild replaces, never piles up
         feeds._apply_readings([ep], {'soj-16': _S17E16})
     assert [(g.name, g.timestamp_seconds, g.read, g.critique['verdict']) for g in ep.games] == [
-        ('Karmazoo', 9294, False, 'positive'),                 # the title's, with its verdict
+        ('Karmazoo', 9365, False, 'positive'),                 # the title's, from its critique
         ('Goldorak : Le Festin des Loups', 3755, True, 'negative')]   # not the trailer in the news
 
 
@@ -359,8 +360,8 @@ def _deepinfra_refuses(status=402):
     audio = MagicMock()
     audio.__enter__.return_value = audio
     audio.iter_content.return_value = [b'audio']
-    refused = MagicMock()
-    refused.raise_for_status.side_effect = requests.HTTPError(f'{status} Payment Required')
+    refused = MagicMock(status_code=status, text='refused')
+    refused.raise_for_status.side_effect = requests.HTTPError(f'{status} Client Error')
     return patch('transcribe._http.get', return_value=audio), \
         patch('transcribe._http.post', return_value=refused)
 
@@ -420,10 +421,10 @@ _SPECIAL = llm._sections({'sections': [
     {'title': 'GTA VI', 'game': 'GTA VI', 'kind': 'news', 'start_s': 3000, 'end_s': 3300}]})
 
 
-def test_a_title_s_game_the_reading_finds_no_section_of_is_dropped():
+def test_a_title_s_game_the_reading_finds_no_section_of_or_only_in_the_news_is_dropped():
     ep = _special_episode()
     feeds._apply_readings([ep], {'soj-500': _SPECIAL})
-    assert [g.name for g in ep.games] == ['Hades II', 'GTA VI']   # GTA VI: in the news, still there
+    assert [g.name for g in ep.games] == ['Hades II']   # GTA VI: only in the news
 
 
 def test_without_a_reading_the_title_s_games_stand():
@@ -431,3 +432,48 @@ def test_without_a_reading_the_title_s_games_stand():
     feeds._apply_readings([ep], {'soj-500': _SPECIAL})
     feeds._apply_readings([ep], {})
     assert [g.name for g in ep.games] == ['Le 500e épisode en public', 'Hades II', 'GTA VI']
+
+
+# ── The backlog, transcribed from dev ─────────────────────────────────────────
+
+def test_the_backlog_is_the_untranscribed_episodes_oldest_first(keys, besties):
+    with _deepinfra():
+        ingest.ingest(_episode('bes-control'))
+    assert [ep.slug for ep in ingest.untranscribed()] == ['bes-mail']
+    with get_db() as conn:
+        conn.execute('DELETE FROM transcripts')
+    assert [ep.slug for ep in ingest.untranscribed()] == ['bes-mail', 'bes-control']
+
+
+def test_transcribing_the_backlog_skips_what_is_done_and_reads_nothing(keys, besties):
+    with _deepinfra() as (_, post, _), patch('llm.http.post') as read:
+        assert ingest.transcribe_all(ingest.untranscribed(), jobs=2)[0] == 2
+        assert ingest.transcribe_all(ingest.untranscribed() + [_episode('bes-mail')], jobs=2)[0] == 0
+    assert post.call_count == 2
+    read.assert_not_called()
+
+
+def test_deepinfra_failing_stops_the_backlog(keys, besties):
+    get, post = _deepinfra_refuses()
+    with get, post as upload:
+        assert ingest.transcribe_all(ingest.untranscribed(), jobs=1)[0] == 0
+    assert upload.call_count == 1                 # not one try per episode
+    assert transcribe.rows() == {}                # no episode blamed
+
+
+def test_a_file_deepinfra_cannot_read_is_the_episode_s_failure(keys, besties, no_pause):
+    get, post = _deepinfra_refuses(400)
+    with get, post:
+        assert ingest._step(lambda: None) == 0           # on to the next episode, no pause
+    assert transcribe.rows()['bes-control'].attempts == 1
+    with get, post as upload:
+        assert ingest.transcribe_all(ingest.untranscribed(), jobs=1)[0] == 0
+    assert upload.call_count == 2                        # both tried: one bad file stops nothing
+
+
+@pytest.mark.parametrize('status', [401, 402, 429, 503])
+def test_deepinfra_refusing_us_is_the_provider_s_failure(keys, besties, no_pause, status):
+    get, post = _deepinfra_refuses(status)
+    with get, post:
+        assert ingest._step(lambda: None) > 0             # paused
+    assert transcribe.rows() == {}

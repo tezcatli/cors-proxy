@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Mesure{% endblock %}
+{% block body %}
+<p style="margin:0 0 6px"><a href="/">← Épisodes de référence</a></p>
+<h1>Mesure — variante {% for v in variants %}<a class="chip{% if v == variant %} on{% endif %}" href="/mesure?variant={{ v }}">{{ v }}</a> {% endfor %}</h1>
+<style>.chip.on { color: #fff; background: var(--accent); border-color: transparent; }</style>
+<p class="dim">Ce que la variante propose, contre ce que tu as jugé, sur les épisodes validés. Le verdict est celui du <strong>dernier contrôle</strong> : la chaîne a été ajustée sur la référence et choisie sur le premier contrôle, son score y est optimiste.</p>
+{% for name, s in sets.items() %}
+<div class="panel">
+  <p style="margin:0 0 6px;font-size:1.1rem"><strong>{{ name | capitalize }}</strong> <span class="dim">— {{ s.episodes }} épisodes validés{% if name == 'référence' %}, ajustée{% elif name == 'contrôle' %}, a servi à choisir{% else %}, jamais vu{% endif %}</span> ·
+    <strong style="color:var({{ '--ok' if s.met else '--warn' }})">{{ 'critère atteint' if s.met else ('critère non atteint' if s.episodes else 'à juger') }}</strong></p>
+  <table class="kpi"><tr>
+    <td><b>{{ s.expected }}</b><br>tests attendus</td>
+    <td><b>{{ '%d %%' % (s.found * 100) if s.found is not none else '—' }}</b><br>trouvés</td>
+    <td><b>{{ s.faux }}</b><br>faux</td>
+    <td><b>{{ s['mauvaise fiche'] }}</b><br>mauvaise fiche</td>
+    <td><b>{{ s.manquant }}</b><br>manquants</td>
+    <td><b>{{ s['à juger'] }}</b><br>à juger</td>
+    <td><b>{{ s['fiche indécise'] }}</b><br>fiche indécise</td>
+    <td><b>{{ s['hors champ'] }}</b><br>hors champ (&lt; 5 min)</td>
+    <td><b>{{ s['limite connue'] }}</b><br>limite connue</td>
+  </tr></table>
+</div>
+{% endfor %}
+<p class="dim">Zéro faux, zéro mauvaise fiche, au moins {{ (threshold * 100) | int }} % des tests trouvés.</p>
+<div class="panel">
+  <table>
+    <tr><th>Résultat</th><th>Ensemble</th><th>Épisode</th><th>Test</th><th>Proposé</th><th>Attendu</th></tr>
+    {% for e in episodes %}{% for c in e.cases if c.outcome not in ('juste', 'hors champ') %}
+    <tr>
+      <td><span class="chip">{{ c.outcome }}</span></td>
+      <td class="dim">{{ e.set }}</td>
+      <td><a href="/episode?guid={{ e.guid | urlencode }}">{{ e.title }}</a></td>
+      <td>{{ c.game }}{% if c.start is not none %} <span class="dim mono">{{ c.start | hms }}</span>{% endif %}</td>
+      <td class="dim">{{ c.proposed.name if c.proposed else '—' }}</td>
+      <td class="dim">{{ c.chosen.name if c.chosen is mapping else (c.chosen or '—') }}</td>
+    </tr>
+    {% endfor %}{% endfor %}
+  </table>
+</div>
+<style>
+  .kpi td { border: 0; text-align: center; color: var(--dim); font-size: .75rem; }
+  .kpi b { font-size: 1.4rem; color: var(--text); }
+</style>
+{% endblock %}

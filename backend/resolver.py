@@ -148,9 +148,11 @@ def _context(question: Question) -> dict:
         'show_covers':  ('retrospectives of older games' if podcast and not podcast.use_date_hint
                          else 'new releases'),
         # The first episode that named it — for a show covering new releases, the
-        # game came out shortly before (or, for a preview, after).
-        'episode_date': (datetime.datetime.fromtimestamp(question.aired, datetime.timezone.utc)
-                         .date().isoformat() if question.aired else None),
+        # game came out shortly before (or, for a preview, after); for any show,
+        # the game existed by then. Its title says which game it is about.
+        'episode_title': question.title,
+        'episode_date': (datetime.datetime.fromtimestamp(question.dated, datetime.timezone.utc)
+                         .date().isoformat() if question.dated else None),
     }
 
 

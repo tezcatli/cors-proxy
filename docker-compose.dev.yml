@@ -28,6 +28,28 @@ services:
     volumes:
       - ./backend:/backend
 
+  # The lab (lab/README.md): judge what a variant of the reading pipeline makes of
+  # the reference episodes, on prod's data pulled into dev (read-only). Not part of
+  # the app: started on demand — docker compose -f docker-compose.dev.yml up lab
+  lab:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    profiles: [lab]
+    ports:
+      - "5050:5050"
+    env_file:
+      - path: ./backend_secrets.env
+        required: true
+    environment:
+      PYTHONPATH: /backend
+      INGEST: "false"
+    volumes:
+      - ./backend:/backend
+      - ./lab:/lab
+    working_dir: /lab
+    command: ["python", "server.py"]
+
   frontend:
     build:
       context: ./frontend

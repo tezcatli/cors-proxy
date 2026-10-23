@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Labo{% endblock %} · Silence on Joue</title>
+<style>
+  :root { --bg: #14161b; --panel: #1d2027; --line: #2c3039; --text: #e8e9ec; --dim: #8b909c;
+          --accent: #e94560; --ok: #3bb6a6; --warn: #f2a541; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 80px; }
+  a { color: var(--accent); text-decoration: none; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  .dim { color: var(--dim); }
+  .mono { font-family: ui-monospace, monospace; font-size: 0.78rem; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+  .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line);
+          font-size: 0.72rem; color: var(--dim); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 14px; }
+</style>
+</head>
+<body><main>{% block body %}{% endblock %}</main></body>
+</html>

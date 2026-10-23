@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Changements du catalogue{% endblock %}
+{% block body %}
+<p style="margin:0 0 6px"><a href="/">← Épisodes de référence</a></p>
+<h1>Ce que la livraison change au catalogue</h1>
+<p class="dim">Le catalogue que la prod sert aujourd'hui, contre la chaîne portée sur les données de la prod et du labo. Un clic sur un épisode l'ouvre pour l'écouter.</p>
+<div class="panel filters">
+  <span>Changement :</span>
+  {% for k in ('retiré', 'ajouté', 'fiche') %}<label><input type="checkbox" data-kind="{{ k }}" checked> {{ k }} <span class="dim" id="n-{{ k }}"></span></label>{% endfor %}
+  <span style="margin-left:16px">Émission :</span>
+  {% for show in rows | map(attribute='show') | unique | sort %}<label><input type="checkbox" data-show="{{ show }}" checked> {{ show }}</label>{% endfor %}
+  <input id="q" placeholder="Filtrer par jeu ou épisode…" size="28" style="margin-left:16px">
+  <span class="dim" id="count"></span>
+</div>
+<div class="panel">
+<table>
+  <tr><th>Changement</th><th>Émission</th><th>Date</th><th>Épisode</th><th>Avant</th><th>Après</th></tr>
+  {% for r in rows %}
+  <tr class="row" data-kind="{{ r.kind }}" data-show="{{ r.show }}">
+    <td><span class="chip k-{{ r.kind }}">{{ r.kind }}</span></td>
+    <td>{{ r.show }}</td><td class="mono">{{ r.date }}</td>
+    <td>{% if r.guid %}<a href="/episode?guid={{ r.guid | urlencode }}">{{ r.episode }}</a>{% else %}{{ r.episode }}{% endif %}</td>
+    <td class="dim">{{ r.before }}</td><td>{{ r.after }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+<style>
+  .filters label { margin-right: 10px; white-space: nowrap; }
+  .k-retiré { color: var(--accent); border-color: var(--accent); }
+  .k-ajouté { color: var(--ok); border-color: var(--ok); }
+  .k-fiche { color: var(--warn); border-color: var(--warn); }
+  input { font: inherit; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+</style>
+<script>
+const rows = [...document.querySelectorAll('.row')]
+const boxes = [...document.querySelectorAll('.filters input[type=checkbox]')]
+const q = document.getElementById('q')
+function apply() {
+  const kinds = boxes.filter(b => b.dataset.kind && b.checked).map(b => b.dataset.kind)
+  const shows = boxes.filter(b => b.dataset.show && b.checked).map(b => b.dataset.show)
+  const text = q.value.toLowerCase()
+  let shown = 0
+  const per = {}
+  rows.forEach(r => {
+    const ok = kinds.includes(r.dataset.kind) && shows.includes(r.dataset.show) && (!text || r.textContent.toLowerCase().includes(text))
+    r.hidden = !ok; if (ok) shown++
+    if (shows.includes(r.dataset.show)) per[r.dataset.kind] = (per[r.dataset.kind] || 0) + 1
+  })
+  for (const k of ['retiré', 'ajouté', 'fiche']) document.getElementById('n-' + k).textContent = per[k] || 0
+  document.getElementById('count').textContent = shown + ' lignes'
+}
+boxes.forEach(b => b.onchange = apply); q.oninput = apply; apply()
+</script>
+{% endblock %}

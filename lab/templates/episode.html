@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% block title %}{{ ep.title }}{% endblock %}
+{% block body %}
+<div class="top">
+  <p style="margin:0 0 6px"><a href="/">← Épisodes de référence</a></p>
+  <h1>{{ ep.title }}</h1>
+  <p class="dim" style="margin:0 0 8px">{{ show }} · <span class="mono">{{ date }}</span> · propositions <span class="mono">{{ variant }}</span></p>
+  {% if ep.audio_url %}<audio id="audio" controls preload="none" src="{{ ep.audio_url }}"></audio>{% endif %}
+  <div class="bar">
+    <span class="chip status status--{{ status | replace(' ', '-') }}">{{ status }}</span>
+    <span class="dim">Tu ne juges que les exceptions ; valider accepte le reste.</span>
+    <button id="expand" class="txt">tout déplier le texte</button>
+    <button id="validate" class="cta">Valider l'épisode<span id="unjudged">{% if unjudged %} · accepte {{ unjudged }} test{{ 's' if unjudged > 1 }} non jugé{{ 's' if unjudged > 1 }}{% endif %}</span> → suivant</button>
+  </div>
+</div>
+
+<details class="panel"><summary class="dim">Description</summary>
+  <div style="margin-top:8px">{{ ep.description | safe }}</div></details>
+
+<div class="panel">
+  <div class="label">L'épisode — ses chapitres, et les tests que le catalogue en référence</div>
+  {% for g in groups %}
+  <section class="chap">
+    {% if g.title is none %}<div class="seg seg--lead"><span class="seg__title dim">Hors chapitres</span></div>
+    {% else %}<div class="chaprow"><button class="seg" data-t="{{ g.start }}">
+      <span class="mono seg__t">{{ g.start | hms }}–{{ g.end | hms }}</span>
+      <span class="mono seg__d">{% if g.end %}{{ ((g.end - g.start) / 60) | round(1) }} min{% endif %}</span>
+      <span class="seg__title">{{ g.title }}{% for w in g.within %} <span class="chip within">suite du test {{ w }}</span>{% endfor %}</span>
+      <span class="seg__bar"><span style="width:{{ (((g.end or g.start) - g.start) / total * 100) | round(1) }}%"></span></span>
+    </button><button class="txt" data-from="{{ g.start }}" data-to="{{ g.end if g.end is not none else '' }}">texte</button></div>
+    <div class="tx" hidden></div>{% endif %}
+    {% for r in g.rows %}{% set sp = r.spec or {} %}{% set t = r.shown.start if r.shown else sp.get('start') %}
+    <div class="test{% if sp.test == false %} test--no{% endif %}" data-game="{{ r.game }}"{% if r.shown %} data-shown{% endif %}>
+      <div><button class="play"{% if t is not none %} data-t="{{ t }}" title="Écouter à {{ t | hms }}"{% else %} disabled{% endif %}>{% if t is not none %}▶ {% endif %}<strong>{{ r.game }}</strong>{% if t is not none %} <span class="dim mono">{{ t | hms }}{% if r.shown and r.shown.end %}–{{ r.shown.end | hms }} · {{ r.shown.minutes }} min{% endif %}</span>{% endif %}</button>
+        <div>{% if r.shown %}{% if r.shown.verdict %}<span class="chip">avis : {{ r.shown.verdict }}</span>{% endif %}
+          {% elif not sp.added %}<span class="chip" style="color:var(--warn)">pas proposé</span>{% endif %}
+          {% if sp.added %}<span class="chip">ajouté</span> <button class="ig" data-a="rename">renommer</button><button class="ig" data-a="remove">retirer</button>{% endif %}
+          {% if r.shown and r.shown.end %}<button class="txt" data-from="{{ r.shown.start }}" data-to="{{ r.shown.end }}">lire le test</button>{% endif %}</div></div>
+      <div class="verdict"><button class="lv{% if sp.test == true %} on{% endif %}" data-v="true">test ✓</button><button class="lv{% if sp.test == false %} on{% endif %}" data-v="false">pas un test</button></div>
+      <div class="igdb" data-proposed='{{ (r.shown.igdb if r.shown else none) | tojson }}' data-chosen='{{ sp.get("igdb") | tojson }}'{% if sp.test == false %} hidden{% endif %}></div>
+      <div class="tx" hidden></div>
+    </div>
+    {% endfor %}
+    <form class="add" data-start='{{ g.start | tojson }}'><button type="button" class="addbtn">+ test manquant ici</button><span hidden><input name="game" placeholder="Son nom…" size="32" value="{{ g.title or '' }}"> <button>Ajouter</button></span></form>
+  </section>
+  {% else %}<p class="dim">Ni chapitre ni test.</p>{% endfor %}
+</div>
+
+<style>
+  .top { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line); }
+  #audio { width: 100%; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .cta:disabled { opacity: .6; cursor: wait; }
+  .cta { margin-left: auto; padding: 5px 14px; border-radius: 8px; border: 0; background: var(--ok); color: #fff; font-weight: 600; }
+  .chip.on { color: #fff; background: var(--accent); border-color: transparent; }
+  .status--validé { color: var(--ok); border-color: var(--ok); }
+  .status--à-revoir { color: var(--warn); border-color: var(--warn); }
+  .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 8px; }
+  button { font: inherit; cursor: pointer; }
+  .chap { border-bottom: 1px solid var(--line); padding: 2px 0 4px; }
+  .seg { display: grid; grid-template-columns: 150px 70px 1fr 160px; gap: 8px; align-items: center; width: 100%;
+         text-align: left; background: none; border: 0; color: var(--text); padding: 4px 2px; }
+  .seg:hover { background: var(--line); }
+  .seg--lead:hover { background: none; }
+  .seg__bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .seg__bar span { display: block; height: 100%; background: var(--accent); }
+  .test { display: grid; grid-template-columns: 1fr 170px 1fr; gap: 10px; align-items: start;
+          margin: 4px 0 4px 24px; padding: 6px 8px; border-left: 3px solid var(--accent); background: var(--bg); border-radius: 0 6px 6px 0; }
+  .test--no { border-left-color: var(--line); }
+  .test--no strong { text-decoration: line-through; color: var(--dim); }
+  .within { color: var(--accent); border-color: var(--accent); }
+  .chaprow { display: flex; align-items: center; }
+  .chaprow .seg { flex: 1; }
+  .txt { background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--dim); font-size: .72rem; padding: 1px 8px; }
+  .txt:hover, .txt.on { color: var(--accent); border-color: var(--accent); }
+  .tx { position: relative; grid-column: 1 / -1; max-height: 40vh; overflow: auto; margin: 4px 0 6px 24px; padding: 6px 10px;
+        background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font-size: .85rem; }
+  .test .tx { margin-left: 0; }
+  .tx p { margin: 0; padding: 1px 4px; border-radius: 4px; }
+  .tx p.now { background: var(--line); }
+  .tx .mono { color: var(--dim); cursor: pointer; margin-right: 8px; }
+  .tx .mono:hover { color: var(--accent); }
+  .play { background: none; border: 0; padding: 0; color: var(--text); text-align: left; }
+  .play[data-t]:hover strong { color: var(--accent); }
+  .add { margin: 2px 0 2px 24px; }
+  .addbtn { background: none; border: 0; padding: 0; color: var(--dim); font-size: .75rem; }
+  .addbtn:hover { color: var(--accent); }
+  .lv, .ig { font-size: .72rem; padding: 2px 9px; margin: 1px; border-radius: 999px; border: 1px solid var(--line); background: none; color: var(--dim); }
+  .lv.on { background: var(--accent); border-color: transparent; color: #fff; }
+  .ig.on { background: var(--ok); border-color: transparent; color: #fff; }
+  .cover { width: 34px; height: 46px; object-fit: cover; border-radius: 3px; vertical-align: middle; margin-right: 6px; background: var(--line); }
+  .results { margin-top: 6px; max-height: 260px; overflow: auto; }
+  .results button { display: flex; align-items: center; width: 100%; text-align: left; background: none; border: 0; color: var(--text); padding: 2px; }
+  .results button:hover { background: var(--line); }
+  input { font: inherit; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+  @media (max-width: 760px) { .seg { grid-template-columns: 110px 1fr; } .seg__d, .seg__bar { display: none; }
+                              .test { grid-template-columns: 1fr; margin-left: 10px; } }
+</style>
+<script>
+const EPISODE = {{ ep.slug | tojson }}, VARIANT = {{ variant | tojson }}
+const audio = document.getElementById('audio')
+const cover = id => id ? `https://images.igdb.com/igdb/image/upload/t_cover_small/${id}.jpg` : ''
+const year = r => r ? ` (${String(r).slice(0, 4)})` : ''
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-t]')
+  if (t && audio) { audio.currentTime = Number(t.dataset.t); audio.play() }
+})
+
+async function save(game, fields) {
+  const r = await fetch('/spec', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({ episode: EPISODE, game, ...fields }) })
+  if (!r.ok) { alert(await r.text()); throw new Error('save failed') }
+  return r.json()
+}
+
+// What « Valider » will accept: the referenced tests not judged yet.
+function countUnjudged() {
+  const n = [...document.querySelectorAll('.test[data-shown]')].filter(r => !r.querySelector('.lv.on')).length
+  document.getElementById('unjudged').textContent = n ? ` · accepte ${n} test${n > 1 ? 's' : ''} non jugé${n > 1 ? 's' : ''}` : ''
+}
+
+document.querySelectorAll('.verdict').forEach(cell => cell.onclick = async e => {
+  const b = e.target.closest('.lv'); if (!b) return
+  const row = cell.closest('.test'), test = b.dataset.v === 'true'
+  await save(row.dataset.game, { test })
+  cell.querySelectorAll('.lv').forEach(x => x.classList.toggle('on', x === b))
+  row.classList.toggle('test--no', !test)
+  row.querySelector('.igdb').hidden = !test
+  countUnjudged()
+})
+
+// The IGDB cell: the entry chosen, else the one proposed (which « Valider »
+// accepts); « changer » picks another, « absent d'IGDB » says there is none.
+function renderIgdb(cell) {
+  const proposed = JSON.parse(cell.dataset.proposed || 'null'), chosen = JSON.parse(cell.dataset.chosen || 'null')
+  const fiche = chosen ?? proposed, game = cell.closest('.test').dataset.game
+  cell.innerHTML = fiche === 'absent' ? `<span class="chip" style="color:var(--ok)">absent d'IGDB</span> `
+    : fiche ? `<img class="cover" src="${cover(fiche.coverImageId)}" alt=""><span>${esc(fiche.name)}${year(fiche.released)}</span> `
+    : `<span class="chip" style="color:var(--warn)">fiche à choisir</span> `
+  if (chosen && (chosen === 'absent' || chosen.id !== proposed?.id))
+    cell.insertAdjacentHTML('beforeend', `<span class="chip" style="color:var(--ok)">choisie</span> `)
+  cell.insertAdjacentHTML('beforeend', `<button class="ig" data-a="search">changer</button><button class="ig" data-a="absent">absent d'IGDB</button>`)
+  cell.querySelector('[data-a=search]').onclick = () => search(cell, game)
+  cell.querySelector('[data-a=absent]').onclick = async () => {
+    await save(game, { igdb: 'absent' }); cell.dataset.chosen = '"absent"'; renderIgdb(cell)
+  }
+}
+
+function search(cell, game) {
+  const box = document.createElement('div')
+  box.innerHTML = `<input placeholder="Chercher dans IGDB" value="${esc(game)}"> <div class="results"></div>`
+  cell.append(box)
+  const input = box.querySelector('input'), results = box.querySelector('.results')
+  let seq = 0
+  const run = async () => {
+    const mine = ++seq
+    const hits = await (await fetch('/igdb?q=' + encodeURIComponent(input.value))).json()
+    if (mine !== seq) return
+    results.innerHTML = ''
+    hits.forEach(h => {
+      const b = document.createElement('button')
+      b.innerHTML = `<img class="cover" src="${cover(h.coverImageId)}" alt=""><span>${esc(h.name)}${year(h.released)}</span>`
+      b.onclick = async () => {
+        const pick = { id: h.id, name: h.name, slug: h.slug, released: h.released, coverImageId: h.coverImageId }
+        await save(game, { igdb: pick }); cell.dataset.chosen = JSON.stringify(pick); renderIgdb(cell)
+      }
+      results.append(b)
+    })
+  }
+  let timer; input.oninput = () => { clearTimeout(timer); timer = setTimeout(run, 250) }
+  input.focus(); run()
+}
+
+document.querySelectorAll('.igdb').forEach(renderIgdb)
+
+// A test added by hand: renamed (a typo, the chapter's title kept as is) or removed.
+document.querySelectorAll('[data-a=rename], [data-a=remove]').forEach(b => b.onclick = async () => {
+  const game = b.closest('.test').dataset.game
+  if (b.dataset.a === 'remove') { await save(game, { remove: true }); location.reload(); return }
+  const name = prompt('Nom du jeu', game)?.trim()
+  if (name && name !== game) { await save(game, { rename: name }); location.reload() }
+})
+
+// A test missing from a chapter: added there, so it is listened to there.
+document.querySelectorAll('.add').forEach(form => {
+  form.querySelector('.addbtn').onclick = () => {
+    form.querySelector('span').hidden = false; form.game.focus(); form.game.select()
+  }
+  form.onsubmit = async e => {
+    e.preventDefault()
+    const game = form.game.value.trim(); if (!game) return
+    await save(game, { added: true, test: true, start: JSON.parse(form.dataset.start) })
+    location.reload()
+  }
+})
+
+// The transcript, read under a chapter or across a test: fetched once, cut here.
+const hms = t => `${Math.floor(t / 3600)}:${String(Math.floor(t % 3600 / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`
+let transcript
+async function segments() {
+  transcript ??= fetch('/transcript?guid=' + encodeURIComponent(EPISODE)).then(r => r.ok ? r.json() : { segments: null })
+  return (await transcript).segments
+}
+
+async function toggleText(btn, open) {
+  const box = btn.closest('.test, .chap').querySelector(':scope > .tx')
+  open ??= box.hidden
+  btn.classList.toggle('on', open)
+  box.hidden = !open
+  if (!open || box.childElementCount) return
+  const segs = await segments()
+  if (!segs) { box.innerHTML = '<span class="dim">pas de transcription</span>'; return }
+  const from = Number(btn.dataset.from), to = btn.dataset.to === '' ? Infinity : Number(btn.dataset.to)
+  box.innerHTML = segs.filter(([s]) => s >= from && s < to)
+    .map(([s, e, text]) => `<p data-s="${s}" data-e="${e}"><span class="mono" data-t="${s}">${hms(s)}</span>${esc(text.trim())}</p>`)
+    .join('') || '<span class="dim">rien de transcrit ici</span>'
+}
+
+document.querySelectorAll('.txt[data-from]').forEach(b => b.onclick = () => toggleText(b))
+document.getElementById('expand').onclick = e => {
+  const open = e.currentTarget.classList.toggle('on')
+  document.querySelectorAll('.chaprow .txt').forEach(b => toggleText(b, open))
+}
+
+// The line being heard, in every open transcript; scrolled to within its box.
+if (audio) audio.addEventListener('timeupdate', () => {
+  const t = audio.currentTime
+  document.querySelectorAll('.tx:not([hidden])').forEach(box => {
+    const prev = box.querySelector('p.now'), line = [...box.querySelectorAll('p')]
+      .find(p => Number(p.dataset.s) <= t && t < Number(p.dataset.e))
+    if (line === prev) return
+    prev?.classList.remove('now')
+    if (!line) return
+    line.classList.add('now')
+    if (line.offsetTop < box.scrollTop || line.offsetTop > box.scrollTop + box.clientHeight - line.offsetHeight)
+      box.scrollTop = line.offsetTop - box.clientHeight / 3
+  })
+})
+
+document.getElementById('validate').onclick = async e => {
+  const b = e.currentTarget; b.disabled = true; b.textContent = 'Validation…'
+  const r = await fetch('/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                       body: JSON.stringify({ episode: EPISODE, variant: VARIANT }) })
+  if (!r.ok) { alert(await r.text()); location.reload(); return }
+  const { next } = await r.json()
+  location.href = next ? '/episode?guid=' + encodeURIComponent(next) : '/'
+}
+</script>
+{% endblock %}

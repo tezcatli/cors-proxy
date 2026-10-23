@@ -39,6 +39,9 @@ _TIMEOUT   = (60, 900)
 
 _http = requests.Session()
 
+# DeepInfra itself is failing: a key refused, out of credit, a quota — or a 5xx.
+_PROVIDER_DOWN = {401, 402, 403, 429}
+
 
 def enabled() -> bool:
     return bool(Config.DEEPINFRA_API_KEY)
@@ -108,10 +111,17 @@ def transcribe(audio_url: str, language: str) -> Transcript:
                 'Authorization': f'Bearer {Config.DEEPINFRA_API_KEY}',
                 'Content-Type':  body.content_type,
             })
-            resp.raise_for_status()
-            answer = resp.json()
-        except (requests.RequestException, ValueError) as exc:
+        except requests.RequestException as exc:
             raise Unavailable(f'DeepInfra: {exc}') from exc
+    if resp.status_code in _PROVIDER_DOWN or resp.status_code >= 500:
+        raise Unavailable(f'DeepInfra: HTTP {resp.status_code} {resp.text[:200]}')
+    # Any other refusal is about this file (400: not audio it can read; 413: too
+    # big): the episode's failure, not the provider's — the others go on.
+    resp.raise_for_status()
+    try:
+        answer = resp.json()
+    except ValueError as exc:
+        raise Unavailable(f'DeepInfra: unreadable answer: {exc}') from exc
     segments = [[round(s['start'], 2), round(s['end'], 2), s['text'].strip()]
                 for s in answer.get('segments') or [] if s.get('text', '').strip()]
     if not segments:

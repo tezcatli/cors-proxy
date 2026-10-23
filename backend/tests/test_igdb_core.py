@@ -117,13 +117,14 @@ def test_canonical_redirects_dlc_to_parent():
     g = {'id': 2, 'name': 'DLC', 'category': 1, 'parent_game': {'id': 1, 'name': 'Base'}}
     assert _resolve_canonical(g)['id'] == 1
 
-def test_canonical_keeps_remake_and_remaster():
-    for cat in (8, 9):  # remake, remaster — intentional standalone titles
-        g = {'id': 2, 'name': 'Remake', 'category': cat, 'parent_game': {'id': 1, 'name': 'Original'}}
-        assert _resolve_canonical(g)['id'] == 2
+def test_canonical_keeps_a_remake_and_joins_a_remaster_to_its_game():
+    # One catalog page per game, its remasters included; a remake is a game of its own.
+    remake = {'id': 2, 'name': 'Remake', 'category': 8, 'parent_game': {'id': 1, 'name': 'Original'}}
+    remaster = {'id': 3, 'name': 'Remaster', 'category': 9, 'parent_game': {'id': 1, 'name': 'Original'}}
+    assert (_resolve_canonical(remake)['id'], _resolve_canonical(remaster)['id']) == (2, 1)
 
 def test_canonical_uses_game_type_when_category_absent():
-    g = {'id': 2, 'name': 'Remaster', 'game_type': {'id': 9}, 'parent_game': {'id': 1, 'name': 'Original'}}
+    g = {'id': 2, 'name': 'Remake', 'game_type': {'id': 8}, 'parent_game': {'id': 1, 'name': 'Original'}}
     assert _resolve_canonical(g)['id'] == 2
 
 def test_build_result_is_child_flag():

@@ -106,17 +106,27 @@ def suggest_titles(name: str, context: dict) -> list[str] | None:
     return [t for t in answer.get('titles', []) if isinstance(t, str) and t.strip()][:3]
 
 
-_PICK_V = 3
-_PICK = """You help match video game names heard on podcasts to the IGDB database.
-Given a name as a podcast wrote it, its context (show, what it covers, the date
-of the episode) and IGDB candidates (id, name, other names, release date), pick
-the candidate the podcast is talking about. The game may be newer than anything
-you know: judge from the names and the dates, not from memory. A show covering
-new releases reviews a game released shortly before the episode — or soon
-after, for a preview — so prefer it over an older or later game of the same
-name (a 2024 remake over the 1998 original); a retrospective show discusses the
-original. Prefer the main game over a DLC, bundle or edition unless the name
-says otherwise. If no candidate is the game, answer null.
+# Chosen in the lab (`lab/fiches.py`, v1) on every judged test: the previous
+# prompt rejected the one candidate named exactly when it was older than a news
+# show's episode (CrossCode, 2018, on a 2025 episode → « none fits »).
+_PICK_V = 4
+_PICK = """You help match a video game named in a podcast episode to the IGDB database.
+Given the name as the podcast wrote it, the episode (show, what it covers, its
+title and date) and IGDB candidates (id, name, other names, release date), pick
+the candidate that IS the game named.
+- Judge from the names first: the candidate whose name or other name is the game
+  named, however spelled. The game may be newer than anything you know.
+- A podcast discusses games of any age — a show covering new releases talks
+  about older games too — so a release date never rules a candidate out, except
+  a game released long after the episode.
+- Use the dates only to choose between candidates of the same name (a remake and
+  its original, namesakes): for a show covering new releases, the one out
+  shortly before the episode (or soon after, for a preview); otherwise the most
+  likely given the episode's title.
+- Pick exactly what is named: a standalone expansion or spin-off named as such
+  is that entry, not its parent game; prefer the original release over a bundle,
+  edition or port unless the name says otherwise.
+If no candidate is the game named, answer null.
 Answer with JSON only: {"id": <candidate id or null>}"""
 
 

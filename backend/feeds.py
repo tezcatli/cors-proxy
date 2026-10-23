@@ -13,6 +13,7 @@ import time
 import requests as http
 
 import catalog_state as state
+import critiques
 import llm
 import transcribe
 from config import Config
@@ -100,11 +101,11 @@ def _readings(episodes: list[Episode]) -> dict[str, list[dict]]:
             is not None}
 
 
-# What the catalog lists of an episode's reading: the games its hosts critique —
-# played and judged, concluding or not, a best-of's entries included. Not the
-# games in the news, recommended in passing or named, however long they are
-# talked about. The reading only describes each section (`llm.KINDS`), so this
-# can change without reading again.
+# The games an episode's reading proposes as tests: the ones its hosts judge —
+# a critique or a palmarès' entry. Which are tests is `critiques.select`'s call
+# (five minutes, no palmarès-only game, the title's game vetoed by a reading
+# that hears it only in the news). The reading only describes each section
+# (`llm.KINDS`), so this can change without reading again.
 CRITIQUE_KINDS = {'review', 'impressions', 'ranking'}
 
 
@@ -134,7 +135,8 @@ def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) ->
     public», «et plein d'autres»). The reading adds the games it critiques that
     the title doesn't name — a show's title names two games, its hour on
     Microïds' catalogue five more — gives each game its critique, and chapters
-    an episode that has none of its own (ads left out). Idempotent: the Episode
+    an episode that has none of its own (ads left out). Which of those games
+    are tests, and where each starts, is `critiques.select`'s. Idempotent: the Episode
     objects are reused across 304s; what the title proposed is set aside, and
     the games are rebuilt from it on every pass."""
     for ep in episodes:
@@ -163,6 +165,7 @@ def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) ->
                                       timestamp_seconds=section['start'], read=True)
                 ep.games.append(mention)
             mention.critique = section['opinion']
+        ep.games = critiques.select(PODCAST_BY_ID[ep.podcast_id], ep, sections)
 
 
 # ── Indexes ───────────────────────────────────────────────────────────────────
@@ -179,7 +182,8 @@ def build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
         if episode.url_slug:
             episode_index[episode.url_slug] = episode
 
-        if is_game_catalog_excluded(episode.title):
+        if is_game_catalog_excluded(episode.title) or (
+                episode.podcast_id in PODCAST_BY_ID and critiques.palmares(PODCAST_BY_ID[episode.podcast_id], episode.title)):
             continue
 
         for mention in episode.games:
