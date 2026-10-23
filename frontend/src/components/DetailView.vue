@@ -376,7 +376,7 @@ const facts = computed(() => {
             <img
               :src="igdbUrl(coverImageId, 't_cover_big_2x')"
               :srcset="`${igdbUrl(coverImageId,'t_cover_big')} 264w, ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w, ${igdbUrl(coverImageId,'t_720p')} 720w`"
-              sizes="(min-width: 768px) 300px, 148px"
+              sizes="(min-width: 768px) 300px, 62vw"
               :alt="`Pochette de ${game.name}`"
               @error="coverFailed = true"
             />
@@ -590,35 +590,49 @@ const facts = computed(() => {
 .state { flex: 1; display: flex; align-items: center; justify-content: center; }
 .state__title { font-size: var(--text-2xl); }
 
+/* Phone: the band is the stage, the cover the star. The cover sits on the
+   band, which reaches two thirds down it and is darkened so it recedes. */
+.detail { --cover-w: min(62vw, 260px); --cover-h: calc(var(--cover-w) * 4 / 3); }
 .gamehead {
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr);
-  gap: 16px 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
   padding: 24px 0 32px;
 }
 /* ─── Band: one key art, full bleed, flat gradient into the page ───────── */
 .band {
   position: relative;
-  height: 48vw;
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 16px + var(--cover-h) * 2 / 3);
   max-height: 520px;
   overflow: hidden;
   background: var(--c-surface);
 }
-.band img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; display: block; }
+.band img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
 .band::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg,
-    rgba(11, 11, 11, 0.55) 0%, rgba(11, 11, 11, 0) 22%,
-    rgba(11, 11, 11, 0) 55%, var(--c-bg) 100%);
+    rgba(11, 11, 11, 0.55) 0%, rgba(11, 11, 11, 0.55) 66%, var(--c-bg) 100%);
 }
-@media (min-width: 768px) { .band { height: clamp(200px, 24vw, 340px); } }
+/* Desktop: a wide band the cover crosses near its top third; the title has
+   the rest of the width, so the band can stay bright. */
+@media (min-width: 768px) {
+  .detail { --cover-w: 300px; }
+  .band { height: clamp(200px, 24vw, 340px); }
+  .band img { object-position: center 30%; }
+  .band::after {
+    background: linear-gradient(180deg,
+      rgba(11, 11, 11, 0.55) 0%, rgba(11, 11, 11, 0) 22%,
+      rgba(11, 11, 11, 0) 55%, var(--c-bg) 100%);
+  }
+}
 
 .gamehead__cover {
   position: relative;
   z-index: 1;
-  width: 148px;
+  justify-self: center;
+  width: var(--cover-w);
   aspect-ratio: 3 / 4;
   padding: 0;
   border: 0;
@@ -639,9 +653,9 @@ const facts = computed(() => {
 }
 /* The cover bites into the band's lower edge. */
 .has-band .gamehead { padding-top: 0; }
-.has-band .gamehead__cover { margin-top: -74px; }
+.has-band .gamehead__cover { margin-top: calc(var(--cover-h) * -2 / 3); }
 .gamehead__main { display: contents; }
-.gamehead__facts { grid-column: 2; align-self: end; display: flex; flex-direction: column; gap: 6px; }
+.gamehead__facts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; }
 .gamehead__title {
   grid-column: 1 / -1;
   margin: 0;
@@ -662,10 +676,10 @@ const facts = computed(() => {
 
 @media (min-width: 768px) {
   .gamehead { grid-template-columns: 300px minmax(0, 1fr); gap: 48px; padding: 40px 0 48px; }
-  .gamehead__cover { width: 300px; grid-column: 1; grid-row: 1; }
+  .gamehead__cover { justify-self: start; grid-column: 1; grid-row: 1; }
   .has-band .gamehead__cover { margin-top: -120px; }
   .gamehead__main { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 24px; min-width: 0; }
-  .gamehead__facts { flex-direction: row; flex-wrap: wrap; gap: 8px 24px; align-self: flex-start; }
+  .gamehead__facts { gap: 8px 24px; align-self: flex-start; margin-top: 0; }
   .gamehead__title { font-size: clamp(56px, 7vw, 112px); }
   .gamehead__verdicts { font-size: var(--text-lg); }
 }

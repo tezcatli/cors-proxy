@@ -38,6 +38,8 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 
 - Fiche jeu : les tests et un bouton d'écoute au premier écran ; le bandeau et la case « +n » prennent une capture (un artwork répète souvent le logo) ; la fiche technique est en français. (2026-10-24)
 
+- Fiche jeu sur téléphone : le bandeau est la scène de la pochette (assombri, jusqu'aux deux tiers de la pochette), la pochette grande et centrée ; une seule image vedette par écran de téléphone. (2026-10-24)
+
 ## Écarté (et pourquoi)
 - RAG / questions sur les transcriptions (« intégrale des Jiknep ») : abandonné. (2026-10)
 - Lexique Whisper (`initial_prompt`) : DeepInfra perdait 60 % des mots ; c'était statique, et ça demandait des informations venues d'ailleurs. Les noms sont corrigés à la lecture, à partir du titre et de la description. (2026-10)
