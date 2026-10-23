@@ -1,3 +1,19 @@
+"""SQLite at `data/users.db` (WAL), its schema and its migrations.
+
+Tables: `users`, `invitations`, `reset_tokens` (auth — never leave prod, see
+`tools/prod_data.py`); `resolutions` (one answer per question, keyed by
+`questions.Question.key`) and `igdb_games` (one row per game, keyed by
+`igdb_id`) — the IGDB cache is two tables because it holds two decisions with
+different keys and lifetimes, with no foreign key between them since an answer
+may briefly point at a game being re-fetched; `llm_cache` (see `llm.py`);
+`transcripts` (see `transcribe.py`, never loaded into memory).
+
+`init_db` migrates older shapes in place, so a deploy or `pull-prod-data.sh` only
+needs a restart: the legacy one-row-per-appearance `igdb_cache` is split
+(`_split_igdb_cache`) into `igdb_games` and a transit table,
+`appearance_resolutions`, which becomes answers at the first complete catalog
+build (`catalog_state.adopt_appearance_resolutions`).
+"""
 import sqlite3
 import os
 import datetime

@@ -1,3 +1,10 @@
+"""Dataclasses shared across the backend — no logic.
+
+`Episode`, `Chapter`, `GameMention` (a game an episode names), `PodcastGame` (one
+per name slug) and `GameAppearance` (a name in one episode); the IGDB cache's
+`Resolution` (which game a question is answered with) and `IgdbGame` (that
+game's data), joined for readers as `IgdbEntry`.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

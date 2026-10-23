@@ -1,3 +1,9 @@
+"""Flask app factory: the auth and games blueprints and `GET /healthz`.
+
+API only — the SPA is served by nginx in prod and Vite in dev. Run by gunicorn
+with `--workers 1`: the catalog, its worker and the rate limiter live in this
+process's memory.
+"""
 import os
 import time
 import logging

@@ -21,3 +21,16 @@ docker compose -f docker-compose.dev.yml run --rm lab python -m pytest tests
 - **`read.py`** : fait lire par le prompt actuel les épisodes de référence qu'il n'a pas lus (`docker compose -f docker-compose.dev.yml run --rm lab python read.py`, avec `OPENROUTER_API_KEY`).
 
 **Critère d'arrêt**, fixé avant d'itérer : **aucun test faux, aucune mauvaise fiche**, et **au moins 90 % des tests attendus** trouvés.
+
+## Porter, puis livrer
+
+Une variante qui tient le critère sur le contrôle est **portée** dans l'app (`backend/critiques.py`, `feeds._apply_readings`). `python export_reference.py` exporte les épisodes jugés, avec la fiche de chaque nom, dans `backend/tests/fixtures/reference.json` : `tests/test_reference.py` les rejoue, et l'app doit donner exactement les tests de la chaîne mesurée. Un changement de règle se fait donc dans le labo, et change ce fichier.
+
+L'historique a été transcrit, lu et résolu en dev (~8 $) pour que la prod ne le refasse jamais. On le **livre** une fois, après le déploiement du code porté :
+
+```bash
+docker compose -f docker-compose.dev.yml run --rm lab python pack_for_prod.py   # → data/prod-pack.json.gz
+./push-lab-data.sh                                                             # → la prod, puis redémarre son backend
+```
+
+`pack_for_prod.py` emballe les transcriptions, les lectures du prompt actuel et une réponse par question que pose le catalogue porté (la résolution choisie au labo), avec les données de son jeu. `tools/push_lab_data.py` les charge dans le conteneur de prod : une transcription, une lecture ou un jeu que la prod a déjà sont gardés ; seules les réponses aux questions du catalogue sont remplacées, jamais l'épinglage ou la recherche d'un curateur. On relit d'abord ce qui change dans la page `/changements` (le catalogue servi par la prod, contre le code porté sur une copie du snapshot avec le paquet chargé). Ensuite `INGEST=true` dans le `backend_secrets.env` du serveur.

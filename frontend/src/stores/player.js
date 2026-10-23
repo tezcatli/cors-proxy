@@ -3,6 +3,15 @@ import { ref, computed, watch } from 'vue'
 import { progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PCT } from '../lib/utils.js'
 import { createAudioEngine } from '../lib/audioEngine.js'
 
+// Track metadata, listening progress, and the only driver of `lib/audioEngine.js`:
+// components issue commands (play, resume, pauseAudio, togglePlayback, seek, retry,
+// setVolume, close) and never touch the element. Two localStorage keys:
+// `soj-player`, the resumable snapshot restored *paused* on load (`restore`, which
+// sets `restored` for the player's resume cue), and `soj-progress`, per
+// `${episodeSlug}|${chapterTs}`, written on a 5 s debounce, on chapter change, on
+// play and on close, pruned to 180 days and the newest 500. `resumeTimeFor` is the
+// one tap-resume rule: partway through a chapter → its saved time, else its start.
+
 export const usePlayerStore = defineStore('player', () => {
   const current     = ref(null)
   const visible     = ref(false)

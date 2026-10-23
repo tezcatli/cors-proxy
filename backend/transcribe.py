@@ -9,6 +9,11 @@ The audio goes through the server: DeepInfra takes a file, not a URL (its JSON
 180 MB, so the audio is streamed to a temporary file and from it, never held
 whole. No Whisper `initial_prompt`: with one, DeepInfra dropped 60 % of an
 episode's words; names are fixed when the transcript is read.
+
+Not sped up, deliberately: DeepInfra bills the duration sent, and at ×1.5 an
+episode kept 99 % of its words and read the same for a third less — but that is
+~6 $ once and ~1.5 $ a year, against ffmpeg in the image and a CPU minute per
+episode on a shared 2-vCPU host (at ×2, 10 % of the words were lost).
 """
 import io
 import json

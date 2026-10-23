@@ -30,6 +30,10 @@ and the most specific matching entry wins:
 Optional display:
   display_name  — override the shown name. Applied at response time in serializers.py,
                   independent of how the game resolved, so it composes with a pin.
+
+There is deliberately no second store: an earlier `resolution_overrides` DB table
+duplicated the `igdb_id` pin and needed a precedence rule; the file won because a
+DB row is invisible to review and dies with the volume.
 """
 import datetime
 import json
