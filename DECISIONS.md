@@ -32,6 +32,8 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - L'accueil est le flux des tests (Reprendre, puis les derniers tests) ; le catalogue des jeux est un onglet, trié par récence. (2026-10-24)
 - Un verdict par test, jamais de moyenne par jeu : la tuile montre un glyphe par test, la fiche le compte par verdict. (2026-10-24)
 
+- Le nom : « Ludothèque », « Ludo » en court (écran d'accueil, mot-symbole `LUDO//`). (2026-10-24)
+
 ## Écarté (et pourquoi)
 - RAG / questions sur les transcriptions (« intégrale des Jiknep ») : abandonné. (2026-10)
 - Lexique Whisper (`initial_prompt`) : DeepInfra perdait 60 % des mots ; c'était statique, et ça demandait des informations venues d'ailleurs. Les noms sont corrigés à la lecture, à partir du titre et de la description. (2026-10)
