@@ -1441,19 +1441,19 @@ def test_is_suspect_flags_unrelated_names(podcast_name, igdb_name):
 
 
 def test_suspects_exclude_names_a_human_already_ruled_on(client):
-    # «Les gardiens de la galaxie» → «Marvel's Guardians of the Galaxy» is a
+    # «Soldats inconnus» → «Valiant Hearts: The Great War» is a
     # curated correction: intentional, however unalike the names look. Flagging it
     # every time would bury the real misses.
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
-  <item><title>On a joue a \xc2\xabLes gardiens de la galaxie\xc2\xbb</title>
+  <item><title>On a joue a \xc2\xabSoldats inconnus\xc2\xbb</title>
     <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
     <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 x</description></item>
 </channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    ns = make_slug('Les gardiens de la galaxie')
-    _seed(rss, {f'{ns}-g1': _entry(f'{ns}-g1', 1, 'guardians', "Marvel's Guardians of the Galaxy")})
+    ns = make_slug('Soldats inconnus')
+    _seed(rss, {f'{ns}-g1': _entry(f'{ns}-g1', 1, 'valiant-hearts', 'Valiant Hearts: The Great War')})
     # The heuristic alone would flag it…
-    assert review.is_suspect('Les gardiens de la galaxie',
-                                    "Marvel's Guardians of the Galaxy")
+    assert review.is_suspect('Soldats inconnus',
+                                    'Valiant Hearts: The Great War')
     # …but the curated correction rules it out: it reads as resolved, not suspect.
     r = client.get('/games/resolution-stats', headers=admin_header())
     row = next(g for g in r.get_json()['games'] if g['nameSlug'] == ns)

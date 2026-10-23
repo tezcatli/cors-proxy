@@ -9,55 +9,55 @@ from utils import make_slug
 # ── find_by_podcast ────────────────────────────────────────────────────────────
 
 def test_find_by_podcast_known_name():
-    c = find_by_podcast('Artic Eggs')
+    c = find_by_podcast('Vendran Las Aves')
     assert c is not None
-    assert c['search_name'] == 'Arctic Eggs'
+    assert c['search_name'] == 'Vendrán las aves'
 
 def test_find_by_podcast_case_insensitive():
-    c = find_by_podcast('artic eggs')
+    c = find_by_podcast('vendran las aves')
     assert c is not None
 
 def test_find_by_podcast_no_match():
     assert find_by_podcast('Elden Ring') is None
 
 def test_find_by_podcast_with_igdb_id():
-    c = find_by_podcast('top spin 2k25')
+    c = find_by_podcast('summer of arcade')
     assert c is not None
-    assert c['igdb_id'] == 282959
+    assert c['igdb_id'] == 3160
 
 def test_find_by_podcast_search_name_overrides():
-    c = find_by_podcast('shogun shodown')
+    c = find_by_podcast('eté')
     assert c is not None
-    assert c['search_name'] == 'Shogun Showdown'
+    assert c['search_name'] == 'Été'
 
 def test_find_by_podcast_search_name_none_when_not_needed():
-    # The feed writes it unspaced; a spaced "make way" must NOT match, since
-    # make_slug maps the two to different slugs (makeway / make-way).
-    c = find_by_podcast('MakeWay')
+    # The feed spaces it; an unspaced "Bioshock1" must NOT match, since
+    # make_slug maps the two to different slugs (bioshock-1 / bioshock1).
+    c = find_by_podcast('Bioshock 1')
     assert c is not None
     assert c.get('search_name') is None
-    assert c['igdb_id'] == 258230
-    assert find_by_podcast('make way') is None
+    assert c['igdb_id'] == 152660
+    assert find_by_podcast('Bioshock1') is None
 
 
 def test_unmatched_slugs_flags_corrections_absent_from_the_feed():
     from corrections import unmatched_slugs
-    assert 'makeway' not in unmatched_slugs(['makeway', 'artic-eggs'])
-    assert 'makeway' in unmatched_slugs(['artic-eggs'])
+    assert 'bioshock-1' not in unmatched_slugs(['bioshock-1', 'vendran-las-aves'])
+    assert 'bioshock-1' in unmatched_slugs(['vendran-las-aves'])
 
 
 # ── _find (slug-level lookup) ─────────────────────────────────────────────────
 
 def test_find_by_slug_match():
-    c = _find(make_slug('artic eggs'), None)
+    c = _find(make_slug('vendran las aves'), None)
     assert c is not None
-    assert c['search_name'] == 'Arctic Eggs'
+    assert c['search_name'] == 'Vendrán las aves'
 
 def test_find_by_slug_no_match():
     assert _find('completely-unknown-game', None) is None
 
 def test_find_by_slug_same_as_find_by_podcast():
-    assert _find(make_slug('shogun shodown'), None) == find_by_podcast('shogun shodown')
+    assert _find(make_slug('eté'), None) == find_by_podcast('eté')
 
 
 # ── hint_date exact-date matching ─────────────────────────────────────────────
@@ -316,7 +316,7 @@ def test_upsert_display_name_only_is_a_valid_entry(tmp_corrections):
 def test_upsert_pin_drops_a_stale_search_name(tmp_corrections):
     import json
     tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Shogun Shodown', 'search_name': 'Shogun Showdown'},
+        {'podcast_name': 'Shogun Shodown', 'search_name': 'Été'},
     ]}))
     _corr.load()
     # A pin bypasses the search, so the search_name would be dead config —
@@ -328,13 +328,13 @@ def test_upsert_pin_drops_a_stale_search_name(tmp_corrections):
 def test_upsert_rename_preserves_a_search_name(tmp_corrections):
     import json
     tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Shogun Shodown', 'search_name': 'Shogun Showdown'},
+        {'podcast_name': 'Shogun Shodown', 'search_name': 'Été'},
     ]}))
     _corr.load()
-    _corr.upsert('Shogun Shodown', display_name='Shogun Showdown')
+    _corr.upsert('Shogun Shodown', display_name='Été')
     assert _corr.CORRECTIONS == [{'podcast_name': 'Shogun Shodown',
-                                  'search_name': 'Shogun Showdown',
-                                  'display_name': 'Shogun Showdown'}]
+                                  'search_name': 'Été',
+                                  'display_name': 'Été'}]
 
 
 def test_upsert_with_nothing_to_write_raises(tmp_corrections):
