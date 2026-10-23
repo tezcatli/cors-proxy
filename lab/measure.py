@@ -24,6 +24,7 @@ import argparse
 import json
 import pathlib
 
+import groups
 import judge
 import scope
 import spec
@@ -36,11 +37,13 @@ THRESHOLD = 0.9
 
 
 def _fiche_outcome(chosen, proposed) -> str:
+    """On the catalog's game page (`groups.py`), not the exact entry: a remaster
+    proposed for the game judged is right — one page to the catalog."""
     if chosen is None:
         return 'fiche indécise'
     if chosen == 'absent':
         return 'juste' if proposed is None else 'mauvaise fiche'
-    return 'juste' if proposed and proposed['id'] == chosen['id'] else 'mauvaise fiche'
+    return 'juste' if proposed and groups.page(proposed['id']) == groups.page(chosen['id']) else 'mauvaise fiche'
 
 
 def outcomes(rows: list[dict], in_scope=lambda game: True) -> list[dict]:

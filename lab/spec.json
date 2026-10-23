@@ -1,9 +1,19 @@
 {
   "episodes": {
+    "8b30003a-ef82-44f4-900c-4191210d6ed9": {
+      "title": "2020 Game of the Year Part 1",
+      "validated": "2026-10-23T06:34:05+00:00",
+      "variant": "titre_critique"
+    },
     "6ab52c8bbd67ce4b5307343c": {
       "title": "A quel jeu avez-vous eu le moins envie de jouer (mais vous y avez joué quand même) ?- Bande-annonce S20E04",
       "validated": "2026-10-22T22:41:14+00:00",
       "variant": "formats"
+    },
+    "b4e72c24-f238-46ea-b729-c1eb210bf370": {
+      "title": "Activision Blizzard and Guardians of the Galaxy",
+      "validated": "2026-10-23T06:36:04+00:00",
+      "variant": "titre_critique"
     },
     "67ee9dadda5ebf87643a9ecc": {
       "title": "Alors, cette Switch 2 ? - Bande-annonce S18E34",
@@ -55,6 +65,11 @@
       "validated": "2026-10-22T19:34:12+00:00",
       "variant": "sans_bande_annonce"
     },
+    "6494768ada5ba132cb7288aa": {
+      "title": "Episode 102 - Psychonauts 2",
+      "validated": "2026-10-23T06:32:22+00:00",
+      "variant": "titre_critique"
+    },
     "65a02f2e93557fe8ef3d55db": {
       "title": "Episode 113 - Marvel's Spider-Man: Miles Morales",
       "validated": "2026-10-22T19:34:43+00:00",
@@ -69,6 +84,11 @@
       "title": "Episode 134 - Chrono Trigger",
       "validated": "2026-10-22T22:32:12+00:00",
       "variant": "formats"
+    },
+    "67b60160d7f65bb045084b77": {
+      "title": "Episode 138 - Vampire Survivors",
+      "validated": "2026-10-23T06:32:32+00:00",
+      "variant": "titre_critique"
     },
     "683dc4cee646ff83253c75cb": {
       "title": "Episode 145 - Dragon Age: Origins (feat. Kabouka)",
@@ -105,10 +125,20 @@
       "validated": "2026-10-22T19:34:18+00:00",
       "variant": "sans_bande_annonce"
     },
+    "5eb70f6f732f3e0355c057e0": {
+      "title": "Episode 25 - Outer Wilds",
+      "validated": "2026-10-23T06:37:44+00:00",
+      "variant": "titre_critique"
+    },
     "5eb70f69732f3e0355c057b6": {
       "title": "Episode 31 - Transistor",
       "validated": "2026-10-22T22:31:04+00:00",
       "variant": "formats"
+    },
+    "60945063c90cef0016d8e059": {
+      "title": "Episode 56 - Mutazione",
+      "validated": "2026-10-23T06:32:09+00:00",
+      "variant": "titre_critique"
     },
     "60cb87bdd294a3005322206f": {
       "title": "Episode 59 - Dead Space",
@@ -120,6 +150,11 @@
       "validated": "2026-10-22T22:31:08+00:00",
       "variant": "formats"
     },
+    "61ed9f6ec21a35000bd84972": {
+      "title": "Episode 71 - Monster Hunter: World",
+      "validated": "2026-10-23T06:32:17+00:00",
+      "variant": "titre_critique"
+    },
     "6376962db64991fed98c7105": {
       "title": "Episode 89 : StarCraft II",
       "validated": "2026-10-22T19:34:24+00:00",
@@ -130,10 +165,30 @@
       "validated": "2026-10-22T19:23:30+00:00",
       "variant": "sans_bande_annonce"
     },
+    "d1024947-40a0-4716-8e90-f5bc4533777b": {
+      "title": "Everything Is Connected",
+      "validated": "2026-10-23T06:36:11+00:00",
+      "variant": "titre_critique"
+    },
+    "65c1119799d033d6dcb8e38c": {
+      "title": "Fin Du Game vous présente Soluce, un nouveau podcast JV !",
+      "validated": "2026-10-23T06:32:27+00:00",
+      "variant": "titre_critique"
+    },
+    "a7be0fd7-bfeb-4e1f-b407-8d5a2542aa51": {
+      "title": "Fire Emblem, Wolverine, and Control Resonant (with Lucy James)",
+      "validated": "2026-10-23T06:37:13+00:00",
+      "variant": "titre_critique"
+    },
     "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8": {
       "title": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
       "validated": "2026-10-22T21:30:05+00:00",
       "variant": "fiches_v2"
+    },
+    "1ff61935-aee0-4587-bda6-6f9d4068b2da": {
+      "title": "GTA 6, Assassin's Creed, and More Summer News",
+      "validated": "2026-10-23T06:37:01+00:00",
+      "variant": "titre_critique"
     },
     "65b93499289d85001780a077": {
       "title": "Gâchette Gauche #10 : IA, le jeu vidéo prompt à s'emballer ?",
@@ -144,6 +199,11 @@
       "title": "Gâchette Gauche #5 : Microsoft, c’est quoi le projet ?",
       "validated": "2026-10-22T19:37:33+00:00",
       "variant": "sans_bande_annonce"
+    },
+    "86d37d09-becb-4a57-8928-f9ccd5d3dc4c": {
+      "title": "Hammerwatch II, and Much More Baldur's Gate 3",
+      "validated": "2026-10-23T06:35:11+00:00",
+      "variant": "titre_critique"
     },
     "f99dd8ba-09e9-4e24-9fe8-6ccba535c9e2": {
       "title": "How to Keep a Child Entertained (and Other Impossibilities)",
@@ -180,6 +240,16 @@
       "validated": "2026-10-22T19:54:55+00:00",
       "variant": "sans_bande_annonce"
     },
+    "6661b1a10ef935001225cd6f": {
+      "title": "Quel est votre meilleur souvenir de bande annonce E3 ? -  Bande-annonce S17E43",
+      "validated": "2026-10-23T06:33:59+00:00",
+      "variant": "titre_critique"
+    },
+    "67924779850b1ddbd30174c2": {
+      "title": "Quel jeu seriez-vous prêt·e à speedrunner ? - Bande-annonce S18E23",
+      "validated": "2026-10-23T06:34:02+00:00",
+      "variant": "titre_critique"
+    },
     "64258d9f56d10b0011c25670": {
       "title": "Quelle est la meilleure map d'un monde de jeu vidéo ? - Bande-annonce S16E35",
       "validated": "2026-10-22T19:37:40+00:00",
@@ -189,6 +259,11 @@
       "title": "Resident Evil: Requiem is Two Games in One!",
       "validated": "2026-10-22T18:34:46+00:00",
       "variant": "current"
+    },
+    "04ac25d8-2643-4b7c-9743-c08eb7d38cd8": {
+      "title": "Revisiting Metal Gear Solid's Weird Game Boy Color Port",
+      "validated": "2026-10-23T06:34:52+00:00",
+      "variant": "titre_critique"
     },
     "632d71d3acd4d10012d046bd": {
       "title": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
@@ -240,10 +315,25 @@
       "validated": "2026-10-22T21:29:17+00:00",
       "variant": "fiches_v2"
     },
+    "5c8235c30a7430ca65334b87": {
+      "title": "Silence on joue ! «Ape Out», «Metro Exodus», «Trials Rising» et «Toejam & Earl»",
+      "validated": "2026-10-23T06:33:36+00:00",
+      "variant": "titre_critique"
+    },
     "https://djpod.com/silence-on-joue/?id=134589": {
       "title": "Silence on joue ! «BattleBlock Theater», «Guacamelee», «Fire Emblem»",
       "validated": "2026-10-22T22:33:37+00:00",
       "variant": "formats"
+    },
+    "https://djpod.com/silence-on-joue/?id=134611": {
+      "title": "Silence on joue ! «NBA 2K13», «Resident Evil 6» et «Tokyo Jungle»",
+      "validated": "2026-10-23T06:32:54+00:00",
+      "variant": "titre_critique"
+    },
+    "https://djpod.com/silence-on-joue/?id=174420": {
+      "title": "Silence on joue ! «Picross 3D», «Batman», et le bilan 2016",
+      "validated": "2026-10-23T06:33:55+00:00",
+      "variant": "titre_critique"
     },
     "5ce6d2b1ec776e457f5510a8": {
       "title": "Silence on joue ! «Yuppie Psycho», «Rage 2», et «Descenders»",
@@ -254,6 +344,11 @@
       "title": "Silence on joue! «Evil Dead», «Uninvited», «Dolmen», «Tennis Manager 2022»",
       "validated": "2026-10-22T22:40:11+00:00",
       "variant": "formats"
+    },
+    "https://djpod.com/silence-on-joue/?id=134675": {
+      "title": "Silence, on joue! Mortal Kombat et un bug chez Sony",
+      "validated": "2026-10-23T06:33:19+00:00",
+      "variant": "titre_critique"
     },
     "https://djpod.com/silence-on-joue/?id=134721": {
       "title": "Silence, on joue! Red Steel 2, Nine Lives",
@@ -274,6 +369,11 @@
       "title": "Steam Deck, Switch, and the Rise of Handheld Gaming",
       "validated": "2026-10-22T19:46:27+00:00",
       "variant": "sans_bande_annonce"
+    },
+    "68e3a1d4-e5c7-4562-bc0d-b511f3da2113": {
+      "title": "Stray is the G.O.A.T. of cat games [The Resties]",
+      "validated": "2026-10-23T06:34:36+00:00",
+      "variant": "titre_critique"
     },
     "6f188f7c-9061-4319-8cae-64243b723ecb": {
       "title": "Super Turbo Remake Plus",
@@ -330,6 +430,11 @@
       "validated": "2026-10-22T22:43:24+00:00",
       "variant": "formats"
     },
+    "70845310-7f16-4cbc-9f11-6177040d1d56": {
+      "title": "Tomodatchi Life and the Magic and Wonder of Super Nintendo World",
+      "validated": "2026-10-23T06:35:52+00:00",
+      "variant": "titre_critique"
+    },
     "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b": {
       "title": "Triple Click Picks: The Games You Should Play (2026 Edition)",
       "validated": "2026-10-22T19:14:17+00:00",
@@ -339,6 +444,11 @@
       "title": "Triple Play: Control Resonant",
       "validated": "2026-10-22T18:10:48+00:00",
       "variant": "current"
+    },
+    "af6aba09-dc32-4bd2-956d-8f13480537ac": {
+      "title": "Triple Play: Mewgenics",
+      "validated": "2026-10-23T06:37:28+00:00",
+      "variant": "titre_critique"
     },
     "69a54b23-3da4-4422-9d4a-917ea7a664c0": {
       "title": "Triple Play: Super Mario 3D World + Bowser's Fury",
@@ -374,6 +484,16 @@
       "title": "What's The Deal With: Stealth Games?",
       "validated": "2026-10-22T22:44:21+00:00",
       "variant": "formats"
+    },
+    "3be593cd-1176-4c5e-8103-64b0703b51f9": {
+      "title": "What's the Deal With: The Metaverse?",
+      "validated": "2026-10-23T06:35:55+00:00",
+      "variant": "titre_critique"
+    },
+    "dea523ca-2567-11eb-9e03-c31b334a06a6": {
+      "title": "Xbox Series X Launch Spectacular ... Also Vikings!",
+      "validated": "2026-10-23T06:34:24+00:00",
+      "variant": "titre_critique"
     },
     "39274c6f-a246-48d2-845c-6b936733575d": {
       "title": "Zelda, Starfield, And The Year To Come",
@@ -425,6 +545,22 @@
       "at": "2026-10-22T19:34:11+00:00"
     },
     {
+      "episode": "6494768ada5ba132cb7288aa",
+      "episodeTitle": "Episode 102 - Psychonauts 2",
+      "podcast": "fin-du-game",
+      "game": "Psychonauts 2",
+      "test": true,
+      "igdb": {
+        "id": 14741,
+        "name": "Psychonauts 2",
+        "slug": "psychonauts-2",
+        "released": "2021",
+        "coverImageId": "cob7mx"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:21+00:00"
+    },
+    {
       "episode": "65a02f2e93557fe8ef3d55db",
       "episodeTitle": "Episode 113 - Marvel's Spider-Man: Miles Morales",
       "podcast": "fin-du-game",
@@ -471,6 +607,22 @@
       },
       "added": false,
       "at": "2026-10-22T22:32:08+00:00"
+    },
+    {
+      "episode": "67b60160d7f65bb045084b77",
+      "episodeTitle": "Episode 138 - Vampire Survivors",
+      "podcast": "fin-du-game",
+      "game": "Vampire Survivors",
+      "test": true,
+      "igdb": {
+        "id": 186725,
+        "name": "Vampire Survivors",
+        "slug": "vampire-survivors",
+        "released": "2022",
+        "coverImageId": "co4bzv"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:31+00:00"
     },
     {
       "episode": "683dc4cee646ff83253c75cb",
@@ -585,6 +737,22 @@
       "at": "2026-10-22T19:34:17+00:00"
     },
     {
+      "episode": "5eb70f6f732f3e0355c057e0",
+      "episodeTitle": "Episode 25 - Outer Wilds",
+      "podcast": "fin-du-game",
+      "game": "Outer Wilds",
+      "test": true,
+      "igdb": {
+        "id": 11737,
+        "name": "Outer Wilds",
+        "slug": "outer-wilds",
+        "released": "2019",
+        "coverImageId": "co65ac"
+      },
+      "added": false,
+      "at": "2026-10-23T06:37:42+00:00"
+    },
+    {
       "episode": "5eb70f69732f3e0355c057b6",
       "episodeTitle": "Episode 31 - Transistor",
       "podcast": "fin-du-game",
@@ -599,6 +767,22 @@
       },
       "added": false,
       "at": "2026-10-22T22:31:04+00:00"
+    },
+    {
+      "episode": "60945063c90cef0016d8e059",
+      "episodeTitle": "Episode 56 - Mutazione",
+      "podcast": "fin-du-game",
+      "game": "Mutazione",
+      "test": true,
+      "igdb": {
+        "id": 64957,
+        "name": "Mutazione",
+        "slug": "mutazione",
+        "released": "2019",
+        "coverImageId": "co1uxn"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:08+00:00"
     },
     {
       "episode": "60cb87bdd294a3005322206f",
@@ -631,6 +815,22 @@
       },
       "added": false,
       "at": "2026-10-22T22:31:08+00:00"
+    },
+    {
+      "episode": "61ed9f6ec21a35000bd84972",
+      "episodeTitle": "Episode 71 - Monster Hunter: World",
+      "podcast": "fin-du-game",
+      "game": "Monster Hunter: World",
+      "test": true,
+      "igdb": {
+        "id": 36926,
+        "name": "Monster Hunter: World",
+        "slug": "monster-hunter-world",
+        "released": "2018",
+        "coverImageId": "co1rst"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:16+00:00"
     },
     {
       "episode": "6376962db64991fed98c7105",
@@ -2288,6 +2488,70 @@
       "start": 2127
     },
     {
+      "episode": "5c8235c30a7430ca65334b87",
+      "episodeTitle": "Silence on joue ! «Ape Out», «Metro Exodus», «Trials Rising» et «Toejam & Earl»",
+      "podcast": "silence-on-joue",
+      "game": "Ape Out",
+      "test": true,
+      "igdb": {
+        "id": 27719,
+        "name": "Ape Out",
+        "slug": "ape-out",
+        "released": "2019",
+        "coverImageId": "co1zta"
+      },
+      "added": false,
+      "at": "2026-10-23T06:33:25+00:00"
+    },
+    {
+      "episode": "5c8235c30a7430ca65334b87",
+      "episodeTitle": "Silence on joue ! «Ape Out», «Metro Exodus», «Trials Rising» et «Toejam & Earl»",
+      "podcast": "silence-on-joue",
+      "game": "Metro Exodus",
+      "test": true,
+      "igdb": {
+        "id": 37016,
+        "name": "Metro Exodus",
+        "slug": "metro-exodus",
+        "released": "2019",
+        "coverImageId": "coaroh"
+      },
+      "added": false,
+      "at": "2026-10-23T06:33:23+00:00"
+    },
+    {
+      "episode": "5c8235c30a7430ca65334b87",
+      "episodeTitle": "Silence on joue ! «Ape Out», «Metro Exodus», «Trials Rising» et «Toejam & Earl»",
+      "podcast": "silence-on-joue",
+      "game": "Toejam & Earl",
+      "test": true,
+      "igdb": {
+        "id": 11122,
+        "name": "ToeJam & Earl: Back in the Groove",
+        "slug": "toejam-and-earl-back-in-the-groove",
+        "released": "2019",
+        "coverImageId": "co1i1e"
+      },
+      "added": false,
+      "at": "2026-10-23T06:33:28+00:00"
+    },
+    {
+      "episode": "5c8235c30a7430ca65334b87",
+      "episodeTitle": "Silence on joue ! «Ape Out», «Metro Exodus», «Trials Rising» et «Toejam & Earl»",
+      "podcast": "silence-on-joue",
+      "game": "Trials Rising",
+      "test": true,
+      "igdb": {
+        "id": 103316,
+        "name": "Trials Rising",
+        "slug": "trials-rising",
+        "released": "2019",
+        "coverImageId": "co2697"
+      },
+      "added": false,
+      "at": "2026-10-23T06:33:26+00:00"
+    },
+    {
       "episode": "https://djpod.com/silence-on-joue/?id=134589",
       "episodeTitle": "Silence on joue ! «BattleBlock Theater», «Guacamelee», «Fire Emblem»",
       "podcast": "silence-on-joue",
@@ -2334,6 +2598,86 @@
       },
       "added": false,
       "at": "2026-10-22T22:32:18+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134611",
+      "episodeTitle": "Silence on joue ! «NBA 2K13», «Resident Evil 6» et «Tokyo Jungle»",
+      "podcast": "silence-on-joue",
+      "game": "NBA 2K13",
+      "test": true,
+      "igdb": {
+        "id": 5058,
+        "name": "NBA 2K13",
+        "slug": "nba-2k13",
+        "released": "2012",
+        "coverImageId": "co22tj"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:38+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134611",
+      "episodeTitle": "Silence on joue ! «NBA 2K13», «Resident Evil 6» et «Tokyo Jungle»",
+      "podcast": "silence-on-joue",
+      "game": "Resident Evil 6",
+      "test": true,
+      "igdb": {
+        "id": 1082,
+        "name": "Resident Evil 6",
+        "slug": "resident-evil-6",
+        "released": "2012",
+        "coverImageId": "cobgod"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:39+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134611",
+      "episodeTitle": "Silence on joue ! «NBA 2K13», «Resident Evil 6» et «Tokyo Jungle»",
+      "podcast": "silence-on-joue",
+      "game": "Tokyo Jungle",
+      "test": true,
+      "igdb": {
+        "id": 7467,
+        "name": "Tokyo Jungle",
+        "slug": "tokyo-jungle",
+        "released": "2012",
+        "coverImageId": "co4ajh"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:41+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=174420",
+      "episodeTitle": "Silence on joue ! «Picross 3D», «Batman», et le bilan 2016",
+      "podcast": "silence-on-joue",
+      "game": "Batman",
+      "test": true,
+      "igdb": {
+        "id": 14746,
+        "name": "Batman: The Telltale Series",
+        "slug": "batman-the-telltale-series",
+        "released": "2016",
+        "coverImageId": "co1u65"
+      },
+      "added": false,
+      "at": "2026-10-23T06:33:40+00:00"
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=174420",
+      "episodeTitle": "Silence on joue ! «Picross 3D», «Batman», et le bilan 2016",
+      "podcast": "silence-on-joue",
+      "game": "Picross 3D",
+      "test": true,
+      "igdb": {
+        "id": 10631,
+        "name": "Picross 3D",
+        "slug": "picross-3d",
+        "released": "2009",
+        "coverImageId": "co2dzy"
+      },
+      "added": false,
+      "at": "2026-10-23T06:33:39+00:00"
     },
     {
       "episode": "5ce6d2b1ec776e457f5510a8",
@@ -2479,6 +2823,22 @@
       "added": false,
       "at": "2026-10-22T22:40:04+00:00",
       "limit": "IGDB n'a ce jeu que sous le nom Unwelcome : la recherche « Uninvited » ne le renvoie jamais."
+    },
+    {
+      "episode": "https://djpod.com/silence-on-joue/?id=134675",
+      "episodeTitle": "Silence, on joue! Mortal Kombat et un bug chez Sony",
+      "podcast": "silence-on-joue",
+      "game": "Mortal Kombat",
+      "test": true,
+      "igdb": {
+        "id": 119,
+        "name": "Mortal Kombat",
+        "slug": "mortal-kombat",
+        "released": "2011",
+        "coverImageId": "co20mc"
+      },
+      "added": false,
+      "at": "2026-10-23T06:32:58+00:00"
     },
     {
       "episode": "https://djpod.com/silence-on-joue/?id=134721",
@@ -2965,6 +3325,38 @@
       "at": "2026-10-22T20:03:14+00:00"
     },
     {
+      "episode": "86d37d09-becb-4a57-8928-f9ccd5d3dc4c",
+      "episodeTitle": "Hammerwatch II, and Much More Baldur's Gate 3",
+      "podcast": "the-besties",
+      "game": "Baldur's Gate 3",
+      "test": true,
+      "igdb": {
+        "id": 119171,
+        "name": "Baldur's Gate III",
+        "slug": "baldurs-gate-iii",
+        "released": "2023",
+        "coverImageId": "co670h"
+      },
+      "added": false,
+      "at": "2026-10-23T06:34:59+00:00"
+    },
+    {
+      "episode": "86d37d09-becb-4a57-8928-f9ccd5d3dc4c",
+      "episodeTitle": "Hammerwatch II, and Much More Baldur's Gate 3",
+      "podcast": "the-besties",
+      "game": "Hammerwatch II",
+      "test": true,
+      "igdb": {
+        "id": 245805,
+        "name": "Hammerwatch II",
+        "slug": "hammerwatch-ii",
+        "released": "2023",
+        "coverImageId": "co6lgu"
+      },
+      "added": false,
+      "at": "2026-10-23T06:34:57+00:00"
+    },
+    {
       "episode": "f99dd8ba-09e9-4e24-9fe8-6ccba535c9e2",
       "episodeTitle": "How to Keep a Child Entertained (and Other Impossibilities)",
       "podcast": "the-besties",
@@ -3246,6 +3638,38 @@
       "start": 2929
     },
     {
+      "episode": "04ac25d8-2643-4b7c-9743-c08eb7d38cd8",
+      "episodeTitle": "Revisiting Metal Gear Solid's Weird Game Boy Color Port",
+      "podcast": "the-besties",
+      "game": "Atomic Heart",
+      "test": true,
+      "igdb": {
+        "id": 76747,
+        "name": "Atomic Heart",
+        "slug": "atomic-heart",
+        "released": "2023",
+        "coverImageId": "co68ag"
+      },
+      "added": false,
+      "at": "2026-10-23T06:34:47+00:00"
+    },
+    {
+      "episode": "04ac25d8-2643-4b7c-9743-c08eb7d38cd8",
+      "episodeTitle": "Revisiting Metal Gear Solid's Weird Game Boy Color Port",
+      "podcast": "the-besties",
+      "game": "Metal Gear Solid: Ghost Babel",
+      "test": true,
+      "igdb": {
+        "id": 5600,
+        "name": "Metal Gear: Ghost Babel",
+        "slug": "metal-gear-ghost-babel--1",
+        "released": "2000",
+        "coverImageId": "coctc7"
+      },
+      "added": false,
+      "at": "2026-10-23T06:34:44+00:00"
+    },
+    {
       "episode": "1a0c77ac-2356-45bc-9932-411557990022",
       "episodeTitle": "Saros is More Bullet Heaven Than Bullet Hell",
       "podcast": "the-besties",
@@ -3316,6 +3740,22 @@
       },
       "added": false,
       "at": "2026-10-22T19:21:46+00:00"
+    },
+    {
+      "episode": "68e3a1d4-e5c7-4562-bc0d-b511f3da2113",
+      "episodeTitle": "Stray is the G.O.A.T. of cat games [The Resties]",
+      "podcast": "the-besties",
+      "game": "Stray",
+      "test": true,
+      "igdb": {
+        "id": 110248,
+        "name": "Stray",
+        "slug": "stray",
+        "released": "2022",
+        "coverImageId": "co4tt2"
+      },
+      "added": false,
+      "at": "2026-10-23T06:34:34+00:00"
     },
     {
       "episode": "30ea39df-782c-4e72-993b-bd27fd18f1a7",
@@ -3635,6 +4075,33 @@
       "at": "2026-10-22T18:59:01+00:00"
     },
     {
+      "episode": "70845310-7f16-4cbc-9f11-6177040d1d56",
+      "episodeTitle": "Tomodatchi Life and the Magic and Wonder of Super Nintendo World",
+      "podcast": "the-besties",
+      "game": "Super Nintendo World",
+      "test": false,
+      "igdb": null,
+      "added": true,
+      "at": "2026-10-23T06:35:48+00:00",
+      "start": 1588
+    },
+    {
+      "episode": "70845310-7f16-4cbc-9f11-6177040d1d56",
+      "episodeTitle": "Tomodatchi Life and the Magic and Wonder of Super Nintendo World",
+      "podcast": "the-besties",
+      "game": "Tomodachi Life: Living the Dream",
+      "test": true,
+      "igdb": {
+        "id": 337036,
+        "name": "Tomodachi Life: Living the Dream",
+        "slug": "tomodachi-life-living-the-dream",
+        "released": "2026",
+        "coverImageId": "cobdqd"
+      },
+      "added": false,
+      "at": "2026-10-23T06:35:16+00:00"
+    },
+    {
       "episode": "5b778f3f-e3e7-4202-8e33-46e14ad5d6a6",
       "episodeTitle": "Two new games to play with friends! [Resties]",
       "podcast": "the-besties",
@@ -3665,6 +4132,38 @@
       },
       "added": false,
       "at": "2026-10-22T22:42:44+00:00"
+    },
+    {
+      "episode": "dea523ca-2567-11eb-9e03-c31b334a06a6",
+      "episodeTitle": "Xbox Series X Launch Spectacular ... Also Vikings!",
+      "podcast": "the-besties",
+      "game": "Assassin's Creed Valhalla",
+      "test": true,
+      "igdb": {
+        "id": 133004,
+        "name": "Assassin's Creed Valhalla",
+        "slug": "assassins-creed-valhalla",
+        "released": "2020",
+        "coverImageId": "co2ed3"
+      },
+      "added": false,
+      "at": "2026-10-23T06:34:11+00:00"
+    },
+    {
+      "episode": "b4e72c24-f238-46ea-b729-c1eb210bf370",
+      "episodeTitle": "Activision Blizzard and Guardians of the Galaxy",
+      "podcast": "triple-click",
+      "game": "Guardians of the Galaxy",
+      "test": true,
+      "igdb": {
+        "id": 152249,
+        "name": "Marvel's Guardians of the Galaxy",
+        "slug": "marvels-guardians-of-the-galaxy",
+        "released": "2021",
+        "coverImageId": "co39pu"
+      },
+      "added": false,
+      "at": "2026-10-23T06:35:59+00:00"
     },
     {
       "episode": "03facb65-cbdb-4ad2-8677-31e393aab1f4",
@@ -3786,6 +4285,70 @@
       },
       "added": false,
       "at": "2026-10-22T19:23:05+00:00"
+    },
+    {
+      "episode": "a7be0fd7-bfeb-4e1f-b407-8d5a2542aa51",
+      "episodeTitle": "Fire Emblem, Wolverine, and Control Resonant (with Lucy James)",
+      "podcast": "triple-click",
+      "game": "Control Resonant",
+      "test": true,
+      "igdb": {
+        "id": 225582,
+        "name": "Control Resonant",
+        "slug": "control-resonant--1",
+        "released": "2026",
+        "coverImageId": "coc64f"
+      },
+      "added": false,
+      "at": "2026-10-23T06:36:42+00:00"
+    },
+    {
+      "episode": "a7be0fd7-bfeb-4e1f-b407-8d5a2542aa51",
+      "episodeTitle": "Fire Emblem, Wolverine, and Control Resonant (with Lucy James)",
+      "podcast": "triple-click",
+      "game": "Fire Emblem: Fortune's Weave",
+      "test": true,
+      "igdb": {
+        "id": 366896,
+        "name": "Fire Emblem: Fortune's Weave",
+        "slug": "fire-emblem-fortunes-weave",
+        "released": "2026",
+        "coverImageId": "coc7ma"
+      },
+      "added": false,
+      "at": "2026-10-23T06:36:40+00:00"
+    },
+    {
+      "episode": "a7be0fd7-bfeb-4e1f-b407-8d5a2542aa51",
+      "episodeTitle": "Fire Emblem, Wolverine, and Control Resonant (with Lucy James)",
+      "podcast": "triple-click",
+      "game": "Marvel's Wolverine",
+      "test": true,
+      "igdb": {
+        "id": 168667,
+        "name": "Marvel's Wolverine",
+        "slug": "marvels-wolverine",
+        "released": "2026",
+        "coverImageId": "cob5mk"
+      },
+      "added": false,
+      "at": "2026-10-23T06:36:41+00:00"
+    },
+    {
+      "episode": "1ff61935-aee0-4587-bda6-6f9d4068b2da",
+      "episodeTitle": "GTA 6, Assassin's Creed, and More Summer News",
+      "podcast": "triple-click",
+      "game": "Marvel’s Spider-Man Remastered",
+      "test": true,
+      "igdb": {
+        "id": 138949,
+        "name": "Marvel's Spider-Man Remastered",
+        "slug": "marvels-spider-man-remastered",
+        "released": "2020",
+        "coverImageId": "cobg1l"
+      },
+      "added": false,
+      "at": "2026-10-23T06:36:55+00:00"
     },
     {
       "episode": "50019f99-1306-42ae-b7e5-5eec989c8708",
@@ -4304,6 +4867,38 @@
         "released": "2026",
         "coverImageId": "cobihx"
       }
+    },
+    {
+      "episode": "af6aba09-dc32-4bd2-956d-8f13480537ac",
+      "episodeTitle": "Triple Play: Mewgenics",
+      "podcast": "triple-click",
+      "game": "Mewgenics",
+      "test": true,
+      "igdb": {
+        "id": 8042,
+        "name": "Mewgenics",
+        "slug": "mewgenics",
+        "released": "2026",
+        "coverImageId": "co9n5k"
+      },
+      "added": false,
+      "at": "2026-10-23T06:37:17+00:00"
+    },
+    {
+      "episode": "af6aba09-dc32-4bd2-956d-8f13480537ac",
+      "episodeTitle": "Triple Play: Mewgenics",
+      "podcast": "triple-click",
+      "game": "Overwatch",
+      "test": true,
+      "igdb": {
+        "id": 125174,
+        "name": "Overwatch",
+        "slug": "overwatch--1",
+        "released": "2023",
+        "coverImageId": "cocqgt"
+      },
+      "added": false,
+      "at": "2026-10-23T06:37:21+00:00"
     },
     {
       "episode": "69a54b23-3da4-4422-9d4a-917ea7a664c0",
