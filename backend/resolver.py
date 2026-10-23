@@ -328,6 +328,9 @@ def _plan_sweep() -> None:
 def _resolve_if_pending(question: Question) -> None:
     if resolution_pending(state.resolutions.get(question.key)):
         resolve(question)
+        if question.key in state.identifying():
+            # It may tell two of an episode's names apart, or make them one.
+            worker.submit(_rebuild_and_sweep, key='rebuild')
 
 
 def _refresh_if_pending(igdb_id: int) -> None:

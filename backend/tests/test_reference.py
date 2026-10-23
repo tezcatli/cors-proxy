@@ -3,13 +3,15 @@
 
 `fixtures/reference.json` (`lab/export_reference.py`) holds the 102 judged
 episodes — what the catalog build is given (title, the games the title proposes,
-the episode's own chapters, its reading's sections) and the judgments: which
+the episode's own chapters, its reading's sections, the catalog page each
+name's answer is on) and the judgments: which
 games are tests, which aren't. Through the app's own steps they must give no
 false test, at least 90 % of the tests, and exactly the tests of the chain that
 was measured — a change of rules is made in the lab, and changes this file.
 """
 import json
 import pathlib
+from unittest.mock import patch
 
 import pytest
 
@@ -31,7 +33,8 @@ def _tests(e: dict) -> list[GameMention]:
                  podcast_id=e['podcast'])
     readings = {e['guid']: [dict(s, opinion=None) for s in e['sections']]} if e['sections'] else {}
     episodes = feeds._apply_llm_games([ep], readings)
-    feeds._apply_readings(episodes, readings)
+    with patch('feeds._page', lambda name, episode: e['pages'].get(name)):
+        feeds._apply_readings(episodes, readings)
     if not episodes or is_game_catalog_excluded(ep.title) or critiques.palmares(PODCAST_BY_ID[ep.podcast_id],
                                                                               ep.title):
         return []
