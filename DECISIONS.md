@@ -3,7 +3,7 @@
 Ce qui a été tranché, une ligne par décision, avec la date. **À relire avant de proposer.** On ajoute la ligne dans le tour où l'utilisateur tranche, et on n'en rediscute pas sans fait nouveau.
 
 ## L'objectif
-- L'app sert à écouter des **critiques de jeux vidéo**, plutôt récents. Son objet est une **base de tests** : quels jeux un épisode teste, sur quelle fiche, où commence le test, et le verdict. (2026-10)
+- L'app sert à écouter des **critiques de jeux vidéo**. Son objet est une **base de tests** : quels jeux un épisode teste, sur quelle fiche, où commence le test, et le verdict. (2026-10)
 - On juge toute observation par son effet sur cette base. Chapitres, sections, `kind` : c'est du contexte et du mécanisme, pas des questions éditoriales. Le lecteur montre tous les chapitres, découpés comme la lecture les découpe. (2026-10-22)
 
 ## Ce qu'est un test

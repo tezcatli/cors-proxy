@@ -3,9 +3,9 @@
 À **réécrire** (pas à compléter) quand l'état change. Dernière mise à jour : 2026-10-23.
 
 - **Livré.** La chaîne du labo est portée (PR #14, #15). Les données du labo sont chargées en prod : 1 998 transcriptions et 1 998 lectures. `INGEST=true` depuis le 2026-10-23 ; sauvegarde de l'ancien fichier : `backend_secrets.env.bak-ingest2`.
-- **À vérifier.** Que l'ingestion en prod transcrit et lit bien les épisodes parus depuis le 22 :
-  `ssh user@tezcat.fr "cd ~/opt/silence && docker compose -f compose.yml logs backend --since 1h | grep -i ingest"`, ou la console `/admin/resolution`.
+- **Vérifié (2026-10-23).** L'ingestion en prod transcrit et lit les nouveaux épisodes (Triple Click « Castlevania, Ace Combat… », SoJ ép. 175 « Age of Empires II »). Six anciens épisodes échouent (DeepInfra 400 ou acast 429 sur le MP3 : 5 SoJ `djpod … id=167739, 172373, 179092, 182847, 192378`, Besties « games of 2014 ») ; ils réessaient avec un délai qui double, au plus une fois par jour.
 - **Ouvert.**
+  - Les six épisodes en échec : voir si c'est le fichier (400) ou acast qui limite (429), ou les laisser.
   - Les épisodes « [Reportage] » sont toujours exclus du catalogue.
   - Nettoyage : 13 corrections devenues inutiles, la table `lab_resolutions_before_pack`, les branches locales mergées.
 - **En attente.** `feat/more-shows` (ORIGAMI, ZQSD, The Back Page, The Game Informer Show).
