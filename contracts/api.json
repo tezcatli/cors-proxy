@@ -487,7 +487,8 @@
           "games",
           "podcast",
           "timestamp",
-          "timestampSeconds"
+          "timestampSeconds",
+          "critique"
         ]
       },
       "not_found": {

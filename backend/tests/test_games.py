@@ -806,6 +806,21 @@ def test_detail_episodes_are_newest_first():
     assert pts == sorted(pts, reverse=True)
 
 
+def test_each_test_carries_its_verdict_and_the_catalog_one_per_test():
+    # Two tests of one game, newest first: the detail gives each episode its
+    # critique, the catalog one verdict per test with no average across them.
+    ns = make_slug('Silent Hill 2')
+    episodes = _seed(_TWO_EPISODES_SAME_NAME, {})
+    opinion = {'verdict': 'positive', 'pros': ['Brume'], 'cons': [], 'at': 30}
+    episodes[0].games[0].critique = opinion
+    detail = serializers.load_game(ns)
+    assert [e['critique'] for e in detail['episodes']] == [opinion, None]
+    assert detail['episodes'][0]['games'][0]['critique'] == opinion
+    entry = next(g for g in serializers.build_catalog() if g['slug'] == ns)
+    assert entry['verdicts'] == ['positive', None]
+    assert serializers.serialise_episode_slim(episodes[0])['games'][0]['verdict'] == 'positive'
+
+
 def test_unknown_slug_still_404s():
     _seed(_TWO_EPISODES_SAME_NAME, {})
     with pytest.raises(Exception):

@@ -93,16 +93,32 @@ def group_display_name(members: list[Member],
 
 # ── Episodes ──────────────────────────────────────────────────────────────────
 
+def _resolution(mention, episode: Episode) -> tuple[str, str, str | None] | None:
+    """(igdb_name, igdb_slug, cover_image_id) of one of the episode's games, or
+    None while it has no page."""
+    game  = state.game_index.get(make_slug(mention.name))
+    entry = state.entry(game, episode) if game else None
+    if not (entry and entry.igdb_slug):
+        return None
+    cover_image_id = entry.data.get('coverImageId') if entry.data else None
+    return entry.name or mention.name, entry.igdb_slug, cover_image_id
+
+
 def _build_resolved(episode: Episode) -> dict[str, tuple[str, str, str | None]]:
     """Build a timestamp → (igdb_name, igdb_slug, cover_image_id) map for one episode."""
-    resolved: dict[str, tuple[str, str, str | None]] = {}
-    for mention in episode.games:
-        game  = state.game_index.get(make_slug(mention.name))
-        entry = state.entry(game, episode) if game else None
-        if entry and entry.igdb_slug and mention.timestamp:
-            cover_image_id = entry.data.get('coverImageId') if entry.data else None
-            resolved[mention.timestamp] = (entry.name or mention.name, entry.igdb_slug, cover_image_id)
-    return resolved
+    return {m.timestamp: r for m in episode.games
+            if m.timestamp and (r := _resolution(m, episode))}
+
+
+def _game(mention, episode: Episode) -> dict:
+    """One of the episode's tests: its name, start, page and cover when it has one."""
+    entry: dict = {'name': mention.name, 'timestamp': mention.timestamp,
+                   'timestampSeconds': mention.timestamp_seconds}
+    if r := _resolution(mention, episode):
+        entry['resolvedName'], entry['slug'] = r[0], r[1]
+        if r[2]:
+            entry['coverImageId'] = r[2]
+    return entry
 
 
 def serialise_episode(episode: Episode, mention=None) -> dict:
@@ -129,12 +145,7 @@ def serialise_episode(episode: Episode, mention=None) -> dict:
                 ch['coverImageId'] = cover_image_id
         chapters.append(ch)
 
-    games = []
-    for g in episode.games:
-        entry: dict = {'name': g.name, 'timestamp': g.timestamp, 'timestampSeconds': g.timestamp_seconds}
-        if g.timestamp and g.timestamp in resolved:
-            entry['slug'] = resolved[g.timestamp][1]
-        games.append(entry)
+    games = [{**_game(g, episode), 'critique': g.critique} for g in episode.games]
 
     return {
         'title':            episode.title,
@@ -149,7 +160,16 @@ def serialise_episode(episode: Episode, mention=None) -> dict:
         'podcast':          podcast_meta(episode.podcast_id),
         'timestamp':        mention.timestamp        if mention else None,
         'timestampSeconds': mention.timestamp_seconds if mention else 0,
+        # That game's test: {verdict, pros, cons, at}; None outside a game's
+        # context, or while the episode is unread.
+        'critique':         mention.critique          if mention else None,
     }
+
+
+def _verdict(mention) -> str | None:
+    """A test's verdict alone (`llm.VERDICTS`); None while unread or when the
+    hosts give none."""
+    return (mention.critique or {}).get('verdict')
 
 
 def serialise_episode_slim(episode: Episode) -> dict:
@@ -157,9 +177,9 @@ def serialise_episode_slim(episode: Episode) -> dict:
 
     Omits `description` and `chapters` — together ~70% of the full feed payload —
     since the list cards (EpisodeFeedCard) never read them; they're served by the
-    single-episode endpoint instead. Also skips the per-episode `_build_resolved`
-    IGDB scan (run for every episode otherwise). `games` is kept (names power the
-    feed's client-side search)."""
+    single-episode endpoint instead. `games` is kept, each with its page, cover and
+    verdict: the feed shows an episode by its tests (and its names power the
+    client-side search)."""
     return {
         'title':            episode.title,
         'slug':             episode.slug,
@@ -167,8 +187,7 @@ def serialise_episode_slim(episode: Episode) -> dict:
         'audioUrl':         episode.audio_url,
         'pubTs':            episode.pub_ts,
         'imageUrl':         episode.image_url,
-        'games':            [{'name': g.name, 'timestamp': g.timestamp,
-                              'timestampSeconds': g.timestamp_seconds}
+        'games':            [{**_game(g, episode), 'verdict': _verdict(g)}
                              for g in episode.games],
         'podcast':          podcast_meta(episode.podcast_id),
         'timestamp':        None,
@@ -194,6 +213,10 @@ def build_catalog() -> list[dict]:
         pub_tss       = [a.episode.pub_ts for _, a in members if a.episode.pub_ts is not None]
         # Source podcasts that cover this game (drives badges + the header filter).
         podcasts = sorted({a.episode.podcast_id for _, a in members if a.episode.podcast_id})
+        # One verdict per test, newest first: no rule averages a game's tests.
+        tests = {}
+        for _, a in sorted(members, key=lambda m: m[1].episode.pub_ts or 0, reverse=True):
+            tests.setdefault(a.episode.slug, _verdict(a.mention))
         result.append({
             'slug':         slug,
             'name':         group_display_name(members, best),
@@ -201,6 +224,7 @@ def build_catalog() -> list[dict]:
             'episodeCount': len(episode_slugs),
             'latestPubTs':  max(pub_tss) if pub_tss else None,
             'podcasts':     podcasts,
+            'verdicts':     list(tests.values()),
         })
 
     return sorted(result, key=lambda g: g['name'].lower())
