@@ -158,6 +158,24 @@ def measure_page():
                            sets=measure.by_set(episodes))
 
 
+@app.route('/changements')
+def changes():
+    """What the delivery changes in the catalog (data/changes.json: the catalog
+    prod serves, against the ported chain on prod's data plus the lab's pack),
+    each change linked to its episode to listen."""
+    path = HERE / 'data' / 'changes.json'
+    if not path.exists():
+        abort(404, 'No data/changes.json: build the comparison first')
+    by_title = {e.title: e for e in feeds.all_episodes()}
+    rows = []
+    for r in json.loads(path.read_text()):
+        ep = by_title.get(r['episode'])
+        rows.append({**r, 'guid': ep.slug if ep else None, 'date': _date(ep.pub_ts) if ep else '?',
+                     'show': PODCAST_BY_ID[ep.podcast_id].label if ep else '?'})
+    rows.sort(key=lambda r: (r['show'], r['date']), reverse=True)
+    return render_template('changes.html', rows=rows)
+
+
 @app.route('/transcript')
 def transcript():
     """The episode's transcript, to read under its chapters and tests."""
