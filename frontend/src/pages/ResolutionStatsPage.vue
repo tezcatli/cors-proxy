@@ -390,7 +390,7 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
   gap: 16px;
   margin-bottom: 14px;
 }
-.console__title { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.console__title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
 .console__sub   { font-size: 0.8rem; color: rgba(var(--rgb-line), 0.45); margin-top: 2px; }
 
 .console__podcasts { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -502,7 +502,7 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
   background: rgb(var(--rgb-base));
   border-bottom: 1px solid var(--border-subtle);
   font-size: 0.6rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: rgba(var(--rgb-line), 0.4);
@@ -555,8 +555,7 @@ function pct(n, total) { return total ? Math.round((n / total) * 100) : 0 }
   background: rgba(var(--rgb-line), 0.06);
 }
 
-/* JetBrains Mono is loaded app-wide and used nowhere else — it is exactly the
-   utility face a column of years and counts wants. */
+/* Tabular figures: a column of years and counts lines up. */
 .rt-num, .rt-date {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

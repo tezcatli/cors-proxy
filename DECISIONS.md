@@ -31,10 +31,15 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - Nouvelles émissions : ORIGAMI L'Hebdo, ZQSD et The Game Informer Show. The Back Page est mis de côté (peu de tests, des épisodes à thème qui produisent des faux), à reprendre avec la prochaine relecture de tout l'historique. (2026-10-24)
 
 ## Interface
-- Direction visuelle *Studio radio* : noir pur, un seul accent jaune (`#ffd23f`) réservé à ce qui joue, Barlow Condensed (titres), Barlow (texte), JetBrains Mono (libellés, timecodes), angles droits et filets, verdict en glyphe et mot (▲ POSITIF, ◆ MITIGÉ, ▼ NÉGATIF, ○ NON LU) ; plus d'accent tiré des pochettes. Maquettes : https://claude.ai/artifact/NT5XTroWYFNjRkMEXyBNnX. (2026-10-24)
+- L'app rend hommage au jeu vidéo, dans toute l'interface ; chaque fiche jeu rend hommage à son jeu : ses couleurs (tirées de ses images) et ses images en vedette. Elle reste une app d'écoute : le lecteur, les tests et le verdict d'abord. La direction se choisit sur maquettes. Remplace *Studio radio* (https://claude.ai/artifact/NT5XTroWYFNjRkMEXyBNnX). (2026-10-24)
+- Direction retenue : « la pochette en vedette » (maquettes C′, https://claude.ai/artifact/8CzayrRjeDURCEjrfAwWnm). Sora (titres, libellés) et Inter (texte) ; panneaux sombres teintés de la couleur du jeu, à coins marqués ; sur la fiche, la pochette en grand, droite, sur un fond tiré d'elle (floutée) ; les tests en journal. Pas de simulation de manette, pas de police rétro. (2026-10-25)
+- Une grille de pochettes ne répète pas le nom du jeu sous la pochette : la pochette le porte déjà (il reste pour les lecteurs d'écran). (2026-10-25)
 
 - L'accueil est le flux des tests (Reprendre, puis les derniers tests) ; le catalogue des jeux est un onglet, trié par récence. (2026-10-24)
-- Un verdict par test, jamais de moyenne par jeu : la tuile montre un glyphe par test, la fiche le compte par verdict. (2026-10-24)
+- Un verdict par test, jamais de moyenne par jeu : la fiche le compte par verdict. (2026-10-24)
+- Le verdict s'écrit en mot seul : « Positif », « Mitigé », « Négatif » ; un test sans verdict n'affiche rien. Les glyphes (▲ ◆ ▼ ○) n'étaient pas compris. (2026-10-25)
+- Une carte de test (accueil) mène à la fiche du jeu, ce test ouvert dans le journal ; l'épisode est un lien du journal. (2026-10-25)
+- La page Jeux sert à parcourir le catalogue : des pochettes seules, sans verdicts ni nombre de tests (ils sont sur la fiche) ; recherche, filtres d'émission et tri restent. (2026-10-25)
 
 - Le nom : « Ludothèque », « Ludo » en court (écran d'accueil, mot-symbole `LUDO//`). (2026-10-24)
 

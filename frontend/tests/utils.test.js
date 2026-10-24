@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  formatDate, timeAgo, getScoreClass, formatEpisodeCount, progressPct, formatTime,
+  formatDate, timeAgo, getScoreClass, formatEpisodeCount, progressPct, formatTime, testHref,
 } from '../src/lib/utils.js';
 
 // ── getScoreClass ─────────────────────────────────────────────────────────
@@ -113,3 +113,14 @@ describe('formatTime', () => {
     expect(formatTime(-5)).toBe('0:00');
   });
 });
+
+describe('testHref', () => {
+  it('opens the game’s page on that test', () => {
+    expect(testHref({ ep: { slug: 'g/1', urlSlug: 'ep-1' }, test: { slug: 'zelda' } }))
+      .toBe('/game/zelda?test=g%2F1')
+  })
+
+  it('opens the episode when the game has no page', () => {
+    expect(testHref({ ep: { slug: 'g/1', urlSlug: 'ep-1' }, test: { name: 'Inconnu' } })).toBe('/episode/ep-1')
+  })
+})

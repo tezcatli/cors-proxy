@@ -284,7 +284,7 @@ function askConfirm(key) { confirming.value = confirming.value === key ? null : 
   padding: var(--back-clear) var(--gutter) 40px;
 }
 .console__head  { margin-bottom: 14px; }
-.console__title { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.console__title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
 .console__sub   { font-size: 0.8rem; color: rgba(var(--rgb-line), 0.45); margin-top: 2px; }
 
 .banner {
