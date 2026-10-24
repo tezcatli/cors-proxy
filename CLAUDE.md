@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Silence on Joue** companion app — a PWA that reads podcast feeds (Silence on Joue, Fin du Game, Triple Click, The Besties), finds the **video-game tests** each episode holds, groups them by game, and plays them. Invite-only (JWT).
+**Silence on Joue** companion app — a PWA that reads podcast feeds (Silence on Joue, Fin du Game, Triple Click, The Besties, ORIGAMI L'Hebdo, ZQSD, The Game Informer Show), finds the **video-game tests** each episode holds, groups them by game, and plays them. Invite-only (JWT).
 
 @DECISIONS.md
 @STATUS.md

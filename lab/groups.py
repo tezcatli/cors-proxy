@@ -75,12 +75,14 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     import server
     import spec
-    from variants import VARIANTS
+    from variants import fiche_versions
     ids = {g['igdb']['id'] for g in spec.load() if isinstance(g.get('igdb'), dict)}
     for guid in spec._read()['episodes']:
         ep = server._find(guid)
-        for name in ('formats_app', 'formats_v1', 'formats_v4', 'formats_v6', 'formats_v7', 'formats_v8'):
-            ids |= {t['igdb']['id'] for t in VARIANTS[name].run(ep)['tests'] if t.get('igdb')}
+        if ep is None:   # a show set aside: its judgments stay, its feed is gone
+            continue
+        for variant in fiche_versions.ALL:
+            ids |= {t['igdb']['id'] for t in variant.run(ep)['tests'] if t.get('igdb')}
     fill(ids)
 
 
