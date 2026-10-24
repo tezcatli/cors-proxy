@@ -33,6 +33,31 @@ entries, never the same two: each fixes one (Fire Emblem 2013, Donkey Kong
 Bonanza, Trails from Zero, Spiderbot) and breaks another — the limits of
 IGDB's search for a name written otherwise. v1, the simplest, is kept; no
 version is tuned for one case any more.
+
+v9 changes no prompt and no rule, only the evidence v1's judge is shown — what
+IGDB's free-text search misses, ported since (`resolver._unsearched`: every
+version gathers it now, the answers measured before it are kept): the entries the catalog already gave
+a name spelled alike (`critiques.same`: « BALLxPIT » is « Ball x Pit », the
+Besties' answer), the games IGDB lists the name as an alternative name of
+(« Rhythm Paradise Groove », « Indiana Jones et le Cercle Ancien »), and each
+candidate's first release, early access included (« 33 Immortals », out in
+early access five days before the episode, shown as its 1.0 a year later).
+New candidates come in only when one of their releases is within the question's
+window: an alternative name brought David Bowie's 1994 « Jump » to a 2009 show.
+
+Measured on the 211 judged tests: v1 ends with seven wrong entries (the four
+new shows' names IGDB's search misses, Donkey Kong Bonanza, Spiderbot,
+Uninvited), v9 with two (Spiderbot; Overwatch, two entries named alike that v9
+dates differently, which the same evidence sent either way when asked again).
+Over the whole catalog, 43 of the 84 tests without an entry get one (42 right,
+« L'histoire de Tomb Raider » debatable), and on 200 tests drawn among those
+with one, v9 lands on the same catalog page, but for Super Mario 3D World's
+2021 edition on a 2021 episode.
+
+The LLM's noise is measured apart: picks are cached by prompt, as the app
+caches them, so a version sharing v1's prompt is shown v1's answer for the same
+evidence — Fire Emblem 2013 went to Awakening for v1 and, asked again with the
+same evidence, to the 2003 one.
 """
 import datetime
 import json
@@ -124,12 +149,13 @@ other names, release date), pick the candidate that IS the game discussed.
 Answer null only when no candidate can be the game named.
 Answer with JSON only: {"id": <candidate id or null>}"""
 
-# version → (prompt, other titles searched for every show, the episode's evidence given)
-# titles: False (v1: only for the shows whose names aren't an LLM's), True (every
-# show), 'fallback' (every show, only when no candidate bears the name exactly).
+# version → (prompt, other titles searched for every show, the episode's evidence
+# given). titles: False (v1: only for the shows whose names aren't an LLM's),
+# True (every show), 'fallback' (every show, only when no candidate bears the
+# name exactly). v9 is v1 with the evidence now in `resolver.gather_evidence`.
 VERSIONS = {1: (_V1, False, False), 4: (_V4, True, False), 6: (_V6, True, True), 7: (_V7, True, False),
-            8: (_V1, 'fallback', False)}
-DEFAULT = 1   # chosen by the score on every judged test (v1 4 6 7 8 measured)
+            8: (_V1, 'fallback', False), 9: (_V1, False, False)}
+DEFAULT = 9   # chosen by the score on every judged test (v1 4 6 7 8 9 measured)
 
 
 def _table(conn) -> None:
@@ -193,7 +219,12 @@ def decide(name: str, episode, version: int = DEFAULT) -> dict | None:
             titles = (llm.suggest_titles(name, context) or []) if titles_everywhere or not podcast.games_by_llm else []
             candidates, _ = resolver.gather_evidence(question, titles)
         ids = sorted(candidates)
-        answer = llm.ask('lab_pick', version, prompt,
+        # Cached by prompt, as the app caches by its prompt's version: a version
+        # sharing v1's prompt asks nothing v1 asked — the same question asked
+        # twice is the LLM's noise, not the version's doing (Fire Emblem 2013,
+        # the same evidence: Awakening for v1, the 2003 one when asked again).
+        asked_as = min(v for v, (p, *_) in VERSIONS.items() if p is prompt)
+        answer = llm.ask('lab_pick', asked_as, prompt,
                          {'name': name, **context, 'candidates': [candidates[i] for i in ids]}) if ids else {'id': None}
         if answer is None:
             raise RuntimeError('LLM unavailable')

@@ -35,6 +35,11 @@
       "validated": "2026-10-22T19:47:12+00:00",
       "variant": "sans_bande_annonce"
     },
+    "https://api.spreaker.com/episode/75946870": {
+      "title": "BioWare's Closure Is A Loss For The Whole Industry w/ Brian Altano",
+      "validated": "2026-10-24T11:42:55+00:00",
+      "variant": "identite_fiche"
+    },
     "0be682e5-9294-4d2b-aa7b-2d19825b1f23": {
       "title": "Blood Dungeon Takes Us to Bullet Heaven",
       "validated": "2026-10-22T22:42:56+00:00",
@@ -55,6 +60,11 @@
       "validated": "2026-10-22T19:46:02+00:00",
       "variant": "sans_bande_annonce"
     },
+    "122788": {
+      "title": "Elden Ring: Shadow of the Erdtree Preview And SGF Predictions | GI Show",
+      "validated": "2026-10-24T09:21:46+00:00",
+      "variant": "identite_fiche"
+    },
     "5eb70f89732f3e0355c05865": {
       "title": "Episode 07 - Her Story",
       "validated": "2026-10-22T22:31:53+00:00",
@@ -70,6 +80,11 @@
       "validated": "2026-10-23T06:32:22+00:00",
       "variant": "titre_critique"
     },
+    "63c05de015a17f0011847d03": {
+      "title": "Episode 111: 23 Wild Gaming Predictions About 2023",
+      "validated": "2026-10-24T12:26:12+00:00",
+      "variant": "identite_fiche"
+    },
     "65a02f2e93557fe8ef3d55db": {
       "title": "Episode 113 - Marvel's Spider-Man: Miles Morales",
       "validated": "2026-10-22T19:34:43+00:00",
@@ -79,6 +94,11 @@
       "title": "Episode 119 - Gears of War 2",
       "validated": "2026-10-22T18:35:11+00:00",
       "variant": "current"
+    },
+    "645d5e6ad83e7600110b12c7": {
+      "title": "Episode 127: What We've Been Playing (Jedi Survivor, Redfall, Xenoblade Chronicles 3 DLC)",
+      "validated": "2026-10-24T12:26:47+00:00",
+      "variant": "identite_fiche"
     },
     "67643e0e621cdde43ae4566c": {
       "title": "Episode 134 - Chrono Trigger",
@@ -120,6 +140,11 @@
       "validated": "2026-10-22T19:33:59+00:00",
       "variant": "sans_bande_annonce"
     },
+    "661fb8dbb9342d00129bd9c5": {
+      "title": "Episode 173: Games Court Returns!",
+      "validated": "2026-10-24T12:26:19+00:00",
+      "variant": "identite_fiche"
+    },
     "5eb70f75732f3e0355c05803": {
       "title": "Episode 20 - DOOM (2016)",
       "validated": "2026-10-22T19:34:18+00:00",
@@ -150,10 +175,25 @@
       "validated": "2026-10-22T22:31:08+00:00",
       "variant": "formats"
     },
+    "Buzzsprout-10168531": {
+      "title": "Episode 67: Two Giant Men Play Elden Ring",
+      "validated": "2026-10-24T12:24:43+00:00",
+      "variant": "identite_fiche"
+    },
     "61ed9f6ec21a35000bd84972": {
       "title": "Episode 71 - Monster Hunter: World",
       "validated": "2026-10-23T06:32:17+00:00",
       "variant": "titre_critique"
+    },
+    "Buzzsprout-10352726": {
+      "title": "Episode 71: The Best Kirby Games",
+      "validated": "2026-10-24T12:26:02+00:00",
+      "variant": "identite_fiche"
+    },
+    "628e91a116e8570012461076": {
+      "title": "Episode 79: What We've Been Playing (May 2022)",
+      "validated": "2026-10-24T12:25:36+00:00",
+      "variant": "identite_fiche"
     },
     "6376962db64991fed98c7105": {
       "title": "Episode 89 : StarCraft II",
@@ -180,10 +220,20 @@
       "validated": "2026-10-23T06:37:13+00:00",
       "variant": "titre_critique"
     },
+    "https://api.spreaker.com/episode/75218968": {
+      "title": "Fire Emblem: Fortune's Weave Review, Plus Control Resonant",
+      "validated": "2026-10-24T11:40:00+00:00",
+      "variant": "identite_fiche"
+    },
     "0bb9a00c-ddfe-4d69-a04d-b2a61240d8f8": {
       "title": "For Super Mario Galaxy The Movie, We Get Help from Get Played",
       "validated": "2026-10-22T21:30:05+00:00",
       "variant": "fiches_v2"
+    },
+    "671189a113da25d9f6f8e918": {
+      "title": "From Games Journalism to Blumhouse (with Louise Blain)",
+      "validated": "2026-10-24T12:27:12+00:00",
+      "variant": "identite_fiche"
     },
     "1ff61935-aee0-4587-bda6-6f9d4068b2da": {
       "title": "GTA 6, Assassin's Creed, and More Summer News",
@@ -215,10 +265,20 @@
       "validated": "2026-10-22T19:45:12+00:00",
       "variant": "sans_bande_annonce"
     },
+    "https://api.spreaker.com/episode/72116864": {
+      "title": "Lego Batman Voice Actor Interview + Yoshi Review",
+      "validated": "2026-10-24T11:40:45+00:00",
+      "variant": "identite_fiche"
+    },
     "2c418e0d-efda-4b46-8309-4d97092528cc": {
       "title": "Mario and Rabbids and Marvel and Sonic and Minions",
       "validated": "2026-10-22T19:43:45+00:00",
       "variant": "sans_bande_annonce"
+    },
+    "https://api.spreaker.com/episode/67372021": {
+      "title": "Most Anticipated Upcoming Games In 2025, Plus PHANTOM BLADE ZERO, And Roger Impressions",
+      "validated": "2026-10-24T11:38:41+00:00",
+      "variant": "identite_fiche"
     },
     "c6e8f1b4-beb2-43c6-b424-34aa306b765a": {
       "title": "Nintendo Dares You to Become a Speedrunner",
@@ -234,6 +294,11 @@
       "title": "Our Favorite Games of 2021",
       "validated": "2026-10-22T22:42:59+00:00",
       "variant": "formats"
+    },
+    "https://api.spreaker.com/episode/68366916": {
+      "title": "Our Favorite Scary Games + The Seance Of Blake Manor",
+      "validated": "2026-10-24T11:39:31+00:00",
+      "variant": "identite_fiche"
     },
     "f20e1a0f-8c94-4063-8235-2b493ddc4f6f": {
       "title": "Our Favorite Video Games of 2025",
@@ -264,6 +329,46 @@
       "title": "Revisiting Metal Gear Solid's Weird Game Boy Color Port",
       "validated": "2026-10-23T06:34:52+00:00",
       "variant": "titre_critique"
+    },
+    "23-10-2023": {
+      "title": "S01E01 - Un Super Mario, des super marioles, une super Marion !",
+      "validated": "2026-10-24T11:58:13+00:00",
+      "variant": "identite_fiche"
+    },
+    "04-02-2024": {
+      "title": "S01E11 - Suicide Squad est-il vraiment super villain ? (+ critique de Persona 3 Reload)",
+      "validated": "2026-10-24T14:24:57+00:00",
+      "variant": "identite_fiche"
+    },
+    "67dd95b3fa98b54cfac6cb6f": {
+      "title": "S02E25 - Assassin's Creed Shadows",
+      "validated": "2026-10-24T11:58:49+00:00",
+      "variant": "identite_fiche"
+    },
+    "67f921e9b51a627d15be1151": {
+      "title": "S02E28 - Blue Prince, Endless Legend II et Triple III Initiative",
+      "validated": "2026-10-24T12:00:23+00:00",
+      "variant": "identite_fiche"
+    },
+    "68f25cf3888566c5b08c8716": {
+      "title": "S03E05 - BALLxPIT, Eclipsium et Anno 117",
+      "validated": "2026-10-24T11:59:42+00:00",
+      "variant": "identite_fiche"
+    },
+    "68fb9c09deee754a72bd8971": {
+      "title": "S03E06 - Keeper, Vampire Bloodlines 2 et Ninja Gaiden 4",
+      "validated": "2026-10-24T12:15:17+00:00",
+      "variant": "identite_fiche"
+    },
+    "6a47c2442d7a15a97998e993": {
+      "title": "S03E39 - Deer & Boy, Momento et 868-BACK",
+      "validated": "2026-10-24T12:14:57+00:00",
+      "variant": "identite_fiche"
+    },
+    "6aad59c97aa361c6129085e6": {
+      "title": "S04E01 - Orbitals, Onimusha : Way of the Sword et Marvel's Wolverine",
+      "validated": "2026-10-24T12:24:58+00:00",
+      "variant": "identite_fiche"
     },
     "632d71d3acd4d10012d046bd": {
       "title": "S16E04 - «Return to Monkey Island», «Splatoon 3», «Tinykin» et «NBA 2K23»",
@@ -370,6 +475,11 @@
       "validated": "2026-10-22T19:46:27+00:00",
       "variant": "sans_bande_annonce"
     },
+    "122502": {
+      "title": "Stellar Blade, Sand Land, Monkey Ball, Crabs, And Knuckles | GI Show",
+      "validated": "2026-10-24T11:37:55+00:00",
+      "variant": "identite_fiche"
+    },
     "68e3a1d4-e5c7-4562-bc0d-b511f3da2113": {
       "title": "Stray is the G.O.A.T. of cat games [The Resties]",
       "validated": "2026-10-23T06:34:36+00:00",
@@ -389,6 +499,11 @@
       "title": "Terminator Time Travels to Save '90s Garbage Games",
       "validated": "2026-10-22T19:24:15+00:00",
       "variant": "sans_bande_annonce"
+    },
+    "6870250afe0897380ea4ae67": {
+      "title": "The Art of Video Game Character Customisation (with Jen Simpkins)",
+      "validated": "2026-10-24T12:27:36+00:00",
+      "variant": "identite_fiche"
     },
     "https://www.polygon.com/2013/9/6/4700952/the-besties-70-the-avuncular-episode": {
       "title": "The Besties 70 - The avuncular episode",
@@ -435,6 +550,11 @@
       "validated": "2026-10-23T06:35:52+00:00",
       "variant": "titre_critique"
     },
+    "https://api.spreaker.com/episode/66980601": {
+      "title": "Tony Hawk's Pro Skater 3 + 4 Review And Xbox Layoffs (Feat. Ash Parrish)",
+      "validated": "2026-10-24T11:36:32+00:00",
+      "variant": "identite_fiche"
+    },
     "f9d4b4e2-0ca3-4f4d-bbab-acb98f66ff8b": {
       "title": "Triple Click Picks: The Games You Should Play (2026 Edition)",
       "validated": "2026-10-22T19:14:17+00:00",
@@ -460,6 +580,11 @@
       "validated": "2026-10-22T19:55:01+00:00",
       "variant": "sans_bande_annonce"
     },
+    "67142c42e3d9082a5a0e1f7e": {
+      "title": "Two Giant Men Play Perfect Dark (Patreon Sampler)",
+      "validated": "2026-10-24T12:27:06+00:00",
+      "variant": "identite_fiche"
+    },
     "5b778f3f-e3e7-4202-8e33-46e14ad5d6a6": {
       "title": "Two new games to play with friends! [Resties]",
       "validated": "2026-10-22T22:42:49+00:00",
@@ -480,6 +605,11 @@
       "validated": "2026-10-22T22:43:59+00:00",
       "variant": "formats"
     },
+    "https://api.spreaker.com/episode/69564203": {
+      "title": "What's Going On With Ubisoft?",
+      "validated": "2026-10-24T11:38:09+00:00",
+      "variant": "identite_fiche"
+    },
     "6ebbdcb4-dfeb-4bb3-8379-91854fd11dae": {
       "title": "What's The Deal With: Stealth Games?",
       "validated": "2026-10-22T22:44:21+00:00",
@@ -490,10 +620,55 @@
       "validated": "2026-10-23T06:35:55+00:00",
       "variant": "titre_critique"
     },
+    "66f6bb4f337e6a756f231e7d": {
+      "title": "Wishlist S01E01 - Ces jeux qu'il ne fallait pas rater en 2023 (avec At0mium et Yamukass)",
+      "validated": "2026-10-24T11:58:20+00:00",
+      "variant": "identite_fiche"
+    },
     "dea523ca-2567-11eb-9e03-c31b334a06a6": {
       "title": "Xbox Series X Launch Spectacular ... Also Vikings!",
       "validated": "2026-10-23T06:34:24+00:00",
       "variant": "titre_critique"
+    },
+    "6a4697b404fac73b244ef740": {
+      "title": "ZQSD #113 - Canicule Game Fest",
+      "validated": "2026-10-24T12:29:15+00:00",
+      "variant": "identite_fiche"
+    },
+    "http://feeds.soundcloud.com/stream/235577687-zqsd-1-33-le-jardinopodcast.mp3": {
+      "title": "ZQSD #33",
+      "validated": "2026-10-24T12:28:13+00:00",
+      "variant": "identite_fiche"
+    },
+    "https://feeds.soundcloud.com/stream/902109703-zqsd-1-76-microsoft-hades-et-crusader-kings-iii.mp3": {
+      "title": "ZQSD #77",
+      "validated": "2026-10-24T12:28:25+00:00",
+      "variant": "identite_fiche"
+    },
+    "http://feeds.soundcloud.com/stream/1317014146-zqsd-1-85-cest-pas-stray-prepare-tout-ca.mp3": {
+      "title": "ZQSD #85 - Un podcast pas Stray Stray préparé",
+      "validated": "2026-10-24T12:28:53+00:00",
+      "variant": "identite_fiche"
+    },
+    "http://feeds.soundcloud.com/stream/163097182-zqsd-1-hs1-jour-1-gc2014.mp3": {
+      "title": "ZQSD HS1 Jour 1",
+      "validated": "2026-10-24T12:27:42+00:00",
+      "variant": "identite_fiche"
+    },
+    "http://feeds.soundcloud.com/stream/1436469994-zqsd-1-zqsdeux-22-2023-avec-hoopy-special-10-ans-de-zqsd.mp3": {
+      "title": "ZQSDeux #22 - 2023 avec Hoopy - Spécial 10 ans de ZQSD",
+      "validated": "2026-10-24T12:28:58+00:00",
+      "variant": "identite_fiche"
+    },
+    "http://feeds.soundcloud.com/stream/1771420701-zqsd-1-zqsdeux-28-citizen-sleeper-rencontre-avec-guillaume-singelin-et-eric-holweck.mp3": {
+      "title": "ZQSDeux #28 - Citizen Sleeper avec Guillaume Singelin et Eric Holweck",
+      "validated": "2026-10-24T12:30:09+00:00",
+      "variant": "identite_fiche"
+    },
+    "6a4e47ab1c8f5a97d853759e": {
+      "title": "ZQSDeux #59 - Starfox et Rhythm Paradise Groove réenchantent la Switch 2",
+      "validated": "2026-10-24T12:31:33+00:00",
+      "variant": "identite_fiche"
     },
     "39274c6f-a246-48d2-845c-6b936733575d": {
       "title": "Zelda, Starfield, And The Year To Come",
@@ -847,6 +1022,824 @@
       },
       "added": false,
       "at": "2026-10-22T19:34:23+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/75946870",
+      "episodeTitle": "BioWare's Closure Is A Loss For The Whole Industry w/ Brian Altano",
+      "podcast": "game-informer-show",
+      "game": "Bloodborne",
+      "test": true,
+      "igdb": {
+        "id": 7334,
+        "name": "Bloodborne",
+        "slug": "bloodborne",
+        "released": "2015",
+        "coverImageId": "cob99l"
+      },
+      "added": false,
+      "at": "2026-10-24T11:42:51+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/75946870",
+      "episodeTitle": "BioWare's Closure Is A Loss For The Whole Industry w/ Brian Altano",
+      "podcast": "game-informer-show",
+      "game": "Switch Sports Resort",
+      "test": true,
+      "igdb": {
+        "id": 405451,
+        "name": "Nintendo Switch Sports Resort",
+        "slug": "nintendo-switch-sports-resort",
+        "released": "2026",
+        "coverImageId": "coc7mb"
+      },
+      "added": false,
+      "at": "2026-10-24T11:40:55+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/75946870",
+      "episodeTitle": "BioWare's Closure Is A Loss For The Whole Industry w/ Brian Altano",
+      "podcast": "game-informer-show",
+      "game": "Tenebris Somnia",
+      "test": true,
+      "igdb": {
+        "id": 216692,
+        "name": "Tenebris Somnia",
+        "slug": "tenebris-somnia",
+        "released": "2026",
+        "coverImageId": "cod754"
+      },
+      "added": false,
+      "at": "2026-10-24T11:41:16+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/75946870",
+      "episodeTitle": "BioWare's Closure Is A Loss For The Whole Industry w/ Brian Altano",
+      "podcast": "game-informer-show",
+      "game": "The Blood of Dawnwalker",
+      "test": true,
+      "igdb": {
+        "id": 282831,
+        "name": "The Blood of Dawnwalker",
+        "slug": "the-blood-of-dawnwalker",
+        "released": "2026",
+        "coverImageId": "cob7ym"
+      },
+      "added": false,
+      "at": "2026-10-24T11:41:19+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/75946870",
+      "episodeTitle": "BioWare's Closure Is A Loss For The Whole Industry w/ Brian Altano",
+      "podcast": "game-informer-show",
+      "game": "The Village in the Shade",
+      "test": true,
+      "igdb": {
+        "id": 358537,
+        "name": "Village in the Shade",
+        "slug": "village-in-the-shade",
+        "released": "2026",
+        "coverImageId": "cobtql"
+      },
+      "added": false,
+      "at": "2026-10-24T11:40:58+00:00"
+    },
+    {
+      "episode": "122788",
+      "episodeTitle": "Elden Ring: Shadow of the Erdtree Preview And SGF Predictions | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Elden Ring: Shadow of the Erdtree",
+      "test": true,
+      "igdb": {
+        "id": 240009,
+        "name": "Elden Ring: Shadow of the Erdtree",
+        "slug": "elden-ring-shadow-of-the-erdtree",
+        "released": "2024",
+        "coverImageId": "co7sly"
+      },
+      "added": false,
+      "at": "2026-10-24T09:20:01+00:00"
+    },
+    {
+      "episode": "122788",
+      "episodeTitle": "Elden Ring: Shadow of the Erdtree Preview And SGF Predictions | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Hauntii",
+      "test": true,
+      "igdb": {
+        "id": 217008,
+        "name": "Hauntii",
+        "slug": "hauntii",
+        "released": "2024",
+        "coverImageId": "co8ayw"
+      },
+      "added": false,
+      "at": "2026-10-24T09:21:13+00:00"
+    },
+    {
+      "episode": "122788",
+      "episodeTitle": "Elden Ring: Shadow of the Erdtree Preview And SGF Predictions | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Nine Sols",
+      "test": true,
+      "igdb": {
+        "id": 194821,
+        "name": "Nine Sols",
+        "slug": "nine-sols",
+        "released": "2024",
+        "coverImageId": "co4l2s"
+      },
+      "added": false,
+      "at": "2026-10-24T09:21:37+00:00"
+    },
+    {
+      "episode": "122788",
+      "episodeTitle": "Elden Ring: Shadow of the Erdtree Preview And SGF Predictions | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Wild Bastards",
+      "test": true,
+      "igdb": {
+        "id": 278602,
+        "name": "Wild Bastards",
+        "slug": "wild-bastards",
+        "released": "2024",
+        "coverImageId": "co7fl7"
+      },
+      "added": false,
+      "at": "2026-10-24T09:21:34+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/75218968",
+      "episodeTitle": "Fire Emblem: Fortune's Weave Review, Plus Control Resonant",
+      "podcast": "game-informer-show",
+      "game": "Control Resonant",
+      "test": true,
+      "igdb": {
+        "id": 225582,
+        "name": "Control Resonant",
+        "slug": "control-resonant--1",
+        "released": "2026",
+        "coverImageId": "coc64f"
+      },
+      "added": false,
+      "at": "2026-10-24T11:39:56+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/75218968",
+      "episodeTitle": "Fire Emblem: Fortune's Weave Review, Plus Control Resonant",
+      "podcast": "game-informer-show",
+      "game": "Fire Emblem: Fortune's Weave",
+      "test": true,
+      "igdb": {
+        "id": 366896,
+        "name": "Fire Emblem: Fortune's Weave",
+        "slug": "fire-emblem-fortunes-weave",
+        "released": "2026",
+        "coverImageId": "coc7ma"
+      },
+      "added": false,
+      "at": "2026-10-24T11:39:53+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/72116864",
+      "episodeTitle": "Lego Batman Voice Actor Interview + Yoshi Review",
+      "podcast": "game-informer-show",
+      "game": "Lego Batman: Legacy of the Dark Knight",
+      "test": true,
+      "igdb": {
+        "id": 361855,
+        "name": "LEGO Batman: Legacy of the Dark Knight",
+        "slug": "lego-batman-legacy-of-the-dark-knight",
+        "released": "2026",
+        "coverImageId": "coab09"
+      },
+      "added": false,
+      "at": "2026-10-24T11:40:06+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/72116864",
+      "episodeTitle": "Lego Batman Voice Actor Interview + Yoshi Review",
+      "podcast": "game-informer-show",
+      "game": "Thick As Thieves",
+      "test": true,
+      "igdb": {
+        "id": 224511,
+        "name": "Thick as Thieves",
+        "slug": "thick-as-thieves",
+        "released": "2026",
+        "coverImageId": "coc2gk"
+      },
+      "added": false,
+      "at": "2026-10-24T11:40:12+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/72116864",
+      "episodeTitle": "Lego Batman Voice Actor Interview + Yoshi Review",
+      "podcast": "game-informer-show",
+      "game": "Yoshi and the Mysterious Book",
+      "test": true,
+      "igdb": {
+        "id": 366883,
+        "name": "Yoshi and the Mysterious Book",
+        "slug": "yoshi-and-the-mysterious-book",
+        "released": "2026",
+        "coverImageId": "cobr0r"
+      },
+      "added": false,
+      "at": "2026-10-24T11:40:10+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/67372021",
+      "episodeTitle": "Most Anticipated Upcoming Games In 2025, Plus PHANTOM BLADE ZERO, And Roger Impressions",
+      "podcast": "game-informer-show",
+      "game": "And Roger",
+      "test": true,
+      "igdb": {
+        "id": 324784,
+        "name": "And Roger",
+        "slug": "and-roger",
+        "released": "2025",
+        "coverImageId": "co94k9"
+      },
+      "added": false,
+      "at": "2026-10-24T11:38:38+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/67372021",
+      "episodeTitle": "Most Anticipated Upcoming Games In 2025, Plus PHANTOM BLADE ZERO, And Roger Impressions",
+      "podcast": "game-informer-show",
+      "game": "Phantom Blade Zero",
+      "test": true,
+      "igdb": {
+        "id": 250618,
+        "name": "Phantom Blade Zero",
+        "slug": "phantom-blade-zero",
+        "released": "2026",
+        "coverImageId": "cococe"
+      },
+      "added": false,
+      "at": "2026-10-24T11:38:20+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/68366916",
+      "episodeTitle": "Our Favorite Scary Games + The Seance Of Blake Manor",
+      "podcast": "game-informer-show",
+      "game": "The Seance at Blake Manor",
+      "test": true,
+      "igdb": {
+        "id": 335833,
+        "name": "The Séance of Blake Manor",
+        "slug": "the-seance-of-blake-manor",
+        "released": "2025",
+        "coverImageId": "co9jkt"
+      },
+      "added": false,
+      "at": "2026-10-24T11:39:22+00:00"
+    },
+    {
+      "episode": "122502",
+      "episodeTitle": "Stellar Blade, Sand Land, Monkey Ball, Crabs, And Knuckles | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Another Crab's Treasure",
+      "test": true,
+      "igdb": {
+        "id": 200903,
+        "name": "Another Crab's Treasure",
+        "slug": "another-crabs-treasure",
+        "released": "2024",
+        "coverImageId": "co6mrs"
+      },
+      "added": false,
+      "at": "2026-10-24T11:37:39+00:00"
+    },
+    {
+      "episode": "122502",
+      "episodeTitle": "Stellar Blade, Sand Land, Monkey Ball, Crabs, And Knuckles | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Sand Land",
+      "test": true,
+      "igdb": {
+        "id": 252480,
+        "name": "Sand Land",
+        "slug": "sand-land",
+        "released": "2024",
+        "coverImageId": "co7m35"
+      },
+      "added": false,
+      "at": "2026-10-24T11:36:41+00:00"
+    },
+    {
+      "episode": "122502",
+      "episodeTitle": "Stellar Blade, Sand Land, Monkey Ball, Crabs, And Knuckles | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Stellar Blade",
+      "test": true,
+      "igdb": {
+        "id": 117170,
+        "name": "Stellar Blade",
+        "slug": "stellar-blade",
+        "released": "2024",
+        "coverImageId": "co9s0t"
+      },
+      "added": false,
+      "at": "2026-10-24T11:36:39+00:00"
+    },
+    {
+      "episode": "122502",
+      "episodeTitle": "Stellar Blade, Sand Land, Monkey Ball, Crabs, And Knuckles | GI Show",
+      "podcast": "game-informer-show",
+      "game": "Super Monkey Ball Banana Rumble",
+      "test": true,
+      "igdb": {
+        "id": 287854,
+        "name": "Super Monkey Ball: Banana Rumble",
+        "slug": "super-monkey-ball-banana-rumble",
+        "released": "2024",
+        "coverImageId": "cobbw9"
+      },
+      "added": false,
+      "at": "2026-10-24T11:36:48+00:00"
+    },
+    {
+      "episode": "122502",
+      "episodeTitle": "Stellar Blade, Sand Land, Monkey Ball, Crabs, And Knuckles | GI Show",
+      "podcast": "game-informer-show",
+      "game": "TopSpin 2K25",
+      "test": true,
+      "igdb": {
+        "id": 282959,
+        "name": "TopSpin 2K25",
+        "slug": "topspin-2k25",
+        "released": "2024",
+        "coverImageId": "co84fw"
+      },
+      "added": false,
+      "at": "2026-10-24T11:37:49+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/66980601",
+      "episodeTitle": "Tony Hawk's Pro Skater 3 + 4 Review And Xbox Layoffs (Feat. Ash Parrish)",
+      "podcast": "game-informer-show",
+      "game": "Missile Command Delta",
+      "test": true,
+      "igdb": {
+        "id": 335829,
+        "name": "Missile Command: Delta",
+        "slug": "missile-command-delta",
+        "released": "2025",
+        "coverImageId": "co9jkh"
+      },
+      "added": false,
+      "at": "2026-10-24T11:36:29+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/66980601",
+      "episodeTitle": "Tony Hawk's Pro Skater 3 + 4 Review And Xbox Layoffs (Feat. Ash Parrish)",
+      "podcast": "game-informer-show",
+      "game": "Peak",
+      "test": true,
+      "igdb": {
+        "id": 349524,
+        "name": "Peak",
+        "slug": "peak--1",
+        "released": "2025",
+        "coverImageId": "cocokj"
+      },
+      "added": false,
+      "at": "2026-10-24T11:36:23+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/66980601",
+      "episodeTitle": "Tony Hawk's Pro Skater 3 + 4 Review And Xbox Layoffs (Feat. Ash Parrish)",
+      "podcast": "game-informer-show",
+      "game": "Tony Hawk's Pro Skater 3 + 4",
+      "test": true,
+      "igdb": {
+        "id": 334243,
+        "name": "Tony Hawk's Pro Skater 3+4",
+        "slug": "tony-hawks-pro-skater-3-plus-4",
+        "released": "2025",
+        "coverImageId": "co9hou"
+      },
+      "added": false,
+      "at": "2026-10-24T11:36:21+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/69564203",
+      "episodeTitle": "What's Going On With Ubisoft?",
+      "podcast": "game-informer-show",
+      "game": "MIO: Memories In Orbit",
+      "test": true,
+      "igdb": {
+        "id": 306141,
+        "name": "Mio: Memories in Orbit",
+        "slug": "mio-memories-in-orbit",
+        "released": "2026",
+        "coverImageId": "co8tkh"
+      },
+      "added": false,
+      "at": "2026-10-24T11:38:01+00:00"
+    },
+    {
+      "episode": "https://api.spreaker.com/episode/69564203",
+      "episodeTitle": "What's Going On With Ubisoft?",
+      "podcast": "game-informer-show",
+      "game": "TR-49",
+      "test": true,
+      "igdb": {
+        "id": 378335,
+        "name": "TR-49",
+        "slug": "tr-49",
+        "released": "2026",
+        "coverImageId": "coaw0w"
+      },
+      "added": false,
+      "at": "2026-10-24T11:38:07+00:00"
+    },
+    {
+      "episode": "23-10-2023",
+      "episodeTitle": "S01E01 - Un Super Mario, des super marioles, une super Marion !",
+      "podcast": "origami",
+      "game": "Endless Dungeon",
+      "test": true,
+      "igdb": {
+        "id": 109970,
+        "name": "Endless Dungeon",
+        "slug": "endless-dungeon",
+        "released": "2023",
+        "coverImageId": "co2mgb"
+      },
+      "added": false,
+      "at": "2026-10-24T11:43:35+00:00"
+    },
+    {
+      "episode": "23-10-2023",
+      "episodeTitle": "S01E01 - Un Super Mario, des super marioles, une super Marion !",
+      "podcast": "origami",
+      "game": "Lords of the Fallen",
+      "test": true,
+      "igdb": {
+        "id": 21593,
+        "name": "Lords of the Fallen",
+        "slug": "lords-of-the-fallen--2",
+        "released": "2023",
+        "coverImageId": "co72u9"
+      },
+      "added": false,
+      "at": "2026-10-24T11:43:43+00:00"
+    },
+    {
+      "episode": "23-10-2023",
+      "episodeTitle": "S01E01 - Un Super Mario, des super marioles, une super Marion !",
+      "podcast": "origami",
+      "game": "Sonic Superstars",
+      "test": true,
+      "igdb": {
+        "id": 252478,
+        "name": "Sonic Superstars",
+        "slug": "sonic-superstars",
+        "released": "2023",
+        "coverImageId": "cobbw4"
+      },
+      "added": false,
+      "at": "2026-10-24T11:45:58+00:00"
+    },
+    {
+      "episode": "23-10-2023",
+      "episodeTitle": "S01E01 - Un Super Mario, des super marioles, une super Marion !",
+      "podcast": "origami",
+      "game": "Super Mario Wonder,",
+      "test": true,
+      "igdb": {
+        "id": 254339,
+        "name": "Super Mario Bros. Wonder",
+        "slug": "super-mario-bros-wonder",
+        "released": "2023",
+        "coverImageId": "co6nnl"
+      },
+      "added": true,
+      "at": "2026-10-24T11:45:41+00:00",
+      "start": 4715
+    },
+    {
+      "episode": "04-02-2024",
+      "episodeTitle": "S01E11 - Suicide Squad est-il vraiment super villain ? (+ critique de Persona 3 Reload)",
+      "podcast": "origami",
+      "game": "Persona 3 Reload",
+      "test": true,
+      "igdb": {
+        "id": 252647,
+        "name": "Persona 3 Reload",
+        "slug": "persona-3-reload",
+        "released": "2024",
+        "coverImageId": "coc4jz"
+      },
+      "added": false,
+      "at": "2026-10-24T11:43:14+00:00"
+    },
+    {
+      "episode": "04-02-2024",
+      "episodeTitle": "S01E11 - Suicide Squad est-il vraiment super villain ? (+ critique de Persona 3 Reload)",
+      "podcast": "origami",
+      "game": "Suicide Squad: Kill the Justice League",
+      "test": true,
+      "igdb": {
+        "id": 136627,
+        "name": "Suicide Squad: Kill the Justice League",
+        "slug": "suicide-squad-kill-the-justice-league",
+        "released": "2024",
+        "coverImageId": "co40fu"
+      },
+      "added": false,
+      "at": "2026-10-24T11:43:12+00:00"
+    },
+    {
+      "episode": "67dd95b3fa98b54cfac6cb6f",
+      "episodeTitle": "S02E25 - Assassin's Creed Shadows",
+      "podcast": "origami",
+      "game": "33 Immortals",
+      "test": true,
+      "igdb": {
+        "id": 252828,
+        "name": "33 Immortals",
+        "slug": "33-immortals",
+        "released": "2026",
+        "coverImageId": "co6lxk"
+      },
+      "added": false,
+      "at": "2026-10-24T11:58:33+00:00"
+    },
+    {
+      "episode": "67dd95b3fa98b54cfac6cb6f",
+      "episodeTitle": "S02E25 - Assassin's Creed Shadows",
+      "podcast": "origami",
+      "game": "Assassin’s Creed Shadows",
+      "test": true,
+      "igdb": {
+        "id": 300976,
+        "name": "Assassin's Creed Shadows",
+        "slug": "assassins-creed-shadows",
+        "released": "2025",
+        "coverImageId": "co87cu"
+      },
+      "added": false,
+      "at": "2026-10-24T11:58:36+00:00"
+    },
+    {
+      "episode": "67dd95b3fa98b54cfac6cb6f",
+      "episodeTitle": "S02E25 - Assassin's Creed Shadows",
+      "podcast": "origami",
+      "game": "Metal Bringer",
+      "test": true,
+      "igdb": {
+        "id": 265327,
+        "name": "Metal Bringer",
+        "slug": "metal-bringer--1",
+        "released": "2025",
+        "coverImageId": "co73uu"
+      },
+      "added": false,
+      "at": "2026-10-24T11:58:30+00:00"
+    },
+    {
+      "episode": "67f921e9b51a627d15be1151",
+      "episodeTitle": "S02E28 - Blue Prince, Endless Legend II et Triple III Initiative",
+      "podcast": "origami",
+      "game": "Blue Prince",
+      "test": true,
+      "igdb": {
+        "id": 149657,
+        "name": "Blue Prince",
+        "slug": "blue-prince",
+        "released": "2025",
+        "coverImageId": "co9mzd"
+      },
+      "added": false,
+      "at": "2026-10-24T12:00:05+00:00"
+    },
+    {
+      "episode": "67f921e9b51a627d15be1151",
+      "episodeTitle": "S02E28 - Blue Prince, Endless Legend II et Triple III Initiative",
+      "podcast": "origami",
+      "game": "Endless Legend II",
+      "test": true,
+      "igdb": {
+        "id": 329138,
+        "name": "Endless Legend 2",
+        "slug": "endless-legend-2",
+        "released": "2026",
+        "coverImageId": "cobtqi"
+      },
+      "added": false,
+      "at": "2026-10-24T12:00:17+00:00"
+    },
+    {
+      "episode": "68f25cf3888566c5b08c8716",
+      "episodeTitle": "S03E05 - BALLxPIT, Eclipsium et Anno 117",
+      "podcast": "origami",
+      "game": "Anno 117: Pax Romana",
+      "test": true,
+      "igdb": {
+        "id": 305246,
+        "name": "Anno 117: Pax Romana",
+        "slug": "anno-117-pax-romana",
+        "released": "2025",
+        "coverImageId": "coaufz"
+      },
+      "added": false,
+      "at": "2026-10-24T11:58:57+00:00"
+    },
+    {
+      "episode": "68f25cf3888566c5b08c8716",
+      "episodeTitle": "S03E05 - BALLxPIT, Eclipsium et Anno 117",
+      "podcast": "origami",
+      "game": "BALLxPIT",
+      "test": true,
+      "igdb": {
+        "id": 346035,
+        "name": "Ball x Pit",
+        "slug": "ball-x-pit",
+        "released": "2025",
+        "coverImageId": "co9xid"
+      },
+      "added": false,
+      "at": "2026-10-24T11:59:38+00:00"
+    },
+    {
+      "episode": "68f25cf3888566c5b08c8716",
+      "episodeTitle": "S03E05 - BALLxPIT, Eclipsium et Anno 117",
+      "podcast": "origami",
+      "game": "Eclipsium",
+      "test": true,
+      "igdb": {
+        "id": 250722,
+        "name": "Eclipsium",
+        "slug": "eclipsium",
+        "released": "2025",
+        "coverImageId": "coag01"
+      },
+      "added": false,
+      "at": "2026-10-24T11:59:02+00:00"
+    },
+    {
+      "episode": "68fb9c09deee754a72bd8971",
+      "episodeTitle": "S03E06 - Keeper, Vampire Bloodlines 2 et Ninja Gaiden 4",
+      "podcast": "origami",
+      "game": "Keeper",
+      "test": true,
+      "igdb": {
+        "id": 348217,
+        "name": "Keeper",
+        "slug": "keeper--5",
+        "released": "2025",
+        "coverImageId": "coapv6"
+      },
+      "added": false,
+      "at": "2026-10-24T12:15:05+00:00"
+    },
+    {
+      "episode": "68fb9c09deee754a72bd8971",
+      "episodeTitle": "S03E06 - Keeper, Vampire Bloodlines 2 et Ninja Gaiden 4",
+      "podcast": "origami",
+      "game": "Ninja Gaiden 4",
+      "test": true,
+      "igdb": {
+        "id": 329130,
+        "name": "Ninja Gaiden 4",
+        "slug": "ninja-gaiden-4",
+        "released": "2025",
+        "coverImageId": "co9b3p"
+      },
+      "added": false,
+      "at": "2026-10-24T12:15:10+00:00"
+    },
+    {
+      "episode": "68fb9c09deee754a72bd8971",
+      "episodeTitle": "S03E06 - Keeper, Vampire Bloodlines 2 et Ninja Gaiden 4",
+      "podcast": "origami",
+      "game": "Vampire: The Masquerade – Bloodlines 2",
+      "test": true,
+      "igdb": {
+        "id": 116530,
+        "name": "Vampire: The Masquerade - Bloodlines 2",
+        "slug": "vampire-the-masquerade-bloodlines-2",
+        "released": "2025",
+        "coverImageId": "coab6r"
+      },
+      "added": false,
+      "at": "2026-10-24T12:15:07+00:00"
+    },
+    {
+      "episode": "6a47c2442d7a15a97998e993",
+      "episodeTitle": "S03E39 - Deer & Boy, Momento et 868-BACK",
+      "podcast": "origami",
+      "game": "868-BACK",
+      "test": true,
+      "igdb": {
+        "id": 323173,
+        "name": "868-Back",
+        "slug": "868-back",
+        "released": "2026",
+        "coverImageId": "co9zce"
+      },
+      "added": false,
+      "at": "2026-10-24T12:08:36+00:00"
+    },
+    {
+      "episode": "6a47c2442d7a15a97998e993",
+      "episodeTitle": "S03E39 - Deer & Boy, Momento et 868-BACK",
+      "podcast": "origami",
+      "game": "Deer & Boy",
+      "test": true,
+      "igdb": {
+        "id": 202138,
+        "name": "Deer & Boy",
+        "slug": "deer-and-boy",
+        "released": "2026",
+        "coverImageId": "cocbxh"
+      },
+      "added": true,
+      "at": "2026-10-24T12:09:06+00:00",
+      "start": 3643
+    },
+    {
+      "episode": "6a47c2442d7a15a97998e993",
+      "episodeTitle": "S03E39 - Deer & Boy, Momento et 868-BACK",
+      "podcast": "origami",
+      "game": "Mizzurna Falls",
+      "test": true,
+      "igdb": {
+        "id": 43839,
+        "name": "Mizzurna Falls",
+        "slug": "mizzurna-falls",
+        "released": "1998",
+        "coverImageId": "co2h4g"
+      },
+      "added": false,
+      "at": "2026-10-24T12:08:33+00:00"
+    },
+    {
+      "episode": "6a47c2442d7a15a97998e993",
+      "episodeTitle": "S03E39 - Deer & Boy, Momento et 868-BACK",
+      "podcast": "origami",
+      "game": "Momento",
+      "test": true,
+      "igdb": {
+        "id": 279123,
+        "name": "Momento",
+        "slug": "momento",
+        "released": "2026",
+        "coverImageId": "coc5a8"
+      },
+      "added": false,
+      "at": "2026-10-24T12:08:38+00:00"
+    },
+    {
+      "episode": "6aad59c97aa361c6129085e6",
+      "episodeTitle": "S04E01 - Orbitals, Onimusha : Way of the Sword et Marvel's Wolverine",
+      "podcast": "origami",
+      "game": "Marvel's Wolverine",
+      "test": true,
+      "igdb": {
+        "id": 168667,
+        "name": "Marvel's Wolverine",
+        "slug": "marvels-wolverine",
+        "released": "2026",
+        "coverImageId": "cob5mk"
+      },
+      "added": false,
+      "at": "2026-10-24T12:24:22+00:00"
+    },
+    {
+      "episode": "6aad59c97aa361c6129085e6",
+      "episodeTitle": "S04E01 - Orbitals, Onimusha : Way of the Sword et Marvel's Wolverine",
+      "podcast": "origami",
+      "game": "Onimusha: Way of the Sword",
+      "test": true,
+      "igdb": {
+        "id": 325602,
+        "name": "Onimusha: Way of the Sword",
+        "slug": "onimusha-way-of-the-sword",
+        "released": "2026",
+        "coverImageId": "cocdt3"
+      },
+      "added": false,
+      "at": "2026-10-24T12:24:22+00:00"
+    },
+    {
+      "episode": "6aad59c97aa361c6129085e6",
+      "episodeTitle": "S04E01 - Orbitals, Onimusha : Way of the Sword et Marvel's Wolverine",
+      "podcast": "origami",
+      "game": "Orbitals",
+      "test": true,
+      "igdb": {
+        "id": 381237,
+        "name": "Orbitals",
+        "slug": "orbitals--1",
+        "released": "2026",
+        "coverImageId": "coc9r6"
+      },
+      "added": false,
+      "at": "2026-10-24T12:24:22+00:00"
     },
     {
       "episode": "632d71d3acd4d10012d046bd",
@@ -3183,6 +4176,224 @@
       "at": "2026-10-22T19:38:13+00:00"
     },
     {
+      "episode": "645d5e6ad83e7600110b12c7",
+      "episodeTitle": "Episode 127: What We've Been Playing (Jedi Survivor, Redfall, Xenoblade Chronicles 3 DLC)",
+      "podcast": "the-back-page",
+      "game": "Redfall",
+      "test": true,
+      "igdb": {
+        "id": 152247,
+        "name": "Redfall",
+        "slug": "redfall",
+        "released": "2023",
+        "coverImageId": "co52ds"
+      },
+      "added": false,
+      "at": "2026-10-24T12:26:27+00:00"
+    },
+    {
+      "episode": "645d5e6ad83e7600110b12c7",
+      "episodeTitle": "Episode 127: What We've Been Playing (Jedi Survivor, Redfall, Xenoblade Chronicles 3 DLC)",
+      "podcast": "the-back-page",
+      "game": "Star Wars Jedi Survivor",
+      "test": true,
+      "igdb": {
+        "id": 201156,
+        "name": "Star Wars Jedi: Survivor",
+        "slug": "star-wars-jedi-survivor",
+        "released": "2023",
+        "coverImageId": "co5uzk"
+      },
+      "added": false,
+      "at": "2026-10-24T12:26:25+00:00"
+    },
+    {
+      "episode": "645d5e6ad83e7600110b12c7",
+      "episodeTitle": "Episode 127: What We've Been Playing (Jedi Survivor, Redfall, Xenoblade Chronicles 3 DLC)",
+      "podcast": "the-back-page",
+      "game": "Xenoblade Chronicles 3: Future Redeemed",
+      "test": true,
+      "igdb": {
+        "id": 236669,
+        "name": "Xenoblade Chronicles 3: Future Redeemed",
+        "slug": "xenoblade-chronicles-3-future-redeemed",
+        "released": "2023",
+        "coverImageId": "cob8r0"
+      },
+      "added": false,
+      "at": "2026-10-24T12:26:29+00:00"
+    },
+    {
+      "episode": "Buzzsprout-10168531",
+      "episodeTitle": "Episode 67: Two Giant Men Play Elden Ring",
+      "podcast": "the-back-page",
+      "game": "Elden Ring",
+      "test": true,
+      "igdb": {
+        "id": 119133,
+        "name": "Elden Ring",
+        "slug": "elden-ring",
+        "released": "2022",
+        "coverImageId": "co4jni"
+      },
+      "added": false,
+      "at": "2026-10-24T12:24:32+00:00"
+    },
+    {
+      "episode": "Buzzsprout-10352726",
+      "episodeTitle": "Episode 71: The Best Kirby Games",
+      "podcast": "the-back-page",
+      "game": "Kirby and the Forgotten Land",
+      "test": true,
+      "igdb": {
+        "id": 172427,
+        "name": "Kirby and the Forgotten Land",
+        "slug": "kirby-and-the-forgotten-land",
+        "released": "2022",
+        "coverImageId": "co3vlw"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:42+00:00"
+    },
+    {
+      "episode": "628e91a116e8570012461076",
+      "episodeTitle": "Episode 79: What We've Been Playing (May 2022)",
+      "podcast": "the-back-page",
+      "game": "Eternal Threads",
+      "test": true,
+      "igdb": {
+        "id": 116400,
+        "name": "Eternal Threads",
+        "slug": "eternal-threads",
+        "released": "2022",
+        "coverImageId": "co4rjg"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:14+00:00"
+    },
+    {
+      "episode": "628e91a116e8570012461076",
+      "episodeTitle": "Episode 79: What We've Been Playing (May 2022)",
+      "podcast": "the-back-page",
+      "game": "Gears Tactics",
+      "test": true,
+      "igdb": {
+        "id": 103291,
+        "name": "Gears Tactics",
+        "slug": "gears-tactics",
+        "released": "2020",
+        "coverImageId": "co1uzk"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:12+00:00"
+    },
+    {
+      "episode": "628e91a116e8570012461076",
+      "episodeTitle": "Episode 79: What We've Been Playing (May 2022)",
+      "podcast": "the-back-page",
+      "game": "Little Cities",
+      "test": true,
+      "igdb": {
+        "id": 201654,
+        "name": "Little Cities",
+        "slug": "little-cities",
+        "released": "2022",
+        "coverImageId": "co4rg2"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:20+00:00"
+    },
+    {
+      "episode": "628e91a116e8570012461076",
+      "episodeTitle": "Episode 79: What We've Been Playing (May 2022)",
+      "podcast": "the-back-page",
+      "game": "The Centennial Case: A Shijima Story",
+      "test": true,
+      "igdb": {
+        "id": 191420,
+        "name": "The Centennial Case: A Shijima Story",
+        "slug": "the-centennial-case-a-shijima-story",
+        "released": "2022",
+        "coverImageId": "co4hct"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:06+00:00"
+    },
+    {
+      "episode": "628e91a116e8570012461076",
+      "episodeTitle": "Episode 79: What We've Been Playing (May 2022)",
+      "podcast": "the-back-page",
+      "game": "Trek to Yomi",
+      "test": true,
+      "igdb": {
+        "id": 152203,
+        "name": "Trek to Yomi",
+        "slug": "trek-to-yomi",
+        "released": "2022",
+        "coverImageId": "co4p88"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:16+00:00"
+    },
+    {
+      "episode": "628e91a116e8570012461076",
+      "episodeTitle": "Episode 79: What We've Been Playing (May 2022)",
+      "podcast": "the-back-page",
+      "game": "Tunic",
+      "test": true,
+      "igdb": {
+        "id": 23733,
+        "name": "Tunic",
+        "slug": "tunic",
+        "released": "2022",
+        "coverImageId": "td1t8kb33gyo8mvhl2pc"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:20+00:00"
+    },
+    {
+      "episode": "628e91a116e8570012461076",
+      "episodeTitle": "Episode 79: What We've Been Playing (May 2022)",
+      "podcast": "the-back-page",
+      "game": "Vampire: The Masquerade – Swansong",
+      "test": true,
+      "igdb": {
+        "id": 124992,
+        "name": "Vampire: The Masquerade - Swansong",
+        "slug": "vampire-the-masquerade-swansong",
+        "released": "2022",
+        "coverImageId": "co4oqa"
+      },
+      "added": false,
+      "at": "2026-10-24T12:25:18+00:00"
+    },
+    {
+      "episode": "6870250afe0897380ea4ae67",
+      "episodeTitle": "The Art of Video Game Character Customisation (with Jen Simpkins)",
+      "podcast": "the-back-page",
+      "game": "Animal Crossing: Wild World",
+      "test": false,
+      "igdb": null,
+      "added": false,
+      "at": "2026-10-24T12:27:34+00:00"
+    },
+    {
+      "episode": "67142c42e3d9082a5a0e1f7e",
+      "episodeTitle": "Two Giant Men Play Perfect Dark (Patreon Sampler)",
+      "podcast": "the-back-page",
+      "game": "Perfect Dark",
+      "test": true,
+      "igdb": {
+        "id": 1463,
+        "name": "Perfect Dark",
+        "slug": "perfect-dark",
+        "released": "2000",
+        "coverImageId": "co77xv"
+      },
+      "added": false,
+      "at": "2026-10-24T12:26:54+00:00"
+    },
+    {
       "episode": "d7629258-b596-4105-affd-4d3b3aad9932",
       "episodeTitle": "Baldur's Gate 3 is Just Unbelievably Good",
       "podcast": "the-besties",
@@ -5021,6 +6232,278 @@
       "igdb": null,
       "added": false,
       "at": "2026-10-22T19:46:50+00:00"
+    },
+    {
+      "episode": "6a4697b404fac73b244ef740",
+      "episodeTitle": "ZQSD #113 - Canicule Game Fest",
+      "podcast": "zqsd",
+      "game": "Crushed in Time",
+      "test": true,
+      "igdb": {
+        "id": 362089,
+        "name": "Crushed in Time",
+        "slug": "crushed-in-time",
+        "released": "2026",
+        "coverImageId": "coafof"
+      },
+      "added": false,
+      "at": "2026-10-24T12:29:04+00:00"
+    },
+    {
+      "episode": "6a4697b404fac73b244ef740",
+      "episodeTitle": "ZQSD #113 - Canicule Game Fest",
+      "podcast": "zqsd",
+      "game": "Phonopolis",
+      "test": true,
+      "igdb": {
+        "id": 204549,
+        "name": "Phonopolis",
+        "slug": "phonopolis",
+        "released": "2026",
+        "coverImageId": "co4uyw"
+      },
+      "added": false,
+      "at": "2026-10-24T12:29:06+00:00"
+    },
+    {
+      "episode": "6a4697b404fac73b244ef740",
+      "episodeTitle": "ZQSD #113 - Canicule Game Fest",
+      "podcast": "zqsd",
+      "game": "Saros",
+      "test": true,
+      "igdb": {
+        "id": 331215,
+        "name": "Saros",
+        "slug": "saros",
+        "released": "2026",
+        "coverImageId": "coajye"
+      },
+      "added": false,
+      "at": "2026-10-24T12:29:08+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/235577687-zqsd-1-33-le-jardinopodcast.mp3",
+      "episodeTitle": "ZQSD #33",
+      "podcast": "zqsd",
+      "game": "A Good Gardener",
+      "test": true,
+      "igdb": {
+        "id": 59423,
+        "name": "A Good Gardener",
+        "slug": "a-good-gardener",
+        "released": "2015",
+        "coverImageId": "co91k0"
+      },
+      "added": false,
+      "at": "2026-10-24T12:27:59+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/235577687-zqsd-1-33-le-jardinopodcast.mp3",
+      "episodeTitle": "ZQSD #33",
+      "podcast": "zqsd",
+      "game": "Fallout 4",
+      "test": true,
+      "igdb": {
+        "id": 9630,
+        "name": "Fallout 4",
+        "slug": "fallout-4",
+        "released": "2015",
+        "coverImageId": "co1yc6"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:04+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/235577687-zqsd-1-33-le-jardinopodcast.mp3",
+      "episodeTitle": "ZQSD #33",
+      "podcast": "zqsd",
+      "game": "Jotun",
+      "test": true,
+      "igdb": {
+        "id": 14147,
+        "name": "Jotun: Valhalla Edition",
+        "slug": "jotun-valhalla-edition--2",
+        "released": "2015",
+        "coverImageId": "co8lpe"
+      },
+      "added": false,
+      "at": "2026-10-24T12:27:54+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/235577687-zqsd-1-33-le-jardinopodcast.mp3",
+      "episodeTitle": "ZQSD #33",
+      "podcast": "zqsd",
+      "game": "The Flame in the Flood",
+      "test": true,
+      "igdb": {
+        "id": 9732,
+        "name": "The Flame in the Flood",
+        "slug": "the-flame-in-the-flood",
+        "released": "2016",
+        "coverImageId": "co23e4"
+      },
+      "added": false,
+      "at": "2026-10-24T12:27:51+00:00"
+    },
+    {
+      "episode": "https://feeds.soundcloud.com/stream/902109703-zqsd-1-76-microsoft-hades-et-crusader-kings-iii.mp3",
+      "episodeTitle": "ZQSD #77",
+      "podcast": "zqsd",
+      "game": "Crusader Kings III",
+      "test": true,
+      "igdb": {
+        "id": 124954,
+        "name": "Crusader Kings III",
+        "slug": "crusader-kings-iii",
+        "released": "2020",
+        "coverImageId": "cocleh"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:21+00:00"
+    },
+    {
+      "episode": "https://feeds.soundcloud.com/stream/902109703-zqsd-1-76-microsoft-hades-et-crusader-kings-iii.mp3",
+      "episodeTitle": "ZQSD #77",
+      "podcast": "zqsd",
+      "game": "Hades",
+      "test": true,
+      "igdb": {
+        "id": 113112,
+        "name": "Hades",
+        "slug": "hades--1",
+        "released": "2020",
+        "coverImageId": "cob9kr"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:18+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/1317014146-zqsd-1-85-cest-pas-stray-prepare-tout-ca.mp3",
+      "episodeTitle": "ZQSD #85 - Un podcast pas Stray Stray préparé",
+      "podcast": "zqsd",
+      "game": "As Dusk Falls",
+      "test": true,
+      "igdb": {
+        "id": 135995,
+        "name": "As Dusk Falls",
+        "slug": "as-dusk-falls",
+        "released": "2022",
+        "coverImageId": "co4v2t"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:44+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/1317014146-zqsd-1-85-cest-pas-stray-prepare-tout-ca.mp3",
+      "episodeTitle": "ZQSD #85 - Un podcast pas Stray Stray préparé",
+      "podcast": "zqsd",
+      "game": "Last Call BBS",
+      "test": true,
+      "igdb": {
+        "id": 205064,
+        "name": "Last Call BBS",
+        "slug": "last-call-bbs",
+        "released": "2022",
+        "coverImageId": "co4vll"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:32+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/1317014146-zqsd-1-85-cest-pas-stray-prepare-tout-ca.mp3",
+      "episodeTitle": "ZQSD #85 - Un podcast pas Stray Stray préparé",
+      "podcast": "zqsd",
+      "game": "Madison",
+      "test": true,
+      "igdb": {
+        "id": 164243,
+        "name": "Madison",
+        "slug": "madison",
+        "released": "2022",
+        "coverImageId": "co3mr1"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:34+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/1317014146-zqsd-1-85-cest-pas-stray-prepare-tout-ca.mp3",
+      "episodeTitle": "ZQSD #85 - Un podcast pas Stray Stray préparé",
+      "podcast": "zqsd",
+      "game": "Sniper Elite 5",
+      "test": true,
+      "igdb": {
+        "id": 116238,
+        "name": "Sniper Elite 5",
+        "slug": "sniper-elite-5",
+        "released": "2022",
+        "coverImageId": "co4ehj"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:45+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/1317014146-zqsd-1-85-cest-pas-stray-prepare-tout-ca.mp3",
+      "episodeTitle": "ZQSD #85 - Un podcast pas Stray Stray préparé",
+      "podcast": "zqsd",
+      "game": "Stray",
+      "test": true,
+      "igdb": {
+        "id": 110248,
+        "name": "Stray",
+        "slug": "stray",
+        "released": "2022",
+        "coverImageId": "co4tt2"
+      },
+      "added": false,
+      "at": "2026-10-24T12:28:29+00:00"
+    },
+    {
+      "episode": "http://feeds.soundcloud.com/stream/1771420701-zqsd-1-zqsdeux-28-citizen-sleeper-rencontre-avec-guillaume-singelin-et-eric-holweck.mp3",
+      "episodeTitle": "ZQSDeux #28 - Citizen Sleeper avec Guillaume Singelin et Eric Holweck",
+      "podcast": "zqsd",
+      "game": "Citizen Sleeper",
+      "test": true,
+      "igdb": {
+        "id": 152271,
+        "name": "Citizen Sleeper",
+        "slug": "citizen-sleeper",
+        "released": "2022",
+        "coverImageId": "co4zl5"
+      },
+      "added": false,
+      "at": "2026-10-24T12:30:08+00:00"
+    },
+    {
+      "episode": "6a4e47ab1c8f5a97d853759e",
+      "episodeTitle": "ZQSDeux #59 - Starfox et Rhythm Paradise Groove réenchantent la Switch 2",
+      "podcast": "zqsd",
+      "game": "Rhythm Paradise Groove",
+      "test": true,
+      "igdb": {
+        "id": 337031,
+        "name": "Rhythm Heaven Groove",
+        "slug": "rhythm-heaven-groove",
+        "released": "2026",
+        "coverImageId": "cobwkn"
+      },
+      "added": false,
+      "at": "2026-10-24T12:31:30+00:00"
+    },
+    {
+      "episode": "6a4e47ab1c8f5a97d853759e",
+      "episodeTitle": "ZQSDeux #59 - Starfox et Rhythm Paradise Groove réenchantent la Switch 2",
+      "podcast": "zqsd",
+      "game": "Star Fox 64",
+      "test": true,
+      "igdb": {
+        "id": 2591,
+        "name": "Star Fox 64",
+        "slug": "star-fox-64",
+        "released": "1997",
+        "coverImageId": "cob8pu"
+      },
+      "added": false,
+      "at": "2026-10-24T12:30:15+00:00"
     }
   ]
 }

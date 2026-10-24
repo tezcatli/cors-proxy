@@ -415,3 +415,79 @@ def test_the_name_searchs_match_is_offered_beside_the_free_text_results(llm_on):
     assert {c['id'] for c in offered['candidates']} == {9, 42}
     by_id.assert_not_called()
     assert entry.igdb_id == 42
+
+
+# ── What IGDB's search misses ─────────────────────────────────────────────────
+
+_TS_2025_03 = 1_742_700_000          # 2025-03-23: a window from 2024-03 to 2025-09
+
+
+def _release(igdb_id, name, *days, other_names=(), game_type=0):
+    """One `igdb.releases` row: its release dates as ISO days."""
+    import datetime as dt
+    return {'id': igdb_id, 'name': name, 'gameType': game_type, 'otherNames': list(other_names),
+            'dates': sorted(int(dt.datetime.fromisoformat(d).replace(tzinfo=dt.timezone.utc).timestamp())
+                            for d in days)}
+
+
+def _offered(post):
+    return {c['id']: c for c in json.loads(post.call_args_list[-1].kwargs['json']['messages'][1]['content'])['candidates']}
+
+
+def test_a_game_the_name_is_an_other_name_of_is_offered(llm_on):
+    # IGDB's search doesn't look at other names: « Rhythm Paradise Groove » is
+    # only one of Rhythm Heaven Groove's.
+    groove = _release(337031, 'Rhythm Heaven Groove', '2025-03-01', other_names=['Rhythm Paradise Groove'])
+    with _llm_answers({'titles': []}, {'id': 337031}) as post, \
+         patch('resolver.search_games', return_value=[]), \
+         patch('resolver.fetch_by_name', return_value=None), \
+         patch('resolver.alternative_name_ids', return_value={337031}), \
+         patch('resolver.releases', return_value=[groove]), \
+         patch('resolver.fetch_by_id', return_value=IgdbResult(337031, 'Rhythm Heaven Groove', 'rhg', {}, False)):
+        entry = _resolve(_question('Rhythm Paradise Groove', _TS_2025_03))
+    assert _offered(post)[337031]['released'] == '2025-03-01'
+    assert entry.igdb_id == 337031
+
+
+def test_an_old_namesake_stays_out(llm_on):
+    # « Jump » on a 2009 show isn't David Bowie's 1994 CD-ROM, which bears the
+    # name as an other name.
+    with _llm_answers({'titles': []}) as post, \
+         patch('resolver.search_games', return_value=[]), \
+         patch('resolver.fetch_by_name', return_value=None), \
+         patch('resolver.alternative_name_ids', return_value={77}), \
+         patch('resolver.releases', return_value=[_release(77, 'Jump: The David Bowie CD-ROM', '1994-05-01')]):
+        entry = _resolve(_question('Jump', _TS_2025_03))
+    assert post.call_count == 1                 # the titles only: no candidate to judge
+    assert entry.igdb_id is None
+
+
+def test_the_catalogs_answer_for_a_name_spelled_alike_is_offered(llm_on, monkeypatch):
+    # The Besties' « Ball x Pit » is resolved; « BALLxPIT » is the same name.
+    from models import PodcastGame, Resolution
+    key = 'name|the-besties|2025|ball-x-pit'
+    monkeypatch.setattr(state, 'resolutions', {key: Resolution(key, 346035, False, '2999-01-01T00:00:00', 'llm')})
+    monkeypatch.setattr(state, 'game_index', {'ball-x-pit': PodcastGame('ball-x-pit', 'Ball x Pit')})
+    with _llm_answers({'titles': []}, {'id': 346035}) as post, \
+         patch('resolver.search_games', return_value=[]), \
+         patch('resolver.fetch_by_name', return_value=None), \
+         patch('resolver.releases', side_effect=lambda ids: [_release(i, 'Ball x Pit', '2025-01-15') for i in ids]), \
+         patch('resolver.fetch_by_id', return_value=IgdbResult(346035, 'Ball x Pit', 'ball-x-pit', {}, False)):
+        entry = _resolve(_question('BALLxPIT', _TS_2025_03))
+    assert set(_offered(post)) == {346035}
+    assert entry.igdb_id == 346035
+
+
+def test_a_candidate_is_dated_by_its_first_release_early_access_included(llm_on):
+    # IGDB's first_release_date is 33 Immortals' 1.0, a year after the episode;
+    # its early access came out five days before. The rest is the search's.
+    hit = {**_hit(252828, '33 Immortals', '2026', ['33I']), 'releaseDate': '2026-06-10'}
+    with _llm_answers({'titles': []}, {'id': 252828}) as post, \
+         patch('resolver.search_games', return_value=[hit]), \
+         patch('resolver.fetch_by_name', return_value=None), \
+         patch('resolver.releases', return_value=[_release(252828, '33 Immortals', '2025-03-18', '2026-06-10',
+                                                           other_names=['many', 'more', 'names'])]), \
+         patch('resolver.fetch_by_id', return_value=IgdbResult(252828, '33 Immortals', '33-immortals', {}, False)):
+        _resolve(_question('33 Immortals', _TS_2025_03))
+    assert _offered(post)[252828] == {'id': 252828, 'name': '33 Immortals', 'otherNames': ['33I'],
+                                      'released': '2025-03-18'}

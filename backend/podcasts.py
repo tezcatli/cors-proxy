@@ -97,6 +97,37 @@ PODCASTS: list[Podcast] = [
         palmares_titles=(r'\bbattle bracket\b|\brequired reading list\b|\bgoty spectacular\b'
                          r'|\bthe besties game of the year is\b'),
     ),
+    # Review-focused shows, read like Triple Click and The Besties: their titles
+    # don't follow a convention a parser could rely on.
+    Podcast(
+        id='origami',
+        label='ORI',
+        name="ORIGAMI L'Hebdo",
+        feed_url=_feed_url('origami',
+                           'https://feeds.acast.com/public/shows/6608022384d38a00165d5a80'),
+        extractor=lambda _title: [],
+        language='fr',
+        games_by_llm=True,
+    ),
+    Podcast(
+        id='zqsd',
+        label='ZQSD',
+        name='ZQSD',
+        feed_url=_feed_url('zqsd', 'https://feeds.acast.com/public/shows/674c3de3f6ece089ea1b129c'),
+        extractor=lambda _title: [],
+        language='fr',
+        games_by_llm=True,
+    ),
+    Podcast(
+        id='game-informer-show',
+        label='GI',
+        name='The Game Informer Show',
+        feed_url=_feed_url('game-informer-show',
+                           'https://www.spreaker.com/show/6639255/episodes/feed'),
+        extractor=lambda _title: [],
+        language='en',
+        games_by_llm=True,
+    ),
 ]
 
 # Quick lookups by id.

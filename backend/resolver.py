@@ -27,6 +27,7 @@ import threading
 import time
 
 import catalog_state as state
+import critiques
 import feeds
 import hltb
 import ingest
@@ -35,7 +36,8 @@ import metacritic
 import worker
 from config import Config
 from db import utcnow
-from igdb import IgdbResult, fetch_by_id, fetch_by_name, fetch_time_to_beat, search_games
+from igdb import (IgdbResult, alternative_name_ids, fetch_by_id, fetch_by_name, fetch_time_to_beat,
+                  releases, search_games)
 from models import IgdbEntry, IgdbGame, Resolution
 from podcasts import PODCAST_BY_ID
 from questions import Question, question_for
@@ -173,7 +175,40 @@ def gather_evidence(question: Question, titles: list[str]) -> tuple[dict[int, di
         candidates.setdefault(ranked.id, {
             'id': ranked.id, 'name': ranked.name, 'otherNames': [],
             'released': (ranked.data or {}).get('releaseDate')})
-    return candidates, ranked
+    return _unsearched(question, candidates), ranked
+
+
+def _unsearched(question: Question, candidates: dict[int, dict]) -> dict[int, dict]:
+    """`candidates` with what IGDB's search misses: the games the catalog already
+    gave a name spelled alike (`critiques.same`: « BALLxPIT » is the Besties'
+    « Ball x Pit ») and those bearing the name as an other name — each only when
+    one of its releases is in the question's window, so no old namesake comes in
+    (« Jump », 2009, isn't David Bowie's 1994 CD-ROM); without a window, a
+    retrospective's, the other names alone. And every candidate's first release,
+    early access included. The rest of the evidence is the search's: the LLM is
+    shown what it was, plus what was missing (the lab's resolution v9)."""
+    window = question.window
+    named = alternative_name_ids(question.query)
+    known = (_answered_alike(question.name) - set(candidates) - named) if window else set()
+    out = dict(candidates)
+    for game in releases(set(candidates) | named | known):
+        dates = game['dates']
+        released = (datetime.datetime.fromtimestamp(dates[0], datetime.timezone.utc).date().isoformat()
+                    if dates else None)
+        if game['id'] in candidates:
+            out[game['id']] = {**candidates[game['id']], 'released': released}
+        elif game['gameType'] != 5 and (window is None or any(window[0] <= d <= window[1] for d in dates)):
+            out[game['id']] = {'id': game['id'], 'name': game['name'], 'otherNames': game['otherNames'],
+                               'released': released}
+    return out
+
+
+def _answered_alike(name: str) -> set[int]:
+    """The games the catalog's answers give a name spelled like `name`."""
+    with state.lock:
+        answered = [(state.game_index.get(key.rsplit('|', 1)[-1]), r.igdb_id)
+                    for key, r in state.resolutions.items() if key.startswith('name|') and r.igdb_id]
+    return {i for game, i in answered if game and critiques.same(game.name, name)}
 
 
 def _store_failure(resolution: Resolution, previous: Resolution | None, error: str) -> None:

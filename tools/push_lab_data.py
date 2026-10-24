@@ -5,8 +5,11 @@ container, fed on stdin by push-lab-data.sh:
     python - load /tmp/lab-pack.json.gz
 
 Nothing prod made is lost: a transcript prod has is kept, a reading or a game
-prod has is kept (its game data may be enriched); only the answers to the
-catalog's questions are replaced — the lab's chosen resolution, measured against
+prod has is kept (its game data may be enriched), and so is every answer prod
+gave a game — an answered question is never asked again, and asking it again
+in the lab is a new draw of the LLM, not a better answer (Overwatch, right in
+prod, went to the 2016 one when the lab asked). Only the questions prod left
+without a game take the lab's answer — its chosen resolution, measured against
 the curator's judgments — never a curator's pin or search (other keys). Restart
 the backend afterwards: it loads the cache at start.
 """
@@ -35,17 +38,27 @@ def load(path: str) -> None:
             [(g, m, s, d, c, now) for g, m, s, d, c in pack['transcripts']])
         conn.executemany('INSERT OR IGNORE INTO llm_cache (key, task, version, input, answer, model, created_at) '
                          'VALUES (?,?,?,?,?,?,?)', pack['readings'])
+        # An episode prod failed on and the pack reads is done: its failure would
+        # stay (the ingestion never tries a done episode again) and be counted.
+        read = [(json.loads(r[3])['guid'],) for r in pack['readings']]
+        conn.executemany('UPDATE transcripts SET attempts = 0, last_error = NULL, retry_at = NULL '
+                         'WHERE guid = ? AND segments IS NOT NULL', read)
         conn.executemany('INSERT OR IGNORE INTO igdb_games (igdb_id, igdb_slug, name, data, fetched_at, enriched) '
                          'VALUES (?,?,?,?,?,?)', pack['games'])
         answers = [a for a in pack['answers'] if a[0].startswith('name|')]
-        conn.executemany('INSERT OR REPLACE INTO resolutions (question, igdb_id, is_child, decided_at, method) '
-                         'VALUES (?,?,?,?,?)', answers)
+        filled = count("SELECT COUNT(*) FROM resolutions WHERE igdb_id IS NOT NULL")
+        conn.executemany('INSERT INTO resolutions (question, igdb_id, is_child, decided_at, method) '
+                         'VALUES (?,?,?,?,?) ON CONFLICT(question) DO UPDATE SET igdb_id = excluded.igdb_id, '
+                         'is_child = excluded.is_child, decided_at = excluded.decided_at, method = excluded.method, '
+                         'attempts = 0, last_error = NULL, retry_at = NULL '
+                         'WHERE resolutions.igdb_id IS NULL', answers)
+        filled = count("SELECT COUNT(*) FROM resolutions WHERE igdb_id IS NOT NULL") - filled
         after = {'transcripts': count('SELECT COUNT(*) FROM transcripts WHERE segments IS NOT NULL'),
                  'readings': count("SELECT COUNT(*) FROM llm_cache WHERE task = 'transcript'"),
                  'games': count('SELECT COUNT(*) FROM igdb_games')}
     for k in before:
         print(f'{k}: {before[k]} → {after[k]} (+{after[k] - before[k]})')
-    print(f'answers: {len(answers)} stored')
+    print(f'answers: {len(answers)} in the pack, {filled} more questions with a game')
 
 
 if __name__ == '__main__':

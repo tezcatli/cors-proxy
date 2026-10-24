@@ -42,5 +42,16 @@ def test_each_set_is_scored_on_its_own():
     eps = [{'set': 'référence', 'cases': [{'outcome': 'juste'}]},
            {'set': 'contrôle', 'cases': [{'outcome': 'faux'}, {'outcome': 'juste'}]}]
     s = by_set(eps)
-    assert list(s) == ['contrôle 2', 'contrôle', 'référence']
+    assert list(s) == ['nouvelles émissions', 'contrôle 2', 'contrôle', 'référence']
     assert (s['référence']['met'], s['contrôle']['met'], s['contrôle']['faux']) == (True, False, 1)
+
+
+def test_a_start_a_minute_off_the_curators_is_wrong():
+    from measure import outcomes, summary
+    rows = [{'game': 'A', 'shown': {'start': 100, 'igdb': None}, 'spec': {'test': True, 'igdb': 'absent', 'start': 400}},
+            {'game': 'B', 'shown': {'start': 100, 'igdb': None}, 'spec': {'test': True, 'igdb': 'absent', 'start': 130}},
+            {'game': 'C', 'shown': {'start': 100, 'igdb': None}, 'spec': {'test': True, 'igdb': 'absent'}}]
+    cases = outcomes(rows)
+    assert [c['début'] for c in cases] == ['faux', 'juste', None]
+    s = summary(cases)
+    assert (s['début faux'], s['débuts jugés'], s['met']) == (1, 2, False)

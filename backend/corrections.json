@@ -29,6 +29,10 @@
       "display_name": "Indiana Jones et le Cercle Ancien"
     },
     {
+      "podcast_name": "L’Amerzone",
+      "display_name": "L’Amerzone"
+    },
+    {
       "podcast_name": "l'ordre des géants",
       "display_name": "Indiana Jones et le Cercle Ancien: L'Ordre des Géants"
     },
@@ -54,13 +58,26 @@
       "search_name": "LittleBigPlanet"
     },
     {
-      "podcast_name": "L’Amerzone",
-      "display_name": "L’Amerzone"
-    },
-    {
       "podcast_name": "Mario et Luigi",
       "search_name": "Mario & Luigi: Paper Jam",
       "hint_date": "2015-12-17"
+    },
+    {
+      "podcast_name": "Mario et Luigi : L’Épopée fraternelle",
+      "igdb_id": 306137
+    },
+    {
+      "podcast_name": "Monster Boy et le Royaume Maudit",
+      "igdb_id": 25599
+    },
+    {
+      "podcast_name": "Octodad",
+      "igdb_id": 4788,
+      "podcast_id": "zqsd"
+    },
+    {
+      "podcast_name": "Onimusha 2 Remastered",
+      "igdb_id": 330283
     },
     {
       "podcast_name": "Pokémon Ecarlate et Violet",
@@ -95,6 +112,11 @@
       "display_name": "Rhythm Paradise Megamix"
     },
     {
+      "podcast_name": "Shroom & Gloom",
+      "igdb_id": 344797,
+      "podcast_id": "zqsd"
+    },
+    {
       "podcast_name": "Soldats inconnus",
       "display_name": "Soldats inconnus : Mémoires de la Grande Guerre"
     },
@@ -107,8 +129,16 @@
       "igdb_id": 3160
     },
     {
+      "podcast_name": "Symphonia",
+      "igdb_id": 263008
+    },
+    {
       "podcast_name": "The 7th Guest Remake",
       "igdb_id": 394668
+    },
+    {
+      "podcast_name": "The First Berzeker: Khazan",
+      "igdb_id": 279643
     },
     {
       "podcast_name": "vendran las aves",

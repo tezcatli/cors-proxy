@@ -5,8 +5,8 @@ loads it, `push-lab-data.sh` ships it):
 - transcripts: every one of the snapshot (dev transcribed the history);
 - readings: the lab's readings by the current transcript prompt;
 - answers: one per question the ported catalog asks (`catalog_state.asked`,
-  curators' pins and searches left alone): the lab's chosen resolution (fiches
-  v1) when it decided it, else the answer the snapshot has — each brought onto
+  curators' pins and searches left alone): the lab's chosen resolution
+  (`fiches.DEFAULT`) when it decided it, else the answer the snapshot has — each brought onto
   its catalog page by the app's rule (`igdb._resolve_canonical`: a remaster
   joins its game, a remake stands apart), with that game's data (unenriched:
   prod's sweep scrapes Metacritic and HowLongToBeat as usual).
@@ -46,7 +46,7 @@ def main() -> None:
     for key, q in state.asked().items():
         if q.kind != 'name':
             continue
-        decided, fiche = fiches.lookup(q.name, SimpleNamespace(podcast_id=q.podcast_id, pub_ts=q.dated), 1)
+        decided, fiche = fiches.lookup(q.name, SimpleNamespace(podcast_id=q.podcast_id, pub_ts=q.dated))
         if decided:
             chosen[key] = (fiche and fiche['id'], 'llm')
         elif (r := state.resolutions.get(key)) is not None and r.igdb_id:

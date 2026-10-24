@@ -19802,6 +19802,6224 @@
      "start": 2888
     }
    ]
+  },
+  {
+   "guid": "122788",
+   "podcast": "game-informer-show",
+   "title": "Elden Ring: Shadow of the Erdtree Preview And SGF Predictions | GI Show",
+   "pub_ts": 1717697118,
+   "proposed": [
+    {
+     "name": "Elden Ring: Shadow of the Erdtree",
+     "timestamp": "00:06:24",
+     "seconds": 384
+    },
+    {
+     "name": "Hauntii",
+     "timestamp": "00:29:18",
+     "seconds": 1758
+    },
+    {
+     "name": "Wild Bastards",
+     "timestamp": "00:40:30",
+     "seconds": 2430
+    },
+    {
+     "name": "Nine Sols",
+     "timestamp": "00:49:54",
+     "seconds": 2994
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Welcome and Guest Introductions",
+     "game": null,
+     "kind": null,
+     "start": 19,
+     "end": 332,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Magazine Subscription",
+     "game": null,
+     "kind": null,
+     "start": 332,
+     "end": 384,
+     "ad": true
+    },
+    {
+     "title": "Elden Ring: Shadow of the Erdtree Preview",
+     "game": "Elden Ring: Shadow of the Erdtree",
+     "kind": "impressions",
+     "start": 384,
+     "end": 1758,
+     "ad": false
+    },
+    {
+     "title": "Hauntii Review",
+     "game": "Hauntii",
+     "kind": "review",
+     "start": 1758,
+     "end": 2430,
+     "ad": false
+    },
+    {
+     "title": "Wild Bastards Early Impressions",
+     "game": "Wild Bastards",
+     "kind": "impressions",
+     "start": 2430,
+     "end": 2994,
+     "ad": false
+    },
+    {
+     "title": "Nine Sols Early Impressions",
+     "game": "Nine Sols",
+     "kind": "impressions",
+     "start": 2994,
+     "end": 3564,
+     "ad": false
+    },
+    {
+     "title": "Summer Game Fest Predictions",
+     "game": null,
+     "kind": null,
+     "start": 3564,
+     "end": 5653,
+     "ad": false
+    },
+    {
+     "title": "Closing and Housekeeping",
+     "game": null,
+     "kind": null,
+     "start": 5653,
+     "end": 5769,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Elden Ring: Shadow of the Erdtree": 119133,
+    "Hauntii": 217008,
+    "Wild Bastards": 278602,
+    "Nine Sols": 194821
+   },
+   "tests": [
+    "Elden Ring: Shadow of the Erdtree",
+    "Hauntii",
+    "Nine Sols",
+    "Wild Bastards"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Elden Ring: Shadow of the Erdtree",
+     "start": 384
+    },
+    {
+     "game": "Hauntii",
+     "start": 1758
+    },
+    {
+     "game": "Nine Sols",
+     "start": 2994
+    },
+    {
+     "game": "Wild Bastards",
+     "start": 2430
+    }
+   ]
+  },
+  {
+   "guid": "https://api.spreaker.com/episode/66980601",
+   "podcast": "game-informer-show",
+   "title": "Tony Hawk's Pro Skater 3 + 4 Review And Xbox Layoffs (Feat. Ash Parrish)",
+   "pub_ts": 1752549474,
+   "proposed": [
+    {
+     "name": "Tony Hawk's Pro Skater 3 + 4",
+     "timestamp": "00:09:18",
+     "seconds": 558
+    },
+    {
+     "name": "Peak",
+     "timestamp": "01:11:03",
+     "seconds": 4263
+    },
+    {
+     "name": "Missile Command Delta",
+     "timestamp": "01:18:08",
+     "seconds": 4688
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Introduction",
+     "timestamp": "00:00",
+     "seconds": 0,
+     "game": null
+    },
+    {
+     "title": "Showing Off The Print Magazine",
+     "timestamp": "05:57",
+     "seconds": 357,
+     "game": null
+    },
+    {
+     "title": "Tony Hawk's Pro Skater 3 + 4 Review",
+     "timestamp": "10:01",
+     "seconds": 601,
+     "game": null
+    },
+    {
+     "title": "Introducing Ash Parrish",
+     "timestamp": "36:12",
+     "seconds": 2172,
+     "game": null
+    },
+    {
+     "title": "Xbox Layoffs and Studio Closures",
+     "timestamp": "38:35",
+     "seconds": 2315,
+     "game": null
+    },
+    {
+     "title": "Summer Game's Done Quick (SGDQ)",
+     "timestamp": "01:02:33",
+     "seconds": 3753,
+     "game": null
+    },
+    {
+     "title": "Peak",
+     "timestamp": "01:11:04",
+     "seconds": 4264,
+     "game": null
+    },
+    {
+     "title": "Missile Command Delta",
+     "timestamp": "01:18:03",
+     "seconds": 4683,
+     "game": null
+    },
+    {
+     "title": "Outro",
+     "timestamp": "01:28:53",
+     "seconds": 5333,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Introduction and Host Banter",
+     "game": null,
+     "kind": null,
+     "start": 20,
+     "end": 359,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Magazine Subscription",
+     "game": null,
+     "kind": null,
+     "start": 359,
+     "end": 558,
+     "ad": true
+    },
+    {
+     "title": "Tony Hawk's Pro Skater 3 + 4 Review",
+     "game": "Tony Hawk's Pro Skater 3 + 4",
+     "kind": "review",
+     "start": 558,
+     "end": 2172,
+     "ad": false
+    },
+    {
+     "title": "Ash Parrish Joins the Show",
+     "game": null,
+     "kind": null,
+     "start": 2172,
+     "end": 2297,
+     "ad": false
+    },
+    {
+     "title": "Xbox Layoffs and Studio Closures",
+     "game": null,
+     "kind": null,
+     "start": 2297,
+     "end": 3752,
+     "ad": false
+    },
+    {
+     "title": "Summer Games Done Quick",
+     "game": null,
+     "kind": null,
+     "start": 3752,
+     "end": 4263,
+     "ad": false
+    },
+    {
+     "title": "Peak Impressions",
+     "game": "Peak",
+     "kind": "impressions",
+     "start": 4263,
+     "end": 4688,
+     "ad": false
+    },
+    {
+     "title": "Missile Command Delta Impressions",
+     "game": "Missile Command Delta",
+     "kind": "impressions",
+     "start": 4688,
+     "end": 5337,
+     "ad": false
+    },
+    {
+     "title": "Outro",
+     "game": null,
+     "kind": null,
+     "start": 5337,
+     "end": 5573,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Tony Hawk's Pro Skater 3 + 4": 334243,
+    "Peak": 349524,
+    "Missile Command Delta": 335829
+   },
+   "tests": [
+    "Missile Command Delta",
+    "Peak",
+    "Tony Hawk's Pro Skater 3 + 4"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Missile Command Delta",
+     "start": 4688
+    },
+    {
+     "game": "Peak",
+     "start": 4263
+    },
+    {
+     "game": "Tony Hawk's Pro Skater 3 + 4",
+     "start": 558
+    }
+   ]
+  },
+  {
+   "guid": "122502",
+   "podcast": "game-informer-show",
+   "title": "Stellar Blade, Sand Land, Monkey Ball, Crabs, And Knuckles | GI Show",
+   "pub_ts": 1714059000,
+   "proposed": [
+    {
+     "name": "Stellar Blade",
+     "timestamp": "00:03:01",
+     "seconds": 181
+    },
+    {
+     "name": "Sand Land",
+     "timestamp": "00:25:35",
+     "seconds": 1535
+    },
+    {
+     "name": "Super Monkey Ball Banana Rumble",
+     "timestamp": "00:39:57",
+     "seconds": 2397
+    },
+    {
+     "name": "Another Crab's Treasure",
+     "timestamp": "00:50:25",
+     "seconds": 3025
+    },
+    {
+     "name": "TopSpin 2K25",
+     "timestamp": "01:23:19",
+     "seconds": 4999
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Stellar Blade Review",
+     "timestamp": "00:02:57",
+     "seconds": 177,
+     "game": null
+    },
+    {
+     "title": "Sand Land Review",
+     "timestamp": "00:25:13",
+     "seconds": 1513,
+     "game": null
+    },
+    {
+     "title": "Super Monkey Ball Banana Rumble Preview",
+     "timestamp": "00:38:59",
+     "seconds": 2339,
+     "game": null
+    },
+    {
+     "title": "Another Crab's Treasure Review",
+     "timestamp": "00:49:23",
+     "seconds": 2963,
+     "game": null
+    },
+    {
+     "title": "Knuckles TV Series Review",
+     "timestamp": "01:01:23",
+     "seconds": 3683,
+     "game": null
+    },
+    {
+     "title": "TopSpin 2K25",
+     "timestamp": "01:21:43",
+     "seconds": 4903,
+     "game": null
+    },
+    {
+     "title": "Housekeeping",
+     "timestamp": "01:27:00",
+     "seconds": 5220,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Introduction and Magazine Subscription",
+     "game": null,
+     "kind": null,
+     "start": 19,
+     "end": 181,
+     "ad": false
+    },
+    {
+     "title": "Stellar Blade Review",
+     "game": "Stellar Blade",
+     "kind": "review",
+     "start": 181,
+     "end": 1535,
+     "ad": false
+    },
+    {
+     "title": "Sand Land Review",
+     "game": "Sand Land",
+     "kind": "review",
+     "start": 1535,
+     "end": 2397,
+     "ad": false
+    },
+    {
+     "title": "Super Monkey Ball Banana Rumble Preview",
+     "game": "Super Monkey Ball Banana Rumble",
+     "kind": "impressions",
+     "start": 2397,
+     "end": 3025,
+     "ad": false
+    },
+    {
+     "title": "Another Crab's Treasure Review",
+     "game": "Another Crab's Treasure",
+     "kind": "review",
+     "start": 3025,
+     "end": 3755,
+     "ad": false
+    },
+    {
+     "title": "Knuckles TV Series Review",
+     "game": null,
+     "kind": null,
+     "start": 3755,
+     "end": 4999,
+     "ad": false
+    },
+    {
+     "title": "TopSpin 2K25 Preview",
+     "game": "TopSpin 2K25",
+     "kind": "impressions",
+     "start": 4999,
+     "end": 5313,
+     "ad": false
+    },
+    {
+     "title": "Housekeeping and Outro",
+     "game": null,
+     "kind": null,
+     "start": 5313,
+     "end": 5553,
+     "ad": false
+    },
+    {
+     "title": "Post-Show Chat About Deserts in Games",
+     "game": null,
+     "kind": null,
+     "start": 5553,
+     "end": 5640,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Stellar Blade": 117170,
+    "Sand Land": 252480,
+    "Super Monkey Ball Banana Rumble": 287854,
+    "Another Crab's Treasure": 200903,
+    "TopSpin 2K25": 282959
+   },
+   "tests": [
+    "Another Crab's Treasure",
+    "Sand Land",
+    "Stellar Blade",
+    "Super Monkey Ball Banana Rumble",
+    "TopSpin 2K25"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Another Crab's Treasure",
+     "start": 3025
+    },
+    {
+     "game": "Sand Land",
+     "start": 1535
+    },
+    {
+     "game": "Stellar Blade",
+     "start": 181
+    },
+    {
+     "game": "Super Monkey Ball Banana Rumble",
+     "start": 2397
+    },
+    {
+     "game": "TopSpin 2K25",
+     "start": 4999
+    }
+   ]
+  },
+  {
+   "guid": "https://api.spreaker.com/episode/69564203",
+   "podcast": "game-informer-show",
+   "title": "What's Going On With Ubisoft?",
+   "pub_ts": 1769204826,
+   "proposed": [
+    {
+     "name": "MIO: Memories In Orbit",
+     "timestamp": "00:05:07",
+     "seconds": 307
+    },
+    {
+     "name": "TR-49",
+     "timestamp": "00:18:15",
+     "seconds": 1095
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Intro",
+     "timestamp": "00:00",
+     "seconds": 0,
+     "game": null
+    },
+    {
+     "title": "MIO: Memories In Orbit",
+     "timestamp": "05:08",
+     "seconds": 308,
+     "game": null
+    },
+    {
+     "title": "TR-49",
+     "timestamp": "18:11",
+     "seconds": 1091,
+     "game": null
+    },
+    {
+     "title": "Ubisoft discussion",
+     "timestamp": "39:39",
+     "seconds": 2379,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Introduction",
+     "game": null,
+     "kind": null,
+     "start": 8,
+     "end": 163,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Magazine Promotion",
+     "game": null,
+     "kind": null,
+     "start": 163,
+     "end": 307,
+     "ad": true
+    },
+    {
+     "title": "MIO: Memories in Orbit",
+     "game": "MIO: Memories In Orbit",
+     "kind": "impressions",
+     "start": 307,
+     "end": 1095,
+     "ad": false
+    },
+    {
+     "title": "TR-49",
+     "game": "TR-49",
+     "kind": "impressions",
+     "start": 1095,
+     "end": 2379,
+     "ad": false
+    },
+    {
+     "title": "Ubisoft’s Restructuring, Cancellations, and Future",
+     "game": null,
+     "kind": null,
+     "start": 2379,
+     "end": 4880,
+     "ad": false
+    },
+    {
+     "title": "Outro",
+     "game": null,
+     "kind": null,
+     "start": 4880,
+     "end": 4991,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "MIO: Memories In Orbit": 306141,
+    "TR-49": 378335
+   },
+   "tests": [
+    "MIO: Memories In Orbit",
+    "TR-49"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "MIO: Memories In Orbit",
+     "start": 307
+    },
+    {
+     "game": "TR-49",
+     "start": 1095
+    }
+   ]
+  },
+  {
+   "guid": "https://api.spreaker.com/episode/67372021",
+   "podcast": "game-informer-show",
+   "title": "Most Anticipated Upcoming Games In 2025, Plus PHANTOM BLADE ZERO, And Roger Impressions",
+   "pub_ts": 1755208791,
+   "proposed": [
+    {
+     "name": "Phantom Blade Zero",
+     "timestamp": "00:05:16",
+     "seconds": 316
+    },
+    {
+     "name": "And Roger",
+     "timestamp": "00:30:54",
+     "seconds": 1854
+    },
+    {
+     "name": "Lost Soul Aside",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Final Fantasy Tactics: The Ivalice Chronicles",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Trails in the Sky 1st Chapter",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Slay the Spire 2",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Mortal Kombat: Legacy Kollection",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Blood Thief",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Mina the Hollower",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Octopath Traveler 0",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Metroid Prime 4",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Jurassic World Evolution 3",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Demonschool",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "2XKO",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Ninja Gaiden 4",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Pokémon Legends: Z-A",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "BALL x PIT",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Ghost of Yōtei",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Sonic Racing: CrossWorlds",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "DAEMON X MACHINA: Titanic Scion",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Witchbrook",
+     "timestamp": null,
+     "seconds": 0
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Intro",
+     "timestamp": "00:00",
+     "seconds": 0,
+     "game": null
+    },
+    {
+     "title": "Phantom Blade Zero / Wesley and Hayes' adventures",
+     "timestamp": "05:16",
+     "seconds": 316,
+     "game": null
+    },
+    {
+     "title": "And Roger",
+     "timestamp": "31:07",
+     "seconds": 1867,
+     "game": null
+    },
+    {
+     "title": "Our 2025 backlog",
+     "timestamp": "43:33",
+     "seconds": 2613,
+     "game": null
+    },
+    {
+     "title": "Most anticipated games yet to arrive in 2025",
+     "timestamp": "52:20",
+     "seconds": 3140,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Introductions and Show Preview",
+     "game": null,
+     "kind": null,
+     "start": 10,
+     "end": 214,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Magazine Subscription",
+     "game": null,
+     "kind": null,
+     "start": 214,
+     "end": 316,
+     "ad": true
+    },
+    {
+     "title": "Phantom Blade Zero and the China Trip",
+     "game": "Phantom Blade Zero",
+     "kind": "impressions",
+     "start": 316,
+     "end": 1854,
+     "ad": false
+    },
+    {
+     "title": "And Roger",
+     "game": "And Roger",
+     "kind": "review",
+     "start": 1854,
+     "end": 2617,
+     "ad": false
+    },
+    {
+     "title": "Backlog Check-In",
+     "game": null,
+     "kind": null,
+     "start": 2617,
+     "end": 3155,
+     "ad": false
+    },
+    {
+     "title": "Lost Soul Aside",
+     "game": "Lost Soul Aside",
+     "kind": "ranking",
+     "start": 3155,
+     "end": 3322,
+     "ad": false
+    },
+    {
+     "title": "Final Fantasy Tactics: The Ivalice Chronicles",
+     "game": "Final Fantasy Tactics: The Ivalice Chronicles",
+     "kind": "ranking",
+     "start": 3322,
+     "end": 3470,
+     "ad": false
+    },
+    {
+     "title": "Trails in the Sky 1st Chapter",
+     "game": "Trails in the Sky 1st Chapter",
+     "kind": "ranking",
+     "start": 3470,
+     "end": 3667,
+     "ad": false
+    },
+    {
+     "title": "Slay the Spire 2",
+     "game": "Slay the Spire 2",
+     "kind": "ranking",
+     "start": 3667,
+     "end": 3797,
+     "ad": false
+    },
+    {
+     "title": "Mortal Kombat: Legacy Kollection",
+     "game": "Mortal Kombat: Legacy Kollection",
+     "kind": "ranking",
+     "start": 3797,
+     "end": 3946,
+     "ad": false
+    },
+    {
+     "title": "Blood Thief",
+     "game": "Blood Thief",
+     "kind": "ranking",
+     "start": 3946,
+     "end": 4126,
+     "ad": false
+    },
+    {
+     "title": "Mina the Hollower",
+     "game": "Mina the Hollower",
+     "kind": "ranking",
+     "start": 4126,
+     "end": 4307,
+     "ad": false
+    },
+    {
+     "title": "Octopath Traveler 0",
+     "game": "Octopath Traveler 0",
+     "kind": "ranking",
+     "start": 4307,
+     "end": 4664,
+     "ad": false
+    },
+    {
+     "title": "Metroid Prime 4",
+     "game": "Metroid Prime 4",
+     "kind": "ranking",
+     "start": 4664,
+     "end": 4752,
+     "ad": false
+    },
+    {
+     "title": "Jurassic World Evolution 3",
+     "game": "Jurassic World Evolution 3",
+     "kind": "ranking",
+     "start": 4752,
+     "end": 4862,
+     "ad": false
+    },
+    {
+     "title": "Demonschool",
+     "game": "Demonschool",
+     "kind": "ranking",
+     "start": 4862,
+     "end": 4977,
+     "ad": false
+    },
+    {
+     "title": "2XKO",
+     "game": "2XKO",
+     "kind": "ranking",
+     "start": 4977,
+     "end": 5333,
+     "ad": false
+    },
+    {
+     "title": "Other Anticipated Games",
+     "game": null,
+     "kind": null,
+     "start": 5333,
+     "end": 5367,
+     "ad": false
+    },
+    {
+     "title": "Ninja Gaiden 4",
+     "game": "Ninja Gaiden 4",
+     "kind": "ranking",
+     "start": 5367,
+     "end": 5518,
+     "ad": false
+    },
+    {
+     "title": "Other Ninja Gaiden Games",
+     "game": null,
+     "kind": null,
+     "start": 5518,
+     "end": 5541,
+     "ad": false
+    },
+    {
+     "title": "Pokémon Legends: Z-A",
+     "game": "Pokémon Legends: Z-A",
+     "kind": "ranking",
+     "start": 5541,
+     "end": 5588,
+     "ad": false
+    },
+    {
+     "title": "BALL x PIT",
+     "game": "BALL x PIT",
+     "kind": "ranking",
+     "start": 5588,
+     "end": 5627,
+     "ad": false
+    },
+    {
+     "title": "Ghost of Yōtei",
+     "game": "Ghost of Yōtei",
+     "kind": "ranking",
+     "start": 5627,
+     "end": 5757,
+     "ad": false
+    },
+    {
+     "title": "Sonic Racing: CrossWorlds",
+     "game": "Sonic Racing: CrossWorlds",
+     "kind": "impressions",
+     "start": 5757,
+     "end": 5787,
+     "ad": false
+    },
+    {
+     "title": "DAEMON X MACHINA: Titanic Scion",
+     "game": "DAEMON X MACHINA: Titanic Scion",
+     "kind": "ranking",
+     "start": 5787,
+     "end": 5970,
+     "ad": false
+    },
+    {
+     "title": "Other Anticipated Games",
+     "game": null,
+     "kind": null,
+     "start": 5970,
+     "end": 6030,
+     "ad": false
+    },
+    {
+     "title": "Witchbrook",
+     "game": "Witchbrook",
+     "kind": "ranking",
+     "start": 6030,
+     "end": 6132,
+     "ad": false
+    },
+    {
+     "title": "Closing and Housekeeping",
+     "game": null,
+     "kind": null,
+     "start": 6132,
+     "end": 6317,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Phantom Blade Zero": 250618,
+    "And Roger": 324784,
+    "Lost Soul Aside": null,
+    "Final Fantasy Tactics: The Ivalice Chronicles": null,
+    "Trails in the Sky 1st Chapter": null,
+    "Slay the Spire 2": null,
+    "Mortal Kombat: Legacy Kollection": null,
+    "Blood Thief": null,
+    "Mina the Hollower": null,
+    "Octopath Traveler 0": null,
+    "Metroid Prime 4": null,
+    "Jurassic World Evolution 3": null,
+    "Demonschool": null,
+    "2XKO": null,
+    "Ninja Gaiden 4": null,
+    "Pokémon Legends: Z-A": null,
+    "BALL x PIT": null,
+    "Ghost of Yōtei": null,
+    "Sonic Racing: CrossWorlds": null,
+    "DAEMON X MACHINA: Titanic Scion": null,
+    "Witchbrook": null
+   },
+   "tests": [
+    "And Roger",
+    "Phantom Blade Zero"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "And Roger",
+     "start": 1854
+    },
+    {
+     "game": "Phantom Blade Zero",
+     "start": 316
+    }
+   ]
+  },
+  {
+   "guid": "https://api.spreaker.com/episode/68366916",
+   "podcast": "game-informer-show",
+   "title": "Our Favorite Scary Games + The Seance Of Blake Manor",
+   "pub_ts": 1761929820,
+   "proposed": [
+    {
+     "name": "The Seance at Blake Manor",
+     "timestamp": "00:08:16",
+     "seconds": 496
+    },
+    {
+     "name": "P.T.",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Dead Space 2",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Immortality",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Doki Doki Literature Club!",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Silent Hill 2",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Silent Hill f",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Signalis",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "F.E.A.R.",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Visage",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Resident Evil Village",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Inside",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Until Dawn",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "SOMA",
+     "timestamp": null,
+     "seconds": 0
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Halloween Costumes and Episode Intro",
+     "game": null,
+     "kind": null,
+     "start": 8,
+     "end": 404,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Magazine Subscription Promotion",
+     "game": null,
+     "kind": null,
+     "start": 404,
+     "end": 496,
+     "ad": true
+    },
+    {
+     "title": "The Seance at Blake Manor",
+     "game": "The Seance at Blake Manor",
+     "kind": "review",
+     "start": 496,
+     "end": 1585,
+     "ad": false
+    },
+    {
+     "title": "Favorite Horror Games and First Scares",
+     "game": null,
+     "kind": null,
+     "start": 1585,
+     "end": 1623,
+     "ad": false
+    },
+    {
+     "title": "First Resident Evil",
+     "game": "Resident Evil",
+     "kind": "mention",
+     "start": 1623,
+     "end": 1702,
+     "ad": false
+    },
+    {
+     "title": "Jurassic Park on Sega Genesis",
+     "game": "Jurassic Park",
+     "kind": "mention",
+     "start": 1702,
+     "end": 1905,
+     "ad": false
+    },
+    {
+     "title": "Resident Evil 2",
+     "game": "Resident Evil 2",
+     "kind": "mention",
+     "start": 1905,
+     "end": 1993,
+     "ad": false
+    },
+    {
+     "title": "Resident Evil Outbreak Super Replay",
+     "game": "Resident Evil Outbreak",
+     "kind": "mention",
+     "start": 1993,
+     "end": 2031,
+     "ad": false
+    },
+    {
+     "title": "The 7th Guest",
+     "game": "The 7th Guest",
+     "kind": "mention",
+     "start": 2031,
+     "end": 2134,
+     "ad": false
+    },
+    {
+     "title": "Super Mario 64",
+     "game": "Super Mario 64",
+     "kind": "mention",
+     "start": 2134,
+     "end": 2186,
+     "ad": false
+    },
+    {
+     "title": "Majora’s Mask",
+     "game": "The Legend of Zelda: Majora’s Mask",
+     "kind": "mention",
+     "start": 2186,
+     "end": 2224,
+     "ad": false
+    },
+    {
+     "title": "Ocarina of Time",
+     "game": "The Legend of Zelda: Ocarina of Time",
+     "kind": "mention",
+     "start": 2224,
+     "end": 2262,
+     "ad": false
+    },
+    {
+     "title": "Metal Gear Solid",
+     "game": "Metal Gear Solid",
+     "kind": "mention",
+     "start": 2262,
+     "end": 2331,
+     "ad": false
+    },
+    {
+     "title": "Metal Gear Solid 2",
+     "game": "Metal Gear Solid 2: Sons of Liberty",
+     "kind": "mention",
+     "start": 2331,
+     "end": 2394,
+     "ad": false
+    },
+    {
+     "title": "P.T.",
+     "game": "P.T.",
+     "kind": "ranking",
+     "start": 2394,
+     "end": 2663,
+     "ad": false
+    },
+    {
+     "title": "OD and Kojima’s Horror Projects",
+     "game": "OD",
+     "kind": "news",
+     "start": 2663,
+     "end": 2770,
+     "ad": false
+    },
+    {
+     "title": "Dead Space 2",
+     "game": "Dead Space 2",
+     "kind": "ranking",
+     "start": 2770,
+     "end": 3120,
+     "ad": false
+    },
+    {
+     "title": "Immortality",
+     "game": "Immortality",
+     "kind": "ranking",
+     "start": 3120,
+     "end": 3404,
+     "ad": false
+    },
+    {
+     "title": "Doki Doki Literature Club!",
+     "game": "Doki Doki Literature Club!",
+     "kind": "ranking",
+     "start": 3404,
+     "end": 3665,
+     "ad": false
+    },
+    {
+     "title": "Silent Hill 2",
+     "game": "Silent Hill 2",
+     "kind": "ranking",
+     "start": 3665,
+     "end": 3787,
+     "ad": false
+    },
+    {
+     "title": "Silent Hill f",
+     "game": "Silent Hill f",
+     "kind": "impressions",
+     "start": 3787,
+     "end": 3818,
+     "ad": false
+    },
+    {
+     "title": "Signalis",
+     "game": "Signalis",
+     "kind": "ranking",
+     "start": 3818,
+     "end": 3993,
+     "ad": false
+    },
+    {
+     "title": "Lorelei and the Laser Eyes",
+     "game": "Lorelei and the Laser Eyes",
+     "kind": "mention",
+     "start": 3993,
+     "end": 4061,
+     "ad": false
+    },
+    {
+     "title": "F.E.A.R.",
+     "game": "F.E.A.R.",
+     "kind": "ranking",
+     "start": 4061,
+     "end": 4150,
+     "ad": false
+    },
+    {
+     "title": "Visage",
+     "game": "Visage",
+     "kind": "ranking",
+     "start": 4150,
+     "end": 4218,
+     "ad": false
+    },
+    {
+     "title": "Resident Evil Village",
+     "game": "Resident Evil Village",
+     "kind": "ranking",
+     "start": 4218,
+     "end": 4316,
+     "ad": false
+    },
+    {
+     "title": "Inside",
+     "game": "Inside",
+     "kind": "ranking",
+     "start": 4316,
+     "end": 4352,
+     "ad": false
+    },
+    {
+     "title": "Mouthwashing",
+     "game": "Mouthwashing",
+     "kind": "recommendation",
+     "start": 4352,
+     "end": 4361,
+     "ad": false
+    },
+    {
+     "title": "Until Dawn",
+     "game": "Until Dawn",
+     "kind": "ranking",
+     "start": 4361,
+     "end": 4391,
+     "ad": false
+    },
+    {
+     "title": "SOMA",
+     "game": "SOMA",
+     "kind": "ranking",
+     "start": 4391,
+     "end": 4434,
+     "ad": false
+    },
+    {
+     "title": "Other Horror Game Recommendations",
+     "game": null,
+     "kind": null,
+     "start": 4434,
+     "end": 4459,
+     "ad": false
+    },
+    {
+     "title": "Halloween Farewell and Trick-or-Treating",
+     "game": null,
+     "kind": null,
+     "start": 4459,
+     "end": 4639,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Subscription and Charity Promotion",
+     "game": null,
+     "kind": null,
+     "start": 4639,
+     "end": 4669,
+     "ad": true
+    },
+    {
+     "title": "Closing Banter and Outro",
+     "game": null,
+     "kind": null,
+     "start": 4669,
+     "end": 4744,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "The Seance at Blake Manor": null,
+    "P.T.": null,
+    "Dead Space 2": null,
+    "Immortality": null,
+    "Doki Doki Literature Club!": null,
+    "Silent Hill 2": null,
+    "Silent Hill f": null,
+    "Signalis": null,
+    "F.E.A.R.": null,
+    "Visage": null,
+    "Resident Evil Village": null,
+    "Inside": null,
+    "Until Dawn": null,
+    "SOMA": null
+   },
+   "tests": [
+    "The Seance at Blake Manor"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "The Seance at Blake Manor",
+     "start": 496
+    }
+   ]
+  },
+  {
+   "guid": "https://api.spreaker.com/episode/75218968",
+   "podcast": "game-informer-show",
+   "title": "Fire Emblem: Fortune's Weave Review, Plus Control Resonant",
+   "pub_ts": 1789826402,
+   "proposed": [
+    {
+     "name": "Fire Emblem: Fortune's Weave",
+     "timestamp": "00:08:57",
+     "seconds": 537
+    },
+    {
+     "name": "Control Resonant",
+     "timestamp": "00:53:13",
+     "seconds": 3193
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Intro09:03 - Fire Emblem: Fortune's Weave53:13 - Control Resonant1:16:56 - Blizzcon 2026",
+     "timestamp": "00:00",
+     "seconds": 0,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Opening and Staff Banter",
+     "game": null,
+     "kind": null,
+     "start": 7,
+     "end": 495,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Magazine Subscription",
+     "game": null,
+     "kind": null,
+     "start": 495,
+     "end": 537,
+     "ad": true
+    },
+    {
+     "title": "Fire Emblem: Fortune’s Weave Review",
+     "game": "Fire Emblem: Fortune's Weave",
+     "kind": "review",
+     "start": 537,
+     "end": 3193,
+     "ad": false
+    },
+    {
+     "title": "Control Resonant Early Impressions",
+     "game": "Control Resonant",
+     "kind": "impressions",
+     "start": 3193,
+     "end": 4606,
+     "ad": false
+    },
+    {
+     "title": "BlizzCon 2026: World of Warcraft: Forever",
+     "game": "World of Warcraft: Forever",
+     "kind": "news",
+     "start": 4606,
+     "end": 5721,
+     "ad": false
+    },
+    {
+     "title": "Other Blizzard Announcements",
+     "game": null,
+     "kind": null,
+     "start": 5721,
+     "end": 5745,
+     "ad": false
+    },
+    {
+     "title": "Outro",
+     "game": null,
+     "kind": null,
+     "start": 5745,
+     "end": 5798,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Fire Emblem: Fortune's Weave": 366896,
+    "Control Resonant": 225582
+   },
+   "tests": [
+    "Control Resonant",
+    "Fire Emblem: Fortune's Weave"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Control Resonant",
+     "start": 3193
+    },
+    {
+     "game": "Fire Emblem: Fortune's Weave",
+     "start": 537
+    }
+   ]
+  },
+  {
+   "guid": "https://api.spreaker.com/episode/72116864",
+   "podcast": "game-informer-show",
+   "title": "Lego Batman Voice Actor Interview + Yoshi Review",
+   "pub_ts": 1779467960,
+   "proposed": [
+    {
+     "name": "Lego Batman: Legacy of the Dark Knight",
+     "timestamp": "00:03:12",
+     "seconds": 192
+    },
+    {
+     "name": "Yoshi and the Mysterious Book",
+     "timestamp": "00:25:28",
+     "seconds": 1528
+    },
+    {
+     "name": "Thick As Thieves",
+     "timestamp": "00:38:44",
+     "seconds": 2324
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Intro",
+     "timestamp": "00:00",
+     "seconds": 0,
+     "game": null
+    },
+    {
+     "title": "Lego Batman: Legacy of the Dark Knight",
+     "timestamp": "03:11",
+     "seconds": 191,
+     "game": null
+    },
+    {
+     "title": "Yoshi and the Mysterious Book",
+     "timestamp": "25:28",
+     "seconds": 1528,
+     "game": null
+    },
+    {
+     "title": "Thick As Thieves",
+     "timestamp": "38:43",
+     "seconds": 2323,
+     "game": null
+    },
+    {
+     "title": "Shai Matheson Interview",
+     "timestamp": "52:06",
+     "seconds": 3126,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Comic Art Coins and Medals Advertisement",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 40,
+     "ad": true
+    },
+    {
+     "title": "Welcome, Magazine Plug, and Show Introduction",
+     "game": null,
+     "kind": null,
+     "start": 40,
+     "end": 192,
+     "ad": false
+    },
+    {
+     "title": "Lego Batman: Legacy of the Dark Knight Review",
+     "game": "Lego Batman: Legacy of the Dark Knight",
+     "kind": "review",
+     "start": 192,
+     "end": 1528,
+     "ad": false
+    },
+    {
+     "title": "Yoshi and the Mysterious Book Review",
+     "game": "Yoshi and the Mysterious Book",
+     "kind": "review",
+     "start": 1528,
+     "end": 2324,
+     "ad": false
+    },
+    {
+     "title": "Thick As Thieves Impressions",
+     "game": "Thick As Thieves",
+     "kind": "impressions",
+     "start": 2324,
+     "end": 2986,
+     "ad": false
+    },
+    {
+     "title": "Comic Art Coins and Medals Advertisement",
+     "game": null,
+     "kind": null,
+     "start": 2986,
+     "end": 3019,
+     "ad": true
+    },
+    {
+     "title": "Logitech G PRO X2 Superstrike Advertisement",
+     "game": null,
+     "kind": null,
+     "start": 3019,
+     "end": 3126,
+     "ad": true
+    },
+    {
+     "title": "Shai Matheson Interview",
+     "game": null,
+     "kind": null,
+     "start": 3126,
+     "end": 5560,
+     "ad": false
+    },
+    {
+     "title": "Outro and Show Plugs",
+     "game": null,
+     "kind": null,
+     "start": 5560,
+     "end": 5686,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Lego Batman: Legacy of the Dark Knight": 361855,
+    "Yoshi and the Mysterious Book": 366883,
+    "Thick As Thieves": 224511
+   },
+   "tests": [
+    "Lego Batman: Legacy of the Dark Knight",
+    "Thick As Thieves",
+    "Yoshi and the Mysterious Book"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Lego Batman: Legacy of the Dark Knight",
+     "start": 192
+    },
+    {
+     "game": "Thick As Thieves",
+     "start": 2324
+    },
+    {
+     "game": "Yoshi and the Mysterious Book",
+     "start": 1528
+    }
+   ]
+  },
+  {
+   "guid": "https://api.spreaker.com/episode/75946870",
+   "podcast": "game-informer-show",
+   "title": "BioWare's Closure Is A Loss For The Whole Industry w/ Brian Altano",
+   "pub_ts": 1792796651,
+   "proposed": [
+    {
+     "name": "Switch Sports Resort",
+     "timestamp": "00:09:55",
+     "seconds": 595
+    },
+    {
+     "name": "The Village in the Shade",
+     "timestamp": "00:27:40",
+     "seconds": 1660
+    },
+    {
+     "name": "Bloodborne",
+     "timestamp": "00:36:47",
+     "seconds": 2207
+    },
+    {
+     "name": "Tenebris Somnia",
+     "timestamp": "00:44:07",
+     "seconds": 2647
+    },
+    {
+     "name": "The Blood of Dawnwalker",
+     "timestamp": "01:02:03",
+     "seconds": 3723
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Intro 10:05 - Switch Sports Resort 27:40 - Horror Games 1:15:36 - BioWare Is No More",
+     "timestamp": "00:00",
+     "seconds": 0,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Welcome and Introductions",
+     "game": null,
+     "kind": null,
+     "start": 7,
+     "end": 121,
+     "ad": false
+    },
+    {
+     "title": "Brian Altano Launches X Button",
+     "game": null,
+     "kind": null,
+     "start": 121,
+     "end": 491,
+     "ad": false
+    },
+    {
+     "title": "Game Informer Magazine Subscription",
+     "game": null,
+     "kind": null,
+     "start": 491,
+     "end": 595,
+     "ad": true
+    },
+    {
+     "title": "Switch Sports Resort: Thumb Wrestling and Party Play",
+     "game": "Switch Sports Resort",
+     "kind": "review",
+     "start": 595,
+     "end": 1660,
+     "ad": false
+    },
+    {
+     "title": "The Village in the Shade Blends Farming with Horror",
+     "game": "The Village in the Shade",
+     "kind": "impressions",
+     "start": 1660,
+     "end": 2207,
+     "ad": false
+    },
+    {
+     "title": "Bloodborne Is a Gothic Horror Favorite",
+     "game": "Bloodborne",
+     "kind": "review",
+     "start": 2207,
+     "end": 2647,
+     "ad": false
+    },
+    {
+     "title": "Tenebris Somnia's Live-Action Survival Horror",
+     "game": "Tenebris Somnia",
+     "kind": "review",
+     "start": 2647,
+     "end": 3540,
+     "ad": false
+    },
+    {
+     "title": "Signalis Is a Standout Survival Horror Game",
+     "game": "Signalis",
+     "kind": "recommendation",
+     "start": 3540,
+     "end": 3723,
+     "ad": false
+    },
+    {
+     "title": "Blood of the Dawnwalker’s Creepy Vampire World",
+     "game": "The Blood of Dawnwalker",
+     "kind": "impressions",
+     "start": 3723,
+     "end": 4365,
+     "ad": false
+    },
+    {
+     "title": "Horror Games That Reward Investigation",
+     "game": null,
+     "kind": null,
+     "start": 4365,
+     "end": 4402,
+     "ad": false
+    },
+    {
+     "title": "The Incident at Galley House",
+     "game": "The Incident at Galley House",
+     "kind": "recommendation",
+     "start": 4402,
+     "end": 4433,
+     "ad": false
+    },
+    {
+     "title": "Immortality Makes Investigation Compelling",
+     "game": "Immortality",
+     "kind": "recommendation",
+     "start": 4433,
+     "end": 4533,
+     "ad": false
+    },
+    {
+     "title": "EA Closes BioWare Edmonton",
+     "game": null,
+     "kind": null,
+     "start": 4533,
+     "end": 5471,
+     "ad": false
+    },
+    {
+     "title": "The Cancelled Next Mass Effect",
+     "game": "Mass Effect",
+     "kind": "news",
+     "start": 5471,
+     "end": 5672,
+     "ad": false
+    },
+    {
+     "title": "EA Doubles Down on Sports and Shooters",
+     "game": null,
+     "kind": null,
+     "start": 5672,
+     "end": 5754,
+     "ad": false
+    },
+    {
+     "title": "EA Cuts the Skate Team",
+     "game": "skate.",
+     "kind": "news",
+     "start": 5754,
+     "end": 5818,
+     "ad": false
+    },
+    {
+     "title": "Brian Altano's Career Highlight and the Show's Farewell",
+     "game": null,
+     "kind": null,
+     "start": 5818,
+     "end": 6311,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Switch Sports Resort": 405451,
+    "The Village in the Shade": 358537,
+    "Bloodborne": 7334,
+    "Tenebris Somnia": 216692,
+    "The Blood of Dawnwalker": 282831
+   },
+   "tests": [
+    "Bloodborne",
+    "Switch Sports Resort",
+    "Tenebris Somnia",
+    "The Blood of Dawnwalker",
+    "The Village in the Shade"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Bloodborne",
+     "start": 2207
+    },
+    {
+     "game": "Switch Sports Resort",
+     "start": 595
+    },
+    {
+     "game": "Tenebris Somnia",
+     "start": 2647
+    },
+    {
+     "game": "The Blood of Dawnwalker",
+     "start": 3723
+    },
+    {
+     "game": "The Village in the Shade",
+     "start": 1660
+    }
+   ]
+  },
+  {
+   "guid": "04-02-2024",
+   "podcast": "origami",
+   "title": "S01E11 - Suicide Squad est-il vraiment super villain ? (+ critique de Persona 3 Reload)",
+   "pub_ts": 1707033600,
+   "proposed": [
+    {
+     "name": "Suicide Squad: Kill the Justice League",
+     "timestamp": "00:39:42",
+     "seconds": 2382
+    },
+    {
+     "name": "Persona 3 Reload",
+     "timestamp": "01:13:36",
+     "seconds": 4416
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Message de soutien à Origami",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 12,
+     "ad": true
+    },
+    {
+     "title": "Bande-annonce de Carrie",
+     "game": null,
+     "kind": null,
+     "start": 12,
+     "end": 44,
+     "ad": true
+    },
+    {
+     "title": "Introduction et sommaire",
+     "game": null,
+     "kind": null,
+     "start": 44,
+     "end": 447,
+     "ad": false
+    },
+    {
+     "title": "Dragon Ball: Sparking! ZERO dévoile ses combats",
+     "game": "Dragon Ball: Sparking! ZERO",
+     "kind": "news",
+     "start": 447,
+     "end": 477,
+     "ad": false
+    },
+    {
+     "title": "Le remake de Brothers arrive bientôt",
+     "game": "Brothers: A Tale of Two Sons Remake",
+     "kind": "news",
+     "start": 477,
+     "end": 504,
+     "ad": false
+    },
+    {
+     "title": "Annulations et licenciements chez Eidos Montréal",
+     "game": "Deus Ex",
+     "kind": "news",
+     "start": 504,
+     "end": 514,
+     "ad": false
+    },
+    {
+     "title": "Spec Ops: The Line bientôt retiré des boutiques",
+     "game": "Spec Ops: The Line",
+     "kind": "news",
+     "start": 514,
+     "end": 544,
+     "ad": false
+    },
+    {
+     "title": "Celeste 64 débarque gratuitement",
+     "game": "Celeste 64",
+     "kind": "news",
+     "start": 544,
+     "end": 599,
+     "ad": false
+    },
+    {
+     "title": "Fortnite pourrait revenir sur iOS en Europe",
+     "game": "Fortnite",
+     "kind": "news",
+     "start": 599,
+     "end": 634,
+     "ad": false
+    },
+    {
+     "title": "Striking Distance prépare un nouveau jeu",
+     "game": null,
+     "kind": null,
+     "start": 634,
+     "end": 664,
+     "ad": false
+    },
+    {
+     "title": "Skull and Bones : date de sortie et feuille de route",
+     "game": "Skull and Bones",
+     "kind": "news",
+     "start": 664,
+     "end": 721,
+     "ad": false
+    },
+    {
+     "title": "Les prochaines dates de sortie",
+     "game": null,
+     "kind": null,
+     "start": 721,
+     "end": 724,
+     "ad": false
+    },
+    {
+     "title": "Planet Zoo arrive sur consoles",
+     "game": "Planet Zoo",
+     "kind": "news",
+     "start": 724,
+     "end": 754,
+     "ad": false
+    },
+    {
+     "title": "Open Roads est repoussé à mars",
+     "game": "Open Roads",
+     "kind": "news",
+     "start": 754,
+     "end": 782,
+     "ad": false
+    },
+    {
+     "title": "Retour sur l’actualité et la Mardinale",
+     "game": null,
+     "kind": null,
+     "start": 782,
+     "end": 903,
+     "ad": false
+    },
+    {
+     "title": "Présentation du State of Play",
+     "game": null,
+     "kind": null,
+     "start": 903,
+     "end": 963,
+     "ad": false
+    },
+    {
+     "title": "Death Stranding 2 : On the Beach dévoile son gameplay",
+     "game": "Death Stranding 2: On the Beach",
+     "kind": "news",
+     "start": 963,
+     "end": 1396,
+     "ad": false
+    },
+    {
+     "title": "Kojima annonce Physint",
+     "game": "Physint",
+     "kind": "news",
+     "start": 1396,
+     "end": 1477,
+     "ad": false
+    },
+    {
+     "title": "Judas rappelle fortement BioShock",
+     "game": "Judas",
+     "kind": "news",
+     "start": 1477,
+     "end": 1592,
+     "ad": false
+    },
+    {
+     "title": "Bref passage sur Helldivers",
+     "game": "Helldivers 2",
+     "kind": "mention",
+     "start": 1592,
+     "end": 1597,
+     "ad": false
+    },
+    {
+     "title": "Stellar Blade présente son monde et ses combats",
+     "game": "Stellar Blade",
+     "kind": "news",
+     "start": 1597,
+     "end": 1775,
+     "ad": false
+    },
+    {
+     "title": "Sonic X Shadow Generations annoncé pour l’automne",
+     "game": "Sonic X Shadow Generations",
+     "kind": "news",
+     "start": 1775,
+     "end": 1817,
+     "ad": false
+    },
+    {
+     "title": "Le trailer de Silent Hill 2 inquiète les chroniqueurs",
+     "game": "Silent Hill 2",
+     "kind": "news",
+     "start": 1817,
+     "end": 1960,
+     "ad": false
+    },
+    {
+     "title": "The Short Message sort par surprise",
+     "game": "Silent Hill: The Short Message",
+     "kind": "news",
+     "start": 1960,
+     "end": 2019,
+     "ad": false
+    },
+    {
+     "title": "Dragon’s Dogma 2 montre une nouvelle classe",
+     "game": "Dragon's Dogma 2",
+     "kind": "news",
+     "start": 2019,
+     "end": 2110,
+     "ad": false
+    },
+    {
+     "title": "Rise of the Ronin détaille son monde ouvert",
+     "game": "Rise of the Ronin",
+     "kind": "news",
+     "start": 2110,
+     "end": 2234,
+     "ad": false
+    },
+    {
+     "title": "Until Dawn aura droit à un remaster",
+     "game": "Until Dawn",
+     "kind": "news",
+     "start": 2234,
+     "end": 2341,
+     "ad": false
+    },
+    {
+     "title": "Une démo de Final Fantasy VII Rebirth attendue",
+     "game": "Final Fantasy VII Rebirth",
+     "kind": "news",
+     "start": 2341,
+     "end": 2371,
+     "ad": false
+    },
+    {
+     "title": "Transition vers la critique de Suicide Squad",
+     "game": null,
+     "kind": null,
+     "start": 2371,
+     "end": 2382,
+     "ad": false
+    },
+    {
+     "title": "Suicide Squad: Kill the Justice League — critique",
+     "game": "Suicide Squad: Kill the Justice League",
+     "kind": "review",
+     "start": 2382,
+     "end": 3975,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Carrie",
+     "game": null,
+     "kind": null,
+     "start": 3975,
+     "end": 4005,
+     "ad": true
+    },
+    {
+     "title": "Publicité pour le podcast Mystères et légendes",
+     "game": null,
+     "kind": null,
+     "start": 4005,
+     "end": 4033,
+     "ad": true
+    },
+    {
+     "title": "Suicide Squad : bilan et verdict de la critique",
+     "game": "Suicide Squad: Kill the Justice League",
+     "kind": "review",
+     "start": 4033,
+     "end": 4384,
+     "ad": false
+    },
+    {
+     "title": "Transition vers Persona 3 Reload",
+     "game": null,
+     "kind": null,
+     "start": 4384,
+     "end": 4416,
+     "ad": false
+    },
+    {
+     "title": "Persona 3 Reload — critique et retour sur la série",
+     "game": "Persona 3 Reload",
+     "kind": "review",
+     "start": 4416,
+     "end": 6018,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Carrie",
+     "game": null,
+     "kind": null,
+     "start": 6018,
+     "end": 6050,
+     "ad": true
+    },
+    {
+     "title": "Discussion sur Persona 3 Reload",
+     "game": "Persona 3 Reload",
+     "kind": "review",
+     "start": 6050,
+     "end": 6075,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le Podcast Club",
+     "game": null,
+     "kind": null,
+     "start": 6075,
+     "end": 6083,
+     "ad": true
+    },
+    {
+     "title": "Persona 3 Reload : conclusion",
+     "game": "Persona 3 Reload",
+     "kind": "review",
+     "start": 6083,
+     "end": 6237,
+     "ad": false
+    },
+    {
+     "title": "Recommandations culturelles",
+     "game": null,
+     "kind": null,
+     "start": 6237,
+     "end": 7155,
+     "ad": false
+    },
+    {
+     "title": "Au revoir et remerciements",
+     "game": null,
+     "kind": null,
+     "start": 7155,
+     "end": 7250,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le podcast Du jour au lendemain",
+     "game": null,
+     "kind": null,
+     "start": 7250,
+     "end": 7279,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Suicide Squad: Kill the Justice League": 136627,
+    "Persona 3 Reload": 252647
+   },
+   "tests": [
+    "Persona 3 Reload",
+    "Suicide Squad: Kill the Justice League"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Persona 3 Reload",
+     "start": 4416
+    },
+    {
+     "game": "Suicide Squad: Kill the Justice League",
+     "start": 2382
+    }
+   ]
+  },
+  {
+   "guid": "23-10-2023",
+   "podcast": "origami",
+   "title": "S01E01 - Un Super Mario, des super marioles, une super Marion !",
+   "pub_ts": 1698134400,
+   "proposed": [
+    {
+     "name": "Endless Dungeon",
+     "timestamp": "00:40:33",
+     "seconds": 2433
+    },
+    {
+     "name": "Lords of the Fallen",
+     "timestamp": "00:45:39",
+     "seconds": 2739
+    },
+    {
+     "name": "Super Mario Wonder",
+     "timestamp": "01:18:35",
+     "seconds": 4715
+    },
+    {
+     "name": "Sonic Superstars",
+     "timestamp": "01:44:54",
+     "seconds": 6294
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Publicité : Shopify",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 39,
+     "ad": true
+    },
+    {
+     "title": "Bienvenue dans la première Hebdo d’Origami",
+     "game": null,
+     "kind": null,
+     "start": 39,
+     "end": 595,
+     "ad": false
+    },
+    {
+     "title": "L’actualité du jeu vidéo",
+     "game": null,
+     "kind": null,
+     "start": 595,
+     "end": 2433,
+     "ad": false
+    },
+    {
+     "title": "Premières impressions sur Endless Dungeon",
+     "game": "Endless Dungeon",
+     "kind": "impressions",
+     "start": 2433,
+     "end": 2739,
+     "ad": false
+    },
+    {
+     "title": "Avis sur Lords of the Fallen",
+     "game": "Lords of the Fallen",
+     "kind": "review",
+     "start": 2739,
+     "end": 3205,
+     "ad": false
+    },
+    {
+     "title": "Marion Bargiacchi, journaliste jeux vidéo",
+     "game": null,
+     "kind": null,
+     "start": 3205,
+     "end": 4715,
+     "ad": false
+    },
+    {
+     "title": "Super Mario Wonder, une aventure pleine de surprises",
+     "game": "Super Mario Wonder",
+     "kind": "review",
+     "start": 4715,
+     "end": 5165,
+     "ad": false
+    },
+    {
+     "title": "Publicité : Shopify",
+     "game": null,
+     "kind": null,
+     "start": 5165,
+     "end": 5195,
+     "ad": true
+    },
+    {
+     "title": "Publicité : Mystères et Légendes",
+     "game": null,
+     "kind": null,
+     "start": 5195,
+     "end": 5220,
+     "ad": true
+    },
+    {
+     "title": "Super Mario Wonder, une aventure pleine de surprises",
+     "game": "Super Mario Wonder",
+     "kind": "review",
+     "start": 5220,
+     "end": 6294,
+     "ad": false
+    },
+    {
+     "title": "Sonic Superstars : un hommage qui déçoit",
+     "game": "Sonic Superstars",
+     "kind": "review",
+     "start": 6294,
+     "end": 7253,
+     "ad": false
+    },
+    {
+     "title": "À la découverte du Spiel Essen et des jeux de société",
+     "game": null,
+     "kind": null,
+     "start": 7253,
+     "end": 7414,
+     "ad": false
+    },
+    {
+     "title": "Publicité : Shopify",
+     "game": null,
+     "kind": null,
+     "start": 7414,
+     "end": 7444,
+     "ad": true
+    },
+    {
+     "title": "Publicité : Sphère 5",
+     "game": null,
+     "kind": null,
+     "start": 7444,
+     "end": 7468,
+     "ad": true
+    },
+    {
+     "title": "À la découverte du Spiel Essen et des jeux de société",
+     "game": null,
+     "kind": null,
+     "start": 7468,
+     "end": 8532,
+     "ad": false
+    },
+    {
+     "title": "Au revoir et merci",
+     "game": null,
+     "kind": null,
+     "start": 8532,
+     "end": 8737,
+     "ad": false
+    },
+    {
+     "title": "Publicité : Nota Bene",
+     "game": null,
+     "kind": null,
+     "start": 8737,
+     "end": 8765,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Endless Dungeon": 109970,
+    "Lords of the Fallen": 21593,
+    "Super Mario Wonder": 254339,
+    "Sonic Superstars": 252478
+   },
+   "tests": [
+    "Endless Dungeon",
+    "Lords of the Fallen",
+    "Sonic Superstars",
+    "Super Mario Wonder,"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Endless Dungeon",
+     "start": 2433
+    },
+    {
+     "game": "Lords of the Fallen",
+     "start": 2739
+    },
+    {
+     "game": "Sonic Superstars",
+     "start": 6294
+    },
+    {
+     "game": "Super Mario Wonder",
+     "start": 4715
+    }
+   ]
+  },
+  {
+   "guid": "66f6bb4f337e6a756f231e7d",
+   "podcast": "origami",
+   "title": "Wishlist S01E01 - Ces jeux qu'il ne fallait pas rater en 2023 (avec At0mium et Yamukass)",
+   "pub_ts": 1708009323,
+   "proposed": [
+    {
+     "name": "Minami Lane",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Mullet MadJack",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Harold Halibut",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Cataclismo",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Cocoon",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Chants of Sennaar",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Tchia",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "An Ankou",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "SANABI",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Pâquerette: Down the Bunburrows",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Gravity Circuit",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Blanc",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "A Space for the Unbound",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "End of Lines",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Humanity",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Aetheris",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Désordre: A Puzzle Game Adventure",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Firebird",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Rhythm Sprout",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Headbangers: Rhythm Royale",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Synergy",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Nine Sols",
+     "timestamp": null,
+     "seconds": 0
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Publicités d’ouverture",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 41,
+     "ad": true
+    },
+    {
+     "title": "Présentation de l’émission et des invités",
+     "game": null,
+     "kind": null,
+     "start": 41,
+     "end": 699,
+     "ad": false
+    },
+    {
+     "title": "Steam Next Fest : fonctionnement et visibilité des démos",
+     "game": null,
+     "kind": null,
+     "start": 699,
+     "end": 1235,
+     "ad": false
+    },
+    {
+     "title": "Minami Lane, une rue commerçante toute mignonne",
+     "game": "Minami Lane",
+     "kind": "impressions",
+     "start": 1235,
+     "end": 1408,
+     "ad": false
+    },
+    {
+     "title": "Mullet MadJack, un roguelite d’action déchaîné",
+     "game": "Mullet MadJack",
+     "kind": "impressions",
+     "start": 1408,
+     "end": 1626,
+     "ad": false
+    },
+    {
+     "title": "Harold Halibut, une aventure aux décors faits main",
+     "game": "Harold Halibut",
+     "kind": "impressions",
+     "start": 1626,
+     "end": 1748,
+     "ad": false
+    },
+    {
+     "title": "Cataclismo, bâtir pour résister aux monstres",
+     "game": "Cataclismo",
+     "kind": "impressions",
+     "start": 1748,
+     "end": 1924,
+     "ad": false
+    },
+    {
+     "title": "2023 dans le jeu indépendant : année foisonnante et difficile",
+     "game": null,
+     "kind": null,
+     "start": 1924,
+     "end": 2801,
+     "ad": false
+    },
+    {
+     "title": "Les jeux qui ont marqué l’année",
+     "game": null,
+     "kind": null,
+     "start": 2801,
+     "end": 2828,
+     "ad": false
+    },
+    {
+     "title": "Cocoon, un modèle de conception par le puzzle",
+     "game": "Cocoon",
+     "kind": "ranking",
+     "start": 2828,
+     "end": 2908,
+     "ad": false
+    },
+    {
+     "title": "Pizza Tower, un Wario Land déchaîné",
+     "game": "Pizza Tower",
+     "kind": "mention",
+     "start": 2908,
+     "end": 2928,
+     "ad": false
+    },
+    {
+     "title": "Planet of Lana, un jeu dont on se souvient",
+     "game": "Planet of Lana",
+     "kind": "mention",
+     "start": 2928,
+     "end": 2940,
+     "ad": false
+    },
+    {
+     "title": "Dave the Diver et les succès indés remarqués",
+     "game": "Dave the Diver",
+     "kind": "mention",
+     "start": 2940,
+     "end": 2947,
+     "ad": false
+    },
+    {
+     "title": "Chants of Sennaar, le langage comme énigme",
+     "game": "Chants of Sennaar",
+     "kind": "ranking",
+     "start": 2947,
+     "end": 3092,
+     "ad": false
+    },
+    {
+     "title": "Autres jeux marquants de 2023",
+     "game": null,
+     "kind": null,
+     "start": 3092,
+     "end": 3121,
+     "ad": false
+    },
+    {
+     "title": "Tchia, un monde ouvert qui a échappé aux Pégases",
+     "game": "Tchia",
+     "kind": "ranking",
+     "start": 3121,
+     "end": 3164,
+     "ad": false
+    },
+    {
+     "title": "Les cérémonies récompensent-elles les jeux indépendants ?",
+     "game": null,
+     "kind": null,
+     "start": 3164,
+     "end": 3552,
+     "ad": false
+    },
+    {
+     "title": "Publicité Shopify",
+     "game": null,
+     "kind": null,
+     "start": 3552,
+     "end": 3582,
+     "ad": true
+    },
+    {
+     "title": "Publicité pour le podcast Cahiers de Brouillon",
+     "game": null,
+     "kind": null,
+     "start": 3582,
+     "end": 3613,
+     "ad": true
+    },
+    {
+     "title": "Les cérémonies et les jeux oubliés",
+     "game": null,
+     "kind": null,
+     "start": 3613,
+     "end": 3753,
+     "ad": false
+    },
+    {
+     "title": "Transition vers les jeux oubliés de 2023",
+     "game": null,
+     "kind": null,
+     "start": 3753,
+     "end": 3777,
+     "ad": false
+    },
+    {
+     "title": "An Ankou, un Vampire Survivors avec du craft",
+     "game": "An Ankou",
+     "kind": "ranking",
+     "start": 3777,
+     "end": 3972,
+     "ad": false
+    },
+    {
+     "title": "Sanabi, une aventure d’action au grappin",
+     "game": "SANABI",
+     "kind": "ranking",
+     "start": 3972,
+     "end": 4217,
+     "ad": false
+    },
+    {
+     "title": "Pâquerette: Down the Bunburrows, des lapins et des puzzles",
+     "game": "Pâquerette: Down the Bunburrows",
+     "kind": "ranking",
+     "start": 4217,
+     "end": 4444,
+     "ad": false
+    },
+    {
+     "title": "Gravity Circuit, un héritier survitaminé de Mega Man",
+     "game": "Gravity Circuit",
+     "kind": "ranking",
+     "start": 4444,
+     "end": 4678,
+     "ad": false
+    },
+    {
+     "title": "Blanc, une aventure coopérative toute douce",
+     "game": "Blanc",
+     "kind": "ranking",
+     "start": 4678,
+     "end": 4906,
+     "ad": false
+    },
+    {
+     "title": "A Space for the Unbound, un voyage narratif coloré",
+     "game": "A Space for the Unbound",
+     "kind": "ranking",
+     "start": 4906,
+     "end": 5124,
+     "ad": false
+    },
+    {
+     "title": "End of Lines, une famille face au changement climatique",
+     "game": "End of Lines",
+     "kind": "ranking",
+     "start": 5124,
+     "end": 5416,
+     "ad": false
+    },
+    {
+     "title": "Humanity, des foules et des idées de game design",
+     "game": "Humanity",
+     "kind": "ranking",
+     "start": 5416,
+     "end": 5902,
+     "ad": false
+    },
+    {
+     "title": "Aetheris, un roguelite tactique au style clivant",
+     "game": "Aetheris",
+     "kind": "ranking",
+     "start": 5902,
+     "end": 6195,
+     "ad": false
+    },
+    {
+     "title": "Publicité Shopify",
+     "game": null,
+     "kind": null,
+     "start": 6195,
+     "end": 6226,
+     "ad": true
+    },
+    {
+     "title": "Publicité pour Eden Stories",
+     "game": null,
+     "kind": null,
+     "start": 6226,
+     "end": 6256,
+     "ad": true
+    },
+    {
+     "title": "Désordre: A Puzzle Game Adventure, des portails et des perspectives",
+     "game": "Désordre: A Puzzle Game Adventure",
+     "kind": "ranking",
+     "start": 6256,
+     "end": 6503,
+     "ad": false
+    },
+    {
+     "title": "Firebird, un voyage narratif inspiré des légendes russes",
+     "game": "Firebird",
+     "kind": "ranking",
+     "start": 6503,
+     "end": 6638,
+     "ad": false
+    },
+    {
+     "title": "Citizen Sleeper et sa traduction française",
+     "game": "Citizen Sleeper",
+     "kind": "mention",
+     "start": 6638,
+     "end": 6775,
+     "ad": false
+    },
+    {
+     "title": "Rhythm Sprout, jeu de rythme et humour",
+     "game": "Rhythm Sprout",
+     "kind": "ranking",
+     "start": 6775,
+     "end": 6958,
+     "ad": false
+    },
+    {
+     "title": "Headbangers: Rhythm Royale, des pigeons en battle royale musical",
+     "game": "Headbangers: Rhythm Royale",
+     "kind": "ranking",
+     "start": 6958,
+     "end": 7119,
+     "ad": false
+    },
+    {
+     "title": "Autres titres évoqués et transition vers les wishlists",
+     "game": null,
+     "kind": null,
+     "start": 7119,
+     "end": 7198,
+     "ad": false
+    },
+    {
+     "title": "Nova Hearts: The Spark, un dating sim de super-héros",
+     "game": "Nova Hearts: The Spark",
+     "kind": "news",
+     "start": 7198,
+     "end": 7305,
+     "ad": false
+    },
+    {
+     "title": "Synergy, un city-builder aux couleurs pastel",
+     "game": "Synergy",
+     "kind": "impressions",
+     "start": 7305,
+     "end": 7444,
+     "ad": false
+    },
+    {
+     "title": "Nine Sols, entre Hollow Knight et Sekiro",
+     "game": "Nine Sols",
+     "kind": "impressions",
+     "start": 7444,
+     "end": 7593,
+     "ad": false
+    },
+    {
+     "title": "Radio the Universe, un Zelda-like au style énigmatique",
+     "game": "Radio the Universe",
+     "kind": "news",
+     "start": 7593,
+     "end": 7772,
+     "ad": false
+    },
+    {
+     "title": "Loco Motive, une enquête ferroviaire à la LucasArts",
+     "game": "Loco Motive",
+     "kind": "news",
+     "start": 7772,
+     "end": 7908,
+     "ad": false
+    },
+    {
+     "title": "Remerciements et conclusion de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 7908,
+     "end": 8081,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Les Crapules du showbiz",
+     "game": null,
+     "kind": null,
+     "start": 8081,
+     "end": 8109,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Minami Lane": null,
+    "Mullet MadJack": null,
+    "Harold Halibut": null,
+    "Cataclismo": null,
+    "Cocoon": null,
+    "Chants of Sennaar": null,
+    "Tchia": null,
+    "An Ankou": null,
+    "SANABI": null,
+    "Pâquerette: Down the Bunburrows": null,
+    "Gravity Circuit": null,
+    "Blanc": null,
+    "A Space for the Unbound": null,
+    "End of Lines": null,
+    "Humanity": null,
+    "Aetheris": null,
+    "Désordre: A Puzzle Game Adventure": null,
+    "Firebird": null,
+    "Rhythm Sprout": null,
+    "Headbangers: Rhythm Royale": null,
+    "Synergy": null,
+    "Nine Sols": null
+   },
+   "tests": [],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": []
+  },
+  {
+   "guid": "67dd95b3fa98b54cfac6cb6f",
+   "podcast": "origami",
+   "title": "S02E25 - Assassin's Creed Shadows",
+   "pub_ts": 1742718600,
+   "proposed": [
+    {
+     "name": "Metal Bringer",
+     "timestamp": "00:12:56",
+     "seconds": 776
+    },
+    {
+     "name": "33 Immortals",
+     "timestamp": "00:24:22",
+     "seconds": 1462
+    },
+    {
+     "name": "Assassin’s Creed Shadows",
+     "timestamp": "00:42:34",
+     "seconds": 2554
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Message de soutien à Origami",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 10,
+     "ad": true
+    },
+    {
+     "title": "Publicité Shopify",
+     "game": null,
+     "kind": null,
+     "start": 10,
+     "end": 40,
+     "ad": true
+    },
+    {
+     "title": "Introduction et présentation de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 40,
+     "end": 73,
+     "ad": false
+    },
+    {
+     "title": "Partenariat TopAchat",
+     "game": null,
+     "kind": null,
+     "start": 73,
+     "end": 103,
+     "ad": true
+    },
+    {
+     "title": "Soutien à Origami et nouvelle formule de Wishlist",
+     "game": null,
+     "kind": null,
+     "start": 103,
+     "end": 403,
+     "ad": false
+    },
+    {
+     "title": "LEGO et Pokémon annoncent une collaboration",
+     "game": "Pokémon",
+     "kind": "news",
+     "start": 403,
+     "end": 445,
+     "ad": false
+    },
+    {
+     "title": "Une extension annoncée pour ARK: Survival Evolved",
+     "game": "ARK: Survival Evolved",
+     "kind": "news",
+     "start": 445,
+     "end": 492,
+     "ad": false
+    },
+    {
+     "title": "Dates de sortie et transition vers les annonces",
+     "game": null,
+     "kind": null,
+     "start": 492,
+     "end": 507,
+     "ad": false
+    },
+    {
+     "title": "Forever Skies sortira en version 1.0 en avril",
+     "game": "Forever Skies",
+     "kind": "news",
+     "start": 507,
+     "end": 539,
+     "ad": false
+    },
+    {
+     "title": "PowerWash Simulator 2 annoncé",
+     "game": "PowerWash Simulator 2",
+     "kind": "news",
+     "start": 539,
+     "end": 588,
+     "ad": false
+    },
+    {
+     "title": "Croc revient en version restaurée",
+     "game": "Croc: Legend of the Gobbos",
+     "kind": "news",
+     "start": 588,
+     "end": 630,
+     "ad": false
+    },
+    {
+     "title": "Hopetown lance son Kickstarter",
+     "game": "Hopetown",
+     "kind": "news",
+     "start": 630,
+     "end": 675,
+     "ad": false
+    },
+    {
+     "title": "Tears of the Moon, un nouveau projet conçu avec l’éditeur de King’s Field",
+     "game": "Tears of the Moon",
+     "kind": "news",
+     "start": 675,
+     "end": 736,
+     "ad": false
+    },
+    {
+     "title": "Banter après le journal de l’actualité",
+     "game": null,
+     "kind": null,
+     "start": 736,
+     "end": 776,
+     "ad": false
+    },
+    {
+     "title": "Metal Bringer : premières impressions sur un roguelite de mechas",
+     "game": "Metal Bringer",
+     "kind": "impressions",
+     "start": 776,
+     "end": 1462,
+     "ad": false
+    },
+    {
+     "title": "33 Immortals : aperçu de l’accès anticipé",
+     "game": "33 Immortals",
+     "kind": "impressions",
+     "start": 1462,
+     "end": 2098,
+     "ad": false
+    },
+    {
+     "title": "Le reboot de Painkiller dévoilé au Future Game Show",
+     "game": "Painkiller",
+     "kind": "news",
+     "start": 2098,
+     "end": 2237,
+     "ad": false
+    },
+    {
+     "title": "Création d’un syndicat nord-américain des travailleurs du jeu vidéo",
+     "game": null,
+     "kind": null,
+     "start": 2237,
+     "end": 2493,
+     "ad": false
+    },
+    {
+     "title": "Annonce de la critique d’Assassin’s Creed Shadows",
+     "game": null,
+     "kind": null,
+     "start": 2493,
+     "end": 2500,
+     "ad": false
+    },
+    {
+     "title": "Publicité Shopify",
+     "game": null,
+     "kind": null,
+     "start": 2500,
+     "end": 2528,
+     "ad": true
+    },
+    {
+     "title": "Transition vers la critique",
+     "game": null,
+     "kind": null,
+     "start": 2528,
+     "end": 2554,
+     "ad": false
+    },
+    {
+     "title": "Assassin’s Creed Shadows : histoire, exploration et systèmes de jeu",
+     "game": "Assassin’s Creed Shadows",
+     "kind": "review",
+     "start": 2554,
+     "end": 4525,
+     "ad": false
+    },
+    {
+     "title": "Publicité Shopify",
+     "game": null,
+     "kind": null,
+     "start": 4525,
+     "end": 4552,
+     "ad": true
+    },
+    {
+     "title": "Publicité pour le podcast Sphère 5",
+     "game": null,
+     "kind": null,
+     "start": 4552,
+     "end": 4582,
+     "ad": true
+    },
+    {
+     "title": "Assassin’s Creed Shadows : narration, monde ouvert et verdict",
+     "game": "Assassin’s Creed Shadows",
+     "kind": "review",
+     "start": 4582,
+     "end": 6387,
+     "ad": false
+    },
+    {
+     "title": "Recommandation culturelle : l’album Kokyu et le film All About Lily Chouchou",
+     "game": null,
+     "kind": null,
+     "start": 6387,
+     "end": 6754,
+     "ad": false
+    },
+    {
+     "title": "Remerciements et fin de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 6754,
+     "end": 6849,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le podcast Mystères et Légendes",
+     "game": null,
+     "kind": null,
+     "start": 6849,
+     "end": 6877,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Metal Bringer": 265327,
+    "33 Immortals": 252828,
+    "Assassin’s Creed Shadows": 300976
+   },
+   "tests": [
+    "33 Immortals",
+    "Assassin’s Creed Shadows",
+    "Metal Bringer"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "33 Immortals",
+     "start": 1462
+    },
+    {
+     "game": "Assassin’s Creed Shadows",
+     "start": 2554
+    },
+    {
+     "game": "Metal Bringer",
+     "start": 776
+    }
+   ]
+  },
+  {
+   "guid": "68f25cf3888566c5b08c8716",
+   "podcast": "origami",
+   "title": "S03E05 - BALLxPIT, Eclipsium et Anno 117",
+   "pub_ts": 1760859000,
+   "proposed": [
+    {
+     "name": "Anno 117: Pax Romana",
+     "timestamp": "00:15:10",
+     "seconds": 910
+    },
+    {
+     "name": "Eclipsium",
+     "timestamp": "00:33:17",
+     "seconds": 1997
+    },
+    {
+     "name": "BALLxPIT",
+     "timestamp": "01:12:51",
+     "seconds": 4371
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Message de soutien",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 9,
+     "ad": true
+    },
+    {
+     "title": "Introduction de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 9,
+     "end": 39,
+     "ad": false
+    },
+    {
+     "title": "Merci à TopAchat",
+     "game": null,
+     "kind": null,
+     "start": 39,
+     "end": 65,
+     "ad": true
+    },
+    {
+     "title": "Présentation de l’équipe et de la semaine d’Origami",
+     "game": null,
+     "kind": null,
+     "start": 65,
+     "end": 273,
+     "ad": false
+    },
+    {
+     "title": "Syndicalisation chez Battle.net",
+     "game": null,
+     "kind": null,
+     "start": 273,
+     "end": 326,
+     "ad": false
+    },
+    {
+     "title": "Licenciements chez Build A Rocket Boy",
+     "game": "MindsEye",
+     "kind": "news",
+     "start": 326,
+     "end": 388,
+     "ad": false
+    },
+    {
+     "title": "Brèves d’annonces et de sorties",
+     "game": null,
+     "kind": null,
+     "start": 388,
+     "end": 420,
+     "ad": false
+    },
+    {
+     "title": "The House of the Dead 2: Remake annoncé",
+     "game": "The House of the Dead 2: Remake",
+     "kind": "news",
+     "start": 420,
+     "end": 469,
+     "ad": false
+    },
+    {
+     "title": "No, I'm Not Human dépasse les 500 000 joueurs",
+     "game": "No, I'm Not Human",
+     "kind": "news",
+     "start": 469,
+     "end": 494,
+     "ad": false
+    },
+    {
+     "title": "CloverPit dépasse les 750 000 ventes",
+     "game": "CloverPit",
+     "kind": "news",
+     "start": 494,
+     "end": 508,
+     "ad": false
+    },
+    {
+     "title": "Battlefield 6 démarre très fort",
+     "game": "Battlefield 6",
+     "kind": "news",
+     "start": 508,
+     "end": 536,
+     "ad": false
+    },
+    {
+     "title": "L’échec commercial de FBC: Firebreak",
+     "game": "FBC: Firebreak",
+     "kind": "news",
+     "start": 536,
+     "end": 599,
+     "ad": false
+    },
+    {
+     "title": "Fin de la revue d’actualité",
+     "game": null,
+     "kind": null,
+     "start": 599,
+     "end": 610,
+     "ad": false
+    },
+    {
+     "title": "Les départs de figures importantes du jeu vidéo",
+     "game": null,
+     "kind": null,
+     "start": 610,
+     "end": 910,
+     "ad": false
+    },
+    {
+     "title": "Preview d’Anno 117: Pax Romana",
+     "game": "Anno 117: Pax Romana",
+     "kind": "impressions",
+     "start": 910,
+     "end": 1997,
+     "ad": false
+    },
+    {
+     "title": "Critique d’Eclipsium",
+     "game": "Eclipsium",
+     "kind": "review",
+     "start": 1997,
+     "end": 2413,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Le Fil Mental",
+     "game": null,
+     "kind": null,
+     "start": 2413,
+     "end": 2444,
+     "ad": true
+    },
+    {
+     "title": "Critique d’Eclipsium, suite",
+     "game": "Eclipsium",
+     "kind": "review",
+     "start": 2444,
+     "end": 3263,
+     "ad": false
+    },
+    {
+     "title": "Chronique : qu’est-ce qui fait un bon trailer en 2025 ?",
+     "game": null,
+     "kind": null,
+     "start": 3263,
+     "end": 4371,
+     "ad": false
+    },
+    {
+     "title": "Critique de BALLxPIT",
+     "game": "BALLxPIT",
+     "kind": "review",
+     "start": 4371,
+     "end": 5724,
+     "ad": false
+    },
+    {
+     "title": "Recommandations culturelles : les livres Dragon Ball et Gustave Doré",
+     "game": null,
+     "kind": null,
+     "start": 5724,
+     "end": 6400,
+     "ad": false
+    },
+    {
+     "title": "Conclusion et remerciements",
+     "game": null,
+     "kind": null,
+     "start": 6400,
+     "end": 6481,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Les saisons de Rosa",
+     "game": null,
+     "kind": null,
+     "start": 6481,
+     "end": 6507,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Anno 117: Pax Romana": 305246,
+    "Eclipsium": 250722,
+    "BALLxPIT": null
+   },
+   "tests": [
+    "Anno 117: Pax Romana",
+    "BALLxPIT",
+    "Eclipsium"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Anno 117: Pax Romana",
+     "start": 910
+    },
+    {
+     "game": "BALLxPIT",
+     "start": 4371
+    },
+    {
+     "game": "Eclipsium",
+     "start": 1997
+    }
+   ]
+  },
+  {
+   "guid": "67f921e9b51a627d15be1151",
+   "podcast": "origami",
+   "title": "S02E28 - Blue Prince, Endless Legend II et Triple III Initiative",
+   "pub_ts": 1744529400,
+   "proposed": [
+    {
+     "name": "Endless Legend II",
+     "timestamp": "00:42:47",
+     "seconds": 2567
+    },
+    {
+     "name": "Blue Prince",
+     "timestamp": "01:00:53",
+     "seconds": 3653
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Message d’ouverture",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 10,
+     "ad": true
+    },
+    {
+     "title": "Introduction et présentation de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 10,
+     "end": 50,
+     "ad": false
+    },
+    {
+     "title": "Sponsor TopAchat",
+     "game": null,
+     "kind": null,
+     "start": 50,
+     "end": 108,
+     "ad": true
+    },
+    {
+     "title": "Bienvenue, programme et jeux de la semaine",
+     "game": null,
+     "kind": null,
+     "start": 108,
+     "end": 349,
+     "ad": false
+    },
+    {
+     "title": "La semaine d’Origami : actualité jeux vidéo",
+     "game": null,
+     "kind": null,
+     "start": 349,
+     "end": 698,
+     "ad": false
+    },
+    {
+     "title": "Rematch : date de sortie et matchs en 5 contre 5",
+     "game": "Rematch",
+     "kind": "news",
+     "start": 698,
+     "end": 871,
+     "ad": false
+    },
+    {
+     "title": "The Alters : une sortie annoncée pour juin",
+     "game": "The Alters",
+     "kind": "news",
+     "start": 871,
+     "end": 946,
+     "ad": false
+    },
+    {
+     "title": "Heroes of Might and Magic: Olden Era annoncé",
+     "game": "Heroes of Might and Magic: Olden Era",
+     "kind": "news",
+     "start": 946,
+     "end": 1055,
+     "ad": false
+    },
+    {
+     "title": "Moonlighter 2: The Endless Vault prévu cet été",
+     "game": "Moonlighter 2: The Endless Vault",
+     "kind": "news",
+     "start": 1055,
+     "end": 1129,
+     "ad": false
+    },
+    {
+     "title": "Morbid Metal : un roguelite d’action édité par Ubisoft",
+     "game": "Morbid Metal",
+     "kind": "news",
+     "start": 1129,
+     "end": 1233,
+     "ad": false
+    },
+    {
+     "title": "Void Breaker : un FPS roguelike en accès anticipé",
+     "game": "Void Breaker",
+     "kind": "news",
+     "start": 1233,
+     "end": 1338,
+     "ad": false
+    },
+    {
+     "title": "SpeedRunners 2: King of Speed annoncé",
+     "game": "SpeedRunners 2: King of Speed",
+     "kind": "news",
+     "start": 1338,
+     "end": 1478,
+     "ad": false
+    },
+    {
+     "title": "Into the Fire : survie au cœur d’une éruption",
+     "game": "Into the Fire",
+     "kind": "news",
+     "start": 1478,
+     "end": 1615,
+     "ad": false
+    },
+    {
+     "title": "No, I'm Not a Human : horreur et visiteurs inquiétants",
+     "game": "No, I'm Not a Human",
+     "kind": "news",
+     "start": 1615,
+     "end": 1713,
+     "ad": false
+    },
+    {
+     "title": "Star Birds : gestion et exploitation d’astéroïdes",
+     "game": "Star Birds",
+     "kind": "news",
+     "start": 1713,
+     "end": 1811,
+     "ad": false
+    },
+    {
+     "title": "OPUS: Prism Peak présenté",
+     "game": "OPUS: Prism Peak",
+     "kind": "news",
+     "start": 1811,
+     "end": 1921,
+     "ad": false
+    },
+    {
+     "title": "Neverway : simulation de vie et cauchemars",
+     "game": "Neverway",
+     "kind": "news",
+     "start": 1921,
+     "end": 2029,
+     "ad": false
+    },
+    {
+     "title": "Duskfade : un hommage aux jeux de plateforme 3D",
+     "game": "Duskfade",
+     "kind": "news",
+     "start": 2029,
+     "end": 2108,
+     "ad": false
+    },
+    {
+     "title": "Ikuma: The Frozen Compass dévoilé",
+     "game": "Ikuma: The Frozen Compass",
+     "kind": "news",
+     "start": 2108,
+     "end": 2198,
+     "ad": false
+    },
+    {
+     "title": "SacriFire : un RPG inspiré des années 90",
+     "game": "SacriFire",
+     "kind": "news",
+     "start": 2198,
+     "end": 2280,
+     "ad": false
+    },
+    {
+     "title": "Le DLC de Katana ZERO est toujours en développement",
+     "game": "Katana ZERO",
+     "kind": "news",
+     "start": 2280,
+     "end": 2363,
+     "ad": false
+    },
+    {
+     "title": "Licenciements chez Microids Studio Paris",
+     "game": null,
+     "kind": null,
+     "start": 2363,
+     "end": 2567,
+     "ad": false
+    },
+    {
+     "title": "Présentation d’Endless Legend II",
+     "game": "Endless Legend II",
+     "kind": "impressions",
+     "start": 2567,
+     "end": 2611,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le Podcast Club",
+     "game": null,
+     "kind": null,
+     "start": 2611,
+     "end": 2645,
+     "ad": true
+    },
+    {
+     "title": "Endless Legend II : aperçu des factions et des mécaniques",
+     "game": "Endless Legend II",
+     "kind": "impressions",
+     "start": 2645,
+     "end": 3653,
+     "ad": false
+    },
+    {
+     "title": "Critique chorale de Blue Prince",
+     "game": "Blue Prince",
+     "kind": "review",
+     "start": 3653,
+     "end": 6018,
+     "ad": false
+    },
+    {
+     "title": "Soutenir Origami sur Patreon",
+     "game": null,
+     "kind": null,
+     "start": 6018,
+     "end": 6062,
+     "ad": true
+    },
+    {
+     "title": "Recommandation culturelle : le groupe Sir Chloe",
+     "game": null,
+     "kind": null,
+     "start": 6062,
+     "end": 6408,
+     "ad": false
+    },
+    {
+     "title": "Précisions sur l’accessibilité d’Endless Legend II",
+     "game": "Endless Legend II",
+     "kind": "impressions",
+     "start": 6408,
+     "end": 6468,
+     "ad": false
+    },
+    {
+     "title": "Remerciements et conclusion",
+     "game": null,
+     "kind": null,
+     "start": 6468,
+     "end": 6551,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Mystères et Légendes",
+     "game": null,
+     "kind": null,
+     "start": 6551,
+     "end": 6579,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Endless Legend II": null,
+    "Blue Prince": 149657
+   },
+   "tests": [
+    "Blue Prince",
+    "Endless Legend II"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Blue Prince",
+     "start": 3653
+    },
+    {
+     "game": "Endless Legend II",
+     "start": 2567
+    }
+   ]
+  },
+  {
+   "guid": "6a47c2442d7a15a97998e993",
+   "podcast": "origami",
+   "title": "S03E39 - Deer & Boy, Momento et 868-BACK",
+   "pub_ts": 1783236600,
+   "proposed": [
+    {
+     "name": "Mizzurna Falls",
+     "timestamp": "00:29:37",
+     "seconds": 1777
+    },
+    {
+     "name": "868-BACK",
+     "timestamp": "00:36:34",
+     "seconds": 2194
+    },
+    {
+     "name": "Momento",
+     "timestamp": "00:45:18",
+     "seconds": 2718
+    },
+    {
+     "name": "Deer & Boy",
+     "timestamp": "01:00:43",
+     "seconds": 3643
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Message de soutien à Origami",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 10,
+     "ad": true
+    },
+    {
+     "title": "Introduction et présentation de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 10,
+     "end": 141,
+     "ad": false
+    },
+    {
+     "title": "Précommandes du merch et offres Patreon",
+     "game": null,
+     "kind": null,
+     "start": 141,
+     "end": 257,
+     "ad": true
+    },
+    {
+     "title": "Onimusha: Way of the Sword avance sa sortie",
+     "game": "Onimusha: Way of the Sword",
+     "kind": "news",
+     "start": 257,
+     "end": 321,
+     "ad": false
+    },
+    {
+     "title": "Looking for Fael : date de sortie et aperçu",
+     "game": "Looking for Fael",
+     "kind": "news",
+     "start": 321,
+     "end": 441,
+     "ad": false
+    },
+    {
+     "title": "Nivalis Knights fixe sa date de sortie",
+     "game": "Nivalis Knights",
+     "kind": "news",
+     "start": 441,
+     "end": 470,
+     "ad": false
+    },
+    {
+     "title": "Company of Heroes 3: Final Stand annoncé",
+     "game": "Company of Heroes 3: Final Stand",
+     "kind": "news",
+     "start": 470,
+     "end": 530,
+     "ad": false
+    },
+    {
+     "title": "Cyberpunk: Edgerunners, saison 2",
+     "game": null,
+     "kind": null,
+     "start": 530,
+     "end": 611,
+     "ad": false
+    },
+    {
+     "title": "Annonce du direct bilan de saison",
+     "game": null,
+     "kind": null,
+     "start": 611,
+     "end": 630,
+     "ad": false
+    },
+    {
+     "title": "Fin du support physique et actualité de l’industrie",
+     "game": null,
+     "kind": null,
+     "start": 630,
+     "end": 1402,
+     "ad": false
+    },
+    {
+     "title": "Absolum : une équipe poursuit le travail sur la licence",
+     "game": "Absolum",
+     "kind": "news",
+     "start": 1402,
+     "end": 1492,
+     "ad": false
+    },
+    {
+     "title": "Edge of Memories : fermeture de Midgar Studios",
+     "game": "Edge of Memories",
+     "kind": "news",
+     "start": 1492,
+     "end": 1655,
+     "ad": false
+    },
+    {
+     "title": "Crise du jeu vidéo et pistes pour reconstruire",
+     "game": null,
+     "kind": null,
+     "start": 1655,
+     "end": 1777,
+     "ad": false
+    },
+    {
+     "title": "Freak of the Month : Mizzurna Falls",
+     "game": "Mizzurna Falls",
+     "kind": "review",
+     "start": 1777,
+     "end": 2094,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le podcast Le Fil Mental",
+     "game": null,
+     "kind": null,
+     "start": 2094,
+     "end": 2124,
+     "ad": true
+    },
+    {
+     "title": "Fin de saison et transition",
+     "game": null,
+     "kind": null,
+     "start": 2124,
+     "end": 2194,
+     "ad": false
+    },
+    {
+     "title": "868-BACK : un roguelike tactique exigeant",
+     "game": "868-BACK",
+     "kind": "review",
+     "start": 2194,
+     "end": 2698,
+     "ad": false
+    },
+    {
+     "title": "Transition vers Momento",
+     "game": null,
+     "kind": null,
+     "start": 2698,
+     "end": 2718,
+     "ad": false
+    },
+    {
+     "title": "Momento : décoration, choix et histoire",
+     "game": "Momento",
+     "kind": "review",
+     "start": 2718,
+     "end": 3643,
+     "ad": false
+    },
+    {
+     "title": "Deer & Boy : présentation et direction artistique",
+     "game": "Deer & Boy",
+     "kind": "review",
+     "start": 3643,
+     "end": 3990,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour La Matinée Étienne",
+     "game": null,
+     "kind": null,
+     "start": 3990,
+     "end": 4023,
+     "ad": true
+    },
+    {
+     "title": "Deer & Boy : aventure et verdict",
+     "game": "Deer & Boy",
+     "kind": "review",
+     "start": 4023,
+     "end": 4676,
+     "ad": false
+    },
+    {
+     "title": "Transition vers les recommandations culturelles",
+     "game": null,
+     "kind": null,
+     "start": 4676,
+     "end": 4687,
+     "ad": false
+    },
+    {
+     "title": "Recommandation BD : La Méduse",
+     "game": null,
+     "kind": null,
+     "start": 4687,
+     "end": 5050,
+     "ad": false
+    },
+    {
+     "title": "Recommandation cinéma : The Apprentice",
+     "game": null,
+     "kind": null,
+     "start": 5050,
+     "end": 5627,
+     "ad": false
+    },
+    {
+     "title": "Conclusion et rendez-vous pour le direct",
+     "game": null,
+     "kind": null,
+     "start": 5627,
+     "end": 5682,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Continu, tu m’intéresses",
+     "game": null,
+     "kind": null,
+     "start": 5682,
+     "end": 5711,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Mizzurna Falls": 43839,
+    "868-BACK": 323173,
+    "Momento": 279123,
+    "Deer & Boy": 202138
+   },
+   "tests": [
+    "868-BACK",
+    "Deer & Boy",
+    "Mizzurna Falls",
+    "Momento"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "868-BACK",
+     "start": 2194
+    },
+    {
+     "game": "Deer & Boy",
+     "start": 3643
+    },
+    {
+     "game": "Mizzurna Falls",
+     "start": 1777
+    },
+    {
+     "game": "Momento",
+     "start": 2718
+    }
+   ]
+  },
+  {
+   "guid": "68fb9c09deee754a72bd8971",
+   "podcast": "origami",
+   "title": "S03E06 - Keeper, Vampire Bloodlines 2 et Ninja Gaiden 4",
+   "pub_ts": 1761467400,
+   "proposed": [
+    {
+     "name": "Keeper",
+     "timestamp": "00:35:04",
+     "seconds": 2104
+    },
+    {
+     "name": "Vampire: The Masquerade – Bloodlines 2",
+     "timestamp": "00:54:53",
+     "seconds": 3293
+    },
+    {
+     "name": "Ninja Gaiden 4",
+     "timestamp": "01:23:03",
+     "seconds": 4983
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Ouverture de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 67,
+     "ad": false
+    },
+    {
+     "title": "Message de TopAchat",
+     "game": null,
+     "kind": null,
+     "start": 68,
+     "end": 97,
+     "ad": true
+    },
+    {
+     "title": "Présentation et coulisses d’Origami",
+     "game": null,
+     "kind": null,
+     "start": 98,
+     "end": 451,
+     "ad": false
+    },
+    {
+     "title": "Assetto Corsa Rally arrive en accès anticipé",
+     "game": "Assetto Corsa Rally",
+     "kind": "news",
+     "start": 452,
+     "end": 511,
+     "ad": false
+    },
+    {
+     "title": "The Sinking City 2 est repoussé",
+     "game": "The Sinking City 2",
+     "kind": "news",
+     "start": 512,
+     "end": 540,
+     "ad": false
+    },
+    {
+     "title": "Les licences FIFA arrivent dans Football Manager 26",
+     "game": "Football Manager 26",
+     "kind": "news",
+     "start": 541,
+     "end": 589,
+     "ad": false
+    },
+    {
+     "title": "Absolum dépasse les 200 000 ventes",
+     "game": "Absolum",
+     "kind": "news",
+     "start": 590,
+     "end": 618,
+     "ad": false
+    },
+    {
+     "title": "Ball x Pit dépasse les 300 000 ventes",
+     "game": "Ball x Pit",
+     "kind": "news",
+     "start": 619,
+     "end": 637,
+     "ad": false
+    },
+    {
+     "title": "Silent Hill 2 atteint 2,5 millions de ventes",
+     "game": "Silent Hill 2",
+     "kind": "news",
+     "start": 638,
+     "end": 663,
+     "ad": false
+    },
+    {
+     "title": "Sonic débarque dans Waze",
+     "game": null,
+     "kind": null,
+     "start": 664,
+     "end": 737,
+     "ad": false
+    },
+    {
+     "title": "Ball x Pit franchit les 400 000 ventes",
+     "game": "Ball x Pit",
+     "kind": "news",
+     "start": 738,
+     "end": 767,
+     "ad": false
+    },
+    {
+     "title": "Les annonces du Galaxy Showcase",
+     "game": null,
+     "kind": null,
+     "start": 768,
+     "end": 824,
+     "ad": false
+    },
+    {
+     "title": "Solasta 2 arrive en accès anticipé début 2026",
+     "game": "Solasta 2",
+     "kind": "news",
+     "start": 825,
+     "end": 835,
+     "ad": false
+    },
+    {
+     "title": "Mouse: P.I. For Hire dévoile sa date de sortie",
+     "game": "Mouse: P.I. For Hire",
+     "kind": "news",
+     "start": 836,
+     "end": 863,
+     "ad": false
+    },
+    {
+     "title": "Sleep Awake sortira en décembre",
+     "game": "Sleep Awake",
+     "kind": "news",
+     "start": 864,
+     "end": 923,
+     "ad": false
+    },
+    {
+     "title": "Le Kirby Air Riders Direct 2",
+     "game": "Kirby Air Riders",
+     "kind": "news",
+     "start": 924,
+     "end": 1356,
+     "ad": false
+    },
+    {
+     "title": "Restructurations dans les studios d’Ubisoft",
+     "game": null,
+     "kind": null,
+     "start": 1357,
+     "end": 1679,
+     "ad": false
+    },
+    {
+     "title": "Les objectifs de rentabilité de Microsoft et leurs effets",
+     "game": null,
+     "kind": null,
+     "start": 1680,
+     "end": 2103,
+     "ad": false
+    },
+    {
+     "title": "Critique de Keeper",
+     "game": "Keeper",
+     "kind": "review",
+     "start": 2104,
+     "end": 3292,
+     "ad": false
+    },
+    {
+     "title": "Critique de Vampire: The Masquerade – Bloodlines 2",
+     "game": "Vampire: The Masquerade – Bloodlines 2",
+     "kind": "review",
+     "start": 3293,
+     "end": 4234,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour Happy Cali Family",
+     "game": null,
+     "kind": null,
+     "start": 4235,
+     "end": 4262,
+     "ad": true
+    },
+    {
+     "title": "Critique de Vampire: The Masquerade – Bloodlines 2",
+     "game": "Vampire: The Masquerade – Bloodlines 2",
+     "kind": "review",
+     "start": 4263,
+     "end": 4982,
+     "ad": false
+    },
+    {
+     "title": "Critique de Ninja Gaiden 4",
+     "game": "Ninja Gaiden 4",
+     "kind": "review",
+     "start": 4983,
+     "end": 6848,
+     "ad": false
+    },
+    {
+     "title": "Recommandation culturelle : Gaouta sur TikTok",
+     "game": null,
+     "kind": null,
+     "start": 6849,
+     "end": 7174,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour La Matinée Étienne",
+     "game": null,
+     "kind": null,
+     "start": 7175,
+     "end": 7204,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Keeper": 348217,
+    "Vampire: The Masquerade – Bloodlines 2": 116530,
+    "Ninja Gaiden 4": 329130
+   },
+   "tests": [
+    "Keeper",
+    "Ninja Gaiden 4",
+    "Vampire: The Masquerade – Bloodlines 2"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Keeper",
+     "start": 2104
+    },
+    {
+     "game": "Ninja Gaiden 4",
+     "start": 4983
+    },
+    {
+     "game": "Vampire: The Masquerade – Bloodlines 2",
+     "start": 3293
+    }
+   ]
+  },
+  {
+   "guid": "6aad59c97aa361c6129085e6",
+   "podcast": "origami",
+   "title": "S04E01 - Orbitals, Onimusha : Way of the Sword et Marvel's Wolverine",
+   "pub_ts": 1789889400,
+   "proposed": [
+    {
+     "name": "Orbitals",
+     "timestamp": "00:49:13",
+     "seconds": 2953
+    },
+    {
+     "name": "Onimusha: Way of the Sword",
+     "timestamp": "01:16:22",
+     "seconds": 4582
+    },
+    {
+     "name": "Marvel's Wolverine",
+     "timestamp": "01:39:09",
+     "seconds": 5949
+    },
+    {
+     "name": "Denshattack!",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Sovereign Tower",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Blue Prince",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Stackmon",
+     "timestamp": null,
+     "seconds": 0
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Message de soutien à Origami",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 10,
+     "ad": true
+    },
+    {
+     "title": "Retour de L’Hebdo et présentation de l’équipe",
+     "game": null,
+     "kind": null,
+     "start": 10,
+     "end": 206,
+     "ad": false
+    },
+    {
+     "title": "Partenaire : Top HH",
+     "game": null,
+     "kind": null,
+     "start": 206,
+     "end": 226,
+     "ad": true
+    },
+    {
+     "title": "Steam Frame : prix et précommandes du casque de Valve",
+     "game": null,
+     "kind": null,
+     "start": 226,
+     "end": 418,
+     "ad": false
+    },
+    {
+     "title": "Physint : Kojima change de partenaire",
+     "game": "Physint",
+     "kind": "news",
+     "start": 418,
+     "end": 704,
+     "ad": false
+    },
+    {
+     "title": "GTA VI : les réactions au nouveau trailer",
+     "game": "Grand Theft Auto VI",
+     "kind": "news",
+     "start": 704,
+     "end": 1108,
+     "ad": false
+    },
+    {
+     "title": "Monster Hunter Wilds : l’extension Ascendance se dévoile",
+     "game": "Monster Hunter Wilds",
+     "kind": "news",
+     "start": 1108,
+     "end": 1598,
+     "ad": false
+    },
+    {
+     "title": "BlizzCon 2026 : Blizzard ressort ses licences",
+     "game": null,
+     "kind": null,
+     "start": 1598,
+     "end": 2240,
+     "ad": false
+    },
+    {
+     "title": "Heart Machine au bord de la fermeture",
+     "game": null,
+     "kind": null,
+     "start": 2240,
+     "end": 2468,
+     "ad": false
+    },
+    {
+     "title": "Chiffres de vente et calendrier des sorties",
+     "game": null,
+     "kind": null,
+     "start": 2468,
+     "end": 2712,
+     "ad": false
+    },
+    {
+     "title": "Internet Explorer et le festival de la BPI",
+     "game": null,
+     "kind": null,
+     "start": 2712,
+     "end": 2874,
+     "ad": false
+    },
+    {
+     "title": "Présentation de la newsletter Serious Gaming",
+     "game": null,
+     "kind": null,
+     "start": 2874,
+     "end": 2953,
+     "ad": false
+    },
+    {
+     "title": "Orbitals : une aventure coopérative splendide mais répétitive",
+     "game": "Orbitals",
+     "kind": "review",
+     "start": 2953,
+     "end": 4463,
+     "ad": false
+    },
+    {
+     "title": "Une interview croisée sur Jusant et Cairn",
+     "game": null,
+     "kind": null,
+     "start": 4463,
+     "end": 4582,
+     "ad": false
+    },
+    {
+     "title": "Onimusha: Way of the Sword : un système de combat trop superficiel",
+     "game": "Onimusha: Way of the Sword",
+     "kind": "review",
+     "start": 4582,
+     "end": 5556,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le podcast Cahiers de Brouillon",
+     "game": null,
+     "kind": null,
+     "start": 5556,
+     "end": 5586,
+     "ad": true
+    },
+    {
+     "title": "Onimusha: Way of the Sword : un beau spectacle qui s’essouffle",
+     "game": "Onimusha: Way of the Sword",
+     "kind": "review",
+     "start": 5586,
+     "end": 5949,
+     "ad": false
+    },
+    {
+     "title": "Marvel’s Wolverine : une formule répétitive mal adaptée au héros",
+     "game": "Marvel's Wolverine",
+     "kind": "review",
+     "start": 5949,
+     "end": 7411,
+     "ad": false
+    },
+    {
+     "title": "Denshattack! : une proposition inventive mais épuisante",
+     "game": "Denshattack!",
+     "kind": "impressions",
+     "start": 7411,
+     "end": 7479,
+     "ad": false
+    },
+    {
+     "title": "Hollow Knight: Silksong, une tentative vite abandonnée",
+     "game": "Hollow Knight: Silksong",
+     "kind": "mention",
+     "start": 7479,
+     "end": 7505,
+     "ad": false
+    },
+    {
+     "title": "Sovereign Tower : un jeu de gestion narratif à découvrir",
+     "game": "Sovereign Tower",
+     "kind": "review",
+     "start": 7505,
+     "end": 7594,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le podcast Tchatcheuse",
+     "game": null,
+     "kind": null,
+     "start": 7594,
+     "end": 7621,
+     "ad": true
+    },
+    {
+     "title": "Blue Prince : une expérience plaisante à petites doses",
+     "game": "Blue Prince",
+     "kind": "impressions",
+     "start": 7621,
+     "end": 7749,
+     "ad": false
+    },
+    {
+     "title": "Stackmon : un jeu de cartes captivant sur Steam Deck",
+     "game": "Stackmon",
+     "kind": "review",
+     "start": 7749,
+     "end": 7818,
+     "ad": false
+    },
+    {
+     "title": "Happy Endings : trois histoires tendres en bande dessinée",
+     "game": null,
+     "kind": null,
+     "start": 7818,
+     "end": 8306,
+     "ad": false
+    },
+    {
+     "title": "Chernobyl : une mini-série passionnante et sinistre",
+     "game": null,
+     "kind": null,
+     "start": 8306,
+     "end": 8775,
+     "ad": false
+    },
+    {
+     "title": "Conclusion de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 8775,
+     "end": 8877,
+     "ad": false
+    },
+    {
+     "title": "Publicité pour le podcast Mystères et Légendes",
+     "game": null,
+     "kind": null,
+     "start": 8877,
+     "end": 8905,
+     "ad": true
+    }
+   ],
+   "pages": {
+    "Orbitals": 381237,
+    "Onimusha: Way of the Sword": 325602,
+    "Marvel's Wolverine": 168667,
+    "Denshattack!": null,
+    "Sovereign Tower": null,
+    "Blue Prince": null,
+    "Stackmon": null
+   },
+   "tests": [
+    "Marvel's Wolverine",
+    "Onimusha: Way of the Sword",
+    "Orbitals"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Marvel's Wolverine",
+     "start": 5949
+    },
+    {
+     "game": "Onimusha: Way of the Sword",
+     "start": 4582
+    },
+    {
+     "game": "Orbitals",
+     "start": 2953
+    }
+   ]
+  },
+  {
+   "guid": "http://feeds.soundcloud.com/stream/163097182-zqsd-1-hs1-jour-1-gc2014.mp3",
+   "podcast": "zqsd",
+   "title": "ZQSD HS1 Jour 1",
+   "pub_ts": 1408010400,
+   "proposed": [
+    {
+     "name": "Evolve",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "The Talos Principle",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "The Witcher 3",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Bloodborne",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Project CARS",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Elite Dangerous",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Hellraid",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Wander",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "The Next Penelope",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Pneuma",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Sid Meier's Civilization: Beyond Earth",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Gauntlet",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Assassin's Creed Rogue",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Battlefield Hardline",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Pillars of Eternity",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Might & Magic Heroes VII",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Gang Beasts",
+     "timestamp": null,
+     "seconds": 0
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Introduction et présentation de l’équipe",
+     "game": null,
+     "kind": null,
+     "start": 1,
+     "end": 152,
+     "ad": false
+    },
+    {
+     "title": "Premières impressions sur Evolve",
+     "game": "Evolve",
+     "kind": "impressions",
+     "start": 152,
+     "end": 312,
+     "ad": false
+    },
+    {
+     "title": "Transition du bilan de la journée",
+     "game": null,
+     "kind": null,
+     "start": 312,
+     "end": 329,
+     "ad": false
+    },
+    {
+     "title": "Découverte de The Talos Principle",
+     "game": "The Talos Principle",
+     "kind": "impressions",
+     "start": 329,
+     "end": 379,
+     "ad": false
+    },
+    {
+     "title": "Bilan et déceptions de la journée",
+     "game": null,
+     "kind": null,
+     "start": 379,
+     "end": 391,
+     "ad": false
+    },
+    {
+     "title": "Présentation de The Witcher 3",
+     "game": "The Witcher 3",
+     "kind": "impressions",
+     "start": 391,
+     "end": 489,
+     "ad": false
+    },
+    {
+     "title": "Premières impressions sur Bloodborne",
+     "game": "Bloodborne",
+     "kind": "impressions",
+     "start": 489,
+     "end": 583,
+     "ad": false
+    },
+    {
+     "title": "Project CARS avec l’Oculus Rift",
+     "game": "Project CARS",
+     "kind": "impressions",
+     "start": 583,
+     "end": 639,
+     "ad": false
+    },
+    {
+     "title": "Présentation de l’invitée et transition",
+     "game": null,
+     "kind": null,
+     "start": 639,
+     "end": 718,
+     "ad": false
+    },
+    {
+     "title": "Elite Dangerous en réalité virtuelle",
+     "game": "Elite Dangerous",
+     "kind": "impressions",
+     "start": 718,
+     "end": 758,
+     "ad": false
+    },
+    {
+     "title": "Découverte de Hellraid",
+     "game": "Hellraid",
+     "kind": "impressions",
+     "start": 758,
+     "end": 848,
+     "ad": false
+    },
+    {
+     "title": "Un homme-arbre dans Wander",
+     "game": "Wander",
+     "kind": "impressions",
+     "start": 848,
+     "end": 1008,
+     "ad": false
+    },
+    {
+     "title": "The Next Penelope et ses circuits renouvelés",
+     "game": "The Next Penelope",
+     "kind": "impressions",
+     "start": 1008,
+     "end": 1097,
+     "ad": false
+    },
+    {
+     "title": "Découverte de Pneuma",
+     "game": "Pneuma",
+     "kind": "impressions",
+     "start": 1097,
+     "end": 1189,
+     "ad": false
+    },
+    {
+     "title": "Transition vers les jeux vus par Force Rose",
+     "game": null,
+     "kind": null,
+     "start": 1189,
+     "end": 1219,
+     "ad": false
+    },
+    {
+     "title": "Présentation de Civilization: Beyond Earth",
+     "game": "Sid Meier's Civilization: Beyond Earth",
+     "kind": "impressions",
+     "start": 1219,
+     "end": 1251,
+     "ad": false
+    },
+    {
+     "title": "Retour sur le remake de Gauntlet",
+     "game": "Gauntlet",
+     "kind": "impressions",
+     "start": 1251,
+     "end": 1291,
+     "ad": false
+    },
+    {
+     "title": "Civilization: Beyond Earth et son arbre technologique",
+     "game": "Sid Meier's Civilization: Beyond Earth",
+     "kind": "impressions",
+     "start": 1291,
+     "end": 1348,
+     "ad": false
+    },
+    {
+     "title": "Bilan de Bruno avant ses rendez-vous de jeu",
+     "game": null,
+     "kind": null,
+     "start": 1348,
+     "end": 1381,
+     "ad": false
+    },
+    {
+     "title": "Assassin’s Creed Rogue et ses batailles navales",
+     "game": "Assassin's Creed Rogue",
+     "kind": "impressions",
+     "start": 1381,
+     "end": 1481,
+     "ad": false
+    },
+    {
+     "title": "Premières impressions sur Battlefield Hardline",
+     "game": "Battlefield Hardline",
+     "kind": "impressions",
+     "start": 1481,
+     "end": 1556,
+     "ad": false
+    },
+    {
+     "title": "La démonstration de Pillars of Eternity",
+     "game": "Pillars of Eternity",
+     "kind": "impressions",
+     "start": 1556,
+     "end": 1621,
+     "ad": false
+    },
+    {
+     "title": "Premières impressions sur Might & Magic Heroes VII",
+     "game": "Might & Magic Heroes VII",
+     "kind": "impressions",
+     "start": 1621,
+     "end": 1772,
+     "ad": false
+    },
+    {
+     "title": "Bilan rapide de plusieurs jeux",
+     "game": null,
+     "kind": null,
+     "start": 1772,
+     "end": 1805,
+     "ad": false
+    },
+    {
+     "title": "Gang Beasts, une bagarre fondée sur la physique",
+     "game": "Gang Beasts",
+     "kind": "impressions",
+     "start": 1805,
+     "end": 1889,
+     "ad": false
+    },
+    {
+     "title": "La saucisse polonaise et transition vers les stands",
+     "game": null,
+     "kind": null,
+     "start": 1889,
+     "end": 1919,
+     "ad": false
+    },
+    {
+     "title": "Les grands stands de la Gamescom",
+     "game": null,
+     "kind": null,
+     "start": 1919,
+     "end": 1971,
+     "ad": false
+    },
+    {
+     "title": "Les matchs de League of Legends à la Gamescom",
+     "game": "League of Legends",
+     "kind": "mention",
+     "start": 1971,
+     "end": 2051,
+     "ad": false
+    },
+    {
+     "title": "Le quotidien des exposants et les rendez-vous professionnels",
+     "game": null,
+     "kind": null,
+     "start": 2051,
+     "end": 2379,
+     "ad": false
+    },
+    {
+     "title": "Le travail de localisation et de doublage",
+     "game": null,
+     "kind": null,
+     "start": 2379,
+     "end": 2782,
+     "ad": false
+    },
+    {
+     "title": "Une affiche annonce un jeu Rambo",
+     "game": "Rambo: The Video Game",
+     "kind": "news",
+     "start": 2782,
+     "end": 2827,
+     "ad": false
+    },
+    {
+     "title": "Récompenses improvisées et fin du débrief",
+     "game": null,
+     "kind": null,
+     "start": 2827,
+     "end": 2870,
+     "ad": false
+    },
+    {
+     "title": "Remerciements et générique de fin",
+     "game": null,
+     "kind": null,
+     "start": 2870,
+     "end": 2950,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Evolve": null,
+    "The Talos Principle": null,
+    "The Witcher 3": null,
+    "Bloodborne": null,
+    "Project CARS": null,
+    "Elite Dangerous": null,
+    "Hellraid": null,
+    "Wander": null,
+    "The Next Penelope": null,
+    "Pneuma": null,
+    "Sid Meier's Civilization: Beyond Earth": null,
+    "Gauntlet": null,
+    "Assassin's Creed Rogue": null,
+    "Battlefield Hardline": null,
+    "Pillars of Eternity": null,
+    "Might & Magic Heroes VII": null,
+    "Gang Beasts": null
+   },
+   "tests": [],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": []
+  },
+  {
+   "guid": "http://feeds.soundcloud.com/stream/235577687-zqsd-1-33-le-jardinopodcast.mp3",
+   "podcast": "zqsd",
+   "title": "ZQSD #33",
+   "pub_ts": 1448956800,
+   "proposed": [
+    {
+     "name": "The Flame in the Flood",
+     "timestamp": "00:31:38",
+     "seconds": 1898
+    },
+    {
+     "name": "Jotun",
+     "timestamp": "01:38:56",
+     "seconds": 5936
+    },
+    {
+     "name": "A Good Gardener",
+     "timestamp": "01:50:50",
+     "seconds": 6650
+    },
+    {
+     "name": "Fallout 4",
+     "timestamp": "02:02:16",
+     "seconds": 7336
+    },
+    {
+     "name": "The Battle of Olympus",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Soleil",
+     "timestamp": null,
+     "seconds": 0
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Introduction et remerciements",
+     "game": null,
+     "kind": null,
+     "start": 22,
+     "end": 430,
+     "ad": false
+    },
+    {
+     "title": "Actualité — Konami finance une prothèse inspirée de Metal Gear",
+     "game": null,
+     "kind": null,
+     "start": 430,
+     "end": 783,
+     "ad": false
+    },
+    {
+     "title": "Orcanon Odyssey : sortie et modèle épisodique controversé",
+     "game": "Orcanon Odyssey",
+     "kind": "news",
+     "start": 783,
+     "end": 1212,
+     "ad": false
+    },
+    {
+     "title": "Arcanum 2 : un projet oublié refait surface",
+     "game": "Arcanum 2",
+     "kind": "news",
+     "start": 1212,
+     "end": 1339,
+     "ad": false
+    },
+    {
+     "title": "Deus Ex: Mankind Divided repoussé de six mois",
+     "game": "Deus Ex: Mankind Divided",
+     "kind": "news",
+     "start": 1339,
+     "end": 1820,
+     "ad": false
+    },
+    {
+     "title": "Fallout 4 et ses précommandes : le contre-exemple",
+     "game": "Fallout 4",
+     "kind": "news",
+     "start": 1820,
+     "end": 1898,
+     "ad": false
+    },
+    {
+     "title": "Aperçu de The Flame in the Flood",
+     "game": "The Flame in the Flood",
+     "kind": "impressions",
+     "start": 1898,
+     "end": 2364,
+     "ad": false
+    },
+    {
+     "title": "Dossier — Valve et son matériel pour le salon",
+     "game": null,
+     "kind": null,
+     "start": 2364,
+     "end": 4642,
+     "ad": false
+    },
+    {
+     "title": "Quiz : les scènes de sexe dans les jeux vidéo",
+     "game": null,
+     "kind": null,
+     "start": 4642,
+     "end": 5936,
+     "ad": false
+    },
+    {
+     "title": "Jotun : exploration nordique et combats de géants",
+     "game": "Jotun",
+     "kind": "review",
+     "start": 5936,
+     "end": 6650,
+     "ad": false
+    },
+    {
+     "title": "A Good Gardener : jardiner dans un récit de guerre",
+     "game": "A Good Gardener",
+     "kind": "review",
+     "start": 6650,
+     "end": 7336,
+     "ad": false
+    },
+    {
+     "title": "Fallout 4 : un monde captivant malgré ses défauts",
+     "game": "Fallout 4",
+     "kind": "review",
+     "start": 7336,
+     "end": 9064,
+     "ad": false
+    },
+    {
+     "title": "The Battle of Olympus : un jeu jugé médiocre",
+     "game": "The Battle of Olympus",
+     "kind": "review",
+     "start": 9064,
+     "end": 9133,
+     "ad": false
+    },
+    {
+     "title": "Soleil : une aventure à la fin touchante",
+     "game": "Soleil",
+     "kind": "review",
+     "start": 9133,
+     "end": 9277,
+     "ad": false
+    },
+    {
+     "title": "David Bowie : le single Blackstar",
+     "game": null,
+     "kind": null,
+     "start": 9277,
+     "end": 9404,
+     "ad": false
+    },
+    {
+     "title": "Recommandation — The Witcher 3: Hearts of Stone",
+     "game": "The Witcher 3: Wild Hunt – Hearts of Stone",
+     "kind": "recommendation",
+     "start": 9404,
+     "end": 9620,
+     "ad": false
+    },
+    {
+     "title": "Recommandation — la série Mr. Robot",
+     "game": null,
+     "kind": null,
+     "start": 9620,
+     "end": 9815,
+     "ad": false
+    },
+    {
+     "title": "Recommandation — Crazy Amy",
+     "game": null,
+     "kind": null,
+     "start": 9815,
+     "end": 10023,
+     "ad": false
+    },
+    {
+     "title": "Autres recommandations et conclusion",
+     "game": null,
+     "kind": null,
+     "start": 10023,
+     "end": 10403,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "The Flame in the Flood": 9732,
+    "Jotun": 14147,
+    "A Good Gardener": 59423,
+    "Fallout 4": 9630,
+    "The Battle of Olympus": null,
+    "Soleil": null
+   },
+   "tests": [
+    "A Good Gardener",
+    "Fallout 4",
+    "Jotun",
+    "The Flame in the Flood"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "A Good Gardener",
+     "start": 6650
+    },
+    {
+     "game": "Fallout 4",
+     "start": 7336
+    },
+    {
+     "game": "Jotun",
+     "start": 5936
+    },
+    {
+     "game": "The Flame in the Flood",
+     "start": 1898
+    }
+   ]
+  },
+  {
+   "guid": "https://feeds.soundcloud.com/stream/902109703-zqsd-1-76-microsoft-hades-et-crusader-kings-iii.mp3",
+   "podcast": "zqsd",
+   "title": "ZQSD #77",
+   "pub_ts": 1601424000,
+   "proposed": [
+    {
+     "name": "Hades",
+     "timestamp": "00:43:02",
+     "seconds": 2582
+    },
+    {
+     "name": "Crusader Kings III",
+     "timestamp": "00:58:11",
+     "seconds": 3491
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Retrouvailles et présentation de l’émission",
+     "game": null,
+     "kind": null,
+     "start": 2,
+     "end": 440,
+     "ad": false
+    },
+    {
+     "title": "Microsoft rachète Bethesda et mise sur le Game Pass",
+     "game": null,
+     "kind": null,
+     "start": 440,
+     "end": 2582,
+     "ad": false
+    },
+    {
+     "title": "Hades : un roguelite infernal et remarquablement écrit",
+     "game": "Hades",
+     "kind": "review",
+     "start": 2582,
+     "end": 3491,
+     "ad": false
+    },
+    {
+     "title": "Crusader Kings III : des histoires de dynastie à l’infini",
+     "game": "Crusader Kings III",
+     "kind": "review",
+     "start": 3491,
+     "end": 5454,
+     "ad": false
+    },
+    {
+     "title": "Le magazine, les autres projets et les adieux",
+     "game": null,
+     "kind": null,
+     "start": 5454,
+     "end": 5771,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Hades": 113112,
+    "Crusader Kings III": 124954
+   },
+   "tests": [
+    "Crusader Kings III",
+    "Hades"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Crusader Kings III",
+     "start": 3491
+    },
+    {
+     "game": "Hades",
+     "start": 2582
+    }
+   ]
+  },
+  {
+   "guid": "http://feeds.soundcloud.com/stream/1317014146-zqsd-1-85-cest-pas-stray-prepare-tout-ca.mp3",
+   "podcast": "zqsd",
+   "title": "ZQSD #85 - Un podcast pas Stray Stray préparé",
+   "pub_ts": 1659484800,
+   "proposed": [
+    {
+     "name": "Stray",
+     "timestamp": "00:12:04",
+     "seconds": 724
+    },
+    {
+     "name": "Last Call BBS",
+     "timestamp": "00:36:13",
+     "seconds": 2173
+    },
+    {
+     "name": "Madison",
+     "timestamp": "01:10:42",
+     "seconds": 4242
+    },
+    {
+     "name": "Resident Evil 2",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Resident Evil 3",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "As Dusk Falls",
+     "timestamp": "01:36:46",
+     "seconds": 5806
+    },
+    {
+     "name": "Sniper Elite 5",
+     "timestamp": "01:53:38",
+     "seconds": 6818
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Un podcast d’été sans préparation",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 194,
+     "ad": false
+    },
+    {
+     "title": "Retour à la Gamescom",
+     "game": null,
+     "kind": null,
+     "start": 194,
+     "end": 550,
+     "ad": false
+    },
+    {
+     "title": "Patreon et remerciements",
+     "game": null,
+     "kind": null,
+     "start": 550,
+     "end": 670,
+     "ad": false
+    },
+    {
+     "title": "Une vidéo recommandée sur The Stanley Parable: Ultra Deluxe",
+     "game": "The Stanley Parable: Ultra Deluxe",
+     "kind": "recommendation",
+     "start": 670,
+     "end": 724,
+     "ad": false
+    },
+    {
+     "title": "Stray : un chat dans une ville de robots",
+     "game": "Stray",
+     "kind": "review",
+     "start": 724,
+     "end": 2173,
+     "ad": false
+    },
+    {
+     "title": "Last Call BBS : les jeux d’ingénieurs à l’ancienne",
+     "game": "Last Call BBS",
+     "kind": "review",
+     "start": 2173,
+     "end": 3265,
+     "ad": false
+    },
+    {
+     "title": "Blind test de musiques de jeux vidéo",
+     "game": null,
+     "kind": null,
+     "start": 3265,
+     "end": 4242,
+     "ad": false
+    },
+    {
+     "title": "Madison : un jeu d’horreur généreux mais brouillon",
+     "game": "Madison",
+     "kind": "review",
+     "start": 4242,
+     "end": 5426,
+     "ad": false
+    },
+    {
+     "title": "Resident Evil 2 Remake",
+     "game": "Resident Evil 2",
+     "kind": "review",
+     "start": 5426,
+     "end": 5616,
+     "ad": false
+    },
+    {
+     "title": "Resident Evil 3 Remake",
+     "game": "Resident Evil 3",
+     "kind": "review",
+     "start": 5616,
+     "end": 5671,
+     "ad": false
+    },
+    {
+     "title": "As Dusk Falls évoqué avant l’interruption",
+     "game": "As Dusk Falls",
+     "kind": "mention",
+     "start": 5671,
+     "end": 5679,
+     "ad": false
+    },
+    {
+     "title": "La mise à jour des Sims 4",
+     "game": "Les Sims 4",
+     "kind": "news",
+     "start": 5679,
+     "end": 5806,
+     "ad": false
+    },
+    {
+     "title": "As Dusk Falls : des choix qui sonnent faux",
+     "game": "As Dusk Falls",
+     "kind": "review",
+     "start": 5806,
+     "end": 6818,
+     "ad": false
+    },
+    {
+     "title": "Sniper Elite 5 : un bac à sable d’infiltration",
+     "game": "Sniper Elite 5",
+     "kind": "review",
+     "start": 6818,
+     "end": 7224,
+     "ad": false
+    },
+    {
+     "title": "Actualités du magazine et des consoles rétro",
+     "game": null,
+     "kind": null,
+     "start": 7224,
+     "end": 7484,
+     "ad": false
+    },
+    {
+     "title": "Remerciements et au revoir",
+     "game": null,
+     "kind": null,
+     "start": 7484,
+     "end": 7625,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Stray": 110248,
+    "Last Call BBS": 205064,
+    "Madison": 164243,
+    "Resident Evil 2": null,
+    "Resident Evil 3": null,
+    "As Dusk Falls": 135995,
+    "Sniper Elite 5": 116238
+   },
+   "tests": [
+    "As Dusk Falls",
+    "Last Call BBS",
+    "Madison",
+    "Sniper Elite 5",
+    "Stray"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "As Dusk Falls",
+     "start": 5806
+    },
+    {
+     "game": "Last Call BBS",
+     "start": 2173
+    },
+    {
+     "game": "Madison",
+     "start": 4242
+    },
+    {
+     "game": "Sniper Elite 5",
+     "start": 6818
+    },
+    {
+     "game": "Stray",
+     "start": 724
+    }
+   ]
+  },
+  {
+   "guid": "http://feeds.soundcloud.com/stream/1436469994-zqsd-1-zqsdeux-22-2023-avec-hoopy-special-10-ans-de-zqsd.mp3",
+   "podcast": "zqsd",
+   "title": "ZQSDeux #22 - 2023 avec Hoopy - Spécial 10 ans de ZQSD",
+   "pub_ts": 1675123200,
+   "proposed": [],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Introduction et attentes pour 2023",
+     "game": null,
+     "kind": null,
+     "start": 22,
+     "end": 206,
+     "ad": false
+    },
+    {
+     "title": "Pikmin 4, une attente encore mystérieuse",
+     "game": "Pikmin 4",
+     "kind": "news",
+     "start": 206,
+     "end": 271,
+     "ad": false
+    },
+    {
+     "title": "Hades II, la suite attendue de Supergiant",
+     "game": "Hades II",
+     "kind": "news",
+     "start": 271,
+     "end": 423,
+     "ad": false
+    },
+    {
+     "title": "Kingdom Eighties, retour aux années 80",
+     "game": "Kingdom Eighties",
+     "kind": "news",
+     "start": 423,
+     "end": 706,
+     "ad": false
+    },
+    {
+     "title": "Mina the Hollower, une aventure pixelisée",
+     "game": "Mina the Hollower",
+     "kind": "news",
+     "start": 706,
+     "end": 922,
+     "ad": false
+    },
+    {
+     "title": "The Last Faith, entre Castlevania et Bloodborne",
+     "game": "The Last Faith",
+     "kind": "news",
+     "start": 922,
+     "end": 1052,
+     "ad": false
+    },
+    {
+     "title": "Hollow Knight: Silksong, l’attente interminable",
+     "game": "Hollow Knight: Silksong",
+     "kind": "news",
+     "start": 1052,
+     "end": 1192,
+     "ad": false
+    },
+    {
+     "title": "Wo Long: Fallen Dynasty",
+     "game": "Wo Long: Fallen Dynasty",
+     "kind": "mention",
+     "start": 1192,
+     "end": 1212,
+     "ad": false
+    },
+    {
+     "title": "Lies of P",
+     "game": "Lies of P",
+     "kind": "mention",
+     "start": 1212,
+     "end": 1227,
+     "ad": false
+    },
+    {
+     "title": "The Plucky Squire, une curiosité entre 2D et 3D",
+     "game": "The Plucky Squire",
+     "kind": "news",
+     "start": 1227,
+     "end": 1286,
+     "ad": false
+    },
+    {
+     "title": "Skate Story et son trailer marquant",
+     "game": "Skate Story",
+     "kind": "mention",
+     "start": 1286,
+     "end": 1316,
+     "ad": false
+    },
+    {
+     "title": "Conclusion et au revoir",
+     "game": null,
+     "kind": null,
+     "start": 1316,
+     "end": 1388,
+     "ad": false
+    }
+   ],
+   "pages": {},
+   "tests": [],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": []
+  },
+  {
+   "guid": "6a4697b404fac73b244ef740",
+   "podcast": "zqsd",
+   "title": "ZQSD #113 - Canicule Game Fest",
+   "pub_ts": 1783014828,
+   "proposed": [
+    {
+     "name": "Onimusha: Way of the Sword",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Resonance: A Plague Tale Legacy",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Tenebris Somnia",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Shroom and Gloom",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Valor Mortis",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Catechesis",
+     "timestamp": null,
+     "seconds": 0
+    },
+    {
+     "name": "Crushed in Time",
+     "timestamp": "01:52:27",
+     "seconds": 6747
+    },
+    {
+     "name": "Phonopolis",
+     "timestamp": "02:11:32",
+     "seconds": 7892
+    },
+    {
+     "name": "Saros",
+     "timestamp": "02:23:30",
+     "seconds": 8610
+    }
+   ],
+   "chapters": [
+    {
+     "title": "Summer Game Fest 2026 : tous les jeux, toutes les confs, décortiquées (non)",
+     "timestamp": "09:45",
+     "seconds": 585,
+     "game": null
+    },
+    {
+     "title": "Le quizz à tiroirs de Deez, qui commence mal mais finit bien.",
+     "timestamp": "01:24:50",
+     "seconds": 5090,
+     "game": null
+    },
+    {
+     "title": "Critiques : Crushed in Time, Phonopolis, Saros",
+     "timestamp": "01:52:36",
+     "seconds": 6756,
+     "game": null
+    }
+   ],
+   "sections": [
+    {
+     "title": "Générique et introduction",
+     "game": null,
+     "kind": null,
+     "start": 0,
+     "end": 197,
+     "ad": false
+    },
+    {
+     "title": "Patreon et hors-série Zelda",
+     "game": null,
+     "kind": null,
+     "start": 197,
+     "end": 569,
+     "ad": false
+    },
+    {
+     "title": "Summer Game Fest : tour d’horizon des conférences",
+     "game": null,
+     "kind": null,
+     "start": 569,
+     "end": 713,
+     "ad": false
+    },
+    {
+     "title": "Un survival avec des dinosaures",
+     "game": "The Lost Wild",
+     "kind": "news",
+     "start": 713,
+     "end": 898,
+     "ad": false
+    },
+    {
+     "title": "Transition vers les grosses annonces",
+     "game": null,
+     "kind": null,
+     "start": 898,
+     "end": 908,
+     "ad": false
+    },
+    {
+     "title": "Resident Evil Veronica : le remake annoncé",
+     "game": "Resident Evil Veronica",
+     "kind": "news",
+     "start": 908,
+     "end": 1469,
+     "ad": false
+    },
+    {
+     "title": "Gen Atlas, le nouveau jeu de Fumito Ueda",
+     "game": "Gen Atlas",
+     "kind": "news",
+     "start": 1469,
+     "end": 1678,
+     "ad": false
+    },
+    {
+     "title": "Transition vers les autres grosses annonces",
+     "game": null,
+     "kind": null,
+     "start": 1678,
+     "end": 1706,
+     "ad": false
+    },
+    {
+     "title": "God of War : Faye",
+     "game": "God of War: Faye",
+     "kind": "news",
+     "start": 1706,
+     "end": 2073,
+     "ad": false
+    },
+    {
+     "title": "Apple Crumble, un jeu d’enquête familial",
+     "game": "Apple Crumble",
+     "kind": "news",
+     "start": 2100,
+     "end": 2240,
+     "ad": false
+    },
+    {
+     "title": "Une pie incendiaire dans Bad Backpipe",
+     "game": "Bad Backpipe",
+     "kind": "news",
+     "start": 2240,
+     "end": 2324,
+     "ad": false
+    },
+    {
+     "title": "Conférences couvertes et wishlist",
+     "game": null,
+     "kind": null,
+     "start": 2324,
+     "end": 2386,
+     "ad": false
+    },
+    {
+     "title": "Onimusha: Way of the Sword, premières impressions de la démo",
+     "game": "Onimusha: Way of the Sword",
+     "kind": "impressions",
+     "start": 2386,
+     "end": 2647,
+     "ad": false
+    },
+    {
+     "title": "Cygnet City, un jeu de rôle narratif fongique",
+     "game": "Cygnet City",
+     "kind": "news",
+     "start": 2647,
+     "end": 2852,
+     "ad": false
+    },
+    {
+     "title": "Resonance: A Plague Tale Legacy",
+     "game": "Resonance: A Plague Tale Legacy",
+     "kind": "impressions",
+     "start": 2852,
+     "end": 3053,
+     "ad": false
+    },
+    {
+     "title": "Pause et plaisanteries d’anniversaire",
+     "game": null,
+     "kind": null,
+     "start": 3053,
+     "end": 3061,
+     "ad": false
+    },
+    {
+     "title": "Bub, un jeu en papiers découpés",
+     "game": "Bub",
+     "kind": "news",
+     "start": 3061,
+     "end": 3221,
+     "ad": false
+    },
+    {
+     "title": "Bruma, un chat à la recherche de souvenirs",
+     "game": "Bruma",
+     "kind": "news",
+     "start": 3221,
+     "end": 3307,
+     "ad": false
+    },
+    {
+     "title": "Transition vers les annonces de JRPG",
+     "game": null,
+     "kind": null,
+     "start": 3307,
+     "end": 3335,
+     "ad": false
+    },
+    {
+     "title": "Xenoblade Genesis dévoilé",
+     "game": "Xenoblade Genesis",
+     "kind": "news",
+     "start": 3335,
+     "end": 3560,
+     "ad": false
+    },
+    {
+     "title": "Les DLC de Pokémon Pokopia",
+     "game": "Pokémon Pokopia",
+     "kind": "news",
+     "start": 3573,
+     "end": 3846,
+     "ad": false
+    },
+    {
+     "title": "Castlevania: Belmont’s Curse",
+     "game": "Castlevania: Belmont’s Curse",
+     "kind": "news",
+     "start": 3846,
+     "end": 3887,
+     "ad": false
+    },
+    {
+     "title": "El Paso, Elsewhere 2 annoncé",
+     "game": "El Paso, Elsewhere 2",
+     "kind": "news",
+     "start": 3887,
+     "end": 3947,
+     "ad": false
+    },
+    {
+     "title": "Exodus, un jeu de rôle spatial",
+     "game": "Exodus",
+     "kind": "news",
+     "start": 3947,
+     "end": 4101,
+     "ad": false
+    },
+    {
+     "title": "Tenebris Somnia : impressions de la démo",
+     "game": "Tenebris Somnia",
+     "kind": "impressions",
+     "start": 4101,
+     "end": 4210,
+     "ad": false
+    },
+    {
+     "title": "Shroom and Gloom : un dungeon crawler à cartes",
+     "game": "Shroom and Gloom",
+     "kind": "impressions",
+     "start": 4210,
+     "end": 4415,
+     "ad": false
+    },
+    {
+     "title": "Valor Mortis, un Soulslike à la première personne",
+     "game": "Valor Mortis",
+     "kind": "impressions",
+     "start": 4415,
+     "end": 4479,
+     "ad": false
+    },
+    {
+     "title": "Catechesis, horreur et imagerie religieuse",
+     "game": "Catechesis",
+     "kind": "impressions",
+     "start": 4479,
+     "end": 4615,
+     "ad": false
+    },
+    {
+     "title": "The Mermaid’s Mask et sa date de sortie",
+     "game": "The Mermaid’s Mask",
+     "kind": "news",
+     "start": 4615,
+     "end": 4645,
+     "ad": false
+    },
+    {
+     "title": "Carcasse Clad, un jeu coopératif en tank",
+     "game": "Carcasse Clad",
+     "kind": "news",
+     "start": 4645,
+     "end": 4753,
+     "ad": false
+    },
+    {
+     "title": "Ithaka, un road trip à suspense",
+     "game": "Ithaka",
+     "kind": "news",
+     "start": 4753,
+     "end": 4808,
+     "ad": false
+    },
+    {
+     "title": "When Sirens Fall Silent, enquête policière en Italie",
+     "game": "When Sirens Fall Silent",
+     "kind": "news",
+     "start": 4808,
+     "end": 4944,
+     "ad": false
+    },
+    {
+     "title": "Dynasty Warriors 3 revient en remake",
+     "game": "Dynasty Warriors 3",
+     "kind": "news",
+     "start": 4957,
+     "end": 5086,
+     "ad": false
+    },
+    {
+     "title": "Quiz : Coupe du monde, Zelda et culture de 1986",
+     "game": null,
+     "kind": null,
+     "start": 5086,
+     "end": 6721,
+     "ad": false
+    },
+    {
+     "title": "Présentation des critiques",
+     "game": null,
+     "kind": null,
+     "start": 6721,
+     "end": 6747,
+     "ad": false
+    },
+    {
+     "title": "Crushed in Time : un jeu d’énigmes méta qui divise",
+     "game": "Crushed in Time",
+     "kind": "review",
+     "start": 6747,
+     "end": 7892,
+     "ad": false
+    },
+    {
+     "title": "Phonopolis : une fable dystopique en carton",
+     "game": "Phonopolis",
+     "kind": "review",
+     "start": 7892,
+     "end": 8593,
+     "ad": false
+    },
+    {
+     "title": "Transition vers la critique de Saros",
+     "game": null,
+     "kind": null,
+     "start": 8593,
+     "end": 8610,
+     "ad": false
+    },
+    {
+     "title": "Saros : le successeur spirituel de Returnal",
+     "game": "Saros",
+     "kind": "review",
+     "start": 8610,
+     "end": 9977,
+     "ad": false
+    },
+    {
+     "title": "Outro et remerciements",
+     "game": null,
+     "kind": null,
+     "start": 9977,
+     "end": 10156,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Onimusha: Way of the Sword": null,
+    "Resonance: A Plague Tale Legacy": null,
+    "Tenebris Somnia": null,
+    "Shroom and Gloom": null,
+    "Valor Mortis": null,
+    "Catechesis": null,
+    "Crushed in Time": 362089,
+    "Phonopolis": 204549,
+    "Saros": 331215
+   },
+   "tests": [
+    "Crushed in Time",
+    "Phonopolis",
+    "Saros"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Crushed in Time",
+     "start": 6747
+    },
+    {
+     "game": "Phonopolis",
+     "start": 7892
+    },
+    {
+     "game": "Saros",
+     "start": 8610
+    }
+   ]
+  },
+  {
+   "guid": "http://feeds.soundcloud.com/stream/1771420701-zqsd-1-zqsdeux-28-citizen-sleeper-rencontre-avec-guillaume-singelin-et-eric-holweck.mp3",
+   "podcast": "zqsd",
+   "title": "ZQSDeux #28 - Citizen Sleeper avec Guillaume Singelin et Eric Holweck",
+   "pub_ts": 1710115200,
+   "proposed": [
+    {
+     "name": "Citizen Sleeper",
+     "timestamp": "00:01:20",
+     "seconds": 80
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Générique et introduction",
+     "game": null,
+     "kind": null,
+     "start": 1,
+     "end": 80,
+     "ad": false
+    },
+    {
+     "title": "Création et univers de Citizen Sleeper",
+     "game": "Citizen Sleeper",
+     "kind": "review",
+     "start": 80,
+     "end": 1318,
+     "ad": false
+    },
+    {
+     "title": "Traduire les jeux vidéo : de Baldur’s Gate 3 à Morrowind",
+     "game": null,
+     "kind": null,
+     "start": 1318,
+     "end": 2330,
+     "ad": false
+    },
+    {
+     "title": "Guillaume Singelin, de Citizen Sleeper à la bande dessinée Frontière",
+     "game": null,
+     "kind": null,
+     "start": 2330,
+     "end": 2588,
+     "ad": false
+    },
+    {
+     "title": "Les jeux vidéo qui ont nourri leur travail",
+     "game": null,
+     "kind": null,
+     "start": 2588,
+     "end": 2687,
+     "ad": false
+    },
+    {
+     "title": "Temps de jeu et relations dans Citizen Sleeper",
+     "game": "Citizen Sleeper",
+     "kind": "review",
+     "start": 2687,
+     "end": 2924,
+     "ad": false
+    },
+    {
+     "title": "Citizen Sleeper 2 : la suite se dévoile",
+     "game": "Citizen Sleeper 2",
+     "kind": "news",
+     "start": 2924,
+     "end": 3377,
+     "ad": false
+    },
+    {
+     "title": "Des personnages qui marquent les joueurs",
+     "game": null,
+     "kind": null,
+     "start": 3377,
+     "end": 3567,
+     "ad": false
+    },
+    {
+     "title": "Projets de traduction à venir",
+     "game": null,
+     "kind": null,
+     "start": 3567,
+     "end": 3659,
+     "ad": false
+    },
+    {
+     "title": "Remerciements et conclusion",
+     "game": null,
+     "kind": null,
+     "start": 3659,
+     "end": 3726,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Citizen Sleeper": 152271
+   },
+   "tests": [
+    "Citizen Sleeper"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Citizen Sleeper",
+     "start": 80
+    }
+   ]
+  },
+  {
+   "guid": "6a4e47ab1c8f5a97d853759e",
+   "podcast": "zqsd",
+   "title": "ZQSDeux #59 - Starfox et Rhythm Paradise Groove réenchantent la Switch 2",
+   "pub_ts": 1783515053,
+   "proposed": [
+    {
+     "name": "Star Fox 64",
+     "timestamp": "00:02:42",
+     "seconds": 162
+    },
+    {
+     "name": "Rhythm Paradise Groove",
+     "timestamp": "00:20:22",
+     "seconds": 1222
+    }
+   ],
+   "chapters": [],
+   "sections": [
+    {
+     "title": "Ouverture et présentation de l’épisode",
+     "game": null,
+     "kind": null,
+     "start": 1,
+     "end": 162,
+     "ad": false
+    },
+    {
+     "title": "Star Fox 64 : un remake arcade à savourer par petites sessions",
+     "game": "Star Fox 64",
+     "kind": "review",
+     "start": 162,
+     "end": 1222,
+     "ad": false
+    },
+    {
+     "title": "Rhythm Paradise Groove : des mini-jeux qui donnent le sourire",
+     "game": "Rhythm Paradise Groove",
+     "kind": "review",
+     "start": 1222,
+     "end": 2320,
+     "ad": false
+    },
+    {
+     "title": "Conclusion et salutations",
+     "game": null,
+     "kind": null,
+     "start": 2320,
+     "end": 2496,
+     "ad": false
+    }
+   ],
+   "pages": {
+    "Star Fox 64": 2591,
+    "Rhythm Paradise Groove": null
+   },
+   "tests": [
+    "Rhythm Paradise Groove",
+    "Star Fox 64"
+   ],
+   "not_tests": [],
+   "set": "nouvelles émissions",
+   "chain": [
+    {
+     "game": "Rhythm Paradise Groove",
+     "start": 1222
+    },
+    {
+     "game": "Star Fox 64",
+     "start": 162
+    }
+   ]
   }
  ]
 }
