@@ -285,7 +285,7 @@ onUnmounted(() => {
 .picker-field__label {
   display: block;
   font-size: 0.6rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: rgba(var(--rgb-line), 0.45);

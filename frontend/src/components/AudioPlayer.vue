@@ -6,6 +6,7 @@ import { igdbUrl } from '../lib/igdbCdn.js'
 import { formatTime } from '../lib/utils.js'
 import { podcastMeta } from '../lib/podcasts.js'
 import { useMediaSession } from '../composables/useMediaSession.js'
+import { useGameTheme } from '../composables/useGameTheme.js'
 import SeekBar from './SeekBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import { Play, Pause, SkipBack, SkipForward, RotateCcw, RotateCw, Volume2, VolumeX, X, Loader2, RefreshCw, ChevronDown, ArrowUpRight } from 'lucide-vue-next'
@@ -20,12 +21,14 @@ const playerStore = usePlayerStore()
 const cur      = computed(() => playerStore.current)
 const test     = computed(() => playerStore.currentTest)
 const duration = computed(() => playerStore.audioDuration)
-const sigle    = computed(() => podcastMeta(cur.value?.podcast?.id)?.label ?? '')
+const show     = computed(() => cur.value?.podcast?.name ?? podcastMeta(cur.value?.podcast?.id)?.name ?? '')
 
 // What is on air: the test being heard, else the game the track was started for.
 const title = computed(() => test.value ? (test.value.resolvedName ?? test.value.name) : (cur.value?.game || cur.value?.episode || ''))
 const coverId = computed(() => test.value?.coverImageId ?? playerStore.currentChapter?.coverImageId ?? cur.value?.coverImageId ?? null)
 const coverSrc = computed(() => coverId.value ? igdbUrl(coverId.value, 't_cover_big') : (cur.value?.episodeImageUrl ?? null))
+// The player wears the colours of the game on air.
+const { style: theme } = useGameTheme(coverId)
 
 const nextMark = computed(() => playerStore.marks.find(m => m.timestampSeconds > playerStore.currentTime + 1) ?? null)
 const segmentLabel = computed(() => {
@@ -93,7 +96,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
 </script>
 
 <template>
-  <div v-if="playerStore.visible && cur" class="player" :class="{ 'is-resume': playerStore.restored && playerStore.paused }">
+  <div v-if="playerStore.visible && cur" class="player" :style="theme" :class="{ 'is-resume': playerStore.restored && playerStore.paused }">
     <!-- Mini bar -->
     <div class="bar">
       <button type="button" class="bar__info" :aria-label="`En lecture : ${title}. Ouvrir`" @click="openInfo">
@@ -101,7 +104,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
         <img v-if="coverSrc" :src="coverSrc" alt="" class="bar__cover" />
         <span class="bar__text">
           <span class="cond bar__title ellipsis">{{ title }}</span>
-          <span class="mono bar__sub ellipsis">{{ sigle }} · {{ formatTime(playerStore.currentTime) }}<span class="bar__ep"> · {{ cur.episode }}</span></span>
+          <span class="mono bar__sub ellipsis">{{ show }} · {{ formatTime(playerStore.currentTime) }}<span class="bar__ep"> · {{ cur.episode }}</span></span>
         </span>
       </button>
 
@@ -138,7 +141,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
     <!-- « En lecture » sheet (phone). Teleported: the bar's entry transform
          would otherwise be the containing block of its `position: fixed`. -->
     <Teleport to="body">
-    <div v-if="expanded" class="sheet" role="dialog" aria-modal="true" aria-label="En lecture">
+    <div v-if="expanded" class="sheet" :style="theme" role="dialog" aria-modal="true" aria-label="En lecture">
       <div class="sheet__top">
         <button type="button" class="icon-action" aria-label="Réduire" @click="expanded = false"><ChevronDown :size="22" :stroke-width="2" /></button>
         <span class="lab"><span class="onair" :class="{ 'is-off': playerStore.paused }"></span> En lecture</span>
@@ -150,7 +153,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
         <div class="sheet__titles">
           <h2 class="cond sheet__title">{{ title }}</h2>
           <VerdictMark v-if="test" :verdict="test.critique?.verdict ?? test.verdict ?? null" />
-          <p class="mono sheet__ep">{{ sigle }} · {{ cur.episode }}</p>
+          <p class="mono sheet__ep">{{ show }} · {{ cur.episode }}</p>
         </div>
 
         <SeekBar :duration="duration" :current-time="playerStore.currentTime" :marks="playerStore.marks" :label="segmentLabel" @seek="playerStore.seek" />
@@ -300,7 +303,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
 .sheet__body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
 .sheet__cover { width: min(64vw, 280px); aspect-ratio: 3 / 4; object-fit: cover; align-self: center; box-shadow: var(--shadow-cover); }
 .sheet__titles { display: flex; flex-direction: column; gap: 8px; }
-.sheet__title { margin: 0; font-size: 40px; font-weight: 800; line-height: 0.92; }
+.sheet__title { margin: 0; font-size: 40px; font-weight: 700; line-height: 0.92; }
 .sheet__ep { margin: 0; color: var(--c-fg-3); font-size: var(--text-xs); }
 .sheet__controls { display: flex; align-items: center; justify-content: space-between; }
 .sheet__play {

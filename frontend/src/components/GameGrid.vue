@@ -23,10 +23,7 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
       <div v-if="!loading && !error && games.length" class="lab grid-count">{{ games.length }} jeux</div>
 
       <div v-if="loading" class="grid" aria-hidden="true">
-        <div v-for="i in 18" :key="i" class="skel">
-          <div class="skeleton-shimmer skel__cover" />
-          <div class="skeleton-shimmer skel__line" />
-        </div>
+        <div v-for="i in 18" :key="i" class="skeleton-shimmer skel__cover" />
       </div>
 
       <div v-else-if="error || games.length === 0" class="empty">
@@ -50,14 +47,12 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px 12px;
+  gap: 16px 12px;
   padding-top: 4px;
 }
 @media (min-width: 600px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 32px 20px; } }
-.skel { display: flex; flex-direction: column; gap: 8px; }
+@media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 28px 24px; } }
 .skel__cover { aspect-ratio: 3 / 4; }
-.skel__line { height: 14px; width: 70%; }
 .empty { padding: 80px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
 .empty__text { color: var(--c-fg-2); margin: 0 auto; max-width: 36ch; }

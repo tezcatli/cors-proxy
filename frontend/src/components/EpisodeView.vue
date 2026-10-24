@@ -6,10 +6,10 @@ import { useGamesStore } from '../stores/games.js'
 import { fetchEpisodeDetail } from '../lib/games.js'
 import { formatShortDate, formatTime, progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PCT } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
-import { podcastMeta } from '../lib/podcasts.js'
 import BackBar from './BackBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import { useProgress } from '../composables/useProgress.js'
+import { useGameTheme } from '../composables/useGameTheme.js'
 import { Play, Pause, Check, ArrowUpRight } from 'lucide-vue-next'
 
 const route       = useRoute()
@@ -57,11 +57,13 @@ onUnmounted(() => {
 })
 
 const tests = computed(() => episode.value?.games ?? [])
-const sigle = computed(() => podcastMeta(episode.value?.podcast?.id)?.label ?? '')
 
 // The test the main button plays: the game we came from, else the first.
 const leadTest = computed(() =>
   tests.value.find(t => fromGame && t.slug === fromGame) ?? tests.value[0] ?? null)
+// The page wears that game's colours, and its cover is the backdrop.
+const leadCover = computed(() => leadTest.value?.coverImageId ?? null)
+const { style: theme } = useGameTheme(leadCover)
 
 const isThisTrack = computed(() =>
   !!playerStore.current && playerStore.current.url === episode.value?.audioUrl)
@@ -135,7 +137,7 @@ function playChapter(ch) {
 </script>
 
 <template>
-  <div class="overlay-page" :style="{ zIndex: 'var(--z-episode)' }">
+  <div class="overlay-page" :style="[theme, { zIndex: 'var(--z-episode)' }]">
     <BackBar :label="fromGameName" @back="back" />
 
     <div v-if="loading || error || !episode" class="state">
@@ -144,7 +146,8 @@ function playChapter(ch) {
       <p v-else class="cond state__title">Épisode introuvable</p>
     </div>
 
-    <div v-else class="scroll-area">
+    <div v-else class="scroll-area ep-scroll">
+      <div v-if="leadCover" class="backdrop" aria-hidden="true"><img :src="igdbUrl(leadCover, 't_cover_big')" alt="" /></div>
       <div class="content ep">
         <header class="ep__head">
           <div class="ep__show">
@@ -171,7 +174,7 @@ function playChapter(ch) {
             :class="{ 'is-playing': activeTest && activeTest.timestampSeconds === t.timestampSeconds }"
           >
             <div class="t__row">
-              <img v-if="t.coverImageId" :src="igdbUrl(t.coverImageId, 't_cover_small')" alt="" class="t__cover" />
+              <img v-if="t.coverImageId" :src="igdbUrl(t.coverImageId, 't_cover_big')" alt="" class="t__cover" />
               <span v-else class="t__cover t__cover--none"></span>
               <div class="t__main">
                 <span class="t__name cond clamp-2">{{ t.resolvedName ?? t.name }}</span>
@@ -238,11 +241,15 @@ function playChapter(ch) {
 .state__title { font-size: var(--text-2xl); }
 .state__text { color: var(--c-fg-2); }
 
-.ep { max-width: 960px; }
+.ep-scroll { position: relative; }
+.backdrop { position: absolute; left: 0; right: 0; top: 0; height: 640px; overflow: hidden; pointer-events: none; }
+.backdrop img { position: absolute; inset: -120px; width: calc(100% + 240px); height: calc(100% + 240px); object-fit: cover; filter: blur(60px) saturate(1.3); opacity: 0.45; }
+.backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, var(--game-veil) 55%, var(--c-bg) 100%); }
+.ep { position: relative; max-width: 1040px; }
 .ep__head { padding: 28px 0 40px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
 .ep__show { display: flex; align-items: center; gap: 12px; }
 .ep__art { width: 48px; height: 48px; object-fit: cover; }
-.ep__title { margin: 0; font-size: clamp(36px, 7vw, 72px); font-weight: 800; line-height: 0.92; overflow-wrap: anywhere; }
+.ep__title { margin: 0; font-size: clamp(28px, 5vw, 56px); line-height: 1.05; overflow-wrap: anywhere; }
 .ep__main { min-width: 200px; }
 
 .block { margin-bottom: 48px; }
@@ -251,7 +258,7 @@ function playChapter(ch) {
 .t:last-child { border-bottom: 1px solid var(--c-line); }
 .t.is-playing { box-shadow: inset 3px 0 0 var(--c-accent); padding-left: 12px; }
 .t__row { display: flex; align-items: center; gap: 14px; }
-.t__cover { width: 54px; height: 72px; object-fit: cover; flex-shrink: 0; }
+.t__cover { width: 72px; height: 96px; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 1px var(--c-line), 0 10px 24px rgba(0, 0, 0, 0.5); }
 .t__cover--none { background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
 .t__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .t__name { font-size: 24px; line-height: 1; }

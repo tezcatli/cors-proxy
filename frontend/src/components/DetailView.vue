@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { formatShortDate, formatEpisodeCount, formatTime } from '../lib/utils.js'
 import { frLabel } from '../lib/igdbLabels.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
-import { verdictCounts, VERDICTS } from '../lib/verdicts.js'
+import { verdictCounts } from '../lib/verdicts.js'
 import { podcastMeta } from '../lib/podcasts.js'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
@@ -12,6 +12,7 @@ import { fetchGameDetail, refreshGameIgdb } from '../lib/games.js'
 import { isAdmin } from '../lib/auth.js'
 import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { playInto } from '../lib/flipTransition.js'
+import { useGameTheme } from '../composables/useGameTheme.js'
 import BackBar from './BackBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import IgdbPickerModal from './IgdbPickerModal.vue'
@@ -29,6 +30,8 @@ const game = computed(() => {
 
 const igdb         = computed(() => game.value?.igdb ?? null)
 const coverImageId = computed(() => igdb.value?.coverImageId ?? null)
+// The page wears the game's colours, read from its cover.
+const { style: theme } = useGameTheme(coverImageId)
 
 const platforms = computed(() =>
   (igdb.value?.platforms ?? []).map(p => typeof p === 'string' ? p : p.label))
@@ -44,8 +47,9 @@ const mediaImages = computed(() => [
   ...screenshotIds.value,
   ...(igdb.value?.artworkIds ?? []),
 ])
-// The band: the first screenshot, else the first artwork, else none.
-const bandId = computed(() => mediaImages.value[0] ?? null)
+// Beside the cover: three screenshots (they show the game; artworks often
+// repeat the logo).
+const heroShots = computed(() => screenshotIds.value.slice(0, 3))
 // The lightbox runs through the cover, then the images.
 const lightboxImages = computed(() => [
   ...(coverImageId.value && !coverFailed.value ? [coverImageId.value] : []),
@@ -88,12 +92,10 @@ const boardImages = computed(() => {
 })
 const boardMore   = computed(() => mediaImages.value.length - boardImages.value.length)
 
-// The back bar floats over the band until the page scrolls past it.
-const bandEl   = ref(null)
-const pastBand = ref(false)
+// The back bar floats over the cover's backdrop until the page scrolls.
+const scrolled = ref(false)
 function onScroll(e) {
-  const h = bandEl.value?.offsetHeight ?? 0
-  pastBand.value = e.target.scrollTop > h - 64
+  scrolled.value = e.target.scrollTop > 40
 }
 
 const heroCoverEl = ref(null)
@@ -205,11 +207,28 @@ watch(coverImageId, id => {
 
 // ── The tests ────────────────────────────────────────────────────────────────
 const counts = computed(() => verdictCounts(episodes.value.map(ep => ep.critique?.verdict ?? null)))
-// « ▲ 2 POSITIF · ◆ 2 MITIGÉ · ○ 1 NON LU »: the summary under the title.
-const verdictLine = computed(() => [
-  ...Object.entries(VERDICTS).map(([k, m]) => counts.value[k] ? `${m.glyph} ${counts.value[k]} ${m.label}` : null),
-  counts.value.none ? `○ ${counts.value.none} Non lu` : null,
+// « 9 positifs · 1 mitigé »: the tests counted by verdict (never averaged).
+const PLURAL = { positive: ['positif', 'positifs'], mixed: ['mitigé', 'mitigés'], negative: ['négatif', 'négatifs'] }
+const verdictLine = computed(() => Object.entries(PLURAL)
+  .filter(([k]) => counts.value[k])
+  .map(([k, [one, many]]) => `${counts.value[k]} ${counts.value[k] > 1 ? many : one}`)
+  .join(' · '))
+
+// The game's gauges: its Metacritic score, and the share of its tests the hosts
+// liked (a count of verdicts, shown as a bar).
+const gauges = computed(() => {
+  const out = []
+  const mc = igdb.value?.metacritic
+  if (mc) out.push({ label: 'Metacritic', value: String(mc), pct: Math.min(100, mc) })
+  const judged = counts.value.positive + counts.value.mixed + counts.value.negative
+  if (judged) out.push({ label: 'Avis positifs', value: `${counts.value.positive} sur ${judged}`, pct: Math.round(100 * counts.value.positive / judged) })
+  return out
+})
+const kicker = computed(() => [
+  ...(igdb.value?.genres ?? []).slice(0, 2).map(frLabel),
+  igdb.value?.released,
 ].filter(Boolean).join(' · '))
+const byline = computed(() => [igdb.value?.developer, platforms.value.join(' · ')].filter(Boolean).join(' · '))
 
 const gameCtx = computed(() => ({
   name:         game.value?.name,
@@ -243,10 +262,10 @@ const leadEp = computed(() =>
 const leadLabel = computed(() => {
   const ep = leadEp.value
   if (!ep) return ''
-  const sigle = podcastMeta(ep.podcast?.id)?.label ?? ''
-  if (isEpPlaying(ep)) return playerStore.paused ? `Reprendre · ${sigle}` : 'Pause'
-  if (resumeEntry.value) return `Reprendre à ${formatTime(resumeEntry.value.currentTime)} · ${sigle}`
-  return `Écouter le dernier test · ${sigle}`
+  const show = ep.podcast?.name ?? podcastMeta(ep.podcast?.id)?.name ?? ''
+  if (isEpPlaying(ep)) return playerStore.paused ? `Reprendre · ${show}` : 'Pause'
+  if (resumeEntry.value) return `Reprendre à ${formatTime(resumeEntry.value.currentTime)} · ${show}`
+  return `Écouter le dernier test · ${show}`
 })
 
 // Other games tested in this game's episodes: the way out of the page.
@@ -321,8 +340,8 @@ const facts = computed(() => {
 </script>
 
 <template>
-  <div class="overlay-page" :style="{ zIndex: 'var(--z-detail)' }">
-    <BackBar :label="backLabel" :overlay="!!(game && bandId)" :solid="pastBand" @back="close">
+  <div class="overlay-page" :style="[theme, { zIndex: 'var(--z-detail)' }]">
+    <BackBar :label="backLabel" :overlay="!!game" :solid="scrolled" @back="close">
       <template #actions>
         <button
           v-if="admin && pickerTarget"
@@ -349,69 +368,71 @@ const facts = computed(() => {
       <p v-else class="cond state__title">Jeu introuvable</p>
     </div>
 
-    <div v-else class="detail scroll-area" :class="{ 'has-band': bandId }" @scroll.passive="onScroll">
-      <!-- Band: one key art, full bleed, darkened by a flat gradient (no blur) -->
-      <div v-if="bandId" ref="bandEl" class="band" aria-hidden="true">
-        <img
-          :src="igdbUrl(bandId, 't_screenshot_huge')"
-          :srcset="`${igdbUrl(bandId,'t_screenshot_big')} 889w, ${igdbUrl(bandId,'t_screenshot_huge')} 1280w, ${igdbUrl(bandId,'t_1080p')} 1920w`"
-          sizes="100vw"
-          alt=""
-          fetchpriority="high"
-        />
+    <div v-else class="detail scroll-area" @scroll.passive="onScroll">
+      <!-- The cover, blurred, is the page's backdrop: the page bathes in the game. -->
+      <div v-if="coverImageId && !coverFailed" class="backdrop" aria-hidden="true">
+        <img :src="igdbUrl(coverImageId, 't_cover_big')" alt="" />
       </div>
 
       <div class="content">
 
-        <!-- Hero: cover · mono facts · giant title · counts -->
+        <!-- Hero: the cover, large and framed; beside it the game -->
         <section class="gamehead">
           <button
             v-if="coverImageId && !coverFailed"
             ref="heroCoverEl"
             type="button"
-            class="gamehead__cover"
+            class="gamehead__cover corners"
             aria-label="Agrandir la pochette"
             @click="openLightbox(coverImageId)"
           >
             <img
               :src="igdbUrl(coverImageId, 't_cover_big_2x')"
               :srcset="`${igdbUrl(coverImageId,'t_cover_big')} 264w, ${igdbUrl(coverImageId,'t_cover_big_2x')} 528w, ${igdbUrl(coverImageId,'t_720p')} 720w`"
-              sizes="(min-width: 768px) 300px, 62vw"
+              sizes="(min-width: 900px) 460px, 62vw"
               :alt="`Pochette de ${game.name}`"
+              fetchpriority="high"
               @error="coverFailed = true"
             />
           </button>
-          <div v-else ref="heroCoverEl" class="gamehead__cover gamehead__cover--none cond">{{ game.name }}</div>
+          <div v-else ref="heroCoverEl" class="gamehead__cover gamehead__cover--none corners cond">{{ game.name }}</div>
+
           <div class="gamehead__main">
-            <div class="gamehead__facts lab">
-              <span v-if="igdb?.developer">{{ igdb.developer }}</span>
-              <span v-if="igdb?.released">{{ igdb.released }}</span>
-              <span v-if="platforms.length">{{ platforms.join(' · ') }}</span>
-              <span v-if="igdb?.metacritic">MC {{ igdb.metacritic }}</span>
-            </div>
+            <div v-if="kicker" class="lab gamehead__kicker">{{ kicker }}</div>
             <h1 class="gamehead__title cond">{{ game.name }}</h1>
-            <p v-if="verdictLine" class="mono gamehead__verdicts">{{ verdictLine }}</p>
-            <button v-if="leadEp?.audioUrl" type="button" class="btn-play gamehead__play" @click="onPlay(leadEp)">
-              <Pause v-if="isEpPlaying(leadEp) && !playerStore.paused" :size="14" fill="currentColor" :stroke-width="0" />
-              <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
-              {{ leadLabel }}
-            </button>
+            <p v-if="byline" class="gamehead__byline">{{ byline }}</p>
+            <div v-if="gauges.length" class="gauges">
+              <div v-for="g in gauges" :key="g.label" class="gauge">
+                <div class="gauge__head lab"><span>{{ g.label }}</span><span>{{ g.value }}</span></div>
+                <div class="gauge__bar"><span :style="{ width: g.pct + '%' }"></span></div>
+              </div>
+            </div>
+            <p v-if="verdictLine" class="gamehead__verdicts">{{ verdictLine }}</p>
+            <div class="gamehead__actions">
+              <button v-if="leadEp?.audioUrl" type="button" class="btn-play gamehead__play" @click="onPlay(leadEp)">
+                <Pause v-if="isEpPlaying(leadEp) && !playerStore.paused" :size="14" fill="currentColor" :stroke-width="0" />
+                <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
+                {{ leadLabel }}
+              </button>
+              <button v-if="igdb?.trailerId" type="button" class="btn-line" @click="trailerOpen = true">Bande-annonce</button>
+            </div>
+            <div v-if="heroShots.length" class="gamehead__shots">
+              <button v-for="id in heroShots" :key="id" type="button" class="shot" aria-label="Agrandir l’image" @click="openLightbox(id)">
+                <img :src="igdbUrl(id, 't_screenshot_med')" alt="" />
+              </button>
+            </div>
           </div>
         </section>
 
-        <!-- The tests -->
-        <section class="tests" aria-labelledby="h-tests">
-          <div class="section-head">
-            <h2 id="h-tests">Les tests</h2>
-            <span class="lab">{{ formatEpisodeCount(episodes.length || game.episodeCount) }}</span>
-          </div>
-
-          <div class="tests__head lab" aria-hidden="true">
-            <span>Émission</span><span>Date</span><span>Verdict</span><span>Début</span><span>Épisode</span><span></span>
+        <!-- The tests: a journal, one row per test -->
+        <section class="panel journal" aria-labelledby="h-tests">
+          <div class="journal__head">
+            <h2 id="h-tests" class="lab journal__title">Journal des tests</h2>
+            <span class="journal__count">{{ formatEpisodeCount(episodes.length || game.episodeCount) }}</span>
           </div>
 
           <div v-if="episodesLoading" aria-hidden="true">
-            <div v-for="i in 3" :key="i" class="skeleton-shimmer tests__skel" />
+            <div v-for="i in 3" :key="i" class="skeleton-shimmer test__skel" />
           </div>
 
           <template v-else>
@@ -428,10 +449,12 @@ const facts = computed(() => {
                 :aria-expanded="openSlug === ep.slug"
                 @click="toggleRow(ep)"
               >
-                <span class="test__show"><span class="mono test__chev" aria-hidden="true">{{ openSlug === ep.slug ? '▾' : '▸' }}</span>{{ ep.podcast?.name ?? '' }}<span class="test__sigle mono">{{ podcastMeta(ep.podcast?.id)?.label }}</span></span>
-                <span class="mono test__date">{{ formatShortDate(ep.pubTs) }}</span>
+                <span class="test__mark" aria-hidden="true">{{ openSlug === ep.slug ? '▾' : '▸' }}</span>
+                <span class="test__who">
+                  <span class="test__show">{{ ep.podcast?.name ?? '' }}</span>
+                  <span class="test__when mono">{{ formatShortDate(ep.pubTs) }} · début {{ formatTime(ep.timestampSeconds) }}</span>
+                </span>
                 <VerdictMark :verdict="ep.critique?.verdict ?? null" class="test__verdict" />
-                <span class="mono test__start">{{ formatTime(ep.timestampSeconds) }}</span>
                 <span class="test__title ellipsis">{{ ep.title }}</span>
               </button>
               <div class="test__actions">
@@ -446,8 +469,8 @@ const facts = computed(() => {
                   <Play v-else :size="12" fill="currentColor" :stroke-width="0" />
                   Écouter
                 </button>
-                <button type="button" class="btn-line test__ep" :aria-label="`L'épisode : ${ep.title}`" @click="viewEp(ep)">
-                  <span class="test__ep-word">Épisode</span><ChevronRight :size="16" :stroke-width="2" aria-hidden="true" />
+                <button type="button" class="btn-line" :aria-label="`L'épisode : ${ep.title}`" @click="viewEp(ep)">
+                  Épisode <ChevronRight :size="14" :stroke-width="2" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -455,25 +478,25 @@ const facts = computed(() => {
             <div v-if="openSlug === ep.slug" class="test__opinion">
               <template v-if="ep.critique?.pros?.length || ep.critique?.cons?.length">
                 <div>
-                  <div class="lab">Pour</div>
-                  <ul><li v-for="p in ep.critique.pros" :key="p"><span class="mono sign">+</span>{{ p }}</li></ul>
+                  <div class="lab test__side test__side--pro">Points forts</div>
+                  <ul><li v-for="p in ep.critique.pros" :key="p"><span class="sign">+</span>{{ p }}</li></ul>
                 </div>
                 <div>
-                  <div class="lab">Contre</div>
-                  <ul><li v-for="c in ep.critique.cons" :key="c"><span class="mono sign">−</span>{{ c }}</li></ul>
+                  <div class="lab test__side">Points faibles</div>
+                  <ul><li v-for="c in ep.critique.cons" :key="c"><span class="sign">−</span>{{ c }}</li></ul>
                 </div>
               </template>
-              <p v-else class="test__empty">Pas encore de lecture de ce test : ni verdict, ni pour, ni contre.</p>
+              <p v-else class="test__empty">Pas encore de lecture de ce test : ni verdict, ni points forts, ni points faibles.</p>
             </div>
           </article>
           </template>
         </section>
 
-        <!-- Board: the trailer first, then key art and screenshots -->
-        <section v-if="igdb?.trailerId || mediaImages.length" class="board" aria-labelledby="h-board">
-          <div class="section-head">
-            <h2 id="h-board">Images</h2>
-            <span class="lab">{{ mediaImages.length }}<template v-if="igdb?.trailerId"> + bande-annonce</template></span>
+        <!-- Gallery: the trailer first, then key art and screenshots -->
+        <section v-if="igdb?.trailerId || mediaImages.length" class="panel board" aria-labelledby="h-board">
+          <div class="journal__head">
+            <h2 id="h-board" class="lab journal__title">Galerie</h2>
+            <span class="journal__count">{{ mediaImages.length }} images<template v-if="igdb?.trailerId"> · bande-annonce</template></span>
           </div>
           <div class="board__grid">
             <button v-if="igdb?.trailerId" type="button" class="board__tile board__trailer" aria-label="Lire la bande-annonce" @click="trailerOpen = true">
@@ -500,24 +523,25 @@ const facts = computed(() => {
           </div>
         </section>
 
-        <!-- Way out: the other games these episodes test -->
+        <!-- Way out: the other games these episodes test (covers alone) -->
         <section v-if="sameEpisodeGames.length" class="same" aria-labelledby="h-same">
           <div class="section-head">
             <h2 id="h-same">Dans les mêmes épisodes</h2>
             <span class="lab">{{ sameEpisodeGames.length }}</span>
           </div>
           <div class="same__grid">
-            <RouterLink v-for="g in sameEpisodeGames" :key="g.slug" :to="`/game/${encodeURIComponent(g.slug)}`" class="same__tile">
+            <RouterLink v-for="g in sameEpisodeGames" :key="g.slug" :to="`/game/${encodeURIComponent(g.slug)}`" class="same__tile" :aria-label="g.name">
               <img v-if="g.cover" :src="igdbUrl(g.cover, 't_cover_big')" alt="" loading="lazy" />
-              <span v-else class="same__nocover"></span>
-              <span class="cond same__name clamp-2">{{ g.name }}</span>
+              <span v-else class="same__nocover cond">{{ g.name }}</span>
             </RouterLink>
           </div>
         </section>
 
         <!-- Fiche technique -->
-        <section v-if="facts.length || igdb?.steamUrl || igdb?.officialUrl || igdb?.wikiUrl" class="facts" aria-labelledby="h-facts">
-          <h2 id="h-facts" class="lab facts__title">Fiche technique</h2>
+        <section v-if="facts.length || igdb?.steamUrl || igdb?.officialUrl || igdb?.wikiUrl" class="panel facts" aria-labelledby="h-facts">
+          <div class="journal__head">
+            <h2 id="h-facts" class="lab journal__title">Fiche technique</h2>
+          </div>
           <dl class="facts__grid">
             <div v-for="[k, v] in facts" :key="k" class="facts__cell">
               <dt class="lab">{{ k }}</dt><dd>{{ v }}</dd>
@@ -590,49 +614,47 @@ const facts = computed(() => {
 .state { flex: 1; display: flex; align-items: center; justify-content: center; }
 .state__title { font-size: var(--text-2xl); }
 
-/* Phone: the band is the stage, the cover the star. The cover sits on the
-   band, which reaches two thirds down it and is darkened so it recedes. */
-.detail { --cover-w: min(62vw, 260px); --cover-h: calc(var(--cover-w) * 4 / 3); }
-.gamehead {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  padding: 24px 0 32px;
-}
-/* ─── Band: one key art, full bleed, flat gradient into the page ───────── */
-.band {
-  position: relative;
-  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 16px + var(--cover-h) * 2 / 3);
-  max-height: 520px;
+.detail { position: relative; }
+/* ─── Backdrop: the cover, blurred, fading into the game's ground ──────── */
+.backdrop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 900px;
   overflow: hidden;
-  background: var(--c-surface);
+  pointer-events: none;
 }
-.band img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
-.band::after {
+.backdrop img {
+  position: absolute;
+  inset: -120px;
+  width: calc(100% + 240px);
+  height: calc(100% + 240px);
+  object-fit: cover;
+  filter: blur(60px) saturate(1.3);
+  opacity: 0.55;
+}
+.backdrop::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg,
-    rgba(11, 11, 11, 0.55) 0%, rgba(11, 11, 11, 0.55) 66%, var(--c-bg) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, var(--game-veil) 55%, var(--c-bg) 100%);
 }
-/* Desktop: a wide band the cover crosses near its top third; the title has
-   the rest of the width, so the band can stay bright. */
-@media (min-width: 768px) {
-  .detail { --cover-w: 300px; }
-  .band { height: clamp(200px, 24vw, 340px); }
-  .band img { object-position: center 30%; }
-  .band::after {
-    background: linear-gradient(180deg,
-      rgba(11, 11, 11, 0.55) 0%, rgba(11, 11, 11, 0) 22%,
-      rgba(11, 11, 11, 0) 55%, var(--c-bg) 100%);
-  }
-}
+.detail .content { position: relative; }
 
+/* ─── Hero ────────────────────────────────────────────────────────────── */
+.gamehead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 18px;
+  padding: 72px 0 40px;
+  text-align: center;
+}
 .gamehead__cover {
-  position: relative;
-  z-index: 1;
-  justify-self: center;
-  width: var(--cover-w);
+  --corner: 22px;
+  --corner-out: 10px;
+  width: min(62vw, 260px);
   aspect-ratio: 3 / 4;
   padding: 0;
   border: 0;
@@ -644,59 +666,52 @@ const facts = computed(() => {
 .gamehead__cover--none {
   display: flex;
   align-items: flex-end;
-  padding: 12px;
+  padding: 14px;
   font-size: 24px;
   color: var(--c-fg-2);
-  box-shadow: inset 0 0 0 1px var(--c-line);
   cursor: default;
   box-sizing: border-box;
 }
-/* The cover bites into the band's lower edge. */
-.has-band .gamehead { padding-top: 0; }
-.has-band .gamehead__cover { margin-top: calc(var(--cover-h) * -2 / 3); }
-.gamehead__main { display: contents; }
-.gamehead__facts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; }
-.gamehead__title {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: clamp(44px, 12vw, 132px);
-  font-weight: 800;
-  line-height: 0.86;
-  overflow-wrap: anywhere;
-}
-.gamehead__verdicts {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: var(--text-md);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.gamehead__play { grid-column: 1 / -1; justify-self: start; align-self: flex-start; }
+.gamehead__main { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; width: 100%; }
+.gamehead__kicker { color: var(--c-accent); }
+.gamehead__title { margin: 0; font-size: clamp(30px, 8vw, 72px); line-height: 1; overflow-wrap: anywhere; }
+.gamehead__byline { margin: 0; color: var(--c-fg-2); }
+.gamehead__verdicts { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: var(--text-sm); letter-spacing: 0.04em; }
+.gauges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; width: 100%; max-width: 560px; text-align: left; }
+.gauge__head { display: flex; justify-content: space-between; gap: 8px; color: var(--c-fg); }
+.gauge__bar { height: 8px; margin-top: 6px; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1px var(--c-line); }
+.gauge__bar span { display: block; height: 100%; background: var(--c-accent); }
+.gamehead__actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+.gamehead__play { min-height: 52px; flex: 1 1 100%; }
+.gamehead__shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 600px; }
+.shot { aspect-ratio: 16 / 9; padding: 3px; border: 0; background: rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px var(--c-line); cursor: zoom-in; }
+.shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-@media (min-width: 768px) {
-  .gamehead { grid-template-columns: 300px minmax(0, 1fr); gap: 48px; padding: 40px 0 48px; }
-  .gamehead__cover { justify-self: start; grid-column: 1; grid-row: 1; }
-  .has-band .gamehead__cover { margin-top: -120px; }
-  .gamehead__main { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 24px; min-width: 0; }
-  .gamehead__facts { gap: 8px 24px; align-self: flex-start; margin-top: 0; }
-  .gamehead__title { font-size: clamp(56px, 7vw, 112px); }
-  .gamehead__verdicts { font-size: var(--text-lg); }
+@media (min-width: 900px) {
+  .gamehead { grid-template-columns: 460px minmax(0, 1fr); justify-items: stretch; align-items: center; gap: 56px; padding: 48px 0 56px; text-align: left; }
+  .gamehead__cover { width: 460px; }
+  .gamehead__main { align-items: flex-start; gap: 20px; }
+  .gamehead__actions { justify-content: flex-start; }
+  .gamehead__play { flex: 0 0 auto; }
 }
 
-/* ─── Tests table ─────────────────────────────────────────────────────── */
-.tests { margin-bottom: 56px; }
-.tests__head { display: none; }
-.tests__skel { height: 72px; margin-bottom: 1px; }
-.test { border-top: 1px solid var(--c-line); }
-.test:last-child { border-bottom: 1px solid var(--c-line); }
-.test.is-open { background: var(--c-surface); box-shadow: inset 3px 0 0 var(--c-accent); }
-.test__row { display: flex; flex-direction: column; gap: 12px; padding: 14px 12px; }
+/* ─── Panels: the journal, the gallery, the facts ─────────────────────── */
+.panel { margin-bottom: 32px; background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
+.journal__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--c-line); }
+.journal__title { margin: 0; color: var(--c-fg); font-size: 13px; }
+.journal__count { color: var(--c-fg-2); font-size: var(--text-sm); }
+
+.test__skel { height: 64px; margin: 1px 0; }
+.test { border-bottom: 1px solid var(--c-line); }
+.test:last-child { border-bottom: 0; }
+.test.is-open { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
+.test__row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; }
 .test__toggle {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "show verdict" "date start" "title title";
-  gap: 4px 12px;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  grid-template-areas: "mark who verdict" ". title title";
+  gap: 4px 10px;
+  align-items: center;
   border: 0;
   background: transparent;
   color: var(--c-fg);
@@ -704,102 +719,47 @@ const facts = computed(() => {
   padding: 0;
   cursor: pointer;
 }
-.test__show { grid-area: show; font-weight: 600; font-size: var(--text-lg); display: inline-flex; align-items: baseline; gap: 8px; }
-.test__chev { color: var(--c-fg-3); width: 12px; flex-shrink: 0; }
-.test.is-open .test__chev { color: var(--c-accent); }
+.test__mark { grid-area: mark; color: var(--c-accent); }
+.test__who { grid-area: who; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.test__show { font-weight: 600; font-size: var(--text-md); }
+.test__when { color: var(--c-fg-2); font-size: var(--text-xs); }
+.test__verdict { grid-area: verdict; }
+.test__title { grid-area: title; color: var(--c-fg-2); font-size: var(--text-sm); min-width: 0; }
 .test__toggle:hover .test__show { text-decoration: underline; text-underline-offset: 3px; }
-.test__ep { padding: 0 12px; flex: 0 0 44px !important; width: 44px; }
-.test__ep-word { display: none; }
-.test__sigle { display: none; }
-.test__date { grid-area: date; color: var(--c-fg-2); }
-.test__verdict { grid-area: verdict; justify-self: end; }
-.test__start { grid-area: start; justify-self: end; color: var(--c-fg-2); }
-.test__title { grid-area: title; color: var(--c-fg-3); min-width: 0; }
 .test__actions { display: flex; gap: 8px; }
-.test__actions .btn-play, .test__actions .btn-line { flex: 1; }
+.test__actions > * { flex: 1; min-height: 40px; padding: 0 12px; font-size: 12px; }
 
-.test__opinion {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
-  padding: 4px 12px 20px;
-}
+.test__opinion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 0 16px 18px 42px; }
+.test__side { color: var(--c-fg-2); }
+.test__side--pro { color: var(--c-accent); }
 .test__opinion ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.test__opinion li { display: flex; gap: 10px; color: var(--c-fg-2); line-height: 1.5; }
-.sign { color: var(--c-accent); font-weight: 700; }
-.test__opinion div:nth-child(2) .sign { color: var(--c-fg); }
-.test__empty { margin: 0; color: var(--c-fg-3); }
+.test__opinion li { display: flex; gap: 10px; line-height: 1.45; }
+.sign { font-weight: 700; color: var(--c-fg-2); }
+.test__opinion div:first-child .sign { color: var(--c-accent); }
+.test__empty { margin: 0; color: var(--c-fg-2); }
 
 @media (min-width: 900px) {
-  .tests__head, .test__toggle {
-    grid-template-columns: 200px 120px 140px 90px minmax(0, 1fr);
-    grid-template-areas: none;
-    align-items: center;
+  .test__row { flex-direction: row; align-items: center; gap: 16px; min-height: 60px; padding: 8px 20px; }
+  .test__toggle {
+    flex: 1 1 0;
+    min-width: 0;
+    grid-template-columns: 16px 240px 120px minmax(0, 1fr);
+    grid-template-areas: "mark who verdict title";
+    gap: 16px;
   }
-  .tests__head { display: grid; gap: 16px; padding: 0 264px 10px 32px; }
-  .test__ep { flex: 0 0 auto !important; width: 120px; }
-  .test__ep-word { display: inline; }
-  .test__row { flex-direction: row; align-items: center; gap: 16px; min-height: 64px; padding: 8px 12px; }
-  .test__toggle { flex: 1 1 0; min-width: 0; overflow: hidden; gap: 16px; }
-  .test__toggle > * { grid-area: auto; justify-self: start; }
-  .test__toggle > .test__title { justify-self: stretch; }
-  .test__show { font-size: var(--text-md); }
-  .test__actions .btn-play, .test__actions .btn-line { flex: 0 0 auto; width: 120px; }
-  .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 12px 24px; }
+  .test__actions > * { flex: 0 0 auto; width: 128px; }
+  .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 20px 20px 52px; }
 }
 
-/* ─── Dans les mêmes épisodes ───────────────────────────────────────── */
-.same { margin-bottom: 56px; }
-.same__grid {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 128px;
-  gap: 12px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  padding-bottom: 8px;
-}
-@media (min-width: 900px) { .same__grid { grid-auto-columns: 168px; gap: 16px; } }
-.same__tile { display: flex; flex-direction: column; gap: 8px; color: var(--c-fg); text-decoration: none; min-width: 0; scroll-snap-align: start; }
-.same__tile img, .same__nocover { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; background: var(--c-surface); }
-.same__tile:hover .same__name { text-decoration: underline; text-underline-offset: 3px; }
-.same__name { font-size: 17px; line-height: 1.05; }
-
-/* ─── Fiche technique ─────────────────────────────────────────────────── */
-.facts { margin-bottom: 56px; }
-.facts__title { margin: 0; padding: 14px 16px; box-shadow: inset 0 0 0 1px var(--c-line); }
-.facts__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-  border-left: 1px solid var(--c-line);
-}
-@media (min-width: 900px) { .facts__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.facts__cell { padding: 14px 16px; min-width: 0; border-right: 1px solid var(--c-line); border-bottom: 1px solid var(--c-line); }
-.facts__cell dd { margin: 6px 0 0; color: var(--c-fg); overflow-wrap: anywhere; }
-.facts__links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
-.facts__links a { color: var(--c-fg); text-decoration: underline; text-underline-offset: 3px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
-.facts__links a:hover { color: var(--c-accent); }
-.about { box-shadow: inset 0 0 0 1px var(--c-line); margin-top: -1px; padding: 0 16px; }
-.about summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
-.about__src { margin-left: 8px; letter-spacing: 0.04em; text-transform: none; }
-.about p { color: var(--c-fg-2); max-width: 75ch; margin: 0 0 16px; }
-.about__story { white-space: pre-line; }
-
-/* ─── Board: trailer first, then images ──────────────────────────────── */
-.board { margin-bottom: 56px; }
-.board__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-@media (min-width: 900px) { .board__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; } }
+/* ─── Gallery ─────────────────────────────────────────────────────────── */
+.board__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 16px; }
+@media (min-width: 900px) { .board__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 20px; } }
 .board__tile {
   position: relative;
   aspect-ratio: 16 / 9;
   padding: 0;
   border: 0;
-  background: var(--c-surface);
+  background: var(--c-bg);
   overflow: hidden;
   cursor: zoom-in;
 }
@@ -807,7 +767,7 @@ const facts = computed(() => {
 .board__tile:hover img { transform: scale(1.03); }
 .board__trailer { grid-column: 1 / -1; cursor: pointer; }
 @media (min-width: 900px) { .board__trailer { grid-column: span 2; grid-row: span 2; aspect-ratio: auto; } }
-.board__trailer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 11, 11, 0) 50%, rgba(11, 11, 11, 0.75) 100%); }
+.board__trailer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9, 9, 12, 0) 50%, rgba(9, 9, 12, 0.75) 100%); }
 .board__play {
   position: absolute;
   left: 16px;
@@ -828,10 +788,41 @@ const facts = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(11, 11, 11, 0.7);
+  background: rgba(9, 9, 12, 0.7);
   font-size: 40px;
   color: var(--c-fg);
 }
+
+/* ─── Dans les mêmes épisodes: covers alone ──────────────────────────── */
+.same { margin-bottom: 32px; }
+.same__grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 112px;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 4px 4px 8px;
+}
+@media (min-width: 900px) { .same__grid { grid-auto-columns: 150px; gap: 16px; } }
+.same__tile { display: block; aspect-ratio: 3 / 4; scroll-snap-align: start; box-shadow: 0 0 0 1px var(--c-line); transition: box-shadow var(--dur-fast); }
+.same__tile:hover, .same__tile:focus-visible { box-shadow: 0 0 0 1px var(--c-accent); outline: none; }
+.same__tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.same__nocover { display: flex; align-items: flex-end; height: 100%; padding: 8px; box-sizing: border-box; font-size: 15px; background: var(--c-surface); color: var(--c-fg-2); }
+
+/* ─── Fiche technique ─────────────────────────────────────────────────── */
+.facts__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+@media (min-width: 900px) { .facts__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.facts__cell { padding: 14px 20px; min-width: 0; border-bottom: 1px solid var(--c-line); }
+.facts__cell dd { margin: 6px 0 0; color: var(--c-fg); overflow-wrap: anywhere; }
+.facts__links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.facts__links a { color: var(--c-fg); text-decoration: underline; text-underline-offset: 3px; }
+.facts__links a:hover { color: var(--c-accent); }
+.about { padding: 0 20px; }
+.about summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; }
+.about__src { margin-left: 8px; letter-spacing: 0.04em; text-transform: none; }
+.about p { color: var(--c-fg-2); max-width: 75ch; margin: 0 0 16px; }
+.about__story { white-space: pre-line; }
 
 .lightbox {
   position: fixed;

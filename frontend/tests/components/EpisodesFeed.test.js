@@ -25,12 +25,12 @@ vi.mock('../../src/lib/games.js', () => ({
   fetchEpisodes: vi.fn(() => Promise.resolve(EPISODES)),
 }))
 
-// The feed only needs to render titles here; stub the card and the router link.
+// The feed only needs to render titles here (one card per test); stub the card.
 const mountFeed = () => mount(EpisodesFeed, {
   props: { searchQuery: '' },
   global: {
     plugins: [createPinia()],
-    stubs: { EpisodeFeedCard: { props: ['episode'], template: '<div class="ep">{{ episode.title }}</div>' } },
+    stubs: { TestCard: { props: ['item'], template: '<div class="ep">{{ item.ep.title }}</div>' } },
     mocks: { $router: { push: vi.fn() } },
   },
 })
@@ -72,7 +72,7 @@ describe('EpisodesFeed podcast filter', () => {
       props: { searchQuery: 'zelda' },
       global: {
         plugins: [createPinia()],
-        stubs: { EpisodeFeedCard: { props: ['episode'], template: '<div class="ep">{{ episode.title }}</div>' } },
+        stubs: { TestCard: { props: ['item'], template: '<div class="ep">{{ item.ep.title }}</div>' } },
       },
     })
     await flushPromises()

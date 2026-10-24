@@ -5,16 +5,16 @@ export default {
     screens: { sm: '600px', md: '768px', lg: '900px', xl: '1200px' },
     extend: {
       fontFamily: {
-        sans:    ['Barlow', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        display: ['Barlow Condensed', 'Arial Narrow', 'sans-serif'],
-        mono:    ['JetBrains Mono Variable', 'JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        sans:    ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['Sora', 'system-ui', 'sans-serif'],
+        mono:    ['Inter', 'system-ui', 'sans-serif'],
       },
-      // Studio radio is square: the size names stay for the admin consoles.
+      // The panels are square: the size names stay for the admin consoles.
       borderRadius: { lg: '2px', xl: '2px', '2xl': '2px', '3xl': '2px' },
       boxShadow: {
         e1: 'none', e2: 'none', e3: 'none', e4: 'var(--shadow-cover)',
       },
-      // The Studio radio tokens (tokens.css), for the few utilities that need
+      // The design tokens (tokens.css), for the few utilities that need
       // them: `bg-page`, `bg-surface`, `text-accent`, `text-danger`…
       colors: {
         page:    'var(--c-bg)',

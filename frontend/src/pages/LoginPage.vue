@@ -159,7 +159,7 @@ onMounted(() => {
 }
 .login__col { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 32px; }
 .login__brand { display: flex; flex-direction: column; gap: 8px; }
-.login__mark { font-size: 72px; font-weight: 800; line-height: 0.85; }
+.login__mark { font-size: 72px; font-weight: 700; line-height: 0.85; }
 .login__mark span { color: var(--c-accent); }
 .login__box { border-top: 1px solid var(--c-line); padding-top: 24px; display: flex; flex-direction: column; gap: 16px; }
 .login__title { margin: 0; font-size: var(--text-2xl); }

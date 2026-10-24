@@ -176,7 +176,7 @@ def serialise_episode_slim(episode: Episode) -> dict:
     """Lightweight episode shape for the feed *list* (`GET /games/episodes`).
 
     Omits `description` and `chapters` — together ~70% of the full feed payload —
-    since the list cards (EpisodeFeedCard) never read them; they're served by the
+    since the feed's test cards (TestCard) never read them; they're served by the
     single-episode endpoint instead. `games` is kept, each with its page, cover and
     verdict: the feed shows an episode by its tests (and its names power the
     client-side search)."""

@@ -176,8 +176,10 @@ async function openSearch() {
   padding: 0 calc(var(--gutter) - 8px) 0 var(--gutter);
 }
 .wordmark {
-  font-weight: 800;
-  font-size: 26px;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--c-fg);
   text-decoration: none;
   margin-right: 24px;

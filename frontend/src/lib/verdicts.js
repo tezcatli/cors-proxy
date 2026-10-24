@@ -1,15 +1,15 @@
-// The hosts' verdict on a test (`llm.VERDICTS` on the backend), told by a glyph
-// and a word, never by a colour alone (DECISIONS.md, « Interface »). `null`
-// covers both an unread episode and a reading where nobody gave a verdict.
+// The hosts' verdict on a test (`llm.VERDICTS` on the backend), told by its word
+// alone, never by a colour or a glyph (DECISIONS.md, « Interface »). `null`
+// covers both an unread episode and a reading where nobody gave a verdict, and
+// shows nothing.
 export const VERDICTS = {
-  positive: { glyph: '▲', label: 'Positif' },
-  mixed:    { glyph: '◆', label: 'Mitigé' },
-  negative: { glyph: '▼', label: 'Négatif' },
+  positive: { label: 'Positif' },
+  mixed:    { label: 'Mitigé' },
+  negative: { label: 'Négatif' },
 }
-export const NO_VERDICT = { glyph: '○', label: 'Non lu' }
 
 export function verdictMeta(verdict) {
-  return VERDICTS[verdict] ?? NO_VERDICT
+  return VERDICTS[verdict] ?? null
 }
 
 /** Counts per verdict, in display order, for a game's tests. */

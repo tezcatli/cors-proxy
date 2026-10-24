@@ -4,24 +4,24 @@ import { useRouter } from 'vue-router'
 import { fetchEpisodes } from '../lib/games.js'
 import { formatTime, progressPct } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
-import { podcastMeta } from '../lib/podcasts.js'
-import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
+import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
-import EpisodeFeedCard from './EpisodeFeedCard.vue'
+import TestCard from './TestCard.vue'
 import { Play } from 'lucide-vue-next'
 
-// The home (« Tests »): what was started, then every episode newest first, each
-// told by its tests. Shares `selectedPodcast` with the catalog: one choice of
-// show, applied wherever the user is.
+// The home (« Tests »): the newest test in large, what was started, then every
+// test newest first, one card each — a game an episode tests, told by its cover.
+// Shares `selectedPodcast` with the catalog: one choice of show, applied wherever
+// the user is.
 const props = defineProps({
   searchQuery:   String,
   refreshSignal: { type: Number, default: 0 },
 })
 
-const router     = useRouter()
-const gamesStore = useGamesStore()
-const { playerStore, isEpPlaying, playEp, togglePause } = useEpisodePlayer()
+const router      = useRouter()
+const gamesStore  = useGamesStore()
+const playerStore = usePlayerStore()
 
 const episodes = ref([])
 const loading  = ref(true)
@@ -51,10 +51,41 @@ const filteredEpisodes = computed(() => {
   return list
 })
 
-const { visibleItems: visibleEpisodes, sentinel } = useInfiniteScroll(
-  filteredEpisodes,
-  { pageSize: 50 },
-)
+// One card per test; an episode that tests nothing has no card.
+const tests = computed(() => filteredEpisodes.value.flatMap(ep => (ep.games ?? []).map(test => ({ ep, test }))))
+// The newest test leads, unless the list is a search's results.
+const featured = computed(() => (props.searchQuery?.trim() ? null : tests.value[0] ?? null))
+const rest     = computed(() => (featured.value ? tests.value.slice(1) : tests.value))
+
+const { visibleItems: visibleTests, sentinel } = useInfiniteScroll(rest, { pageSize: 48 })
+
+function isPlaying({ ep, test }) {
+  const cur = playerStore.current
+  return !!cur && cur.url === ep.audioUrl && cur.slug === (test.slug ?? null)
+}
+
+function play({ ep, test }) {
+  playerStore.play({
+    game:            test.resolvedName ?? test.name,
+    slug:            test.slug ?? null,
+    episode:         ep.title,
+    url:             ep.audioUrl,
+    // Resume from saved progress when partway through; untouched/finished starts at the test.
+    ts:              playerStore.resumeTimeFor(ep.slug, test.timestampSeconds || 0),
+    timestamp:       test.timestamp || null,
+    episodeImageUrl: ep.imageUrl ?? null,
+    pubTs:           ep.pubTs,
+    episodeSlug:     ep.slug,
+    episodeUrlSlug:  ep.urlSlug ?? null,
+    coverImageId:    test.coverImageId ?? null,
+    podcast:         ep.podcast ?? null,
+    tests:           ep.games ?? [],
+  })
+}
+
+function view({ ep, test }) {
+  router.push({ path: '/episode/' + encodeURIComponent(ep.urlSlug), query: test.slug ? { game: test.slug } : {} })
+}
 
 // ── Reprendre ────────────────────────────────────────────────────────────────
 const bySlug = computed(() => new Map(episodes.value.map(ep => [ep.slug, ep])))
@@ -94,110 +125,125 @@ function resume(item) {
     tests:           ep.games ?? [],
   })
 }
-
-// The feed plays an episode from its first test, not from its intro.
-function playFromFirstTest(ep) {
-  const first = ep.games?.find(g => g.timestampSeconds != null)
-  playEp(first ? { ...ep, timestampSeconds: first.timestampSeconds, timestamp: first.timestamp } : ep)
-}
-
-function viewEp(ep) {
-  router.push('/episode/' + encodeURIComponent(ep.urlSlug))
-}
 </script>
 
 <template>
   <div class="scroll-area feed-scroll">
+    <!-- The newest test's cover, blurred, behind the top of the page -->
+    <div v-if="featured?.test.coverImageId" class="backdrop" aria-hidden="true">
+      <img :src="igdbUrl(featured.test.coverImageId, 't_cover_big')" alt="" />
+    </div>
     <div class="content feed">
-      <section v-if="resumeItems.length" class="resume" aria-labelledby="h-resume">
-        <div class="section-head"><h2 id="h-resume"><span class="onair" aria-hidden="true"></span> Reprendre</h2></div>
-        <div class="resume__list">
-          <button v-for="item in resumeItems" :key="item.ep.slug" type="button" class="resume__card" @click="resume(item)">
-            <img v-if="item.cover" :src="igdbUrl(item.cover, 't_cover_small')" alt="" class="resume__cover" />
-            <span v-else class="resume__cover resume__cover--none"></span>
-            <span class="resume__text">
-              <span class="cond resume__name clamp-2">{{ item.name }}</span>
-              <span class="mono resume__meta ellipsis">{{ podcastMeta(item.ep.podcast?.id)?.label }} · {{ formatTime(item.entry.currentTime) }}</span>
-              <span class="resume__bar"><span :style="{ width: item.pct + '%' }"></span></span>
-            </span>
-            <span class="resume__go" aria-hidden="true"><Play :size="16" fill="currentColor" :stroke-width="0" /></span>
-          </button>
-        </div>
-      </section>
+      <div v-if="loading" aria-hidden="true" class="grid">
+        <div v-for="i in 12" :key="i" class="skeleton-shimmer skel" />
+      </div>
 
-      <section aria-labelledby="h-latest">
-        <div class="section-head">
-          <h2 id="h-latest">{{ searchQuery?.trim() ? 'Résultats' : 'Derniers tests' }}</h2>
-          <span v-if="!loading && !error" class="lab">{{ filteredEpisodes.length }} épisodes</span>
-        </div>
+      <div v-else-if="error" class="empty">
+        <p class="cond empty__title">Hors antenne</p>
+        <p class="empty__text">{{ error }}</p>
+      </div>
 
-        <div v-if="loading" aria-hidden="true">
-          <div v-for="i in 8" :key="i" class="skel">
-            <div class="skeleton-shimmer skel__play" />
-            <div class="skeleton-shimmer skel__cover" />
-            <div class="skel__lines"><div class="skeleton-shimmer" /><div class="skeleton-shimmer" /></div>
-          </div>
-        </div>
+      <div v-else-if="!tests.length" class="empty">
+        <p class="cond empty__title">Rien ici</p>
+        <p class="empty__text">Aucun test trouvé.</p>
+      </div>
 
-        <div v-else-if="error" class="empty">
-          <p class="cond empty__title">Hors antenne</p>
-          <p class="empty__text">{{ error }}</p>
-        </div>
-
-        <div v-else-if="!filteredEpisodes.length" class="empty">
-          <p class="cond empty__title">Rien ici</p>
-          <p class="empty__text">Aucun épisode trouvé.</p>
-        </div>
-
-        <div v-else class="feed__list">
-          <EpisodeFeedCard
-            v-for="ep in visibleEpisodes"
-            :key="ep.slug"
-            :episode="ep"
-            :is-playing="isEpPlaying(ep)"
+      <template v-else>
+        <div class="top" :class="{ 'has-resume': resumeItems.length }">
+          <TestCard
+            v-if="featured"
+            :item="featured"
+            featured
+            :is-playing="isPlaying(featured)"
             :is-paused="playerStore.paused"
-            @play="playFromFirstTest"
-            @toggle-pause="togglePause"
-            @view="viewEp"
+            @play="play"
+            @toggle-pause="playerStore.togglePlayback()"
+            @view="view"
           />
+
+          <section v-if="resumeItems.length" class="resume" aria-labelledby="h-resume">
+            <h2 id="h-resume" class="lab resume__title"><span class="onair" aria-hidden="true"></span> Reprendre</h2>
+            <button v-for="item in resumeItems" :key="item.ep.slug" type="button" class="resume__row" @click="resume(item)">
+              <img v-if="item.cover" :src="igdbUrl(item.cover, 't_cover_small')" alt="" class="resume__cover" />
+              <span v-else class="resume__cover resume__cover--none"></span>
+              <span class="resume__text">
+                <span class="resume__name ellipsis">{{ item.name }}</span>
+                <span class="resume__meta ellipsis">{{ item.ep.podcast?.name }} · {{ formatTime(item.entry.currentTime) }}</span>
+                <span class="resume__bar"><span :style="{ width: item.pct + '%' }"></span></span>
+              </span>
+              <span class="resume__go" aria-hidden="true"><Play :size="14" fill="currentColor" :stroke-width="0" /></span>
+            </button>
+          </section>
         </div>
-        <div ref="sentinel" class="h-1" />
-      </section>
+
+        <section aria-labelledby="h-latest" class="latest">
+          <div class="section-head">
+            <h2 id="h-latest">{{ searchQuery?.trim() ? 'Résultats' : 'Derniers tests' }}</h2>
+            <span class="lab">{{ tests.length }} tests</span>
+          </div>
+          <div class="grid">
+            <TestCard
+              v-for="item in visibleTests"
+              :key="item.ep.slug + '|' + (item.test.slug ?? item.test.name)"
+              :item="item"
+              :is-playing="isPlaying(item)"
+              :is-paused="playerStore.paused"
+              @play="play"
+              @toggle-pause="playerStore.togglePlayback()"
+              @view="view"
+            />
+          </div>
+          <div ref="sentinel" class="h-1" />
+        </section>
+      </template>
     </div>
   </div>
 </template>
 
 <style scoped>
-.feed { max-width: 960px; padding-top: 20px; }
-.section-head h2 { display: inline-flex; align-items: center; gap: 12px; }
+.feed-scroll { position: relative; }
+.backdrop { position: absolute; left: 0; right: 0; top: 0; height: 720px; overflow: hidden; pointer-events: none; }
+.backdrop img { position: absolute; inset: -120px; width: calc(100% + 240px); height: calc(100% + 240px); object-fit: cover; filter: blur(70px) saturate(1.3); opacity: 0.45; }
+.backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9, 9, 12, 0.2) 0%, var(--c-bg) 100%); }
+.feed { padding-top: 16px; position: relative; }
 
-.resume { margin-bottom: 36px; }
-.resume__list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-@media (min-width: 900px) { .resume__list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.resume__card {
+.top { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; margin-bottom: 40px; }
+@media (min-width: 1200px) {
+  .top.has-resume { grid-template-columns: minmax(0, 1fr) 380px; align-items: end; gap: 40px; }
+}
+
+.resume {
+  position: relative;
+  z-index: 1;
+  background: var(--c-surface);
+  box-shadow: inset 0 0 0 1px var(--c-line-strong);
+}
+.resume__title { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--c-line); color: var(--c-fg); }
+.resume__row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
   border: 0;
-  background: var(--c-surface);
-  box-shadow: inset 0 0 0 1px var(--c-line);
+  border-bottom: 1px solid var(--c-line);
+  background: transparent;
   color: var(--c-fg);
   text-align: left;
   cursor: pointer;
-  min-width: 0;
 }
-.resume__card:hover { background: var(--c-raised); }
-.resume__cover { width: 48px; height: 64px; object-fit: cover; flex-shrink: 0; }
+.resume__row:last-child { border-bottom: 0; }
+.resume__row:hover { background: var(--c-raised); }
+.resume__cover { width: 36px; height: 48px; object-fit: cover; flex-shrink: 0; }
 .resume__cover--none { background: var(--c-raised); }
-.resume__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.resume__name { font-size: 21px; line-height: 1; }
-.resume__meta { color: var(--c-fg-3); font-size: var(--text-xs); }
-.resume__bar { display: block; height: 3px; background: var(--c-line-strong); }
+.resume__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.resume__name { font-weight: 600; font-size: 14px; }
+.resume__meta { color: var(--c-fg-2); font-size: 12px; }
+.resume__bar { display: block; height: 4px; margin-top: 4px; background: var(--c-line-strong); }
 .resume__bar span { display: block; height: 100%; background: var(--c-accent); }
 .resume__go {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -206,14 +252,14 @@ function viewEp(ep) {
   color: var(--c-accent-fg);
 }
 
-.feed__list { border-top: 1px solid var(--c-line); }
-
-.skel { display: grid; grid-template-columns: 44px 48px 1fr; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--c-line); }
-.skel__play { width: 44px; height: 44px; }
-.skel__cover { width: 48px; height: 64px; }
-.skel__lines { display: flex; flex-direction: column; gap: 8px; }
-.skel__lines div { height: 14px; }
-.skel__lines div:last-child { width: 50%; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 14px;
+}
+@media (min-width: 600px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 28px 24px; } }
+.skel { aspect-ratio: 3 / 4; }
 
 .empty { padding: 64px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
