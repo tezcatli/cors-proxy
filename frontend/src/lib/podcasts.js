@@ -10,7 +10,6 @@ export const PODCASTS = [
   { id: 'the-besties',     label: 'BES', name: 'The Besties' },
   { id: 'origami',            label: 'ORI',  name: "ORIGAMI L'Hebdo" },
   { id: 'zqsd',               label: 'ZQSD', name: 'ZQSD' },
-  { id: 'the-back-page',      label: 'TBP',  name: 'The Back Page' },
   { id: 'game-informer-show', label: 'GI',   name: 'The Game Informer Show' },
 ]
 

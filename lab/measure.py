@@ -32,7 +32,8 @@ import spec
 # The latest control set first: the verdict is its own — each earlier one
 # was used to choose the chain, the reference set to tune it. « nouvelles
 # émissions » is the shows added after the chain was frozen (ORIGAMI, ZQSD,
-# The Back Page, The Game Informer Show): their own verdict, never tuned on.
+# The Game Informer Show; The Back Page's episodes left out with the show):
+# their own verdict on the tests, never tuned on.
 SETS = ('nouvelles émissions', 'contrôle 2', 'contrôle', 'référence')
 FOUND = ('juste', 'mauvaise fiche', 'fiche indécise', 'limite connue')
 THRESHOLD = 0.9

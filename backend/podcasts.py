@@ -119,16 +119,6 @@ PODCASTS: list[Podcast] = [
         games_by_llm=True,
     ),
     Podcast(
-        id='the-back-page',
-        label='TBP',
-        name='The Back Page',
-        feed_url=_feed_url('the-back-page',
-                           'https://feeds.acast.com/public/shows/6249ec6c14fbed0013d3ce7e'),
-        extractor=lambda _title: [],
-        language='en',
-        games_by_llm=True,
-    ),
-    Podcast(
         id='game-informer-show',
         label='GI',
         name='The Game Informer Show',
