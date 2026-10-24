@@ -38,6 +38,11 @@ def load(path: str) -> None:
             [(g, m, s, d, c, now) for g, m, s, d, c in pack['transcripts']])
         conn.executemany('INSERT OR IGNORE INTO llm_cache (key, task, version, input, answer, model, created_at) '
                          'VALUES (?,?,?,?,?,?,?)', pack['readings'])
+        # An episode prod failed on and the pack reads is done: its failure would
+        # stay (the ingestion never tries a done episode again) and be counted.
+        read = [(json.loads(r[3])['guid'],) for r in pack['readings']]
+        conn.executemany('UPDATE transcripts SET attempts = 0, last_error = NULL, retry_at = NULL '
+                         'WHERE guid = ? AND segments IS NOT NULL', read)
         conn.executemany('INSERT OR IGNORE INTO igdb_games (igdb_id, igdb_slug, name, data, fetched_at, enriched) '
                          'VALUES (?,?,?,?,?,?)', pack['games'])
         answers = [a for a in pack['answers'] if a[0].startswith('name|')]
