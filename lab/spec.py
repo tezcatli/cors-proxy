@@ -8,8 +8,9 @@ Written by the curator on a chain's proposals:
   mention, a board game…);
 - `igdb`: the IGDB entry the test is — {id, name, slug, released, coverImageId}
   — or 'absent' when IGDB has none; None while undecided;
-- `added`: the curator added it as missing (no chain proposed it), and `start`,
-  the chapter it was added in;
+- `added`: the curator added it as missing (no chain proposed it);
+- `start`: where the test starts — the chapter a missing test was added in, or
+  the start the curator set when the one proposed is wrong;
 - `limit`: why the entry is one no chain can be expected to find — the
   episode doesn't say it (Dark Souls: Remastered, inferred from the show's
   theme). Measured apart, it doesn't hold the stop criterion back.

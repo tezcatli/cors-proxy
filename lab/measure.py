@@ -16,8 +16,12 @@ Each test the chain proposes or the curator expects is one case:
   and not in the title) — neither expected nor wrong. Never one the curator
   added: the reading that missed it can't say how long it is.
 
-Stop criterion: no `faux`, no `mauvaise fiche`, and at least 90 % of the
-expected tests proposed — judged on the « contrôle » set: the « référence »
+- `début faux`: a test proposed whose start is more than a minute off the one
+  the curator set (`start` in the spec) — counted beside the outcome, only
+  where a start was set.
+
+Stop criterion: no `faux`, no `mauvaise fiche`, no `début faux`, and at least
+90 % of the expected tests proposed — judged on the « contrôle » set: the « référence »
 episodes are those the chain was tuned on, its score there is optimistic.
 """
 import argparse
@@ -37,6 +41,7 @@ import spec
 SETS = ('nouvelles émissions', 'contrôle 2', 'contrôle', 'référence')
 FOUND = ('juste', 'mauvaise fiche', 'fiche indécise', 'limite connue')
 THRESHOLD = 0.9
+START_SECONDS = 60
 
 
 def _fiche_outcome(chosen, proposed) -> str:
@@ -72,7 +77,10 @@ def outcomes(rows: list[dict], in_scope=lambda game: True) -> list[dict]:
             outcome = 'manquant'
         else:
             continue
-        cases.append({'game': r['game'], 'outcome': outcome, 'start': judge.start(r),
+        # Its start, where the curator set one on a test proposed: wrong a minute off.
+        start = (None if not (shown and sp.get('test') is True and not sp.get('added') and sp.get('start') is not None)
+                 else 'faux' if abs(shown['start'] - sp['start']) > START_SECONDS else 'juste')
+        cases.append({'game': r['game'], 'outcome': outcome, 'start': judge.start(r), 'début': start,
                       'proposed': shown and shown['igdb'], 'chosen': sp.get('igdb')})
     return cases
 
@@ -82,11 +90,13 @@ def summary(cases: list[dict]) -> dict:
     counts = {k: sum(c['outcome'] == k for c in cases)
               for k in ('juste', 'mauvaise fiche', 'fiche indécise', 'faux', 'manquant', 'à juger', 'hors champ',
                         'limite connue')}
+    counts['début faux'] = sum(c.get('début') == 'faux' for c in cases)
+    counts['débuts jugés'] = sum(c.get('début') is not None for c in cases)
     expected = sum(counts[k] for k in (*FOUND, 'manquant'))
     found = sum(counts[k] for k in FOUND) / expected if expected else None
     return {**counts, 'expected': expected, 'found': found,
             'met': bool(expected) and counts['faux'] == 0 and counts['mauvaise fiche'] == 0
-                   and found >= THRESHOLD}
+                   and counts['début faux'] == 0 and found >= THRESHOLD}
 
 
 def sets() -> dict[str, str]:
@@ -124,6 +134,8 @@ def _print(name: str, episodes: list[dict]) -> None:
         for c in e['cases']:
             if c['outcome'] not in ('juste', 'hors champ'):
                 print(f"  {c['outcome']:15} {e['set'][:4]} {e['title'][:46]:46} {c['game']}")
+            if c.get('début') == 'faux':
+                print(f"  {'début faux':15} {e['set'][:4]} {e['title'][:46]:46} {c['game']}")
 
 
 def _print_set(name: str, s: dict) -> None:
@@ -131,7 +143,7 @@ def _print_set(name: str, s: dict) -> None:
     print(f"{name}: {s['episodes']} épisodes validés · {s['expected']} tests attendus · trouvés {found} · "
           f"faux {s['faux']} · mauvaise fiche {s['mauvaise fiche']} · manquants {s['manquant']} · "
           f"à juger {s['à juger']} · fiche indécise {s['fiche indécise']} · hors champ {s['hors champ']} · "
-          f"limite connue {s['limite connue']} → "
+          f"limite connue {s['limite connue']} · début faux {s['début faux']}/{s['débuts jugés']} → "
           f"{'critère atteint' if s['met'] else 'critère non atteint'}")
 
 
