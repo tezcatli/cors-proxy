@@ -20,6 +20,8 @@ matter are resolved: the title's, and the reading's that critique or rank a
 game.
 `missing` collects the names not resolved yet (`python -m variants.identite_fiche`
 resolves them)."""
+import itertools
+
 import catalog_state as state
 import critiques
 import fiches
@@ -104,6 +106,20 @@ def _test(g: dict, by_llm: bool) -> bool:
     return max(s['end'] - s['start'] for s in g['sections']) >= critiques.MIN_SECONDS
 
 
+def _first(main: dict, judged: list[dict], reading: list[dict]) -> dict:
+    """The section a test starts with: its main section, or the first of the critique
+    sections before it that only ads part from it — an ad break cuts a review in
+    two, not into two tests (« Super Mario Wonder », ORIGAMI S01E01). A teaser
+    before the intro stays out: talk parts it from the test."""
+    ids, first = {id(s) for s in judged}, main
+    for s in reversed(reading[:next(i for i, r in enumerate(reading) if r is main)]):
+        if id(s) in ids:
+            first = s
+        elif not s['ad']:
+            break
+    return first
+
+
 def run(episode) -> dict:
     out = app.run(episode)
     out = {**out, 'tests': [{**t, 'igdb': fiches.lookup(t['game'], episode)[1]} for t in out['tests']]}
@@ -124,7 +140,12 @@ def run(episode) -> dict:
         judged = [s for s in g['sections'] if s['kind'] in critiques._JUDGED]
         main = max(judged, key=lambda s: s['end'] - s['start']) if judged else g['sections'][0]
         decided, fiche = fiches.lookup(name, shown)
-        tests.append({'game': name, 'start': main['start'], 'end': None, 'minutes': None,
+        # Its stretch: from where it starts, while the reading's game sections
+        # stay on this game (the end is shown to judge, not measured).
+        first, mine = _first(main, judged, reading), {id(s) for s in g['sections']}
+        run = list(itertools.takewhile(lambda s: id(s) in mine, sections[sections.index(first):]))
+        tests.append({'game': name, 'start': first['start'], 'end': run[-1]['end'],
+                      'minutes': round(sum(s['end'] - s['start'] for s in run) / 60),
                       'verdict': (main['opinion'] or {}).get('verdict'), 'igdb': fiche if decided else None})
     return {**out, 'tests': tests}
 

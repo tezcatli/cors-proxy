@@ -5880,8 +5880,8 @@
    "proposed": [
     {
      "name": "Saros",
-     "timestamp": "00:05:38",
-     "seconds": 338
+     "timestamp": "00:03:14",
+     "seconds": 194
     },
     {
      "name": "Blue Prince",
@@ -6061,7 +6061,7 @@
    "chain": [
     {
      "game": "Saros",
-     "start": 338
+     "start": 194
     }
    ]
   },
@@ -10647,8 +10647,8 @@
    "proposed": [
     {
      "name": "Baldur's Gate 3",
-     "timestamp": "00:07:36",
-     "seconds": 456
+     "timestamp": "00:04:53",
+     "seconds": 293
     }
    ],
    "chapters": [],
@@ -10769,7 +10769,7 @@
    "chain": [
     {
      "game": "Baldur's Gate 3",
-     "start": 456
+     "start": 293
     }
    ]
   },
