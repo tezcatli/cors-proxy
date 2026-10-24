@@ -58,3 +58,13 @@ export function formatTime(seconds) {
   const pad = n => String(n).padStart(2, '0');
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
+
+/**
+ * Where a test of the home feed ({ep, test}) opens: its game's page with that
+ * test open (`?test=` the episode), else — a game without a page — its episode.
+ */
+export function testHref({ ep, test }) {
+  return test.slug
+    ? `/game/${encodeURIComponent(test.slug)}?test=${encodeURIComponent(ep.slug)}`
+    : `/episode/${encodeURIComponent(ep.urlSlug)}`;
+}

@@ -18,7 +18,8 @@ const { gameProgress } = useProgress()
 const coverImageId = computed(() => props.game?.igdb?.coverImageId ?? null)
 const progress     = computed(() => gameProgress(props.game.slug))
 const href         = computed(() => '/game/' + encodeURIComponent(props.game.slug))
-const { style: theme } = useGameTheme(coverImageId)
+// The tile reads its colours from its own cover once loaded (no second fetch).
+const { style: theme, learn } = useGameTheme(coverImageId, { fetch: false })
 
 function open(e) {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
@@ -39,6 +40,8 @@ function open(e) {
       alt=""
       loading="lazy"
       decoding="async"
+      crossorigin="anonymous"
+      @load="learn($event.target)"
     />
     <span v-else ref="imgEl" class="tile__nocover cond">{{ game.name }}</span>
     <span v-if="progress.pct > PROGRESS_MIN_PCT" class="tile__progress" :class="{ 'is-done': progress.done }">

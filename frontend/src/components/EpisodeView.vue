@@ -147,7 +147,7 @@ function playChapter(ch) {
     </div>
 
     <div v-else class="scroll-area ep-scroll">
-      <div v-if="leadCover" class="backdrop" aria-hidden="true"><img :src="igdbUrl(leadCover, 't_cover_big')" alt="" /></div>
+      <div v-if="leadCover" class="backdrop" aria-hidden="true"><img :src="igdbUrl(leadCover, 't_cover_small')" alt="" /></div>
       <div class="content ep">
         <header class="ep__head">
           <div class="ep__show">
@@ -252,31 +252,35 @@ function playChapter(ch) {
 .ep__title { margin: 0; font-size: clamp(28px, 5vw, 56px); line-height: 1.05; overflow-wrap: anywhere; }
 .ep__main { min-width: 200px; }
 
-.block { margin-bottom: 48px; }
+/* The tests and the chapters: panels, like the game page's journal. */
+.block { margin-bottom: 32px; background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
+.block .section-head { margin: 0; padding: 14px 20px; border-bottom: 1px solid var(--c-line); }
+.block .section-head h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 
-.t { border-top: 1px solid var(--c-line); padding: 14px 0; }
-.t:last-child { border-bottom: 1px solid var(--c-line); }
-.t.is-playing { box-shadow: inset 3px 0 0 var(--c-accent); padding-left: 12px; }
+.t { border-bottom: 1px solid var(--c-line); padding: 14px 20px; }
+.t:last-child { border-bottom: 0; }
+.t.is-playing { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
 .t__row { display: flex; align-items: center; gap: 14px; }
 .t__cover { width: 72px; height: 96px; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 1px var(--c-line), 0 10px 24px rgba(0, 0, 0, 0.5); }
 .t__cover--none { background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
 .t__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.t__name { font-size: 24px; line-height: 1; }
+.t__name { font-size: 20px; line-height: 1.1; }
 .t__meta { display: flex; align-items: center; gap: 16px; }
 .t__start { color: var(--c-fg-2); }
 .t__actions { display: flex; gap: 6px; }
 .t__play { box-shadow: inset 0 0 0 1px var(--c-line-strong); }
 .t__play.is-on { background: var(--c-accent); color: var(--c-accent-fg); box-shadow: none; }
-.t__opinion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0 0 68px; }
-@media (min-width: 768px) { .t__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; } .t__name { font-size: 28px; } }
+.t__opinion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0 0 86px; }
+@media (min-width: 768px) { .t__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; } .t__name { font-size: 24px; } }
 .t__opinion ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .t__opinion li { display: flex; gap: 10px; color: var(--c-fg-2); line-height: 1.45; }
 .sign { color: var(--c-accent); font-weight: 700; }
 .sign--minus { color: var(--c-fg); }
 
-.tracks { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--c-line); }
+.tracks { list-style: none; margin: 0; padding: 0; }
 .track { display: flex; align-items: center; border-bottom: 1px solid var(--c-line); }
-.track.is-on { background: var(--c-surface); box-shadow: inset 3px 0 0 var(--c-accent); }
+.track:last-child { border-bottom: 0; }
+.track.is-on { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
 .track__btn {
   flex: 1;
   min-width: 0;
@@ -284,7 +288,7 @@ function playChapter(ch) {
   align-items: center;
   gap: 16px;
   min-height: 48px;
-  padding: 0 12px;
+  padding: 0 20px;
   border: 0;
   background: transparent;
   color: var(--c-fg);

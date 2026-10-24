@@ -38,6 +38,7 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - L'accueil est le flux des tests (Reprendre, puis les derniers tests) ; le catalogue des jeux est un onglet, trié par récence. (2026-10-24)
 - Un verdict par test, jamais de moyenne par jeu : la fiche le compte par verdict. (2026-10-24)
 - Le verdict s'écrit en mot seul : « Positif », « Mitigé », « Négatif » ; un test sans verdict n'affiche rien. Les glyphes (▲ ◆ ▼ ○) n'étaient pas compris. (2026-10-25)
+- Une carte de test (accueil) mène à la fiche du jeu, ce test ouvert dans le journal ; l'épisode est un lien du journal. (2026-10-25)
 - La page Jeux sert à parcourir le catalogue : des pochettes seules, sans verdicts ni nombre de tests (ils sont sur la fiche) ; recherche, filtres d'émission et tri restent. (2026-10-25)
 
 - Le nom : « Ludothèque », « Ludo » en court (écran d'accueil, mot-symbole `LUDO//`). (2026-10-24)

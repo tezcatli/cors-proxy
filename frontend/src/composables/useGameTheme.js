@@ -9,10 +9,45 @@ import { igdbUrl } from '../lib/igdbCdn.js'
 // --c-surface or --c-line takes the game's colours. IGDB's CDN allows reading
 // the pixels (Access-Control-Allow-Origin: *); when it can't be read the tokens
 // stay neutral.
+//
+// A palette is read once per cover and kept (memory, then localStorage), so a
+// game seen before opens in its colours at once. A tile that shows the cover
+// anyway reads it from its own <img> (`learn`) rather than fetch it again.
 
 const SAMPLE_W = 36
 const SAMPLE_H = 48
-const cache = new Map()   // cover id → palette, or the promise of one
+const STORE_KEY = 'ludo.palettes'
+const STORE_MAX = 800                // ~200 bytes each
+const cache = new Map()              // cover id → palette (null: unreadable), or the promise of one
+let stored = null                    // localStorage's palettes, read on first use
+
+function storedPalettes() {
+  if (stored) return stored
+  try { stored = JSON.parse(localStorage.getItem(STORE_KEY)) ?? {} } catch { stored = {} }
+  return stored
+}
+
+/** The palette already known for a cover: a palette, null (unreadable), or undefined (not read yet). */
+function known(id) {
+  if (cache.has(id)) {
+    const v = cache.get(id)
+    return v instanceof Promise ? undefined : v
+  }
+  const s = storedPalettes()
+  if (id in s) { cache.set(id, s[id]); return s[id] }
+  return undefined
+}
+
+function remember(id, palette) {
+  cache.set(id, palette)
+  if (!palette) return
+  const s = storedPalettes()
+  delete s[id]
+  s[id] = palette                    // newest last: the oldest go first
+  const ids = Object.keys(s)
+  for (const old of ids.slice(0, Math.max(0, ids.length - STORE_MAX))) delete s[old]
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch { /* full or blocked: memory only */ }
+}
 
 /** The palette of RGBA pixels (an ImageData's data): {accent, on, bg, panel, line, glow, veil}. */
 export function paletteOf(pixels) {
@@ -63,44 +98,60 @@ export function themeStyle(p) {
   }
 }
 
+/** The palette of a loaded image (a cover), or null when its pixels can't be read. */
+export function paletteFromImage(img) {
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = SAMPLE_W
+    canvas.height = SAMPLE_H
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return null
+    ctx.drawImage(img, 0, 0, SAMPLE_W, SAMPLE_H)
+    return paletteOf(ctx.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data)
+  } catch {
+    return null   // a tainted canvas: stay neutral
+  }
+}
+
 function read(id) {
+  const k = known(id)
+  if (k !== undefined) return Promise.resolve(k)
   if (cache.has(id)) return cache.get(id)
   const pending = new Promise(resolve => {
     if (typeof document === 'undefined') return resolve(null)
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas')
-        canvas.width = SAMPLE_W
-        canvas.height = SAMPLE_H
-        const ctx = canvas.getContext('2d', { willReadFrequently: true })
-        if (!ctx) return resolve(null)
-        ctx.drawImage(img, 0, 0, SAMPLE_W, SAMPLE_H)
-        resolve(paletteOf(ctx.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data))
-      } catch {
-        resolve(null)   // a tainted canvas: stay neutral
-      }
-    }
+    img.onload = () => resolve(paletteFromImage(img))
     img.onerror = () => resolve(null)
     img.src = igdbUrl(id, 't_cover_small')
-  }).then(p => { cache.set(id, p); return p })
+  }).then(p => { remember(id, p); return p })
   cache.set(id, pending)
   return pending
 }
 
-/** The theme of the game whose cover id is `coverId` (a ref, getter or value). */
-export function useGameTheme(coverId) {
+/**
+ * The theme of the game whose cover id is `coverId` (a ref, getter or value).
+ * `fetch: false` for a component that shows the cover itself: it calls
+ * `learn(img)` once its <img> has loaded instead of fetching it twice.
+ */
+export function useGameTheme(coverId, { fetch = true } = {}) {
+  const current = () => (typeof coverId === 'function' ? coverId() : unref(coverId))
   const palette = ref(null)
-  watch(() => (typeof coverId === 'function' ? coverId() : unref(coverId)), async id => {
-    const known = id ? cache.get(id) : null
-    palette.value = known && !(known instanceof Promise) ? known : null
-    if (!id || palette.value) return
+  watch(current, async id => {
+    palette.value = id ? (known(id) ?? null) : null
+    if (!id || !fetch || known(id) !== undefined) return
     const p = await read(id)
-    const now = typeof coverId === 'function' ? coverId() : unref(coverId)
-    if (now === id) palette.value = p
+    if (current() === id) palette.value = p
   }, { immediate: true })
-  return { palette, style: computed(() => themeStyle(palette.value)) }
+
+  function learn(img) {
+    const id = current()
+    if (!id || known(id) !== undefined) return
+    remember(id, paletteFromImage(img))
+    palette.value = known(id) ?? null
+  }
+
+  return { palette, style: computed(() => themeStyle(palette.value)), learn }
 }
 
 function hsl(r, g, b) {

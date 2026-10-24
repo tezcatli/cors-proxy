@@ -1,14 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { Play, Pause } from 'lucide-vue-next'
-import { formatShortDate } from '../lib/utils.js'
+import { formatShortDate, testHref } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import { verdictMeta } from '../lib/verdicts.js'
 import { useGameTheme } from '../composables/useGameTheme.js'
 
 // One test of the home feed — a game an episode tests — told by its cover: the
 // verdict's word on it, then the show and the date (the game's name is on the
-// cover, and in the accessible name). The card opens the episode on that test.
+// cover, and in the accessible name). The card opens the game's page on that
+// test (`testHref`); a test without a page opens its episode.
 // `featured`: the newest test, large, with its own play button.
 const props = defineProps({
   item:      Object,     // { ep, test }
@@ -24,12 +25,13 @@ const name    = computed(() => test.value.resolvedName ?? test.value.name)
 const verdict = computed(() => verdictMeta(test.value.verdict)?.label ?? null)
 const show    = computed(() => ep.value.podcast?.name ?? '')
 const date    = computed(() => formatShortDate(ep.value.pubTs))
-const href    = computed(() => '/episode/' + encodeURIComponent(ep.value.urlSlug)
-  + (test.value.slug ? '?game=' + encodeURIComponent(test.value.slug) : ''))
+const href    = computed(() => testHref(props.item))
 const label   = computed(() => [name.value, show.value, date.value, verdict.value].filter(Boolean).join(' · '))
 const hasAudio = computed(() => !!ep.value.audioUrl)
 
-const { style: theme } = useGameTheme(() => test.value.coverImageId ?? null)
+// The card reads its colours from its own cover once loaded; the featured one
+// fetches them at once, for its play button.
+const { style: theme, learn } = useGameTheme(() => test.value.coverImageId ?? null, { fetch: props.featured })
 
 function onOpen(e) {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
@@ -63,7 +65,7 @@ function onPlay() {
 
   <a v-else class="card" :href="href" :style="theme" :aria-label="label" @click="onOpen">
     <span class="card__cover corners">
-      <img v-if="test.coverImageId" :src="igdbUrl(test.coverImageId, 't_cover_big')" alt="" loading="lazy" decoding="async" />
+      <img v-if="test.coverImageId" :src="igdbUrl(test.coverImageId, 't_cover_big')" alt="" loading="lazy" decoding="async" crossorigin="anonymous" @load="learn($event.target)" />
       <span v-else class="card__nocover cond">{{ name }}</span>
       <span v-if="verdict" class="card__verdict">{{ verdict }}</span>
       <span v-if="isPlaying" class="card__onair onair" aria-hidden="true"></span>

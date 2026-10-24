@@ -2,11 +2,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchEpisodes } from '../lib/games.js'
-import { formatTime, progressPct } from '../lib/utils.js'
+import { formatTime, progressPct, testHref } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
+import { podcastMeta } from '../lib/podcasts.js'
 import TestCard from './TestCard.vue'
 import { Play } from 'lucide-vue-next'
 
@@ -57,6 +58,10 @@ const tests = computed(() => filteredEpisodes.value.flatMap(ep => (ep.games ?? [
 const featured = computed(() => (props.searchQuery?.trim() ? null : tests.value[0] ?? null))
 const rest     = computed(() => (featured.value ? tests.value.slice(1) : tests.value))
 
+// The show the list is narrowed to, said in the heading (the choice is kept
+// across visits, so it must not go unnoticed).
+const showName = computed(() => (gamesStore.selectedPodcast !== 'all' ? podcastMeta(gamesStore.selectedPodcast)?.name ?? '' : ''))
+
 const { visibleItems: visibleTests, sentinel } = useInfiniteScroll(rest, { pageSize: 48 })
 
 function isPlaying({ ep, test }) {
@@ -83,8 +88,8 @@ function play({ ep, test }) {
   })
 }
 
-function view({ ep, test }) {
-  router.push({ path: '/episode/' + encodeURIComponent(ep.urlSlug), query: test.slug ? { game: test.slug } : {} })
+function view(item) {
+  router.push(testHref(item))
 }
 
 // ── Reprendre ────────────────────────────────────────────────────────────────
@@ -131,7 +136,7 @@ function resume(item) {
   <div class="scroll-area feed-scroll">
     <!-- The newest test's cover, blurred, behind the top of the page -->
     <div v-if="featured?.test.coverImageId" class="backdrop" aria-hidden="true">
-      <img :src="igdbUrl(featured.test.coverImageId, 't_cover_big')" alt="" />
+      <img :src="igdbUrl(featured.test.coverImageId, 't_cover_small')" alt="" />
     </div>
     <div class="content feed">
       <div v-if="loading" aria-hidden="true" class="grid">
@@ -163,6 +168,7 @@ function resume(item) {
 
           <section v-if="resumeItems.length" class="resume" aria-labelledby="h-resume">
             <h2 id="h-resume" class="lab resume__title"><span class="onair" aria-hidden="true"></span> Reprendre</h2>
+            <div class="resume__list">
             <button v-for="item in resumeItems" :key="item.ep.slug" type="button" class="resume__row" @click="resume(item)">
               <img v-if="item.cover" :src="igdbUrl(item.cover, 't_cover_small')" alt="" class="resume__cover" />
               <span v-else class="resume__cover resume__cover--none"></span>
@@ -173,13 +179,17 @@ function resume(item) {
               </span>
               <span class="resume__go" aria-hidden="true"><Play :size="14" fill="currentColor" :stroke-width="0" /></span>
             </button>
+            </div>
           </section>
         </div>
 
         <section aria-labelledby="h-latest" class="latest">
           <div class="section-head">
-            <h2 id="h-latest">{{ searchQuery?.trim() ? 'Résultats' : 'Derniers tests' }}</h2>
-            <span class="lab">{{ tests.length }} tests</span>
+            <h2 id="h-latest">{{ searchQuery?.trim() ? 'Résultats' : 'Derniers tests' }}<span v-if="showName" class="filter-name"> · {{ showName }}</span></h2>
+            <span class="head-side">
+              <button v-if="showName" type="button" class="chip-btn" @click="gamesStore.setPodcast('all')">✕ Toutes les émissions</button>
+              <span class="lab">{{ tests.length }} tests</span>
+            </span>
           </div>
           <div class="grid">
             <TestCard
@@ -233,6 +243,15 @@ function resume(item) {
   cursor: pointer;
 }
 .resume__row:last-child { border-bottom: 0; }
+/* Phone: a row to swipe, so the tests stay on the first screen. */
+@media (max-width: 767px) {
+  .resume { background: transparent; box-shadow: none; }
+  .resume__title { padding: 0 0 10px; border-bottom: 0; }
+  .resume__list { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 calc(var(--gutter) * -1); padding: 0 var(--gutter) 4px; }
+  .resume__list::-webkit-scrollbar { display: none; }
+  .resume__row { flex: 0 0 78%; scroll-snap-align: start; border-bottom: 0; background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line-strong); }
+  .resume__row:last-child { border-bottom: 0; }
+}
 .resume__row:hover { background: var(--c-raised); }
 .resume__cover { width: 36px; height: 48px; object-fit: cover; flex-shrink: 0; }
 .resume__cover--none { background: var(--c-raised); }
@@ -261,6 +280,14 @@ function resume(item) {
 @media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 28px 24px; } }
 .skel { aspect-ratio: 3 / 4; }
 
+.filter-name { color: var(--c-fg-2); }
+.head-side { display: flex; align-items: center; gap: 12px; }
+/* Phone: the heading on its own line, the filter and the count beneath. */
+@media (max-width: 767px) {
+  .latest .section-head { flex-wrap: wrap; }
+  .latest .section-head h2 { flex-basis: 100%; }
+  .head-side { flex: 1; justify-content: space-between; }
+}
 .empty { padding: 64px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
 .empty__text { color: var(--c-fg-2); margin: 0; }

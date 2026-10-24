@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { formatShortDate, formatEpisodeCount, formatTime } from '../lib/utils.js'
+import { formatShortDate, formatTime } from '../lib/utils.js'
 import { frLabel } from '../lib/igdbLabels.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import { verdictCounts } from '../lib/verdicts.js'
@@ -47,9 +47,9 @@ const mediaImages = computed(() => [
   ...screenshotIds.value,
   ...(igdb.value?.artworkIds ?? []),
 ])
-// Beside the cover: three screenshots (they show the game; artworks often
-// repeat the logo).
-const heroShots = computed(() => screenshotIds.value.slice(0, 3))
+// Beside the cover: the trailer, then screenshots — three thumbnails in all
+// (screenshots show the game; artworks often repeat the logo).
+const heroShots = computed(() => screenshotIds.value.slice(0, igdb.value?.trailerId ? 2 : 3))
 // The lightbox runs through the cover, then the images.
 const lightboxImages = computed(() => [
   ...(coverImageId.value && !coverFailed.value ? [coverImageId.value] : []),
@@ -224,10 +224,19 @@ const gauges = computed(() => {
   if (judged) out.push({ label: 'Avis positifs', value: `${counts.value.positive} sur ${judged}`, pct: Math.round(100 * counts.value.positive / judged) })
   return out
 })
-const kicker = computed(() => [
-  ...(igdb.value?.genres ?? []).slice(0, 2).map(frLabel),
-  igdb.value?.released,
-].filter(Boolean).join(' · '))
+// « Jeu de rôle · Aventure · 2025 »: a second genre only when it doesn't
+// repeat the first (« Stratégie · Stratégie au tour par tour »).
+const kicker = computed(() => {
+  const genres = (igdb.value?.genres ?? []).map(frLabel)
+  const words  = g => g.toLowerCase().split(/[^a-zà-ÿ]+/).filter(w => w.length > 3)
+  const [first, ...others] = genres
+  const second = first && others.find(g => !words(g).some(w => words(first).includes(w)))
+  return [first, second, igdb.value?.released].filter(Boolean).join(' · ')
+})
+const testCount = computed(() => {
+  const n = episodes.value.length || game.value?.episodeCount || 0
+  return `${n} test${n > 1 ? 's' : ''}`
+})
 const byline = computed(() => [igdb.value?.developer, platforms.value.join(' · ')].filter(Boolean).join(' · '))
 
 const gameCtx = computed(() => ({
@@ -239,7 +248,18 @@ const { isEpPlaying, playEp, togglePause } = useEpisodePlayer(gameCtx)
 
 // One test row is open on its « pour / contre »: the one playing, else the one
 // picked, else the first that has any.
+// Opened from a test (`?test=` its episode), that row is open, and scrolled
+// into view if it is below the fold.
 const picked = ref(null)
+const detailEl = ref(null)
+watch(episodes, async eps => {
+  const slug = route.query.test
+  if (!slug || !eps.some(ep => ep.slug === slug)) return
+  picked.value = slug
+  await nextTick()
+  const row = [...(detailEl.value?.querySelectorAll('[data-test]') ?? [])].find(el => el.dataset.test === slug)
+  row?.scrollIntoView({ block: 'nearest' })
+})
 const openSlug = computed(() => {
   if (picked.value !== null) return picked.value || null
   const playing = episodes.value.find(ep => isEpPlaying(ep))
@@ -282,8 +302,13 @@ const sameEpisodeGames = computed(() => {
   return out
 })
 
-function viewEp(ep) {
-  router.push({ path: `/episode/${encodeURIComponent(ep.urlSlug)}`, query: game.value.slug ? { game: game.value.slug } : {} })
+function epHref(ep) {
+  return `/episode/${encodeURIComponent(ep.urlSlug)}` + (game.value?.slug ? `?game=${encodeURIComponent(game.value.slug)}` : '')
+}
+function viewEp(ep, e) {
+  if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)) return
+  e?.preventDefault()
+  router.push(epHref(ep))
 }
 
 // Say where « back » goes when we know it.
@@ -368,10 +393,10 @@ const facts = computed(() => {
       <p v-else class="cond state__title">Jeu introuvable</p>
     </div>
 
-    <div v-else class="detail scroll-area" @scroll.passive="onScroll">
+    <div v-else ref="detailEl" class="detail scroll-area" @scroll.passive="onScroll">
       <!-- The cover, blurred, is the page's backdrop: the page bathes in the game. -->
       <div v-if="coverImageId && !coverFailed" class="backdrop" aria-hidden="true">
-        <img :src="igdbUrl(coverImageId, 't_cover_big')" alt="" />
+        <img :src="igdbUrl(coverImageId, 't_cover_small')" alt="" />
       </div>
 
       <div class="content">
@@ -414,9 +439,12 @@ const facts = computed(() => {
                 <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
                 {{ leadLabel }}
               </button>
-              <button v-if="igdb?.trailerId" type="button" class="btn-line" @click="trailerOpen = true">Bande-annonce</button>
             </div>
-            <div v-if="heroShots.length" class="gamehead__shots">
+            <div v-if="heroShots.length || igdb?.trailerId" class="gamehead__shots">
+              <button v-if="igdb?.trailerId" type="button" class="shot shot--trailer" aria-label="Lire la bande-annonce" @click="trailerOpen = true">
+                <img :src="`https://i.ytimg.com/vi/${igdb.trailerId}/mqdefault.jpg`" alt="" />
+                <span class="shot__play"><Play :size="14" fill="currentColor" :stroke-width="0" /></span>
+              </button>
               <button v-for="id in heroShots" :key="id" type="button" class="shot" aria-label="Agrandir l’image" @click="openLightbox(id)">
                 <img :src="igdbUrl(id, 't_screenshot_med')" alt="" />
               </button>
@@ -428,7 +456,7 @@ const facts = computed(() => {
         <section class="panel journal" aria-labelledby="h-tests">
           <div class="journal__head">
             <h2 id="h-tests" class="lab journal__title">Journal des tests</h2>
-            <span class="journal__count">{{ formatEpisodeCount(episodes.length || game.episodeCount) }}</span>
+            <span class="journal__count">{{ testCount }}</span>
           </div>
 
           <div v-if="episodesLoading" aria-hidden="true">
@@ -439,6 +467,7 @@ const facts = computed(() => {
           <article
             v-for="ep in episodes"
             :key="ep.slug"
+            :data-test="ep.slug"
             class="test"
             :class="{ 'is-open': openSlug === ep.slug, 'is-playing': isEpPlaying(ep) }"
           >
@@ -452,27 +481,25 @@ const facts = computed(() => {
                 <span class="test__mark" aria-hidden="true">{{ openSlug === ep.slug ? '▾' : '▸' }}</span>
                 <span class="test__who">
                   <span class="test__show">{{ ep.podcast?.name ?? '' }}</span>
-                  <span class="test__when mono">{{ formatShortDate(ep.pubTs) }} · début {{ formatTime(ep.timestampSeconds) }}</span>
+                  <span class="test__when mono">{{ formatShortDate(ep.pubTs) }}</span>
                 </span>
                 <VerdictMark :verdict="ep.critique?.verdict ?? null" class="test__verdict" />
-                <span class="test__title ellipsis">{{ ep.title }}</span>
               </button>
-              <div class="test__actions">
-                <button
-                  type="button"
-                  :class="isEpPlaying(ep) ? 'btn-play' : 'btn-line'"
-                  :disabled="!ep.audioUrl"
-                  :aria-label="isEpPlaying(ep) && !playerStore.paused ? 'Pause' : `Écouter le test de ${ep.podcast?.name ?? ''} à ${formatTime(ep.timestampSeconds)}`"
-                  @click="onPlay(ep)"
-                >
-                  <Pause v-if="isEpPlaying(ep) && !playerStore.paused" :size="12" fill="currentColor" :stroke-width="0" />
-                  <Play v-else :size="12" fill="currentColor" :stroke-width="0" />
-                  Écouter
-                </button>
-                <button type="button" class="btn-line" :aria-label="`L'épisode : ${ep.title}`" @click="viewEp(ep)">
-                  Épisode <ChevronRight :size="14" :stroke-width="2" aria-hidden="true" />
-                </button>
-              </div>
+              <a class="test__ep" :href="epHref(ep)" @click="viewEp(ep, $event)">
+                <span class="ellipsis">{{ ep.title }}</span><ChevronRight :size="14" :stroke-width="2" aria-hidden="true" />
+              </a>
+              <button
+                type="button"
+                class="test__play mono"
+                :class="isEpPlaying(ep) ? 'btn-play' : 'btn-line'"
+                :disabled="!ep.audioUrl"
+                :aria-label="isEpPlaying(ep) && !playerStore.paused ? 'Pause' : `Écouter le test de ${ep.podcast?.name ?? ''}, à ${formatTime(ep.timestampSeconds)}`"
+                @click="onPlay(ep)"
+              >
+                <Pause v-if="isEpPlaying(ep) && !playerStore.paused" :size="12" fill="currentColor" :stroke-width="0" />
+                <Play v-else :size="12" fill="currentColor" :stroke-width="0" />
+                {{ formatTime(ep.timestampSeconds) }}
+              </button>
             </div>
 
             <div v-if="openSlug === ep.slug" class="test__opinion">
@@ -685,7 +712,22 @@ const facts = computed(() => {
 .gamehead__play { min-height: 52px; flex: 1 1 100%; }
 .gamehead__shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 600px; }
 .shot { aspect-ratio: 16 / 9; padding: 3px; border: 0; background: rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px var(--c-line); cursor: zoom-in; }
+.shot { position: relative; }
 .shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shot--trailer { cursor: pointer; }
+.shot__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-accent);
+  color: var(--c-accent-fg);
+}
 
 @media (min-width: 900px) {
   .gamehead { grid-template-columns: 460px minmax(0, 1fr); justify-items: stretch; align-items: center; gap: 56px; padding: 48px 0 56px; text-align: left; }
@@ -705,13 +747,21 @@ const facts = computed(() => {
 .test { border-bottom: 1px solid var(--c-line); }
 .test:last-child { border-bottom: 0; }
 .test.is-open { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
-.test__row { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; }
+.test__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "toggle play" "ep ep";
+  gap: 6px 12px;
+  align-items: center;
+  padding: 12px 16px;
+}
 .test__toggle {
+  grid-area: toggle;
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr) auto;
-  grid-template-areas: "mark who verdict" ". title title";
-  gap: 4px 10px;
+  gap: 10px;
   align-items: center;
+  min-width: 0;
   border: 0;
   background: transparent;
   color: var(--c-fg);
@@ -719,15 +769,24 @@ const facts = computed(() => {
   padding: 0;
   cursor: pointer;
 }
-.test__mark { grid-area: mark; color: var(--c-accent); }
-.test__who { grid-area: who; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.test__mark { color: var(--c-accent); }
+.test__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .test__show { font-weight: 600; font-size: var(--text-md); }
 .test__when { color: var(--c-fg-2); font-size: var(--text-xs); }
-.test__verdict { grid-area: verdict; }
-.test__title { grid-area: title; color: var(--c-fg-2); font-size: var(--text-sm); min-width: 0; }
 .test__toggle:hover .test__show { text-decoration: underline; text-underline-offset: 3px; }
-.test__actions { display: flex; gap: 8px; }
-.test__actions > * { flex: 1; min-height: 40px; padding: 0 12px; font-size: 12px; }
+.test__ep {
+  grid-area: ep;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding-left: 26px;
+  color: var(--c-fg-2);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+.test__ep:hover { color: var(--c-fg); text-decoration: underline; text-underline-offset: 3px; }
+.test__play { grid-area: play; min-height: 40px; padding: 0 14px; font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: 0; }
 
 .test__opinion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 0 16px 18px 42px; }
 .test__side { color: var(--c-fg-2); }
@@ -739,15 +798,15 @@ const facts = computed(() => {
 .test__empty { margin: 0; color: var(--c-fg-2); }
 
 @media (min-width: 900px) {
-  .test__row { flex-direction: row; align-items: center; gap: 16px; min-height: 60px; padding: 8px 20px; }
-  .test__toggle {
-    flex: 1 1 0;
-    min-width: 0;
-    grid-template-columns: 16px 240px 120px minmax(0, 1fr);
-    grid-template-areas: "mark who verdict title";
-    gap: 16px;
+  .test__row {
+    grid-template-columns: 380px minmax(0, 1fr) 120px;
+    grid-template-areas: "toggle ep play";
+    gap: 24px;
+    min-height: 60px;
+    padding: 8px 20px;
   }
-  .test__actions > * { flex: 0 0 auto; width: 128px; }
+  .test__toggle { grid-template-columns: 16px minmax(0, 1fr) 100px; gap: 16px; }
+  .test__ep { padding-left: 0; }
   .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 20px 20px 52px; }
 }
 
