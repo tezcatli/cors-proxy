@@ -188,6 +188,109 @@ def test_a_transcript_without_speech_is_a_failure(keys):
         transcribe.transcribe('https://example.com/a.mp3', 'en')
 
 
+
+# ── Sending a big episode in parts ────────────────────────────────────────────
+
+# MPEG-1 layer III, 44.1 kHz: 128 kbps frames are 417 bytes, 192 kbps 626; each
+# holds 1152 samples (26.1 ms). Their bodies are zeros: no false frame sync.
+_F128, _F192, _FRAME_S = b'\xff\xfb\x90\x00' + bytes(413), b'\xff\xfb\xb0\x00' + bytes(622), 1152 / 44100
+
+
+def _id3_tag(size=200):
+    """An ID3v2 tag of `size` bytes, its body full of 0xFF (a cover) that must not
+    be taken for frames."""
+    n = size - 10
+    return b'ID3\x03\x00\x00' + bytes([n >> 21 & 127, n >> 14 & 127, n >> 7 & 127, n & 127]) + b'\xff' * n
+
+
+@contextlib.contextmanager
+def _parted(audio: bytes, monkeypatch, part_bytes=10_000, whole_bytes=20_000):
+    """Mock the download of `audio` and DeepInfra answering each part with one
+    segment at 1 s, as long as it is; yields the parts sent."""
+    monkeypatch.setattr(transcribe, '_PART_BYTES', part_bytes)
+    monkeypatch.setattr(transcribe, '_WHOLE_BYTES', whole_bytes)
+    download = MagicMock()
+    download.__enter__.return_value = download
+    download.iter_content.return_value = [audio]
+    sent = []
+
+    def upload(*_a, data=None, **_kw):
+        body = data.read()
+        part = body[body.index(b'octet-stream\r\n\r\n') + 16:body.rindex(b'\r\n--')]
+        sent.append(part)
+        seconds = len(list(transcribe._frames(part))) * _FRAME_S
+        answer = MagicMock(status_code=200)
+        answer.json.return_value = {'segments': [{'start': 1.0, 'end': 2.0, 'text': f' part {len(sent)}'}],
+                                    'duration': seconds, 'inference_status': {'cost': 0.01}}
+        return answer
+    with patch('transcribe._http.get', return_value=download), \
+         patch('transcribe._http.post', side_effect=upload):
+        yield sent
+
+
+def test_a_small_episode_is_sent_whole(keys, monkeypatch):
+    audio = _id3_tag() + _F128 * 40
+    with _parted(audio, monkeypatch) as sent:
+        transcribe.transcribe('https://example.com/a.mp3', 'fr')
+    assert sent == [audio]
+
+
+def test_a_big_episode_is_sent_in_equal_parts_cut_between_frames(keys, monkeypatch):
+    audio = _id3_tag() + _F128 * 100                       # 41 900 bytes of audio
+    with _parted(audio, monkeypatch) as sent:
+        t = transcribe.transcribe('https://example.com/a.mp3', 'fr')
+    assert [len(p) // len(_F128) for p in sent] == [20, 20, 20, 20, 20]
+    assert b''.join(sent) == _F128 * 100                   # every frame once, the tag in none
+    starts = [s[0] for s in t.segments]                    # shifted by the frames before
+    assert starts == [round(1 + 20 * k * _FRAME_S, 2) for k in range(5)]
+    assert t.duration == pytest.approx(100 * _FRAME_S)
+    assert t.cost == pytest.approx(0.05)
+
+
+def test_the_shift_counts_frames_not_bytes(keys, monkeypatch):
+    # Variable bitrate: the first half's frames are bigger, the parts' timecodes
+    # still follow the frames' durations.
+    audio = _F192 * 30 + _F128 * 30
+    with _parted(audio, monkeypatch, part_bytes=15_000, whole_bytes=10_000) as sent:
+        t = transcribe.transcribe('https://example.com/a.mp3', 'fr')
+    frames = [len(list(transcribe._frames(p))) for p in sent]
+    assert sum(frames) == 60 and len(set(frames)) == 1
+    assert [s[0] for s in t.segments] == [round(1 + k * frames[0] * _FRAME_S, 2) for k in range(len(sent))]
+
+
+def test_what_is_not_a_frame_is_skipped_and_takes_no_time():
+    # An ID3 tag mid-file, bytes an ad insertion left, a Xing header first.
+    xing = b'\xff\xfb\x90\x00' + bytes(32) + b'Xing' + bytes(377)
+    audio = _id3_tag() + xing + _F128 * 10 + _id3_tag(500) + b'\x12\xff\x34' * 300 + _F128 * 10 + b'TAG' + bytes(125)
+    frames = list(transcribe._frames(audio))
+    assert len(frames) == 20 and sum(s for _, s in frames) == pytest.approx(20 * _FRAME_S)
+    assert frames[0][0] == 200 + len(xing)                 # the tag and the Xing header aren't audio
+
+
+def test_what_isnt_an_mp3_is_sent_whole(keys, monkeypatch):
+    audio = b'\x00\x00\x00\x20ftypM4A ' + bytes(30_000)
+    with _parted(audio, monkeypatch) as sent:
+        transcribe.transcribe('https://example.com/a.m4a', 'fr')
+    assert sent == [audio]                                 # DeepInfra says whether it takes it
+    assert transcribe._parts(audio) is None
+
+
+def test_a_part_refused_fails_the_whole_episode(keys, monkeypatch):
+    import requests
+    monkeypatch.setattr(transcribe, '_PART_BYTES', 10_000)
+    monkeypatch.setattr(transcribe, '_WHOLE_BYTES', 20_000)
+    download = MagicMock()
+    download.__enter__.return_value = download
+    download.iter_content.return_value = [_F128 * 100]
+    ok = MagicMock(status_code=200)
+    ok.json.return_value = {'segments': [{'start': 0, 'end': 1, 'text': 'a'}], 'duration': 1}
+    refused = MagicMock(status_code=400, text='{"detail":"Invalid or unsupported audio file."}')
+    refused.raise_for_status.side_effect = requests.HTTPError('400 Client Error')
+    with patch('transcribe._http.get', return_value=download), \
+         patch('transcribe._http.post', side_effect=[ok, refused, ok, ok, ok]), \
+         pytest.raises(requests.HTTPError):
+        transcribe.transcribe('https://example.com/a.mp3', 'fr')
+
 # ── What is left to do ────────────────────────────────────────────────────────
 
 def test_nothing_is_pending_without_the_keys(besties):
