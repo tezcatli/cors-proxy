@@ -12,12 +12,14 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - Le titre propose, la lecture confirme : le jeu du titre est un test si la lecture le trouve, sauf quand elle ne l'a entendu que sans critique. (2026-10-21)
 - Fin du Game : chaque épisode porte sur **un seul jeu**, celui du titre, sur tout l'épisode. (2026-10-22)
 - Les apparitions ne comptent pas, seulement les critiques. (2026-10)
+- Un test commence à sa critique : sa plus longue section critique, ou les sections critiques qui la précèdent quand seules des pubs les en séparent (une coupure pub coupe un test en deux, pas en deux tests). Le début se juge et se mesure, comme le test et sa fiche. (2026-10-24)
 
 ## Fiches
 - Une fiche = un jeu : ses DLC, extensions, éditions, portages et remasters sont sur la même fiche ; **seul un remake est à part**. (2026-10-23)
 - Deux noms sont un même jeu par leur fiche, pas par leurs mots. (2026-10-23)
 - La date de l'épisode ne départage que des homonymes : les podcasts testent des jeux récents, et IGDB est plein d'homonymes anciens. (2026-10)
 - Le LLM lit les noms, IGDB connaît les jeux : le modèle n'affirme jamais un fait sur un jeu (les jeux récents sont plus récents que son entraînement). Une résolution est mise en cache : on n'appelle le LLM qu'une fois. (2026-10)
+- Les fiches se contrôlent sur tout le catalogue, pas sur un échantillon : chaque fiche qu'un changement de résolution donne ou change est revue. (2026-10-24)
 
 ## Pipeline
 - Le LLM décrit, le code décide : une règle va dans le code, pas dans le prompt. (2026-10)
@@ -25,6 +27,8 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - Le labo définit la chaîne, indépendamment de l'app (l'app suit), avec son critère d'arrêt : aucun test faux, aucune mauvaise fiche, ≥ 90 % trouvés, jugé sur le contrôle. Le labo ne fait pas partie de l'app. (2026-10-22)
 - On transcrit nous-mêmes (Whisper turbo sur DeepInfra), et seulement pour en tirer les tests : on ne diffuse pas de transcriptions. (2026-10)
 - Verdicts : moyenne sur trois niveaux ; « enthousiaste » compte comme positif. (2026-10)
+- Une nouvelle émission passe par le labo avant d'entrer dans l'app (un échantillon jugé, mesuré au critère d'arrêt), et son historique entre par le chemin de livraison du labo (`pack_for_prod.py`), jamais par l'ingestion de la prod. (2026-10-24)
+- Nouvelles émissions : ORIGAMI L'Hebdo, ZQSD et The Game Informer Show. The Back Page est mis de côté (peu de tests, des épisodes à thème qui produisent des faux), à reprendre avec la prochaine relecture de tout l'historique. (2026-10-24)
 
 ## Interface
 - Direction visuelle *Studio radio* : noir pur, un seul accent jaune (`#ffd23f`) réservé à ce qui joue, Barlow Condensed (titres), Barlow (texte), JetBrains Mono (libellés, timecodes), angles droits et filets, verdict en glyphe et mot (▲ POSITIF, ◆ MITIGÉ, ▼ NÉGATIF, ○ NON LU) ; plus d'accent tiré des pochettes. Maquettes : https://claude.ai/artifact/NT5XTroWYFNjRkMEXyBNnX. (2026-10-24)

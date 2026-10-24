@@ -31,7 +31,13 @@
     <div class="tx" hidden></div>{% endif %}
     {% for r in g.rows %}{% set sp = r.spec or {} %}{% set t = r.shown.start if r.shown else sp.get('start') %}
     <div class="test{% if sp.test == false %} test--no{% endif %}" data-game="{{ r.game }}"{% if r.shown %} data-shown{% endif %}>
-      <div><button class="play"{% if t is not none %} data-t="{{ t }}" title="Écouter à {{ t | hms }}"{% else %} disabled{% endif %}>{% if t is not none %}▶ {% endif %}<strong>{{ r.game }}</strong>{% if t is not none %} <span class="dim mono">{{ t | hms }}{% if r.shown and r.shown.end %}–{{ r.shown.end | hms }} · {{ r.shown.minutes }} min{% endif %}</span>{% endif %}</button>
+      <div><button class="play"{% if t is not none %} data-t="{{ t }}" title="Écouter à {{ t | hms }}"{% else %} disabled{% endif %}>{% if t is not none %}▶ {% endif %}<strong>{{ r.game }}</strong></button>
+        {% if t is not none %}{% set end = r.shown.end if r.shown else none %}<div class="tc mono">
+          <button class="at" data-t="{{ t }}" title="Écouter le début">{{ t | hms }}</button>
+          {% if end %}→ <button class="at" data-t="{{ end }}" title="Écouter la fin">{{ end | hms }}</button>
+          <span class="dur">{{ (end - t) | dur }}</span>{% if r.shown.minutes is not none and (r.shown.minutes - (end - t) / 60) | abs >= 1 %}
+          <span class="dim">dont {{ r.shown.minutes }} min sur le jeu</span>{% endif %}
+          {% else %}<span class="dim">fin inconnue</span>{% endif %}</div>{% endif %}
         <div>{% if r.shown %}{% if r.shown.verdict %}<span class="chip">avis : {{ r.shown.verdict }}</span>{% endif %}
           {% elif not sp.added %}<span class="chip" style="color:var(--warn)">pas proposé</span>{% endif %}
           {% if sp.added %}<span class="chip">ajouté</span> <button class="ig" data-a="rename">renommer</button><button class="ig" data-a="remove">retirer</button>{% endif %}
@@ -82,6 +88,10 @@
   .tx .mono:hover { color: var(--accent); }
   .play { background: none; border: 0; padding: 0; color: var(--text); text-align: left; }
   .play[data-t]:hover strong { color: var(--accent); }
+  .tc { margin-top: 3px; font-size: .8rem; color: var(--text); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+  .at { background: none; border: 1px solid var(--line); border-radius: 4px; color: var(--text); padding: 0 6px; font: inherit; }
+  .at:hover { color: var(--accent); border-color: var(--accent); }
+  .dur { font-weight: 700; padding: 0 6px; border-radius: 4px; background: var(--line); }
   .add { margin: 2px 0 2px 24px; }
   .addbtn { background: none; border: 0; padding: 0; color: var(--dim); font-size: .75rem; }
   .addbtn:hover { color: var(--accent); }

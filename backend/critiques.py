@@ -21,8 +21,10 @@ The reading describes each section (`llm.KINDS`), the rules decide:
 - a show's palmarès formats, known by their titles (`Podcast.palmares_titles`),
   hold no test even when the reading calls each entry a review.
 
-A test starts where its critique does — its longest critique section, not a
-teaser before the intro — and goes on over the sections on the game after it.
+A test starts where its critique does — its longest critique section, or the
+critique sections before it that only ads part from it (an ad break cuts a
+review in two, not into two tests), never a teaser before the intro — and goes
+on over the sections on the game after it.
 
 Two names are one game when they are spelled alike (`same`) or, both having an
 IGDB answer, when the answers are one catalog page — a title names « Wolfenstein »
@@ -104,7 +106,7 @@ def select(podcast, episode: Episode, sections: list[dict],
             continue
         mention = next((m for m in proposed if m.name == g['proposed']), None) \
             or GameMention(g['name'], None, 0, read=True)
-        at = start(g['sections'])
+        at = start(g['sections'], sections)
         mention.timestamp, mention.timestamp_seconds = _ts(at), int(at)
         mention.critique = _critique(g['sections'])
         tests.append(mention)
@@ -170,11 +172,21 @@ def _is_test(g: dict, titled: bool) -> bool:
     return max(s['end'] - s['start'] for s in g['sections']) >= MIN_SECONDS
 
 
-def start(sections: list[dict]) -> float:
-    """Where a test starts: its longest critique section, or its first section
-    without one."""
+def start(sections: list[dict], reading: list[dict]) -> float:
+    """Where a test on these `sections` of the `reading` starts: its longest
+    critique section, or the first of the critique sections before it that only
+    ads part from it; its first section without a critique."""
     judged = [s for s in sections if s['kind'] in _JUDGED]
-    return max(judged, key=lambda s: s['end'] - s['start'])['start'] if judged else sections[0]['start']
+    if not judged:
+        return sections[0]['start']
+    main = max(judged, key=lambda s: s['end'] - s['start'])
+    ids, first = {id(s) for s in judged}, main
+    for s in reversed(reading[:next(i for i, r in enumerate(reading) if r is main)]):
+        if id(s) in ids:
+            first = s
+        elif not s['ad']:
+            break
+    return first['start']
 
 
 def _critique(sections: list[dict]) -> dict | None:

@@ -21,6 +21,8 @@ HERE = pathlib.Path(__file__).parent
 app = Flask(__name__, template_folder=str(HERE / 'templates'))
 app.jinja_env.filters['hms'] = lambda t: (f'{int(t) // 3600}:{int(t) % 3600 // 60:02d}:{int(t) % 60:02d}'
                                          if t is not None else '?')
+app.jinja_env.filters['dur'] = lambda s: (f'{int(s) // 3600} h {int(s) % 3600 // 60:02d}' if s >= 3600
+                                         else f'{int(s) // 60} min {int(s) % 60:02d} s')
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(name)s %(message)s')
 snapshot.load()
 
