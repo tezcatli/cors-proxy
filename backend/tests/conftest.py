@@ -17,6 +17,7 @@ _db.DB_PATH = os.path.join(tempfile.mkdtemp(), 'test.db')
 import datetime
 import jwt
 import pytest
+from unittest.mock import patch
 from app import create_app
 from config import Config
 import catalog_state as _state
@@ -106,6 +107,15 @@ def tmp_corrections(tmp_path, monkeypatch):
     yield path
     monkeypatch.undo()
     _corr.load()          # restore the real file into memory for other tests
+
+
+@pytest.fixture(autouse=True)
+def no_unsearched_evidence():
+    """IGDB's other names and release dates (`resolver._unsearched`) find nothing
+    unless a test says otherwise: the search mocks stand alone."""
+    with patch('resolver.alternative_name_ids', return_value=set()), \
+         patch('resolver.releases', return_value=[]):
+        yield
 
 
 @pytest.fixture(autouse=True)

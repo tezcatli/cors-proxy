@@ -449,6 +449,33 @@ def search_games(query: str, limit: int = 10) -> list[dict]:
     return out
 
 
+def alternative_name_ids(name: str) -> set[int]:
+    """The games IGDB lists `name` as an other name of — a localised title, another
+    spelling (« Rhythm Paradise Groove », « Indiana Jones et le Cercle Ancien »):
+    its free-text search doesn't look there."""
+    safe = name.replace('\\', '').replace('"', '').strip()
+    if not safe:
+        return set()
+    rows = _post(f'fields game; where name ~ "{safe}"; limit 10;', 'alternative_names')
+    return {r['game'] for r in rows if r.get('game')}
+
+
+def releases(ids) -> list[dict]:
+    """Each game's name, type, five other names (as `search_games` shows them) and
+    every release date IGDB knows — early access included, which
+    `first_release_date`, the 1.0's, leaves out (« 33 Immortals »)."""
+    ids = sorted(ids)
+    if not ids:
+        return []
+    rows = _post(f'fields name, game_type, alternative_names.name, first_release_date, release_dates.date; '
+                 f'where id = ({",".join(map(str, ids))}); limit {len(ids)};')
+    return [{'id': g['id'], 'name': g.get('name'), 'gameType': g.get('game_type'),
+             'otherNames': [a['name'] for a in g.get('alternative_names') or [] if a.get('name')][:5],
+             'dates': sorted({d['date'] for d in g.get('release_dates') or [] if d.get('date')}
+                             | ({g['first_release_date']} if g.get('first_release_date') else set()))}
+            for g in rows]
+
+
 def fetch_time_to_beat(igdb_id: int) -> int | None:
     """Main-story completion time in hours from IGDB's /game_time_to_beats, or None.
     Best-effort fallback for HowLongToBeat; never raises."""

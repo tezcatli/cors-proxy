@@ -35,7 +35,8 @@ IGDB's search for a name written otherwise. v1, the simplest, is kept; no
 version is tuned for one case any more.
 
 v9 changes no prompt and no rule, only the evidence v1's judge is shown — what
-IGDB's free-text search misses (`_more`): the entries the catalog already gave
+IGDB's free-text search misses, ported since (`resolver._unsearched`: every
+version gathers it now, the answers measured before it are kept): the entries the catalog already gave
 a name spelled alike (`critiques.same`: « BALLxPIT » is « Ball x Pit », the
 Besties' answer), the games IGDB lists the name as an alternative name of
 (« Rhythm Paradise Groove », « Indiana Jones et le Cercle Ancien »), and each
@@ -149,11 +150,11 @@ Answer null only when no candidate can be the game named.
 Answer with JSON only: {"id": <candidate id or null>}"""
 
 # version → (prompt, other titles searched for every show, the episode's evidence
-# given, `_more` candidates). titles: False (v1: only for the shows whose names
-# aren't an LLM's), True (every show), 'fallback' (every show, only when no
-# candidate bears the name exactly).
-VERSIONS = {1: (_V1, False, False, False), 4: (_V4, True, False, False), 6: (_V6, True, True, False),
-            7: (_V7, True, False, False), 8: (_V1, 'fallback', False, False), 9: (_V1, False, False, True)}
+# given). titles: False (v1: only for the shows whose names aren't an LLM's),
+# True (every show), 'fallback' (every show, only when no candidate bears the
+# name exactly). v9 is v1 with the evidence now in `resolver.gather_evidence`.
+VERSIONS = {1: (_V1, False, False), 4: (_V4, True, False), 6: (_V6, True, True), 7: (_V7, True, False),
+            8: (_V1, 'fallback', False), 9: (_V1, False, False)}
 DEFAULT = 9   # chosen by the score on every judged test (v1 4 6 7 8 9 measured)
 
 
@@ -189,52 +190,9 @@ def _evidence(name: str, episode) -> list[dict]:
             for s in current._reading(episode) or [] if s['game'] and not s['ad'] and same(s['game'], name)]
 
 
-def _catalog(name: str) -> set[int]:
-    """The entries the catalog's answers give a name spelled like `name`."""
-    import catalog_state as state
-    import critiques
-    with state.lock:
-        answered = [(state.game_index.get(key.rsplit('|', 1)[-1]), r.igdb_id)
-                    for key, r in state.resolutions.items() if key.startswith('name|') and r.igdb_id]
-    return {i for g, i in answered if g and critiques.same(g.name, name)}
-
-
-def _more(name: str, window, candidates: dict[int, dict]) -> dict[int, dict]:
-    """`candidates` with what IGDB's search misses: the catalog's entries for the
-    name spelled alike and the games bearing it as an alternative name — each
-    only when one of its releases is within the question's `window`, so no old
-    namesake comes in (« Jump », 2009: not David Bowie's 1994 CD-ROM); without
-    a window, a retrospective's, the alternative names alone — and every
-    candidate's first release, early access included."""
-    safe = name.replace('"', '')
-    alt = {(a.get('game') or {}).get('id') for a in
-           igdb._post(f'fields game.id; where name ~ "{safe}"; limit 10;', 'alternative_names')} - {None}
-    catalog = (_catalog(name) - set(candidates) - alt) if window else set()
-    ids = sorted(set(candidates) | alt | catalog)
-    if not ids:
-        return candidates
-    rows = igdb._post(f'fields name, game_type, alternative_names.name, first_release_date, release_dates.date; '
-                      f'where id = ({",".join(map(str, ids))}); limit {len(ids)};')
-    out = dict(candidates)
-    for g in rows:
-        dates = [d['date'] for d in g.get('release_dates') or [] if d.get('date')] \
-            + ([g['first_release_date']] if g.get('first_release_date') else [])
-        first = min(dates, default=None)
-        released = first and datetime.datetime.fromtimestamp(first, datetime.UTC).date().isoformat()
-        if g['id'] in candidates:
-            # The same evidence as v1's, but its first release.
-            out[g['id']] = {**candidates[g['id']], 'released': released}
-        elif g.get('game_type') != 5 and (window is None or any(window[0] <= d <= window[1] for d in dates)):
-            # Shown as IGDB's search shows a candidate (`igdb.search_games`): no
-            # mod, five other names.
-            out[g['id']] = {'id': g['id'], 'name': g['name'], 'released': released,
-                            'otherNames': [a['name'] for a in g.get('alternative_names') or [] if a.get('name')][:5]}
-    return out
-
-
 def decide(name: str, episode, version: int = DEFAULT) -> dict | None:
     """Ask IGDB and the LLM, and cache the answer. A curator's pin stands."""
-    prompt, titles_everywhere, evidence, more = VERSIONS[version]
+    prompt, titles_everywhere, evidence = VERSIONS[version]
     game = SimpleNamespace(name=name, name_slug=make_slug(name))
     question = question_for(game, episode)
     if question.kind == 'pin':
@@ -260,8 +218,6 @@ def decide(name: str, episode, version: int = DEFAULT) -> dict | None:
         else:
             titles = (llm.suggest_titles(name, context) or []) if titles_everywhere or not podcast.games_by_llm else []
             candidates, _ = resolver.gather_evidence(question, titles)
-        if more:
-            candidates = _more(name, question.window, candidates)
         ids = sorted(candidates)
         # Cached by prompt, as the app caches by its prompt's version: a version
         # sharing v1's prompt asks nothing v1 asked — the same question asked
