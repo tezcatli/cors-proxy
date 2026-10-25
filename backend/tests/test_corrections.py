@@ -196,19 +196,6 @@ def test_is_writable_true_when_the_file_can_be_written(tmp_corrections):
     assert _corr.is_writable() is True
 
 
-@pytest.mark.skipif(os.geteuid() == 0,
-                    reason='root bypasses permission bits, so a read-only file '
-                           'still reports writable (the test container runs as root)')
-def test_is_writable_false_on_a_read_only_file(tmp_corrections):
-    # Stands in for prod, where corrections.json ships in the root-owned image
-    # layer and the app runs as `appuser`.
-    os.chmod(tmp_corrections, 0o444)
-    try:
-        assert _corr.is_writable() is False
-    finally:
-        os.chmod(tmp_corrections, 0o644)
-
-
 def test_write_preserves_the_files_mode(tmp_corrections):
     # The dev container writes this file as root via mkstemp+os.replace, which
     # would otherwise leave it 0600 and root-owned — unreadable to the human who

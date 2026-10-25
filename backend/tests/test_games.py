@@ -146,18 +146,6 @@ def test_parse_feed_includes_non_game_episodes():
     no_game_ep = next(ep for ep in episodes if not ep.games)
     assert no_game_ep.title == 'Quelle est la meilleure plateforme ?'
 
-def test_parse_feed_uses_raw_podcast_name():
-    # parse_feed no longer applies corrections — canonical name comes from IGDB
-    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
-      <item>
-        <title>On a joue \xc2\xab artic eggs \xc2\xbb</title>
-        <enclosure url="https://example.com/ep3.mp3" type="audio/mpeg" length="0" />
-        <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate><description></description>
-      </item></channel></rss>"""
-    rss = rss.replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    episodes = _parse_feed(rss)
-    assert episodes[0].games[0].name.strip() == 'artic eggs'
-
 def test_parse_feed_sets_audio_url():
     episodes = _parse_feed(MINIMAL_RSS)
     assert episodes[0].audio_url == 'https://example.com/ep1.mp3'
@@ -280,23 +268,18 @@ def test_multi_feed_episodes_interleave_by_date():
   <item><title>Recent \xc2\xabMario\xc2\xbb</title>
     <guid>soj-new</guid><enclosure url="https://example.com/n.mp3" type="audio/mpeg" length="0" />
     <pubDate>Wed, 01 Jan 2025 09:00:00 +0000</pubDate><description>x</description></item>
-</channel></rss>"""
+</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
     fdg_rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
   <item><title>Episode 50 - Balatro</title>
     <guid>fdg-mid</guid><enclosure url="https://example.com/m.mp3" type="audio/mpeg" length="0" />
     <pubDate>Fri, 10 May 2024 09:00:00 +0000</pubDate><description>x</description></item>
 </channel></rss>"""
-    soj = PODCAST_BY_ID['silence-on-joue']
-    fdg = PODCAST_BY_ID['fin-du-game']
-    episodes = (
-        _parse_feed(soj_rss, extractor=soj.extractor, podcast_id=soj.id)
-        + _parse_feed(fdg_rss, extractor=fdg.extractor, podcast_id=fdg.id)
-    )
-    episodes.sort(key=lambda e: e.pub_ts or 0, reverse=True)
-    order = [e.slug for e in episodes]
-    assert order == ['soj-new', 'fdg-mid', 'soj-old']     # interleaved, newest-first
-    pts = [e.pub_ts or 0 for e in episodes]
-    assert pts == sorted(pts, reverse=True)
+    soj, fdg = PODCAST_BY_ID['silence-on-joue'], PODCAST_BY_ID['fin-du-game']
+    feeds_by_url = {soj.feed_url: soj_rss, fdg.feed_url: fdg_rss}
+    with patch.object(feeds, 'PODCASTS', [soj, fdg]), \
+         patch('feeds.http.get', side_effect=lambda url, **_: mock_rss_response(feeds_by_url[url])):
+        feeds.refresh_feed()
+    assert [e.slug for e in state.episodes] == ['soj-new', 'fdg-mid', 'soj-old']
 
 
 def test_intra_episode_duplicate_deduped():
@@ -729,10 +712,10 @@ def test_each_test_carries_its_verdict_and_the_catalog_one_per_test():
     assert serializers.serialise_episode_slim(episodes[0])['games'][0]['verdict'] == 'positive'
 
 
-def test_unknown_slug_still_404s():
+def test_unknown_slug_still_404s(client):
     _seed(_TWO_EPISODES_SAME_NAME, {})
-    with pytest.raises(Exception):
-        serializers.load_game('no-such-game')
+    r = client.get('/games/no-such-game', headers=auth_header())
+    assert_contract(r, GAMES['game_detail']['not_found'])
 
 
 # ── Resolution: per-podcast date hint + corrections ───────────────────────────

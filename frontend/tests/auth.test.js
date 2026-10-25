@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getToken, getUserEmail, isLoggedIn, isAdmin, logout, login, register, resetRequest, resetConfirm, apiFetch } from '../src/lib/auth.js';
+import { getUserEmail, isLoggedIn, isAdmin, logout, login, register, resetRequest, resetConfirm, apiFetch } from '../src/lib/auth.js';
 import { AUTH, mockResponse } from './contract.js';
 
 // Stub the router so apiFetch's lazy redirect-to-login import is inert in tests.
@@ -16,18 +16,6 @@ function makeToken({ email = 'user@test.com', expOffsetSeconds = 3600 } = {}) {
 }
 
 beforeEach(() => { localStorage.clear(); });
-
-// ── getToken ──────────────────────────────────────────────────────────────
-
-describe('getToken', () => {
-  it('returns empty string when nothing is stored', () => {
-    expect(getToken()).toBe('');
-  });
-  it('returns the stored token', () => {
-    localStorage.setItem(TOKEN_KEY, 'mytoken');
-    expect(getToken()).toBe('mytoken');
-  });
-});
 
 // ── getUserEmail ──────────────────────────────────────────────────────────
 

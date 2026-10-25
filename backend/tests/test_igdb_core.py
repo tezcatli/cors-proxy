@@ -174,15 +174,14 @@ def test_post_retries_on_5xx_then_succeeds():
     assert out == [{'id': 1, 'name': 'X'}]
     assert calls['n'] == 2   # one retry
 
-def test_fields_generated_set_is_intact():
-    # The generated _FIELDS must keep the full field set (bare + both expansions).
+def test_both_expansions_ask_every_field_of_the_game():
+    # Canonical resolution reads the parent's fields inline: no second call.
     fields = [f.strip() for f in igdb._FIELDS.replace('fields ', '', 1).rstrip('; ').split(',')]
     assert igdb._FIELDS.startswith('fields ') and igdb._FIELDS.endswith('; ')
-    assert len(fields) == len(set(fields)) == 89   # 29 bare + 30 parent + 30 version
-    for f in ('websites.type', 'age_ratings.rating_category'):
-        assert f in fields
+    assert len(fields) == len(set(fields))
+    bare = [f.strip() for f in igdb._GAME_FIELDS.split(',')]
     for p in ('parent_game', 'version_parent'):
-        assert f'{p}.id' in fields and f'{p}.{f}' in fields
+        assert f'{p}.id' in fields and all(f'{p}.{f}' in fields for f in bare)
 
 
 def test_post_raises_after_exhausting_retries():
