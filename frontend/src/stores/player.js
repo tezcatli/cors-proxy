@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PCT } from '../lib/utils.js'
 import { createAudioEngine } from '../lib/audioEngine.js'
+import { fetchEpisodeDetail } from '../lib/games.js'
 
 // Track metadata, listening progress, and the only driver of `lib/audioEngine.js`:
 // components issue commands (play, resume, pauseAudio, togglePlayback, seek, retry,
@@ -58,6 +59,18 @@ export const usePlayerStore = defineStore('player', () => {
     current.value = { game, slug: slug ?? game, episode, url, ts, timestamp, episodeImageUrl, pubTs, episodeSlug, episodeUrlSlug, coverImageId, podcast, chapters: chapters ?? [], tests: tests ?? [] }
     visible.value = true
     engine.load({ url, at: ts }, { autoplay: true })
+    if (!chapters?.length) _loadChapters(url, episodeUrlSlug ?? episodeSlug)
+  }
+
+  // A track started from a list (which carries no chapters) gets them from the
+  // episode's detail: what is on air, and progress, go by chapter.
+  async function _loadChapters(url, slug) {
+    if (!slug) return
+    try {
+      const ep = await fetchEpisodeDetail(slug)
+      if (current.value?.url !== url || !ep?.chapters?.length) return
+      current.value = { ...current.value, chapters: ep.chapters, tests: ep.games ?? current.value.tests }
+    } catch (_) {}
   }
 
   function close() {
@@ -98,12 +111,43 @@ export const usePlayerStore = defineStore('player', () => {
     return [...list].sort((a, b) => a.timestampSeconds - b.timestampSeconds)
   })
 
+  // The test on air, by position: the last test started within the chapter
+  // playing; else the test whose page that chapter carries (the chapter a test
+  // starts in, the one it goes on in after an ad); else none — a chapter on
+  // anything else is no test's. An episode without chapters (unread) falls back
+  // to the last test started. A test starting up to CHAPTER_SNAP s before a
+  // chapter is that chapter's (the transcript's clock runs ahead of the feed's;
+  // `serializers._chapter_resolutions` applies the same rule).
+  const CHAPTER_SNAP = 30
   const currentTest = computed(() => {
+    const cur = current.value
+    if (!cur) return null
+    const ch = currentChapter.value
+    const from = cur.chapters?.length ? (ch ? ch.timestampSeconds - CHAPTER_SNAP : Infinity) : -Infinity
     let active = null
-    for (const t of current.value?.tests ?? []) {
-      if (t.timestampSeconds <= currentTime.value && (!active || t.timestampSeconds >= active.timestampSeconds)) active = t
+    for (const t of cur.tests ?? []) {
+      if (t.timestamp == null || t.timestampSeconds < from || t.timestampSeconds > currentTime.value) continue   // no known start: never on air
+      if (!active || t.timestampSeconds >= active.timestampSeconds) active = t
     }
-    return active
+    if (active || !ch?.slug) return active
+    return cur.tests.find(t => t.slug === ch.slug)
+      ?? { name: ch.title, resolvedName: ch.resolvedName, slug: ch.slug, coverImageId: ch.coverImageId, timestampSeconds: ch.timestampSeconds }
+  })
+
+  // What is on air — the one rule the player and the lock screen follow
+  // (DECISIONS.md, « Interface »): the test's cover and game, else the
+  // podcast's image and the chapter (or the episode). Never the game the track
+  // was started for.
+  const onAir = computed(() => {
+    const cur = current.value
+    if (!cur) return null
+    const test = currentTest.value
+    return {
+      test,
+      coverImageId: test?.coverImageId ?? null,
+      imageUrl:     cur.episodeImageUrl ?? null,
+      title:        test ? (test.resolvedName ?? test.name) : (currentChapter.value?.title || cur.episode || ''),
+    }
   })
 
   // Back within the first seconds of a mark goes to the one before, as on a CD.
@@ -289,7 +333,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     current, visible, currentTime, currentChapter, audioDuration, restored,
-    status, paused, buffering, failed, volume, rate, marks, currentTest,
+    status, paused, buffering, failed, volume, rate, marks, currentTest, onAir,
     play, close, restore, setEpisodeImageUrl,
     resume, pauseAudio, togglePlayback, seek, retry, setVolume, setRate, skip,
     liveProgress, getEpisodeProgress, getGameProgress,

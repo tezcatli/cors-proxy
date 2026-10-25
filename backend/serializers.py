@@ -11,7 +11,7 @@ from flask import abort
 
 import catalog_state as state
 from corrections import find_by_podcast
-from models import Episode, GameAppearance, IgdbEntry, PodcastGame
+from models import Episode, GameAppearance, GameMention, IgdbEntry, PodcastGame
 from podcasts import podcast_meta
 from utils import make_slug
 
@@ -104,10 +104,40 @@ def _resolution(mention, episode: Episode) -> tuple[str, str, str | None] | None
     return entry.name or mention.name, entry.igdb_slug, cover_image_id
 
 
-def _build_resolved(episode: Episode) -> dict[str, tuple[str, str, str | None]]:
-    """Build a timestamp → (igdb_name, igdb_slug, cover_image_id) map for one episode."""
-    return {m.timestamp: r for m in episode.games
-            if m.timestamp and (r := _resolution(m, episode))}
+CHAPTER_SNAP = 30
+
+
+def _chapter_resolutions(episode: Episode) -> list[tuple[str, str, str | None] | None]:
+    """Each chapter's test, as (igdb_name, igdb_slug, cover_image_id), or None.
+
+    A chapter is a test's when the test starts in it (a test starts at its
+    critique, often after the chapter's own start: a feed's chapters are the
+    show's, not the reading's), or when the reading put it on the same game, by
+    name or by page: a test cut by an ad goes on after it in a chapter of its
+    own. A start up to `CHAPTER_SNAP` seconds before a chapter is that
+    chapter's: the transcript's clock runs a few seconds ahead of the feed's.
+    The player shows the game on air in every chapter of its test
+    (DECISIONS.md, « Interface »; `stores/player.js` applies the same rule)."""
+    tests   = [(m, r) for m in episode.games if (r := _resolution(m, episode))]
+    by_name = {make_slug(m.name): r for m, r in tests}
+    by_page = {r[1]: r for _, r in tests}
+    starts  = sorted(((m.timestamp_seconds, r) for m, r in tests if m.timestamp),
+                     key=lambda x: x[0])
+    chapters = episode.chapters
+
+    def of(i, chapter):
+        begin = chapter.timestamp_seconds - CHAPTER_SNAP if i else float('-inf')
+        end   = chapters[i + 1].timestamp_seconds - CHAPTER_SNAP if i + 1 < len(chapters) else float('inf')
+        if r := next((r for t, r in starts if begin <= t < end), None):
+            return r
+        if not chapter.game_name:
+            return None
+        if r := by_name.get(make_slug(chapter.game_name)):
+            return r
+        r = _resolution(GameMention(chapter.game_name, None, 0), episode)
+        return by_page.get(r[1]) if r else None
+
+    return [of(i, c) for i, c in enumerate(chapters)]
 
 
 def _game(mention, episode: Episode) -> dict:
@@ -129,16 +159,15 @@ def serialise_episode(episode: Episode, mention=None) -> dict:
     fields with that game's position in the episode; otherwise they default to
     None/0 (whole-episode context).
     """
-    resolved = _build_resolved(episode)
     chapters = []
-    for chapter in episode.chapters:
+    for chapter, test in zip(episode.chapters, _chapter_resolutions(episode)):
         ch: dict = {
             'timestamp':        chapter.timestamp,
             'timestampSeconds': chapter.timestamp_seconds,
             'title':            chapter.title,
         }
-        if chapter.timestamp in resolved:
-            igdb_name, igdb_slug, cover_image_id = resolved[chapter.timestamp]
+        if test:
+            igdb_name, igdb_slug, cover_image_id = test
             ch['resolvedName'] = igdb_name
             ch['slug']         = igdb_slug
             if cover_image_id:

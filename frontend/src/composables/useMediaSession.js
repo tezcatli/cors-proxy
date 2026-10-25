@@ -22,12 +22,11 @@ export function useMediaSession(playerStore) {
     return []
   }
 
-  // In a chapter: chapter cover → episode image (matches AudioPlayer's playerCoverSrc).
-  // No chapter:   launch game cover → episode image.
+  // What is on air (the store's `onAir`): the test's cover, else the podcast's
+  // image — the same as the player's.
   function currentArtwork() {
-    const cur = playerStore.current
-    const ch  = playerStore.currentChapter
-    return imageArtwork(ch ? ch.coverImageId : cur.coverImageId, cur.episodeImageUrl)
+    const air = playerStore.onAir
+    return imageArtwork(air.coverImageId, air.imageUrl)
   }
 
   function setMSState(state) {
@@ -48,10 +47,10 @@ export function useMediaSession(playerStore) {
 
   function buildMetadata() {
     const cur = playerStore.current
-    const ch  = playerStore.currentChapter
+    const air = playerStore.onAir
     const md  = new MediaMetadata({
-      title:   ch?.title || cur.episode,   // chapter title whenever in a chapter, art or not
-      artist:  ch ? cur.episode : '',      // episode shown as the subtitle under the chapter
+      title:   air.title,                                 // the game on air, else the chapter, else the episode
+      artist:  air.title !== cur.episode ? cur.episode : '',
       album:   cur.podcast?.name || 'Ludothèque',
       artwork: currentArtwork(),
     })
@@ -96,7 +95,7 @@ export function useMediaSession(playerStore) {
     }
   }
 
-  watch(() => playerStore.currentChapter, () => {
+  watch(() => playerStore.onAir && `${playerStore.onAir.coverImageId}|${playerStore.onAir.title}`, () => {
     if (!hasMS || !playerStore.current) return
     syncMediaSessionMeta()
   })
