@@ -137,33 +137,6 @@ def test_same_name_at_different_scopes_is_not_a_duplicate(tmp_corrections):
 
 # ── corrections.json: writing ─────────────────────────────────────────────────
 
-def test_upsert_replaces_the_entry_at_the_same_scope(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1)
-    _corr.upsert('Chrono Trigger', igdb_id=2)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger', 'igdb_id': 2}]
-
-
-def test_upsert_keeps_a_curated_display_name(tmp_corrections):
-    import json
-    tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Les gardiens de la galaxie', 'search_name': 'Guardians',
-         'display_name': 'Les gardiens de la galaxie'},
-    ]}))
-    _corr.load()
-    # Pinning an id is about resolution; it must not silently drop the curator's title.
-    _corr.upsert('Les gardiens de la galaxie', igdb_id=19560)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Les gardiens de la galaxie',
-                                  'igdb_id': 19560,
-                                  'display_name': 'Les gardiens de la galaxie'}]
-
-
-def test_upsert_is_keyed_on_the_slug_not_the_spelling(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1)
-    _corr.upsert('chrono trigger', igdb_id=2)      # same slug → one entry, not two
-    assert len(_corr.CORRECTIONS) == 1
-    assert _corr.CORRECTIONS[0]['igdb_id'] == 2
-
-
 def test_remove_reports_whether_anything_went(tmp_corrections):
     _corr.upsert('Chrono Trigger', igdb_id=1)
     assert _corr.remove('Chrono Trigger') is True
@@ -208,54 +181,39 @@ def test_write_preserves_the_files_mode(tmp_corrections):
 
 # ── upsert: merge semantics (pin and rename are independent decisions) ─────────
 
-def test_upsert_rename_keeps_the_pin(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1)
-    _corr.upsert('Chrono Trigger', display_name='Chrono Trigger (SNES)')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger', 'igdb_id': 1,
-                                  'display_name': 'Chrono Trigger (SNES)'}]
+CT, SS = 'Chrono Trigger', 'Shogun Shodown'
 
 
-def test_upsert_pin_keeps_the_display_name(tmp_corrections):
-    _corr.upsert('Chrono Trigger', display_name='Chrono Trigger (SNES)')
-    _corr.upsert('Chrono Trigger', igdb_id=2)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger',
-                                  'display_name': 'Chrono Trigger (SNES)', 'igdb_id': 2}]
-
-
-def test_upsert_empty_display_name_clears_the_override(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1, display_name='X')
-    _corr.upsert('Chrono Trigger', display_name='')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger', 'igdb_id': 1}]
-
-
-def test_upsert_display_name_only_is_a_valid_entry(tmp_corrections):
-    # display_name alone is meaningful: rename a game the search already gets right.
-    _corr.upsert('Les Sims', display_name='Les Sims')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Les Sims', 'display_name': 'Les Sims'}]
-
-
-def test_upsert_pin_drops_a_stale_search_name(tmp_corrections):
+@pytest.mark.parametrize('before, upserts, after', [
+    # A new pin replaces the old one, at the same scope, whatever the spelling
+    # (the last one written).
+    ([], [(CT, {'igdb_id': 1}), ('chrono trigger', {'igdb_id': 2})],
+     [{'podcast_name': 'chrono trigger', 'igdb_id': 2}]),
+    # Renaming keeps the pin; pinning keeps the curator's name.
+    ([], [(CT, {'igdb_id': 1}), (CT, {'display_name': 'CT (SNES)'})],
+     [{'podcast_name': CT, 'igdb_id': 1, 'display_name': 'CT (SNES)'}]),
+    ([{'podcast_name': CT, 'search_name': 'Guardians', 'display_name': 'CT (SNES)'}],
+     [(CT, {'igdb_id': 2})],
+     [{'podcast_name': CT, 'igdb_id': 2, 'display_name': 'CT (SNES)'}]),
+    # An empty name drops the override; a name alone is an entry.
+    ([], [(CT, {'igdb_id': 1, 'display_name': 'X'}), (CT, {'display_name': ''})],
+     [{'podcast_name': CT, 'igdb_id': 1}]),
+    ([], [('Les Sims', {'display_name': 'Les Sims'})],
+     [{'podcast_name': 'Les Sims', 'display_name': 'Les Sims'}]),
+    # A pin bypasses the search: its search_name would be dead config (and
+    # _validate rejects the pair); a rename keeps it.
+    ([{'podcast_name': SS, 'search_name': 'Été'}], [(SS, {'igdb_id': 42})],
+     [{'podcast_name': SS, 'igdb_id': 42}]),
+    ([{'podcast_name': SS, 'search_name': 'Été'}], [(SS, {'display_name': 'Été'})],
+     [{'podcast_name': SS, 'search_name': 'Été', 'display_name': 'Été'}]),
+])
+def test_upsert_merges_into_the_entry_at_its_scope(tmp_corrections, before, upserts, after):
     import json
-    tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Shogun Shodown', 'search_name': 'Été'},
-    ]}))
+    tmp_corrections.write_text(json.dumps({'corrections': before}))
     _corr.load()
-    # A pin bypasses the search, so the search_name would be dead config —
-    # _validate rejects the pair, so it must be dropped rather than kept.
-    _corr.upsert('Shogun Shodown', igdb_id=42)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Shogun Shodown', 'igdb_id': 42}]
-
-
-def test_upsert_rename_preserves_a_search_name(tmp_corrections):
-    import json
-    tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Shogun Shodown', 'search_name': 'Été'},
-    ]}))
-    _corr.load()
-    _corr.upsert('Shogun Shodown', display_name='Été')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Shogun Shodown',
-                                  'search_name': 'Été',
-                                  'display_name': 'Été'}]
+    for name, fields in upserts:
+        _corr.upsert(name, **fields)
+    assert _corr.CORRECTIONS == after
 
 
 def test_upsert_with_nothing_to_write_raises(tmp_corrections):

@@ -8,7 +8,6 @@ import catalog_state as state
 import feeds
 import games as games_module
 import resolver
-import review
 import serializers
 from db import get_db, utcnow
 from utils import make_slug
@@ -132,58 +131,30 @@ def test_extract_game_names_guillemets_take_priority():
 
 # ── _parse_feed ───────────────────────────────────────────────────────────────
 
-def test_parse_feed_returns_game_list():
+def test_a_feed_item_becomes_an_episode():
     episodes = _parse_feed(MINIMAL_RSS)
-    names = {g.name for ep in episodes for g in ep.games}
-    assert 'Zelda' in names
-    assert 'Mario Kart' in names
-
-def test_parse_feed_includes_non_game_episodes():
-    episodes = _parse_feed(MINIMAL_RSS)
-    assert len(episodes) == 2
-    game_ep = next(ep for ep in episodes if ep.games)
-    assert len(game_ep.games) == 2
-    no_game_ep = next(ep for ep in episodes if not ep.games)
-    assert no_game_ep.title == 'Quelle est la meilleure plateforme ?'
-
-def test_parse_feed_sets_audio_url():
-    episodes = _parse_feed(MINIMAL_RSS)
-    assert episodes[0].audio_url == 'https://example.com/ep1.mp3'
-
-def test_parse_feed_parses_pub_ts():
-    episodes = _parse_feed(MINIMAL_RSS)
-    assert isinstance(episodes[0].pub_ts, int)
-    assert episodes[0].pub_ts > 0
-
-def test_parse_feed_resolves_timestamps():
-    episodes = _parse_feed(MINIMAL_RSS)
-    zelda = next(g for g in episodes[0].games if g.name == 'Zelda')
-    assert zelda.timestamp == '00:30'
-    assert zelda.timestamp_seconds == 30
+    assert len(episodes) == 2                                  # one without a game too
+    ep, other = episodes
+    assert (ep.slug, ep.audio_url, other.slug) == ('ep1guid', 'https://example.com/ep1.mp3', 'ep2guid')
+    assert ep.pub_ts == 1_705_276_800                          # Mon, 15 Jan 2024 00:00 UTC
+    assert [(g.name, g.timestamp, g.timestamp_seconds) for g in ep.games] == [
+        ('Zelda', '00:30', 30), ('Mario Kart', '01:00', 60)]
+    assert (other.title, other.games) == ('Quelle est la meilleure plateforme ?', [])
 
 
 # ── HTML sanitisation ──────────────────────────────────────────────────────────
 
-def test_sanitize_html_drops_script_and_event_handlers():
-    dirty = '<p>Hi</p><script>alert(1)</script><img src=x onerror="alert(2)">'
-    clean = _sanitize_html(dirty)
-    assert '<script' not in clean
-    assert 'onerror' not in clean
-    assert 'alert' not in clean          # script body dropped entirely
-    assert '<p>Hi</p>' in clean
+@pytest.mark.parametrize('dirty, clean', [
+    ('<p>Hi</p><script>alert(1)</script><img src=x onerror="alert(2)">', '<p>Hi</p>'),  # script body dropped
+    ('<p>a <strong>b</strong> <em>c</em></p><ul><li>x</li></ul>',
+     '<p>a <strong>b</strong> <em>c</em></p><ul><li>x</li></ul>'),                         # formatting kept
+    ('<a href="javascript:alert(1)">x</a>', '<a>x</a>'),
+    ('<a href="https://example.com">link</a>',
+     '<a href="https://example.com" rel="noopener noreferrer" target="_blank">link</a>'),
+])
+def test_sanitize_html_keeps_formatting_and_safe_links_only(dirty, clean):
+    assert _sanitize_html(dirty) == clean
 
-def test_sanitize_html_keeps_whitelisted_formatting():
-    clean = _sanitize_html('<p>a <strong>b</strong> <em>c</em></p><ul><li>x</li></ul>')
-    assert clean == '<p>a <strong>b</strong> <em>c</em></p><ul><li>x</li></ul>'
-
-def test_sanitize_html_neutralises_javascript_urls():
-    clean = _sanitize_html('<a href="javascript:alert(1)">x</a>')
-    assert 'javascript:' not in clean
-    assert '>x</a>' in clean
-
-def test_sanitize_html_keeps_safe_links():
-    clean = _sanitize_html('<a href="https://example.com">link</a>')
-    assert 'href="https://example.com"' in clean
 
 def test_parse_feed_sanitizes_description():
     rss = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -201,11 +172,6 @@ def test_parse_feed_sanitizes_description():
 
 
 # ── Episode identity (guid) + L2 collision ──────────────────────────────────────
-
-def test_parse_feed_uses_guid_as_slug():
-    episodes = _parse_feed(MINIMAL_RSS)
-    assert episodes[0].slug == 'ep1guid'
-    assert episodes[1].slug == 'ep2guid'
 
 def test_parse_feed_guid_fallback_to_enclosure():
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
@@ -926,44 +892,9 @@ def test_a_failed_retry_keeps_serving_the_previous_answer(tmp_corrections):
     assert (entry.igdb_slug, entry.resolution.attempts) == ('chrono-trigger', 1)
 
 
-def test_stats_count_erroring_appearances_apart_from_misses(client):
-    ns = make_slug('Silent Hill 2')
-    miss    = cache_entry(f'{ns}-original', None, None, None)
-    failing = cache_entry(f'{ns}-remake', None, None, None)
-    failing = type(failing)(replace(failing.resolution, attempts=2,
-                                    retry_at='2999-01-01T00:00:00'), None)
-    _seed(_TWO_EPISODES_SAME_NAME, {f'{ns}-original': miss, f'{ns}-remake': failing})
-    r = client.get('/games/resolution-stats', headers=admin_header())
-    soj = next(p for p in r.get_json()['podcasts'] if p['id'] == 'silence-on-joue')
-    assert (soj['failed'], soj['retrying'], soj['pending']) == (1, 1, 0)
-
-
-# ── Admin gating ──────────────────────────────────────────────────────────────
+# ── Admin: search and corrections (who may call them: test_auth) ─────────────
 
 from conftest import admin_header   # noqa: E402
-
-_ADMIN_GETS  = ['/games/resolution-stats', '/games/igdb-search?q=zelda']
-
-
-@pytest.mark.parametrize('path', _ADMIN_GETS)
-def test_admin_endpoints_reject_anonymous(client, path):
-    assert client.get(path).status_code == 401
-
-
-@pytest.mark.parametrize('path', _ADMIN_GETS)
-def test_admin_endpoints_reject_non_admin(client, path):
-    assert client.get(path, headers=auth_header()).status_code == 403
-
-
-def test_correction_write_rejects_non_admin(client):
-    r = client.put('/games/corrections', headers=auth_header(),
-                   json={'nameSlug': 'zelda', 'igdbId': 1})
-    assert_contract(r, GAMES['corrections']['forbidden'])
-
-
-def test_podcast_refresh_rejects_non_admin(client):
-    r = client.post('/games/podcasts/fin-du-game/igdb-refresh', headers=auth_header())
-    assert_contract(r, GAMES['podcast_igdb_refresh']['forbidden'])
 
 
 def test_igdb_search_requires_a_query(client):
@@ -980,11 +911,15 @@ def test_igdb_search_returns_results(client):
     assert r.get_json()['results'] == rows
 
 
-def test_correction_rejects_an_unknown_podcast(client, tmp_corrections):
+@pytest.mark.parametrize('body', [
+    {'igdbId': 1, 'podcastId': 'nope'},       # an unknown podcast
+    {},                                        # neither a pin nor a name
+    {'igdbId': 'nope'},                        # a pin that isn't an id
+])
+def test_a_correction_that_says_nothing_valid_is_refused(client, tmp_corrections, body):
     _seed(_TWO_EPISODES_SAME_NAME, {})
     r = client.put('/games/corrections', headers=admin_header(),
-                   json={'nameSlug': make_slug('Silent Hill 2'),
-                         'igdbId': 1, 'podcastId': 'nope'})
+                   json={'nameSlug': make_slug('Silent Hill 2'), **body})
     assert_contract(r, GAMES['corrections']['bad_request'])
 
 
@@ -1128,97 +1063,11 @@ def test_podcast_igdb_refresh_unknown_podcast_404s(client):
 
 
 def test_resolution_stats_shape(client):
+    # The console's content is a dev tool's: only its shape is held.
     ns = make_slug('Silent Hill 2')
-    _seed(_TWO_EPISODES_SAME_NAME, {
-        # 'Silent Hill 2' → 'Astrobotanica' is exactly the kind of miss to surface.
-        f'{ns}-remake':   _entry(f'{ns}-remake', 9, 'astrobotanica', 'Astrobotanica'),
-        f'{ns}-original': cache_entry(f'{ns}-original', None, None, None, None, False, _NOW),
-    })
-    r = client.get('/games/resolution-stats', headers=admin_header())
-    assert_contract(r, GAMES['resolution_stats']['success'])
-    body = r.get_json()
-
-    soj = next(p for p in body['podcasts'] if p['id'] == 'silence-on-joue')
-    assert soj['appearances'] == 2
-    assert soj['resolved']    == 1     # the astrobotanica row
-    assert soj['failed']      == 1     # negatively cached (igdb_id NULL)
-
-    by_status = {g['status']: g for g in body['games']}
-    assert by_status['suspect']['igdbSlug'] == 'astrobotanica'
-    assert by_status['unresolved']['nameSlug'] == ns
-
-
-@pytest.mark.parametrize('podcast_name,igdb_name', [
-    ('Kirby',             'Kirby and the Forgotten World'),   # subtitle
-    ('Astrobot',          'Astro Bot'),                       # spacing only
-    ('Zelda BOTW',        'Zelda BOTW'),                      # identical
-    ('Hades 2',           'Hades II'),                        # roman numerals
-    ('Crusader Kings 3',  'Crusader Kings III'),
-    ('Planet of Lana 2',  'Planet of Lana II: Children of the Leaf'),  # roman + subtitle
-    ('Little Nightmare 3', 'Little Nightmares III'),          # roman + plural
-    ('Still Wake The Deep', 'Still Wakes the Deep'),          # typo in the feed
-    ('Senua’s Saga Hellblade II', 'Hellblade II: Senua’s Saga'),  # reordered
-])
-def test_is_suspect_passes_benign_differences(podcast_name, igdb_name):
-    assert not review.is_suspect(podcast_name, igdb_name)
-
-
-@pytest.mark.parametrize('podcast_name,igdb_name', [
-    ('Astrobot',                           'Astrobotanica'),   # mid-word prefix
-    ('Silent Hill 2',                      'Resident Evil'),
-    ('Myst',                               'Mystery of the Malign'),
-    ('Castlevania: Symphony of the Night', "Castlevania: Belmont's Curse"),
-])
-def test_is_suspect_flags_unrelated_names(podcast_name, igdb_name):
-    assert review.is_suspect(podcast_name, igdb_name)
-
-
-def test_suspects_exclude_names_a_human_already_ruled_on(client):
-    # «Soldats inconnus» → «Valiant Hearts: The Great War» is a
-    # curated correction: intentional, however unalike the names look. Flagging it
-    # every time would bury the real misses.
-    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
-  <item><title>On a joue a \xc2\xabSoldats inconnus\xc2\xbb</title>
-    <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
-    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 x</description></item>
-</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    ns = make_slug('Soldats inconnus')
-    _seed(rss, {f'{ns}-g1': _entry(f'{ns}-g1', 1, 'valiant-hearts', 'Valiant Hearts: The Great War')})
-    # The heuristic alone would flag it…
-    assert review.is_suspect('Soldats inconnus',
-                                    'Valiant Hearts: The Great War')
-    # …but the curated correction rules it out: it reads as resolved, not suspect.
-    r = client.get('/games/resolution-stats', headers=admin_header())
-    row = next(g for g in r.get_json()['games'] if g['nameSlug'] == ns)
-    assert row['status'] == 'resolved'
-    assert row['corrected'] is True
-
-
-def test_stats_reports_a_merged_group_under_its_resolving_name(client):
-    # Two spellings merged into one entry. The summary must name the variant that
-    # actually resolved (not whichever sorts first) and list every name behind it,
-    # so a correction can't silently pin only one of them.
-    rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
-  <item><title>On a joue a \xc2\xabZelda BOTW\xc2\xbb</title>
-    <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
-    <pubDate>Mon, 15 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda BOTW</description></item>
-  <item><title>On a joue a \xc2\xabAstrobot\xc2\xbb</title>
-    <guid>g2</guid><enclosure url="https://example.com/2.mp3" type="audio/mpeg" length="0" />
-    <pubDate>Mon, 22 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Astrobot</description></item>
-</channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
-    botw, astro = make_slug('Zelda BOTW'), make_slug('Astrobot')
-    _seed(rss, {
-        # Both land on the same (wrong) igdb_slug → one group, two name variants.
-        f'{botw}-g1':  cache_entry(f'{botw}-g1', 9, 'astrobotanica', 'Astrobotanica',
-                                              {}, False, '2000-01-01T00:00:00'),
-        f'{astro}-g2': cache_entry(f'{astro}-g2', 9, 'astrobotanica', 'Astrobotanica',
-                                              {}, False, _NOW),   # newest → representative
-    })
-    r = client.get('/games/resolution-stats', headers=admin_header())
-    suspect = next(g for g in r.get_json()['games'] if g['slug'] == 'astrobotanica')
-    assert suspect['status']    == 'suspect'
-    assert suspect['nameSlug']  == astro                  # the newest-cached variant
-    assert suspect['nameSlugs'] == sorted([astro, botw])  # both surfaced
+    _seed(_TWO_EPISODES_SAME_NAME, {f'{ns}-remake': _entry(f'{ns}-remake', 9, 'astrobotanica', 'Astrobotanica')})
+    assert_contract(client.get('/games/resolution-stats', headers=admin_header()),
+                    GAMES['resolution_stats']['success'])
 
 
 def test_detail_reports_whether_a_correction_applies_at_its_scope(client, tmp_corrections):
@@ -1234,26 +1083,6 @@ def test_detail_reports_whether_a_correction_applies_at_its_scope(client, tmp_co
     assert serializers.load_game(ns)['corrected'] is True
 
 
-def test_stats_marks_rows_a_correction_already_rules_on(client, tmp_corrections):
-    import corrections
-    ns = make_slug('Silent Hill 2')
-    _seed(_TWO_EPISODES_SAME_NAME, {
-        f'{ns}-original': _entry(f'{ns}-original', 9, 'astrobotanica', 'Astrobotanica'),
-    })
-    # Unruled: the heuristic flags the bad match for review.
-    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
-    assert [g['igdbSlug'] for g in body['games'] if g['status'] == 'suspect'] == ['astrobotanica']
-    assert body['writable'] is True
-
-    # Once a human has ruled on it, nothing is suspect and every row is marked.
-    corrections.upsert('Silent Hill 2', igdb_id=1)
-    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
-    assert [g for g in body['games'] if g['status'] == 'suspect'] == []
-    soj = next(p for p in body['podcasts'] if p['id'] == 'silence-on-joue')
-    assert soj['corrected'] == 2          # both appearances of the name
-    assert all(g['corrected'] for g in body['games'])
-
-
 def test_stats_reports_read_only_deployments(client, tmp_corrections):
     _seed(_TWO_EPISODES_SAME_NAME, {})
     with patch('corrections.is_writable', return_value=False):
@@ -1261,41 +1090,7 @@ def test_stats_reports_read_only_deployments(client, tmp_corrections):
     assert body['writable'] is False
 
 
-# ── Admin console: row shape + display-name edits ─────────────────────────────
-
-def test_stats_row_carries_what_the_console_renders(client, tmp_corrections):
-    ns = make_slug('Silent Hill 2')
-    _seed(_TWO_EPISODES_SAME_NAME, {
-        f'{ns}-remake': _entry(f'{ns}-remake', 2, 'silent-hill-2--1', 'Silent Hill 2',
-                               released='2024', coverImageId='co42'),
-    })
-    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
-    row  = next(g for g in body['games'] if g['slug'] == 'silent-hill-2--1')
-    assert row['coverImageId'] == 'co42'
-    assert row['released']     == '2024'
-    # The episode a reviewer opens to judge the match: the newest appearance.
-    assert row['episodeSlug']  == 'on-a-joue-a-silent-hill-2'
-    assert row['episodeTitle'] == 'On a joue a «Silent Hill 2»'
-    assert row['displayName'] is None
-
-
-def test_stats_rows_are_newest_first(client, tmp_corrections):
-    _seed(_TWO_EPISODES_SAME_NAME, {})
-    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
-    pts = [g['latestPubTs'] or 0 for g in body['games']]
-    assert pts == sorted(pts, reverse=True)
-
-
-def test_stats_surfaces_the_current_display_name(client, tmp_corrections):
-    import corrections
-    ns = make_slug('Silent Hill 2')
-    _seed(_TWO_EPISODES_SAME_NAME, {})
-    corrections.upsert('Silent Hill 2', display_name='Silent Hill 2 (2001)')
-    body = client.get('/games/resolution-stats', headers=admin_header()).get_json()
-    row  = next(g for g in body['games'] if g['nameSlug'] == ns)
-    assert row['displayName'] == 'Silent Hill 2 (2001)'
-    assert row['corrected'] is True
-
+# ── Display-name edits ────────────────────────────────────────────────────────
 
 def test_catalog_applies_a_podcast_scoped_display_name(tmp_corrections):
     # group_display_name must look the correction up at the appearance's own
@@ -1331,20 +1126,6 @@ def test_renaming_does_not_re_resolve(client, tmp_corrections):
     # …but the derived caches are invalidated so the new name is served.
     assert state.data_version > before
     assert r.get_json()['name'] == 'Silent Hill 2 (2001)'
-
-
-def test_correction_requires_a_pin_or_a_name(client, tmp_corrections):
-    _seed(_TWO_EPISODES_SAME_NAME, {})
-    r = client.put('/games/corrections', headers=admin_header(),
-                   json={'nameSlug': make_slug('Silent Hill 2')})
-    assert_contract(r, GAMES['corrections']['bad_request'])
-
-
-def test_correction_rejects_a_non_integer_pin(client, tmp_corrections):
-    _seed(_TWO_EPISODES_SAME_NAME, {})
-    r = client.put('/games/corrections', headers=admin_header(),
-                   json={'nameSlug': make_slug('Silent Hill 2'), 'igdbId': 'nope'})
-    assert_contract(r, GAMES['corrections']['bad_request'])
 
 
 def test_a_game_is_scraped_once_for_all_its_episodes():

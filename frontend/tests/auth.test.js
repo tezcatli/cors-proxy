@@ -27,10 +27,6 @@ describe('getUserEmail', () => {
     localStorage.setItem(TOKEN_KEY, makeToken({ email: 'alice@example.com' }));
     expect(getUserEmail()).toBe('alice@example.com');
   });
-  it('returns null for a malformed token', () => {
-    localStorage.setItem(TOKEN_KEY, 'not.a.token');
-    expect(getUserEmail()).toBeNull();
-  });
 
   it('decodes a base64url payload with a non-ASCII email', () => {
     // Real JWTs are base64url-encoded UTF-8; accented claim bytes can yield
@@ -59,10 +55,6 @@ describe('isLoggedIn', () => {
   });
   it('returns false for an expired token', () => {
     localStorage.setItem(TOKEN_KEY, makeToken({ expOffsetSeconds: -1 }));
-    expect(isLoggedIn()).toBe(false);
-  });
-  it('returns false for a malformed token', () => {
-    localStorage.setItem(TOKEN_KEY, 'bad.token');
     expect(isLoggedIn()).toBe(false);
   });
 });
@@ -212,8 +204,13 @@ describe('isAdmin', () => {
     expect(isAdmin()).toBe(true);
   });
 
-  it('is false for a malformed token rather than throwing', () => {
-    localStorage.setItem(TOKEN_KEY, 'not-a-jwt');
-    expect(isAdmin()).toBe(false);
+});
+
+// ── A malformed token ─────────────────────────────────────────────────────
+
+describe('a malformed token', () => {
+  it.each(['not.a.token', 'bad.token', 'not-a-jwt'])('%s is no session, and throws nothing', token => {
+    localStorage.setItem(TOKEN_KEY, token);
+    expect([getUserEmail(), isLoggedIn(), isAdmin()]).toEqual([null, false, false]);
   });
 });

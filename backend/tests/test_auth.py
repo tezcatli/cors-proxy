@@ -336,13 +336,6 @@ def test_invitation_without_the_flag_creates_an_ordinary_account(client):
 
 # GET /auth/users
 
-def test_list_users_requires_authentication(client):
-    assert_contract(client.get('/auth/users'), AUTH['list_users']['unauthorized'])
-
-def test_list_users_requires_admin(client):
-    assert_contract(client.get('/auth/users', headers=auth_header()),
-                    AUTH['list_users']['forbidden'])
-
 def test_list_users_returns_accounts(client):
     headers = admin_header()
     _make_user(client, 'someone@example.com')
@@ -389,12 +382,6 @@ def test_admin_cannot_demote_themselves(client):
                     AUTH['update_user']['self_demote'])
     assert _is_admin('__auth_fixture__@test')
 
-def test_update_user_requires_admin(client):
-    assert_contract(client.patch('/auth/users/1', json={'is_admin': True},
-                                 headers=auth_header()),
-                    AUTH['update_user']['forbidden'])
-
-
 # DELETE /auth/users/<id>
 
 def test_delete_account_revokes_its_access(client):
@@ -410,10 +397,6 @@ def test_admin_cannot_delete_themselves(client):
 def test_delete_unknown_user(client):
     assert_contract(client.delete('/auth/users/9999', headers=admin_header()),
                     AUTH['delete_user']['not_found'])
-
-def test_delete_user_requires_admin(client):
-    assert_contract(client.delete('/auth/users/1', headers=auth_header()),
-                    AUTH['delete_user']['forbidden'])
 
 def test_the_last_admin_cannot_be_removed(client, monkeypatch):
     """Sequentially the self-guard always fires first (only the last admin can
@@ -442,10 +425,6 @@ def test_list_invitations_shows_only_pending_ones(client):
     assert emails == {'waiting@example.com'}
     assert 'invite=' in r.get_json()['invitations'][0]['invite_url']
 
-def test_list_invitations_requires_admin(client):
-    assert_contract(client.get('/auth/invitations', headers=auth_header()),
-                    AUTH['list_invitations']['forbidden'])
-
 def test_revoking_an_invitation_kills_the_registration(client):
     headers = admin_header()
     token = make_invite(client, 'nope@example.com')
@@ -455,11 +434,6 @@ def test_revoking_an_invitation_kills_the_registration(client):
                     AUTH['register']['invalid_invite'])
     # Idempotent: revoking again is not an error.
     assert client.delete(f'/auth/invitations/{token}', headers=headers).status_code == 204
-
-def test_revoke_invitation_requires_admin(client):
-    assert_contract(client.delete('/auth/invitations/whatever', headers=auth_header()),
-                    AUTH['revoke_invitation']['forbidden'])
-
 
 # ── Mail server failures ───────────────────────────────────────────────────
 
@@ -484,3 +458,38 @@ def test_reset_request_survives_a_mail_failure(client, monkeypatch):
     _smtp_down(monkeypatch)
     r = client.post('/auth/reset-request', json={'email': 'reset@example.com'})
     assert_contract(r, AUTH['reset_request']['success'])
+
+
+# ── Every admin route ─────────────────────────────────────────────────────────
+
+def _admin_routes():
+    """Every route whose view calls `require_admin()`, as (method, url): a route
+    added later is checked without being listed."""
+    import inspect
+    from app import create_app
+    app = create_app(testing=True)
+    adapter = app.url_map.bind('localhost')
+    routes = []
+    for rule in app.url_map.iter_rules():
+        if 'require_admin()' not in inspect.getsource(app.view_functions[rule.endpoint]):
+            continue
+        values = {arg: 1 if isinstance(rule._converters[arg].to_python('1'), int) else 'x'
+                  for arg in rule.arguments}
+        for method in sorted(rule.methods - {'HEAD', 'OPTIONS'}):
+            routes.append((method, adapter.build(rule.endpoint, values)))
+    return routes
+
+
+_ADMIN_ROUTES = _admin_routes()
+
+
+def test_the_admin_routes_are_found():
+    assert len(_ADMIN_ROUTES) >= 10        # /auth/users…, /games/corrections…
+
+
+@pytest.mark.parametrize('method, url', _ADMIN_ROUTES)
+def test_an_admin_route_refuses_anyone_but_an_admin(client, method, url):
+    anonymous = client.open(url, method=method, json={})
+    member    = client.open(url, method=method, json={}, headers=auth_header())
+    assert (anonymous.status_code, member.status_code) == (401, 403)
+    assert 'error' in member.get_json()

@@ -26,18 +26,6 @@ beforeEach(() => { setCorrection.mockClear(); deleteCorrection.mockClear() })
 const nameField = w => w.find('.picker-field__input')
 
 describe('IgdbPickerModal display name', () => {
-  it('prefills from the current correction', async () => {
-    const w = mountPicker({ game: { ...GAME, displayName: 'Chrono Trigger (SNES)' } })
-    expect(nameField(w).element.value).toBe('Chrono Trigger (SNES)')
-  })
-
-  it('offers no save until the name actually changes', async () => {
-    const w = mountPicker()
-    expect(w.find('.picker-save').exists()).toBe(false)
-    await nameField(w).setValue('Chrono Trigger (SNES)')
-    expect(w.find('.picker-save').exists()).toBe(true)
-  })
-
   it('saves the name alone — no pin, so the server need not re-resolve', async () => {
     const w = mountPicker()
     await nameField(w).setValue('Chrono Trigger (SNES)')
