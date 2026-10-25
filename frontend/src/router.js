@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isAdmin, isLoggedIn } from './lib/auth.js'
-import { noteVisit } from './lib/home.js'
+import { noteVisit, guardHome } from './lib/home.js'
 import DetailView  from './components/DetailView.vue'
 import EpisodeView from './components/EpisodeView.vue'
 import PodcastView from './components/PodcastView.vue'
@@ -53,5 +53,6 @@ router.beforeEach((to) => {
 })
 
 router.afterEach(to => noteVisit(router, to))
+guardHome(router)
 
 export default router
