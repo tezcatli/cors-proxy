@@ -10,6 +10,7 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - Un test, c'est un jeu vidéo auquel les animateurs ont joué et qu'ils jugent. Une news, une mention, un jeu de société, une cérémonie (« Les Silences d'or »), un palmarès, un classement, un best-of ou un GOTY n'en sont pas. Les « Bande-annonce » de SoJ n'en contiennent aucun. (2026-10-22)
 - Au moins 5 minutes sur le jeu, sauf si le titre le nomme ; en dessous, on ne distingue pas un test d'une mention. (2026-10-22)
 - Le titre propose, la lecture confirme : le jeu du titre est un test si la lecture le trouve, sauf quand elle ne l'a entendu que sans critique. (2026-10-21)
+- Les chapitres d'un épisode sont ceux de son flux, sinon ceux de sa lecture. Les chapitres faits par l'ancien pipeline en mai (`chapters.json`) sont retirés : ils masquaient ceux de la lecture sur 601 épisodes SoJ, plus pauvres dans 94 % des cas. Un entretien sans jeu, qui y perd en détail, se règle dans le prompt de lecture, au labo. (2026-10-25)
 - Fin du Game : chaque épisode porte sur **un seul jeu**, celui du titre, sur tout l'épisode. (2026-10-22)
 - Les apparitions ne comptent pas, seulement les critiques. (2026-10)
 - Un test commence à sa critique : sa plus longue section critique, ou les sections critiques qui la précèdent quand seules des pubs les en séparent (une coupure pub coupe un test en deux, pas en deux tests). Le début se juge et se mesure, comme le test et sa fiche. (2026-10-24)
@@ -66,4 +67,5 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 
 ## Façon de travailler
 - Rien ne part en prod (merge sur `main`) avant que l'utilisateur ait testé en dev : le travail reste sur une branche locale jusqu'à son feu vert. (2026-10-25)
+- Un test garde une règle (une décision, un invariant, le contrat, la sécurité) ou un bug qui peut revenir : quand une règle change, on réécrit son test plutôt que d'en ajouter un ; le code qui part emporte ses tests. On retire d'abord le code obsolète, puis on fait l'inventaire des tests. (2026-10-25)
 - Projet perso, serveur de hobby : une fois le feu vert donné pour une étape en prod, Claude la fait lui-même (sauvegarde avant, vérification après), sans renvoyer les commandes. (2026-10-23)

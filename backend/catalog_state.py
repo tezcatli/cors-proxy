@@ -12,14 +12,12 @@ attributes under `lock`; other modules always go through the module
 (`state.game_index`), never `from catalog_state import …`, which would freeze a
 binding that `feeds.refresh_feed` later replaces.
 """
-import collections
 import datetime
 import json
 import logging
 import threading
 
 from db import get_db
-from corrections import find_by_podcast
 from models import Episode, IgdbEntry, IgdbGame, PodcastGame, Resolution
 from questions import Question, question_for
 from utils import make_slug
@@ -163,14 +161,6 @@ def load_igdb_cache_from_db() -> None:
         games       = loaded_games
 
 
-def reconcile(complete: bool) -> None:
-    """Bring the IGDB stores in line with a freshly built catalog: adopt the
-    legacy per-appearance decisions once every feed is in (`complete`), then prune."""
-    if complete:
-        adopt_appearance_resolutions()
-    prune_igdb_cache()
-
-
 def prune_igdb_cache() -> None:
     """Drop the answers no appearance asks for any more (an episode left the feed,
     a correction changed the question), then the games no answer points at, so
@@ -250,69 +240,3 @@ def _delete_rows(table: str, column: str, keys: list) -> None:
     with get_db() as conn:
         ph = ','.join('?' * len(keys))
         conn.execute(f'DELETE FROM {table} WHERE {column} IN ({ph})', keys)
-
-
-# ── The legacy per-appearance decisions ───────────────────────────────────────
-
-def adopt_appearance_resolutions() -> None:
-    """Turn the decisions migrated from the legacy cache (one per appearance, see
-    `db._split_igdb_cache`) into answers to the questions their appearances ask
-    now, so a deploy re-asks nothing already settled. Once, then the transit table
-    is dropped.
-
-    A row answers the question its appearance asks now when it was resolved under
-    the correction now in force (`_legacy_sig`); one resolved under a correction
-    since changed or removed answered another question. A question inherits only
-    when its appearances agree: if they disagree, it has no answer yet, and the
-    LLM judges it like any other — each such question is logged."""
-    with get_db() as conn:
-        if not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'appearance_resolutions'"
-                            ).fetchone():
-            return
-        # A row failing when it was migrated (`retry_at`, the split cache's first
-        # shape) decided nothing: its question is asked like a new one.
-        rows = {r['slug']: r for r in conn.execute('SELECT * FROM appearance_resolutions')
-                if not ('retry_at' in r.keys() and r['retry_at'])}
-    by_question: dict[str, list] = collections.defaultdict(list)
-    with lock:
-        for game in game_index.values():
-            for a in game.appearances:
-                question = question_for(game, a.episode)
-                row = rows.get(a.podcast_slug)
-                correction = find_by_podcast(game.name, a.episode.pub_ts, a.episode.podcast_id)
-                if (row is not None and row['correction_sig'] == _legacy_sig(correction)
-                        and question.key not in resolutions):
-                    by_question[question.key].append(row)
-
-    adopted = []
-    for key, agreeing in by_question.items():
-        ids = {r['igdb_id'] for r in agreeing}
-        if len(ids) > 1:
-            logger.info('Question %s: its appearances disagreed (%s); left for the LLM', key,
-                        ', '.join(map(str, sorted(ids, key=str))))
-            continue
-        newest = max(agreeing, key=lambda r: datetime.datetime.fromisoformat(r['resolved_at']))
-        # One appearance the LLM judged settles the question; otherwise it keeps
-        # the method it had ('pin', a legacy row's None, or a provisional 'search').
-        method = 'llm' if any(r['method'] == 'llm' for r in agreeing) else newest['method']
-        adopted.append(Resolution(question=key, igdb_id=newest['igdb_id'],
-                                  is_child=bool(newest['is_child']),
-                                  decided_at=newest['resolved_at'], method=method))
-    global data_version
-    with lock:
-        for r in adopted:
-            resolutions[r.question] = r
-        data_version += 1
-    with get_db() as conn:
-        _insert_resolutions(conn, adopted)
-        conn.execute('DROP TABLE appearance_resolutions')
-    logger.info('Adopted %d answer(s) from %d legacy per-appearance row(s)',
-                len(adopted), len(rows))
-
-
-def _legacy_sig(correction: dict | None) -> str:
-    """How the legacy cache recorded the correction an appearance was resolved
-    under ('' = none, or one that only renames)."""
-    sig = {k: correction[k] for k in ('igdb_id', 'search_name', 'hint_date')
-           if correction and correction.get(k)}
-    return json.dumps(sig, sort_keys=True) if sig else ''

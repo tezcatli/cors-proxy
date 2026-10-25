@@ -18,25 +18,6 @@ export function formatDayMonth(ts) {
   return new Date(ts * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
-export function timeAgo(iso) {
-  if (!iso) return '';
-  const mins = Math.floor((Date.now() - new Date(iso)) / 60000);
-  if (mins < 2)  return 'à l\'instant';
-  if (mins < 60) return `il y a ${mins} min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `il y a ${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `il y a ${days} jour${days > 1 ? 's' : ''}`;
-}
-
-export function getScoreClass(score) {
-  return score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
-}
-
-export function formatEpisodeCount(n) {
-  return `${n} épisode${n > 1 ? 's' : ''}`;
-}
-
 /**
  * Percentage (0–100) of a chapter that has been listened to.
  * Returns 0 when the span is non-positive. Shared by the player store's

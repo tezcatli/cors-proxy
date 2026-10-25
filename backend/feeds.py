@@ -4,9 +4,7 @@ Everything here that writes runs on the worker (`worker.py`), one job at a time,
 so none of it takes a lock of its own beyond `catalog_state.lock` for readers.
 """
 import datetime
-import json
 import logging
-import pathlib
 import re
 import time
 
@@ -28,64 +26,11 @@ from utils import make_slug, plain_text
 logger = logging.getLogger(__name__)
 
 
-# ── AI chapter injection ──────────────────────────────────────────────────────
-
 def _seconds_to_ts(secs: float) -> str:
     s = int(secs)
     h, rem = divmod(s, 3600)
     m, s = divmod(rem, 60)
     return f'{h}:{m:02d}:{s:02d}' if h else f'{m}:{s:02d}'
-
-
-def _load_ai_chapter_index() -> dict[str, list]:
-    path = pathlib.Path(__file__).parent / 'chapters.json'
-    if not path.exists():
-        logger.warning('chapters.json not found at %s', path)
-        return {}
-    with path.open(encoding='utf-8') as f:
-        data = json.load(f)
-    index = {}
-    for ep in data.get('episodes', []):
-        slug = make_slug(ep.get('title', ''))
-        if slug:
-            index[slug] = ep.get('chapters', [])
-    return index
-
-
-def inject_ai_chapters(episodes: list[Episode], ai_index: dict) -> None:
-    injected = 0
-    for episode in episodes:
-        # chapters.json is keyed by make_slug(title); episode.slug is now the guid,
-        # so match on the title slug here.
-        title_slug = make_slug(episode.title)
-        if episode.chapters or title_slug not in ai_index:
-            continue
-        raw_chapters = ai_index[title_slug]
-        chapters = [
-            Chapter(
-                timestamp=_seconds_to_ts(c['start_s']),
-                timestamp_seconds=int(c['start_s']),
-                title=c['title'],
-                game_name=c.get('game_name'),
-            )
-            for c in raw_chapters
-            if c.get('start_s') is not None and c.get('title')
-            and c['title'] not in ('Publicité', 'Transition')
-        ]
-        episode.chapters = chapters
-        _point_mentions(episode)
-        injected += 1
-    if injected:
-        logger.info('Injected AI chapters into %d episodes', injected)
-
-
-def _point_mentions(episode: Episode) -> None:
-    """Start each game mention at its chapter, once the episode has chapters."""
-    for mention in episode.games:
-        matched = find_chapter_for_game(mention.name, episode.chapters)
-        if matched:
-            mention.timestamp = matched.timestamp
-            mention.timestamp_seconds = matched.timestamp_seconds
 
 
 # ── Transcript readings ───────────────────────────────────────────────────────
@@ -176,7 +121,7 @@ def build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
     for episode in episodes:
         episode_index[episode.slug] = episode
         # Register the pretty url_slug too, so /games/episode resolves either the
-        # guid (legacy/cached links) or the human-readable slug.
+        # guid (a track resumed from its saved progress) or the human-readable slug.
         if episode.url_slug:
             episode_index[episode.url_slug] = episode
 
@@ -296,7 +241,6 @@ def _rebuild(errors: list[str]) -> None:
     episodes = _apply_llm_games(episodes, readings)
 
     assign_url_slugs(episodes)
-    inject_ai_chapters(episodes, _load_ai_chapter_index())
     _apply_readings(episodes, readings)
     episode_index, game_index = build_indexes(episodes)
     with state.lock:
@@ -310,9 +254,7 @@ def _rebuild(errors: list[str]) -> None:
     if dead:
         logger.warning('%d correction(s) match no game name in the feed: %s',
                        len(dead), ', '.join(dead))
-    # With every feed in, the catalog is whole: the legacy decisions can be
-    # matched to the questions their appearances ask.
-    state.reconcile(complete=all(p.id in _feed_episodes for p in PODCASTS))
+    state.prune_igdb_cache()
 
 
 # ── Games read by the LLM ─────────────────────────────────────────────────────

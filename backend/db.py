@@ -8,11 +8,9 @@ different keys and lifetimes, with no foreign key between them since an answer
 may briefly point at a game being re-fetched; `llm_cache` (see `llm.py`);
 `transcripts` (see `transcribe.py`, never loaded into memory).
 
-`init_db` migrates older shapes in place, so a deploy or `pull-prod-data.sh` only
-needs a restart: the legacy one-row-per-appearance `igdb_cache` is split
-(`_split_igdb_cache`) into `igdb_games` and a transit table,
-`appearance_resolutions`, which becomes answers at the first complete catalog
-build (`catalog_state.adopt_appearance_resolutions`).
+`init_db` creates what is missing, so a deploy or `pull-prod-data.sh` only needs
+a restart; a change of shape adds its migration here, and drops it once every
+database has run it.
 """
 import sqlite3
 import os
@@ -51,11 +49,6 @@ def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with get_db() as conn:
         conn.execute("PRAGMA journal_mode=WAL")
-        # The split cache's first shape (deployed on its own) kept one decision per
-        # appearance in `resolutions`, keyed by slug: exactly the transit table's
-        # rows, which become answers at the first complete build.
-        if 'slug' in {row[1] for row in conn.execute("PRAGMA table_info(resolutions)")}:
-            conn.execute('ALTER TABLE resolutions RENAME TO appearance_resolutions')
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS users (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,57 +122,3 @@ def init_db():
                 retry_at    TEXT
             );
         """)
-        if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'igdb_cache'").fetchone():
-            _split_igdb_cache(conn)
-        user_cols = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
-        if 'is_admin' not in user_cols and user_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
-        # Carries the admin grant from the invitation to the account it creates.
-        inv_cols = {row[1] for row in conn.execute("PRAGMA table_info(invitations)")}
-        if 'is_admin' not in inv_cols and inv_cols:
-            conn.execute("ALTER TABLE invitations ADD COLUMN is_admin INTEGER DEFAULT 0")
-
-
-def _split_igdb_cache(conn) -> None:
-    """Migrate the legacy one-row-per-appearance `igdb_cache`, then drop it.
-
-    The games go straight to `igdb_games`, each keeping its best copy: an enriched
-    one over the quick pass's, then the newest. The decisions can't become
-    questions yet — a question needs the episode's show and date, so the feed —
-    so they wait in `appearance_resolutions` until the first catalog build
-    (`catalog_state.adopt_appearance_resolutions`)."""
-    cols = {row[1] for row in conn.execute("PRAGMA table_info(igdb_cache)")}
-    # Columns added over the table's life; NULL on rows from before them.
-    sig      = 'correction_sig' if 'correction_sig' in cols else "''"
-    enriched = 'enriched'       if 'enriched'       in cols else '1'
-    method   = 'method'         if 'method'         in cols else 'NULL'
-    is_child = 'is_child'       if 'is_child'       in cols else '0'
-    slug     = 'igdb_slug'      if 'igdb_slug'      in cols else 'NULL'
-    conn.execute("""
-        CREATE TABLE appearance_resolutions (
-            slug           TEXT PRIMARY KEY,
-            igdb_id        INTEGER,
-            is_child       INTEGER NOT NULL,
-            resolved_at    TEXT    NOT NULL,
-            correction_sig TEXT    NOT NULL,
-            method         TEXT
-        )
-    """)
-    conn.execute(f"""
-        INSERT INTO appearance_resolutions
-        SELECT slug, igdb_id, COALESCE({is_child}, 0), cached_at, COALESCE({sig}, ''), {method}
-        FROM igdb_cache
-    """)
-    conn.execute(f"""
-        INSERT OR IGNORE INTO igdb_games (igdb_id, igdb_slug, name, data, fetched_at, enriched)
-        SELECT igdb_id, igdb_slug, name, data, cached_at, enriched FROM (
-            SELECT igdb_id, {slug} AS igdb_slug, name, igdb_data AS data, cached_at,
-                   COALESCE({enriched}, 1) AS enriched,
-                   ROW_NUMBER() OVER (PARTITION BY igdb_id
-                                      ORDER BY COALESCE({enriched}, 1) DESC, cached_at DESC) AS pick
-            FROM igdb_cache
-            WHERE igdb_id IS NOT NULL AND {slug} IS NOT NULL
-              AND name IS NOT NULL AND igdb_data IS NOT NULL
-        ) WHERE pick = 1
-    """)
-    conn.execute("DROP TABLE igdb_cache")

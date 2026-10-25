@@ -24,9 +24,6 @@ import tempfile
 
 PRODUCED = (
     'transcripts', 'llm_cache', 'resolutions', 'igdb_games',
-    # Legacy: the one-row-per-appearance cache, and its transit table, until prod
-    # runs the split cache.
-    'igdb_cache', 'appearance_resolutions',
 )
 PROD_DB = '/backend/data/users.db'
 

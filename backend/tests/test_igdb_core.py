@@ -36,32 +36,25 @@ def test_metacritic_requires_three_ratings():
     assert _to_game_data(_game())['metacritic'] is None
 
 
-# ── _to_game_data: ESRB under both schemas ─────────────────────────────────────
+# ── _to_game_data: ESRB ────────────────────────────────────────────────────────
 
-def test_esrb_legacy_schema():
-    assert _to_game_data(_game(age_ratings=[{'category': 1, 'rating': 11}]))['esrb'] == 'M'
-
-def test_esrb_new_schema():
+def test_esrb_from_its_rating_category():
     assert _to_game_data(_game(age_ratings=[{'organization': 1, 'rating_category': 6}]))['esrb'] == 'M'
 
 def test_esrb_skips_non_esrb_org():
-    # A PEGI entry (category/org 2) then an ESRB Teen entry — should pick the ESRB one.
-    g = _game(age_ratings=[{'category': 2, 'rating': 5}, {'organization': 1, 'rating_category': 5}])
+    # A PEGI entry (organization 2) then an ESRB Teen entry — should pick the ESRB one.
+    g = _game(age_ratings=[{'organization': 2, 'rating_category': 5}, {'organization': 1, 'rating_category': 5}])
     assert _to_game_data(g)['esrb'] == 'T'
 
 def test_esrb_absent():
     assert _to_game_data(_game())['esrb'] is None
 
 
-# ── _to_game_data: Steam URL under both schemas ────────────────────────────────
+# ── _to_game_data: Steam URL ───────────────────────────────────────────────────
 
-def test_steam_url_new_type_field():
+def test_steam_url_from_its_type():
     d = _to_game_data(_game(websites=[{'type': 13, 'url': 'https://store.steampowered.com/app/1'}]))
     assert d['steamUrl'].endswith('/app/1')
-
-def test_steam_url_legacy_category_field():
-    d = _to_game_data(_game(websites=[{'category': 13, 'url': 'https://store.steampowered.com/app/2'}]))
-    assert d['steamUrl'].endswith('/app/2')
 
 def test_steam_url_ignores_other_sites():
     assert _to_game_data(_game(websites=[{'type': 1, 'url': 'https://official.example'}]))['steamUrl'] is None
@@ -114,21 +107,17 @@ def test_canonical_redirects_to_version_parent():
     assert _resolve_canonical(g)['id'] == 1
 
 def test_canonical_redirects_dlc_to_parent():
-    g = {'id': 2, 'name': 'DLC', 'category': 1, 'parent_game': {'id': 1, 'name': 'Base'}}
+    g = {'id': 2, 'name': 'DLC', 'game_type': {'id': 1}, 'parent_game': {'id': 1, 'name': 'Base'}}
     assert _resolve_canonical(g)['id'] == 1
 
 def test_canonical_keeps_a_remake_and_joins_a_remaster_to_its_game():
     # One catalog page per game, its remasters included; a remake is a game of its own.
-    remake = {'id': 2, 'name': 'Remake', 'category': 8, 'parent_game': {'id': 1, 'name': 'Original'}}
-    remaster = {'id': 3, 'name': 'Remaster', 'category': 9, 'parent_game': {'id': 1, 'name': 'Original'}}
+    remake = {'id': 2, 'name': 'Remake', 'game_type': {'id': 8}, 'parent_game': {'id': 1, 'name': 'Original'}}
+    remaster = {'id': 3, 'name': 'Remaster', 'game_type': {'id': 9}, 'parent_game': {'id': 1, 'name': 'Original'}}
     assert (_resolve_canonical(remake)['id'], _resolve_canonical(remaster)['id']) == (2, 1)
 
-def test_canonical_uses_game_type_when_category_absent():
-    g = {'id': 2, 'name': 'Remake', 'game_type': {'id': 8}, 'parent_game': {'id': 1, 'name': 'Original'}}
-    assert _resolve_canonical(g)['id'] == 2
-
 def test_build_result_is_child_flag():
-    child = _build_result({'id': 2, 'name': 'DLC', 'category': 1, 'parent_game': {'id': 1, 'name': 'Base'}})
+    child = _build_result({'id': 2, 'name': 'DLC', 'game_type': {'id': 1}, 'parent_game': {'id': 1, 'name': 'Base'}})
     assert child.id == 1 and child.is_child is True
     own = _build_result({'id': 3, 'name': 'Standalone'})
     assert own.id == 3 and own.is_child is False
@@ -189,7 +178,7 @@ def test_fields_generated_set_is_intact():
     # The generated _FIELDS must keep the full field set (bare + both expansions).
     fields = [f.strip() for f in igdb._FIELDS.replace('fields ', '', 1).rstrip('; ').split(',')]
     assert igdb._FIELDS.startswith('fields ') and igdb._FIELDS.endswith('; ')
-    assert len(fields) == len(set(fields)) == 101  # 33 bare + 34 parent + 34 version
+    assert len(fields) == len(set(fields)) == 89   # 29 bare + 30 parent + 30 version
     for f in ('websites.type', 'age_ratings.rating_category'):
         assert f in fields
     for p in ('parent_game', 'version_parent'):
