@@ -1,17 +1,16 @@
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Search, X, ArrowUp, ArrowDown, ArrowUpDown, User, ListFilter } from 'lucide-vue-next'
 import { PODCASTS } from '../lib/podcasts.js'
 import { isAdmin } from '../lib/auth.js'
 
-const props = defineProps({
+defineProps({
   searchQuery:     String,
   sortMode:        String,
   sortAsc:         Boolean,
   hideUnresolved:  Boolean,
   selectedPodcast: String,
-  isJeux:          Boolean,
 })
 const emit = defineEmits(['update:searchQuery', 'setSort', 'setPodcast', 'toggle-hide-unresolved', 'show-account'])
 
@@ -19,9 +18,8 @@ const admin = isAdmin()
 
 const podcastOptions = [{ id: 'all', label: 'Tous' }, ...PODCASTS.map(p => ({ id: p.id, label: p.name }))]
 
-const searchPlaceholder = computed(() =>
-  props.isJeux ? 'Rechercher un jeu' : 'Rechercher un test, un épisode'
-)
+// One search, for the Ludothèque's tests and games.
+const searchPlaceholder = 'Rechercher un jeu, un test'
 
 const sortOptions = [
   { mode: 'date',  label: 'Récents' },
@@ -68,11 +66,6 @@ async function openSearch() {
   <header class="topbar">
     <div class="topbar__row">
       <RouterLink to="/" class="wordmark cond" aria-label="Ludothèque, accueil">Ludo<span>//</span></RouterLink>
-
-      <nav class="topbar__nav" aria-label="Sections">
-        <RouterLink to="/" class="lab topbar__tab" :class="{ 'is-on': !isJeux }">Tests</RouterLink>
-        <RouterLink to="/jeux" class="lab topbar__tab" :class="{ 'is-on': isJeux }">Jeux</RouterLink>
-      </nav>
 
       <div class="topbar__spacer" />
 
@@ -123,7 +116,7 @@ async function openSearch() {
         <span v-if="searchQuery" class="icon-action__dot"></span>
       </button>
 
-      <div v-if="isJeux" ref="popoverRoot" class="sort">
+      <div ref="popoverRoot" class="sort">
         <button
           type="button"
           class="icon-action"
@@ -134,7 +127,7 @@ async function openSearch() {
         ><ArrowUpDown :size="18" :stroke-width="2" /></button>
 
         <div v-if="popoverOpen" class="sort__menu panel" role="menu" aria-label="Trier">
-          <div class="lab sort__title">Trier par</div>
+          <div class="lab sort__title">Trier les jeux par</div>
           <button
             v-for="opt in sortOptions"
             :key="opt.mode"
@@ -157,7 +150,7 @@ async function openSearch() {
         </div>
       </div>
 
-      <button type="button" class="icon-action desktop-only" aria-label="Mon compte" @click="emit('show-account')">
+      <button type="button" class="icon-action" aria-label="Mon compte" @click="emit('show-account')">
         <User :size="18" :stroke-width="2" />
       </button>
     </div>
@@ -221,17 +214,6 @@ async function openSearch() {
   margin-right: 24px;
 }
 .wordmark span { color: var(--c-accent); }
-.topbar__nav { display: none; gap: 4px; }
-.topbar__tab {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
-  text-decoration: none;
-  color: var(--c-fg-3);
-}
-.topbar__tab:hover { color: var(--c-fg); }
-.topbar__tab.is-on { color: var(--c-fg); box-shadow: inset 0 -2px 0 var(--c-accent); }
 .topbar__spacer { flex: 1; }
 
 .search {
@@ -314,12 +296,9 @@ async function openSearch() {
 }
 .search--overlay { display: flex; flex: 1; width: auto; margin: 0; }
 
-.desktop-only { display: none; }
 @media (min-width: 768px) {
-  .topbar__nav { display: flex; }
   .search { display: flex; }
   .mobile-only, .search-overlay { display: none; }
-  .desktop-only { display: inline-flex; }
   .chips { display: flex; }
 }
 </style>

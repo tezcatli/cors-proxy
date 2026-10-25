@@ -41,7 +41,7 @@ onMounted(async () => {
 })
 
 const fromGameName = computed(() =>
-  fromGame ? (gamesStore.all.find(g => g.slug === fromGame)?.name ?? 'Retour') : 'Tests')
+  fromGame ? (gamesStore.all.find(g => g.slug === fromGame)?.name ?? 'Retour') : 'Ludothèque')
 
 function back() {
   if (router.options.history.state?.back) router.back()

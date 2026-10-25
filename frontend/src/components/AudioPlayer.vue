@@ -198,7 +198,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  bottom: env(safe-area-inset-bottom, 0px);
   z-index: var(--z-player);
   animation: slideUpPlayer var(--dur-med) var(--ease-out-soft) both;
 }

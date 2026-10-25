@@ -1,8 +1,5 @@
 <script setup>
-import { computed } from 'vue'
 import GameCard from './GameCard.vue'
-import { podcastMeta } from '../lib/podcasts.js'
-import { useGamesStore } from '../stores/games.js'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
 
 const props = defineProps({
@@ -14,11 +11,8 @@ const props = defineProps({
   hasQuery: Boolean,
 })
 
-// The show the catalog is narrowed to, said above the grid: the choice is kept
-// across visits.
-const gamesStore = useGamesStore()
-const showName = computed(() => (gamesStore.selectedPodcast !== 'all' ? podcastMeta(gamesStore.selectedPodcast)?.name ?? '' : ''))
-
+// The Ludothèque's games, below its newest tests (EpisodesFeed) in the same
+// scroll: one cover per game. The show filter is said once, above the tests.
 const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
   () => props.games,
   { pageSize: 60, resetKey: () => props.resetKey },
@@ -26,35 +20,33 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
 </script>
 
 <template>
-  <div class="scroll-area games-scroll">
-    <div class="content">
-      <div v-if="!loading && !error && (games.length || showName)" class="grid-count">
-        <span class="lab">{{ games.length }} jeux<template v-if="showName"> · {{ showName }}</template></span>
-        <button v-if="showName" type="button" class="chip-btn" @click="gamesStore.setPodcast('all')">✕ Toutes les émissions</button>
-      </div>
-
-      <div v-if="loading" class="grid" aria-hidden="true">
-        <div v-for="i in 18" :key="i" class="skeleton-shimmer skel__cover" />
-      </div>
-
-      <div v-else-if="error || games.length === 0" class="empty">
-        <p class="cond empty__title">{{ error ? 'Hors antenne' : 'Rien ici' }}</p>
-        <p v-if="error" class="empty__text">{{ error }}</p>
-        <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Tirez vers le bas pour actualiser.</p>
-        <p v-else-if="hasQuery" class="empty__text">Aucun jeu ne correspond à votre recherche.</p>
-        <p v-else class="empty__text">Aucun jeu pour cette émission.</p>
-      </div>
-
-      <div v-else class="grid">
-        <GameCard v-for="game in visibleGames" :key="game.slug" :game="game" />
-      </div>
-      <div ref="sentinel" class="h-1" />
+  <section class="content games" aria-labelledby="h-games">
+    <div class="section-head">
+      <h2 id="h-games">{{ hasQuery ? 'Jeux' : 'La ludothèque' }}</h2>
+      <span v-if="!loading && !error" class="lab">{{ games.length }} jeux</span>
     </div>
-  </div>
+
+    <div v-if="loading" class="grid" aria-hidden="true">
+      <div v-for="i in 18" :key="i" class="skeleton-shimmer skel__cover" />
+    </div>
+
+    <div v-else-if="error || games.length === 0" class="empty">
+      <p class="cond empty__title">{{ error ? 'Hors antenne' : 'Rien ici' }}</p>
+      <p v-if="error" class="empty__text">{{ error }}</p>
+      <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Tirez vers le bas pour actualiser.</p>
+      <p v-else-if="hasQuery" class="empty__text">Aucun jeu ne correspond à votre recherche.</p>
+      <p v-else class="empty__text">Aucun jeu pour cette émission.</p>
+    </div>
+
+    <div v-else class="grid">
+      <GameCard v-for="game in visibleGames" :key="game.slug" :game="game" />
+    </div>
+    <div ref="sentinel" class="h-1" />
+  </section>
 </template>
 
 <style scoped>
-.grid-count { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 0 12px; }
+.games { padding-bottom: 24px; }
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

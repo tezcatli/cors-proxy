@@ -107,3 +107,18 @@ describe('EpisodesFeed on a phone', () => {
     expect(w.findAll('.ep').map(e => e.attributes('data-featured'))).toEqual(['0', '0', '0'])
   })
 })
+
+describe('EpisodesFeed’s row of new tests', () => {
+  it('holds the 30 newest tests; the rest of the history is reached by its games', async () => {
+    const { fetchEpisodes } = await import('../../src/lib/games.js')
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      slug: `e${i}`, urlSlug: `e${i}`, title: `Ep ${i}`, pubTs: 100 - i, games: [{ name: `G${i}` }],
+      podcast: { id: 'silence-on-joue', name: 'Silence on Joue' },
+    }))
+    fetchEpisodes.mockResolvedValueOnce(many)
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+    const w = mountFeed()
+    await flushPromises()
+    expect(w.findAll('.ep')).toHaveLength(30)
+  })
+})

@@ -41,13 +41,13 @@ body {
 }
 
 /* The one scroll container of a base view. Its bottom clears whatever floats
-   over it: the mobile tab bar and the mini player. */
+   over it: the mini player. */
 .scroll-area {
   flex: 1;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(var(--tabbar-h) + var(--player-h) + env(safe-area-inset-bottom, 0px) + 24px);
+  padding-bottom: calc(var(--player-h) + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
 ::-webkit-scrollbar       { width: 8px; height: 8px; }

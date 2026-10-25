@@ -7,7 +7,6 @@ import { usePlayerStore } from './stores/player.js'
 import { useNavDirection } from './composables/useNavDirection.js'
 import { usePullToRefresh } from './composables/usePullToRefresh.js'
 import AppHeader    from './components/AppHeader.vue'
-import TabBar       from './components/TabBar.vue'
 import GameGrid     from './components/GameGrid.vue'
 import EpisodesFeed from './components/EpisodesFeed.vue'
 import AudioPlayer  from './components/AudioPlayer.vue'
@@ -25,51 +24,31 @@ const { navDir } = useNavDirection(route, router)
 
 const showAccountModal = ref(false)
 
-// ── Base route: Tests (/) or Jeux (/jeux) ────────────────────────────────────
-// Overlay routes (/game/:slug, /episode/:slug, /login) must NOT update this,
-// so the base view stays visible under the slide-in transition.
-const BASE_ROUTES = new Set(['/', '/jeux'])
-const baseRoute   = ref(BASE_ROUTES.has(route.path) ? route.path : '/')
+// ── The Ludothèque: one base view (/), its tests then its games ─────────────
+// Overlay routes (/game/:slug, /episode/:slug, /login) slide in over it; it
+// stays mounted (and scrolled) underneath.
+const BASE_ROUTES = new Set(['/'])
 
-watch(() => route.path, path => {
-  if (BASE_ROUTES.has(path)) baseRoute.value = path
-})
+// ── Search: one query, for the tests and the games ───────────────────────────
+const query = ref(route.query.q || '')
 
-const isJeux = computed(() => baseRoute.value === '/jeux')
+// URL → input (back/forward)
+watch(() => route.query.q, q => { if (route.path === '/') query.value = q || '' })
 
-// Mount the catalog only once Jeux is first opened, then keep it mounted (and
-// scrolled) under the overlays and across tab switches.
-const jeuxVisited = ref(false)
-watch(isJeux, v => { if (v) jeuxVisited.value = true }, { immediate: true })
-
-// ── Search: one query per tab ────────────────────────────────────────────────
-const gamesQuery = ref(route.query.q || '')
-const testsQuery = ref('')
-
-const activeSearchQuery = computed(() => isJeux.value ? gamesQuery.value : testsQuery.value)
-
-function handleSearchUpdate(q) {
-  if (isJeux.value) gamesQuery.value = q
-  else testsQuery.value = q
-}
-
-// URL → input (back/forward on Jeux)
-watch(() => route.query.q, q => { if (route.path === '/jeux') gamesQuery.value = q || '' })
-
-// Input → URL (debounced, Jeux only)
+// Input → URL (debounced)
 let searchTimer
-watch(gamesQuery, q => {
+watch(query, q => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    if (route.path === '/jeux') router.replace({ query: q ? { q } : {} })
+    if (route.path === '/') router.replace({ query: q ? { q } : {} })
   }, 350)
 })
 
-// Debounce the query that drives the (filter + locale-sort of ~1600 games) so fast
+// Debounce the query that drives the (filter + locale-sort of ~2000 games) so fast
 // typing doesn't re-run it on every keystroke. Separate from the 350 ms URL sync.
-const debouncedQuery = ref(gamesQuery.value)
+const debouncedQuery = ref(query.value)
 let filterTimer
-watch(gamesQuery, q => {
+watch(query, q => {
   clearTimeout(filterTimer)
   filterTimer = setTimeout(() => { debouncedQuery.value = q }, 140)
 })
@@ -87,9 +66,10 @@ const gridResetKey = computed(() =>
   `${debouncedQuery.value.trim()}|${hideUnresolved.value}|${gamesStore.sortMode}|${gamesStore.sortAsc}|${gamesStore.selectedPodcast}`
 )
 
+// A new sort shows the games from their start.
 watch(
   [() => gamesStore.sortMode, () => gamesStore.sortAsc, hideUnresolved],
-  () => { document.querySelector('.games-scroll')?.scrollTo({ top: 0 }) }
+  () => { document.getElementById('h-games')?.scrollIntoView({ block: 'start' }) }
 )
 
 // Auto-load the catalog after login
@@ -116,8 +96,7 @@ function handleLogout() {
 // auto-logout; close() also clears the resume snapshot.
 watch(loggedIn, v => { if (!v) playerStore.close() })
 
-// Bumped on every pull-to-refresh so the (separately-mounted) feed reloads in
-// step with the catalog — a pull on either tab refreshes both.
+// Bumped on every pull-to-refresh so the tests reload in step with the catalog.
 const feedRefreshSignal = ref(0)
 function handleRefresh() {
   gamesStore.refresh()
@@ -128,12 +107,11 @@ function handleRefresh() {
 const PULL_THRESHOLD = 80
 const { pullY, isPulling, setScrollEl } = usePullToRefresh(handleRefresh)
 
-// Point pull-to-refresh at the shown tab's scroll container, so its "at the
+// Point pull-to-refresh at the Ludothèque's scroll container, so its "at the
 // top?" guard reads the right element.
 function syncPullScrollEl() {
-  nextTick(() => setScrollEl(document.querySelector(isJeux.value ? '.games-scroll' : '.feed-scroll')))
+  nextTick(() => setScrollEl(document.querySelector('.home-scroll')))
 }
-watch(isJeux, syncPullScrollEl)
 
 onMounted(() => {
   if (loggedIn.value) {
@@ -154,13 +132,12 @@ onMounted(() => {
 <template>
   <div id="mainView">
     <AppHeader
-      :search-query="activeSearchQuery"
+      :search-query="query"
       :sort-mode="gamesStore.sortMode"
       :sort-asc="gamesStore.sortAsc"
       :hide-unresolved="hideUnresolved"
       :selected-podcast="gamesStore.selectedPodcast"
-      :is-jeux="isJeux"
-      @update:searchQuery="handleSearchUpdate"
+      @update:searchQuery="query = $event"
       @set-sort="gamesStore.setSort"
       @set-podcast="gamesStore.setPodcast"
       @toggle-hide-unresolved="hideUnresolved = !hideUnresolved"
@@ -178,26 +155,23 @@ onMounted(() => {
         </span>
       </div>
 
-      <EpisodesFeed
-        v-show="baseRoute === '/'"
-        :search-query="testsQuery"
-        :refresh-signal="feedRefreshSignal"
-      />
-
-      <GameGrid
-        v-if="jeuxVisited"
-        v-show="baseRoute === '/jeux'"
-        :games="displayedGames"
-        :loading="gamesStore.loading"
-        :error="gamesStore.error"
-        :total="gamesStore.all.length"
-        :reset-key="gridResetKey"
-        :has-query="!!gamesQuery.trim()"
-      />
+      <div class="scroll-area home-scroll">
+        <EpisodesFeed
+          :search-query="debouncedQuery"
+          :refresh-signal="feedRefreshSignal"
+        />
+        <GameGrid
+          :games="displayedGames"
+          :loading="gamesStore.loading"
+          :error="gamesStore.error"
+          :total="gamesStore.all.length"
+          :reset-key="gridResetKey"
+          :has-query="!!debouncedQuery.trim()"
+        />
+      </div>
     </main>
 
     <AudioPlayer />
-    <TabBar :is-jeux="isJeux" @show-account="showAccountModal = true" />
   </div>
 
   <!-- Outside #mainView so overflow:hidden doesn't clip slide transitions -->
@@ -216,6 +190,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.home-scroll { position: relative; }   /* the tests' blurred backdrop is placed in it */
 .pull {
   display: flex;
   justify-content: center;

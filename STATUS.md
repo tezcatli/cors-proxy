@@ -11,7 +11,8 @@
   - Sauvegardes : `backend_secrets.env.bak-shows`, `users.db.bak-shows`.
 - **Livré (2026-10-25) : l'interface « hommage »** (PR #26), qui remplace Studio radio. Elle a été choisie sur maquettes : https://claude.ai/artifact/8CzayrRjeDURCEjrfAwWnm, rangée C′.
   - Chaque fiche, tuile, page épisode et le lecteur prennent les couleurs de la pochette de leur jeu (`useGameTheme`, palettes gardées en `localStorage`).
-  - La fiche montre la pochette en vedette et les tests en journal. L'accueil montre le dernier test en grand, puis une carte par test qui mène à la fiche. La page Jeux ne montre que les pochettes. Le verdict s'écrit en mot seul.
+  - La fiche montre la pochette en vedette et les tests en journal. Le verdict s'écrit en mot seul.
+  - Un seul écran, la Ludothèque (PR #28), à la place des onglets Tests et Jeux qui montraient le même écran en double : la vitrine du dernier test (bureau) et Reprendre, les nouveaux tests en rangée (une carte par test, qui mène à la fiche), puis tous les jeux en grille. Une seule recherche, le filtre d'émission et le tri dans l'en-tête ; plus de barre d'onglets sur téléphone.
 - **Ouvert.**
   - Le paquet du labo devrait aussi porter les réponses des noms qui ne sont pas des tests, et les tâches `reviewed`, pour que la prod ne les redemande pas (prochaine livraison). Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions possibles).
   - Les 5 SoJ `djpod` en échec : acast répond 429 au téléchargement.

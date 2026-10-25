@@ -319,14 +319,13 @@ function viewEp(ep, e) {
 
 // Say where « back » goes when we know it.
 const backFrom  = String(router.options.history.state?.back ?? '')
-const backLabel = backFrom.startsWith('/jeux') ? 'Jeux'
-  : backFrom === '/' || backFrom.startsWith('/?') ? 'Tests'
+const backLabel = backFrom === '/' || backFrom.startsWith('/?') ? 'Ludothèque'
   : backFrom.startsWith('/episode/') ? 'Épisode'
   : 'Retour'
 
 function close() {
   if (router.options.history.state?.back) router.back()
-  else router.push('/jeux')
+  else router.push('/')
 }
 
 function onKeydown(e) {

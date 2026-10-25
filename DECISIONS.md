@@ -36,11 +36,10 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - Sur téléphone, un écran = une fonction : ce qui répète une autre partie de l'écran disparaît (le dernier test en grand, qui est la première carte ; la reprise en cours, qui est dans le mini-lecteur) ; les filtres d'émission passent dans un bouton de l'en-tête. Le bureau garde la vitrine. Un bouton dit une action ; son contexte (l'émission, la date) est écrit à côté. (2026-10-25)
 - Une grille de pochettes ne répète pas le nom du jeu sous la pochette : la pochette le porte déjà (il reste pour les lecteurs d'écran). (2026-10-25)
 
-- L'accueil est le flux des tests (Reprendre, puis les derniers tests) ; le catalogue des jeux est un onglet, trié par récence. (2026-10-24)
+- Un seul écran, la Ludothèque : la vitrine du dernier test (bureau) et Reprendre, puis les nouveaux tests en rangée (une carte par test), puis tous les jeux en grille de pochettes seules (une par jeu ; recherche, filtre d'émission et tri). Les onglets Tests et Jeux montraient le même écran en double. (2026-10-25)
 - Un verdict par test, jamais de moyenne par jeu : la fiche le compte par verdict. (2026-10-24)
 - Le verdict s'écrit en mot seul : « Positif », « Mitigé », « Négatif » ; un test sans verdict n'affiche rien. Les glyphes (▲ ◆ ▼ ○) n'étaient pas compris. (2026-10-25)
-- Une carte de test (accueil) mène à la fiche du jeu, ce test ouvert dans le journal ; l'épisode est un lien du journal. (2026-10-25)
-- La page Jeux sert à parcourir le catalogue : des pochettes seules, sans verdicts ni nombre de tests (ils sont sur la fiche) ; recherche, filtres d'émission et tri restent. (2026-10-25)
+- Une carte de test (la rangée des nouveaux tests) mène à la fiche du jeu, ce test ouvert dans le journal ; l'épisode est un lien du journal. (2026-10-25)
 
 - Le nom : « Ludothèque », « Ludo » en court (écran d'accueil, mot-symbole `LUDO//`). (2026-10-24)
 
