@@ -40,7 +40,7 @@ async function mountPage() {
 
 // Find a row (account or invitation) by the text it shows.
 function rowFor(wrapper, text) {
-  return wrapper.findAll('.row').find(r => r.text().includes(text))
+  return wrapper.findAll('li').find(r => r.text().includes(text))
 }
 
 beforeEach(() => {

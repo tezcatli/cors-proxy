@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import EpisodesFeed from '../../src/components/EpisodesFeed.vue'
+import { byTest } from '../helpers/find.js'
 import { useGamesStore } from '../../src/stores/games.js'
 
 // jsdom has no IntersectionObserver; the rows' infinite scroll constructs one.
@@ -45,16 +46,16 @@ async function mountFeed(searchQuery = '', { phone = false } = {}) {
     global: {
       plugins: [pinia],
       stubs: {
-        TestCard:   { props: { item: Object, featured: Boolean }, template: '<div class="ep" :data-featured="featured ? 1 : 0">{{ item.test.name }}</div>' },
-        EpisodeRow: { props: ['ep'], template: '<div class="erow">{{ ep.title }}</div>' },
+        TestCard:   { props: { item: Object, featured: Boolean }, template: '<div data-test="card" :data-featured="featured ? 1 : 0">{{ item.test.name }}</div>' },
+        EpisodeRow: { props: ['ep'], template: '<div data-test="episode">{{ ep.title }}</div>' },
       },
     },
   })
   await flushPromises()
   return w
 }
-const cards = w => w.findAll('.ep').map(e => e.text())
-const rows  = w => w.findAll('.erow').map(e => e.text())
+const cards = w => byTest(w, 'card').map(e => e.text())
+const rows  = w => byTest(w, 'episode').map(e => e.text())
 
 describe('EpisodesFeed', () => {
   it('shows every podcast’s tests, one card each; an episode without a test has none', async () => {
@@ -80,12 +81,12 @@ describe('EpisodesFeed', () => {
 describe('EpisodesFeed on a phone', () => {
   it('shows the newest test large on a wide screen', async () => {
     const w = await mountFeed('', { phone: false })
-    expect(w.findAll('.ep').map(e => e.attributes('data-featured'))).toEqual(['1', '0', '0'])
+    expect(byTest(w, 'card').map(e => e.attributes('data-featured'))).toEqual(['1', '0', '0'])
   })
 
   it('drops the showcase on a phone: the row starts with the newest test', async () => {
     const w = await mountFeed('', { phone: true })
-    expect(w.findAll('.ep').map(e => e.attributes('data-featured'))).toEqual(['0', '0', '0'])
+    expect(byTest(w, 'card').map(e => e.attributes('data-featured'))).toEqual(['0', '0', '0'])
   })
 })
 
@@ -98,6 +99,6 @@ describe('EpisodesFeed’s row of new tests', () => {
     }))
     fetchEpisodes.mockResolvedValueOnce(many)
     const w = await mountFeed('', { phone: true })
-    expect(w.findAll('.ep')).toHaveLength(30)
+    expect(byTest(w, 'card')).toHaveLength(30)
   })
 })

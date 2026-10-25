@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { usePlayerStore } from '../../src/stores/player.js'
 import { setMediaFactory, resetMediaFactory } from '../../src/lib/audioEngine.js'
 import { createFakeMedia } from '../helpers/fakeMedia.js'
+import { button, links } from '../helpers/find.js'
 import EpisodeView from '../../src/components/EpisodeView.vue'
 
 // SoJ S20E07's shape: the feed's chapters, the tests at their critique.
@@ -48,36 +49,39 @@ async function mountPage(q = {}) {
   return w
 }
 
+// The moments: the buttons of the episode's programme.
+const moments = w => w.findAll('[aria-labelledby="h-programme"] li > button')
+
 describe('EpisodeView', () => {
   it('lists the moments alike — a test told by its cover, its opinion left to its game’s page', async () => {
     const w = await mountPage()
-    const titles = w.findAll('.mo__title').map(e => e.text())
-    expect(titles).toEqual(['Intro', 'Le com des coms', 'The Blood of Dawnwalker', 'Star Wars: Galactic Racer'])
-    expect(w.findAll('img.mo__cover')).toHaveLength(2)
+    expect(moments(w).map(m => m.attributes('title'))).toEqual(
+      ['Intro', 'Le com des coms', 'The Blood of Dawnwalker', 'Star Wars: Galactic Racer'])
+    expect(moments(w).filter(m => m.find('img').exists())).toHaveLength(2)
     expect(w.text()).not.toContain('Positif')
     expect(w.text()).not.toContain('Des courses nerveuses')
   })
 
   it('leads each test to its game’s page, that test open', async () => {
     const w = await mountPage()
-    expect(w.findAll('a.mo__go').map(a => a.attributes('href'))).toEqual(['/game/dawnwalker?test=guid-7', '/game/racer?test=guid-7'])
+    expect(links(w, 'La fiche de').map(a => a.attributes('href'))).toEqual(['/game/dawnwalker?test=guid-7', '/game/racer?test=guid-7'])
   })
 
   it('plays a moment from its start', async () => {
     const w = await mountPage()
-    await w.findAll('.mo__btn')[2].trigger('click')
+    await moments(w)[2].trigger('click')
     expect(usePlayerStore().current).toMatchObject({ ts: 2363, slug: 'dawnwalker' })
   })
 
   it('offers the episode from its start, from its podcast', async () => {
     const w = await mountPage()
-    expect(w.find('.ep__main').text()).toContain("Écouter l'épisode")
+    expect(button(w, /^Écouter/).text()).toContain("Écouter l'épisode")
     expect(w.text()).not.toContain('Depuis le début')
   })
 
   it('offers the test first, from a game’s page, and the whole episode beside it', async () => {
     const w = await mountPage({ game: 'racer' })
-    expect(w.find('.ep__main').text()).toContain('Écouter le test · 1:08:21')
+    expect(button(w, /^Écouter/).text()).toContain('Écouter le test · 1:08:21')
     expect(w.text()).toContain('Depuis le début')
   })
 })

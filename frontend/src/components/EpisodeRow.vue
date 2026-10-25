@@ -47,8 +47,8 @@ function onPlay() {
       <span v-if="covers.length || resume" class="row__extra">
         <span v-if="covers.length" class="row__covers" :aria-label="`${tests.length} test${tests.length > 1 ? 's' : ''}`">
           <template v-for="t in covers" :key="t.name">
-            <img v-if="t.coverImageId" :src="igdbUrl(t.coverImageId, 't_cover_small')" alt="" class="row__cover" loading="lazy" />
-            <span v-else class="row__cover row__cover--none"></span>
+            <img v-if="t.coverImageId" :src="igdbUrl(t.coverImageId, 't_cover_small')" alt="" class="row__cover" loading="lazy" data-test="cover" />
+            <span v-else class="row__cover row__cover--none" data-test="cover"></span>
           </template>
           <span v-if="more" class="lab row__more">+{{ more }}</span>
         </span>

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import IgdbPickerModal from '../../src/components/IgdbPickerModal.vue'
+import { button, buttons } from '../helpers/find.js'
 
 const setCorrection = vi.fn(() => Promise.resolve({ slug: 'x', episodes: [], nameSlugs: ['x'] }))
 const deleteCorrection = vi.fn(() => Promise.resolve({ slug: 'x', episodes: [], nameSlugs: ['x'] }))
@@ -23,13 +24,16 @@ const mountPicker = (props = {}) =>
 
 beforeEach(() => { setCorrection.mockClear(); deleteCorrection.mockClear() })
 
-const nameField = w => w.find('.picker-field__input')
+// « Nom affiché », its save, and an IGDB result (by the game's name in it).
+const nameField = w => w.find('input[type="text"]')
+const saveName  = w => button(w, /Enregistrer le nom|Utiliser le nom IGDB/)
+const result    = w => buttons(w).find(b => b.text().includes('chrono-trigger'))
 
 describe('IgdbPickerModal display name', () => {
   it('saves the name alone — no pin, so the server need not re-resolve', async () => {
     const w = mountPicker()
     await nameField(w).setValue('Chrono Trigger (SNES)')
-    await w.find('.picker-save button').trigger('click')
+    await saveName(w).trigger('click')
     await flushPromises()
     expect(setCorrection).toHaveBeenCalledWith({
       nameSlug: 'chrono-trigger', podcastId: '', igdbId: undefined,
@@ -41,7 +45,7 @@ describe('IgdbPickerModal display name', () => {
   it('sends an empty name to drop the override', async () => {
     const w = mountPicker({ game: { ...GAME, displayName: 'X' } })
     await nameField(w).setValue('')
-    await w.find('.picker-save button').trigger('click')
+    await saveName(w).trigger('click')
     await flushPromises()
     expect(setCorrection.mock.calls[0][0].displayName).toBe('')
   })
@@ -49,7 +53,7 @@ describe('IgdbPickerModal display name', () => {
   it('pinning a game leaves an unchanged name out of the request', async () => {
     const w = mountPicker({ game: { ...GAME, displayName: 'Keep me' } })
     await flushPromises()                       // let the IGDB search resolve
-    await w.find('.igdb-result').trigger('click')
+    await result(w).trigger('click')
     await flushPromises()
     const body = setCorrection.mock.calls[0][0]
     expect(body.igdbId).toBe(7)
@@ -59,8 +63,8 @@ describe('IgdbPickerModal display name', () => {
   it('goes read-only where corrections.json ships in the image', async () => {
     const w = mountPicker({ writable: false, hasCorrection: true })
     await flushPromises()
-    expect(w.find('.picker-warn').text()).toContain('Lecture seule')
+    expect(w.text()).toContain('Lecture seule')
     expect(nameField(w).attributes('disabled')).toBeDefined()
-    expect(w.find('.igdb-result').attributes('disabled')).toBeDefined()
+    expect(result(w).attributes('disabled')).toBeDefined()
   })
 })
