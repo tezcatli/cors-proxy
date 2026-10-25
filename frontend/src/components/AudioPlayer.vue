@@ -23,10 +23,11 @@ const test     = computed(() => playerStore.currentTest)
 const duration = computed(() => playerStore.audioDuration)
 const show     = computed(() => cur.value?.podcast?.name ?? podcastMeta(cur.value?.podcast?.id)?.name ?? '')
 
-// What is on air: the test being heard, else the game the track was started for.
-const title = computed(() => test.value ? (test.value.resolvedName ?? test.value.name) : (cur.value?.game || cur.value?.episode || ''))
-const coverId = computed(() => test.value?.coverImageId ?? playerStore.currentChapter?.coverImageId ?? cur.value?.coverImageId ?? null)
-const coverSrc = computed(() => coverId.value ? igdbUrl(coverId.value, 't_cover_big') : (cur.value?.episodeImageUrl ?? null))
+// What is on air (the store's `onAir`, shared with the lock screen): the test
+// being heard, else the podcast and the chapter.
+const title = computed(() => playerStore.onAir?.title ?? '')
+const coverId = computed(() => playerStore.onAir?.coverImageId ?? null)
+const coverSrc = computed(() => coverId.value ? igdbUrl(coverId.value, 't_cover_big') : (playerStore.onAir?.imageUrl ?? null))
 // The player wears the colours of the game on air.
 const { style: theme } = useGameTheme(coverId)
 
@@ -61,12 +62,12 @@ function goEpisode() {
   if (!c) return
   expanded.value = false
   if (c.episodeUrlSlug || c.episodeSlug)
-    router.push({ path: `/episode/${encodeURIComponent(c.episodeUrlSlug ?? c.episodeSlug)}`, query: c.slug ? { game: c.slug } : {} })
-  else if (c.slug)
-    router.push('/game/' + encodeURIComponent(c.slug))
+    router.push({ path: `/episode/${encodeURIComponent(c.episodeUrlSlug ?? c.episodeSlug)}`, query: test.value?.slug ? { game: test.value.slug } : {} })
+  else if (test.value?.slug)
+    router.push('/game/' + encodeURIComponent(test.value.slug))
 }
 function goGame() {
-  const slug = test.value?.slug ?? cur.value?.slug
+  const slug = test.value?.slug
   if (!slug) return
   expanded.value = false
   router.push('/game/' + encodeURIComponent(slug))
@@ -184,7 +185,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
         </div>
 
         <div class="sheet__links">
-          <button v-if="test?.slug || cur.slug" type="button" class="btn-line" @click="goGame">La fiche <ArrowUpRight :size="14" :stroke-width="2" /></button>
+          <button v-if="test?.slug" type="button" class="btn-line" @click="goGame">La fiche <ArrowUpRight :size="14" :stroke-width="2" /></button>
           <button type="button" class="btn-line" @click="goEpisode">L'épisode <ArrowUpRight :size="14" :stroke-width="2" /></button>
         </div>
       </div>

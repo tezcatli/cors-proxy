@@ -1688,3 +1688,30 @@ def test_an_explicit_igdb_refresh_fetches_the_games_data_again(client):
     assert r.status_code == 200
     mc.assert_called_once()
     assert state.games[1].data['metacritic'] == 89
+
+
+# ── A test's chapters ─────────────────────────────────────────────────────────
+
+def test_every_chapter_of_a_test_carries_its_page():
+    """The chapter a test starts in (at its critique, after the chapter's own
+    start), the one it goes on in after an ad (the same game by name, or by page
+    under another name) all carry the test's page; a chapter on another game, or
+    on none, carries nothing."""
+    from models import Chapter, Episode, GameMention
+    pages = {'Hades II':  ('Hades II', 'hades-ii', 'co1'),
+             'Hades 2':   ('Hades II', 'hades-ii', 'co1'),
+             'Silksong':  ('Hollow Knight: Silksong', 'silksong', 'co2')}
+    ep = Episode(title='Ep', slug='g', audio_url=None, pub_ts=None, image_url=None, description=None,
+                 chapters=[Chapter('0:00', 0, 'Intro'),
+                           Chapter('5:00', 300, 'Hades II, la critique'),
+                           Chapter('20:00', 1200, 'Hades II, suite', game_name='Hades II'),
+                           Chapter('30:00', 1800, 'Encore Hades', game_name='Hades 2'),
+                           Chapter('40:00', 2400, 'News Silksong', game_name='Silksong'),
+                           Chapter('50:00', 3000, 'Courrier')],
+                 games=[GameMention('Hades II', '5:40', 340), GameMention('Silksong', '49:45', 2985)])
+    with patch('serializers._resolution', lambda m, _ep: pages.get(m.name)):
+        chapters = serializers.serialise_episode(ep)['chapters']
+    # Silksong's test starts 15 s before the mail's chapter: it is that chapter's,
+    # and its news chapter is its by name.
+    assert [c.get('slug') for c in chapters] == [None, 'hades-ii', 'hades-ii', 'hades-ii', 'silksong', 'silksong']
+    assert chapters[2]['coverImageId'] == 'co1'
