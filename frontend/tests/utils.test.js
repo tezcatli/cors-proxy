@@ -55,9 +55,8 @@ describe('formatTime', () => {
 });
 
 describe('testHref', () => {
-  it('opens the game’s page on that test', () => {
-    expect(testHref({ ep: { slug: 'g/1', urlSlug: 'ep-1' }, test: { slug: 'zelda' } }))
-      .toBe('/game/zelda?test=g%2F1')
+  it('opens the game’s page', () => {
+    expect(testHref({ ep: { slug: 'g/1', urlSlug: 'ep-1' }, test: { slug: 'zelda' } })).toBe('/game/zelda')
   })
 
   it('opens the episode when the game has no page', () => {

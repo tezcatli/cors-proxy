@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isAdmin, isLoggedIn } from './lib/auth.js'
+import { noteVisit } from './lib/home.js'
 import DetailView  from './components/DetailView.vue'
 import EpisodeView from './components/EpisodeView.vue'
 import PodcastView from './components/PodcastView.vue'
@@ -50,5 +51,7 @@ router.beforeEach((to) => {
   // it enforce the real check, so this only avoids showing a page that 403s.
   if (to.meta.admin && !isAdmin()) return { path: '/' }
 })
+
+router.afterEach(to => noteVisit(router, to))
 
 export default router

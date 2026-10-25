@@ -1,20 +1,29 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Search, X, ArrowUp, ArrowDown, ArrowUpDown, User } from 'lucide-vue-next'
+import { Search, X, ArrowUp, ArrowDown, ArrowUpDown, RotateCw, User } from 'lucide-vue-next'
 import { isAdmin } from '../lib/auth.js'
+import { useGamesStore } from '../stores/games.js'
+import { useGameTheme } from '../composables/useGameTheme.js'
+import Wordmark from './Wordmark.vue'
 
 defineProps({
   searchQuery:     String,
   sortMode:        String,
   sortAsc:         Boolean,
   hideUnresolved:  Boolean,
+  refreshing:      Boolean,   // the catalog and the episodes are reloading
 })
-const emit = defineEmits(['update:searchQuery', 'setSort', 'toggle-hide-unresolved', 'show-account'])
+const emit = defineEmits(['update:searchQuery', 'setSort', 'toggle-hide-unresolved', 'refresh', 'show-account'])
 
 const admin = isAdmin()
 
-// One search, for the Ludothèque's tests, episodes and games. The podcasts
+// The mark's // takes the colours of the newest test, the one the Ludothèque
+// opens on.
+const gamesStore = useGamesStore()
+const { style: markTheme } = useGameTheme(() => gamesStore.newestTest?.test.coverImageId ?? null)
+
+// One search, for the Ludothèque's games or its episodes. The podcasts
 // are pages of their own (« Les podcasts »), not a filter.
 const searchPlaceholder = 'Rechercher un jeu, un épisode'
 
@@ -54,7 +63,7 @@ async function openSearch() {
 <template>
   <header class="topbar">
     <div class="topbar__row">
-      <RouterLink to="/" class="wordmark cond" aria-label="Ludothèque, accueil">Ludo<span>//</span></RouterLink>
+      <RouterLink to="/" class="wordmark" :style="markTheme" aria-label="Ludothèque, accueil"><Wordmark /></RouterLink>
 
       <div class="topbar__spacer" />
 
@@ -112,6 +121,15 @@ async function openSearch() {
         </div>
       </div>
 
+      <button
+        type="button"
+        class="icon-action"
+        :disabled="refreshing"
+        :aria-label="refreshing ? 'Actualisation…' : 'Actualiser'"
+        title="Actualiser"
+        @click="emit('refresh')"
+      ><RotateCw :size="18" :stroke-width="2" :class="{ 'animate-spin': refreshing }" /></button>
+
       <button type="button" class="icon-action" aria-label="Mon compte" @click="emit('show-account')">
         <User :size="18" :stroke-width="2" />
       </button>
@@ -155,15 +173,13 @@ async function openSearch() {
   padding: 0 calc(var(--gutter) - 8px) 0 var(--gutter);
 }
 .wordmark {
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--c-fg);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 19px;
   text-decoration: none;
   margin-right: 24px;
 }
-.wordmark span { color: var(--c-accent); }
 .topbar__spacer { flex: 1; }
 
 .search {

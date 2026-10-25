@@ -12,7 +12,9 @@ const props = defineProps({
 })
 
 // The Ludothèque's games, below its newest tests and its podcasts in the same
-// scroll: one cover per game, all of them (a podcast's are on its page).
+// scroll: one cover per game, all of them (a podcast's are on its page). In a
+// search, its scope already says « Jeux » and their count: the heading stays
+// for screen readers only.
 const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
   () => props.games,
   { pageSize: 60, resetKey: () => props.resetKey },
@@ -20,8 +22,8 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
 </script>
 
 <template>
-  <section class="content games" aria-labelledby="h-games">
-    <div class="section-head">
+  <section class="content games" :class="{ 'home-section': !hasQuery }" aria-labelledby="h-games">
+    <div class="section-head" :class="{ 'sr-only': hasQuery }">
       <h2 id="h-games">{{ hasQuery ? 'Jeux' : 'La ludothèque' }}</h2>
       <span v-if="!loading && !error" class="lab">{{ games.length }} jeux</span>
     </div>
@@ -33,7 +35,7 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
     <div v-else-if="error || games.length === 0" class="empty">
       <p class="cond empty__title">{{ error ? 'Hors antenne' : 'Rien ici' }}</p>
       <p v-if="error" class="empty__text">{{ error }}</p>
-      <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Tirez vers le bas pour actualiser.</p>
+      <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Touchez ↻ pour actualiser.</p>
       <p v-else-if="hasQuery" class="empty__text">Aucun jeu ne correspond à votre recherche.</p>
     </div>
 
@@ -54,6 +56,7 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
 }
 @media (min-width: 600px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 28px 24px; } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skel__cover { aspect-ratio: 3 / 4; }
 .empty { padding: 80px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }

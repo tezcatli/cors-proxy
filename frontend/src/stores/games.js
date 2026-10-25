@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { fetchCatalog, refreshCatalog, fetchEpisodes } from '../lib/games.js'
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
@@ -109,8 +109,15 @@ export const useGamesStore = defineStore('games', () => {
     return _episodesInflight
   }
 
+  // The newest test ({ep, test}): the Ludothèque's showcase, and the colours
+  // of its mark and its light (DECISIONS.md, « Interface »).
+  const newestTest = computed(() => {
+    const ep = episodes.value.find(e => e.games?.length)
+    return ep ? { ep, test: ep.games[0] } : null
+  })
+
   return {
     all, lastFetch, sortMode, sortAsc, loading, error, filtered, load, refresh, setSort,
-    episodes, episodesLoading, episodesError, episodesLoaded, loadEpisodes,
+    episodes, episodesLoading, episodesError, episodesLoaded, loadEpisodes, newestTest,
   }
 })

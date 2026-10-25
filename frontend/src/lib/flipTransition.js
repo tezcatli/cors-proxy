@@ -10,13 +10,31 @@
  *      degrades silently when the user navigates from elsewhere.
  *
  * Entries auto-expire after 1s so stale captures don't hijack later mounts.
+ *
+ * Only a source seen whole flies: one partly scrolled out of its container
+ * (under the header) would start the flight over whatever hides it.
  */
 
 const captures = new Map()
 
+const CLIPS = /auto|scroll|hidden|clip/
+
+// Whether `rect` lies wholly inside the viewport and every scrolling ancestor of `el`.
+function seenWhole(el, rect) {
+  const inside = box => rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1
+    && rect.left >= box.left - 1 && rect.right <= box.right + 1
+  if (!inside({ top: 0, left: 0, bottom: window.innerHeight, right: window.innerWidth })) return false
+  for (let a = el.parentElement; a; a = a.parentElement) {
+    const { overflow, overflowX, overflowY } = getComputedStyle(a)
+    if (CLIPS.test(`${overflow} ${overflowX} ${overflowY}`) && !inside(a.getBoundingClientRect())) return false
+  }
+  return true
+}
+
 export function captureSource(key, el) {
   if (!key || !el) return
   const rect = el.getBoundingClientRect()
+  if (!seenWhole(el, rect)) return
   const radius = getComputedStyle(el).borderRadius
   captures.set(key, { rect, radius, ts: performance.now() })
   setTimeout(() => {

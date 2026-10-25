@@ -130,7 +130,7 @@ const shownGames = computed(() => (allGames.value ? games.value : games.value.sl
           <section v-if="games.length" class="pod__games" aria-labelledby="h-pod-games">
             <div class="section-head">
               <h2 id="h-pod-games">Ses jeux</h2>
-              <button v-if="games.length > GAMES_FIRST" type="button" class="lab pod__all" :aria-expanded="allGames" @click="allGames = !allGames">
+              <button v-if="games.length > GAMES_FIRST" type="button" class="lab section-more" :aria-expanded="allGames" @click="allGames = !allGames">
                 {{ allGames ? 'Moins' : `Tous · ${games.length}` }}
               </button>
             </div>
@@ -176,7 +176,6 @@ const shownGames = computed(() => (allGames.value ? games.value : games.value.sl
 .pod__context { display: flex; flex-direction: column; gap: 2px; color: var(--c-fg-2); font-size: var(--text-sm); text-decoration: none; }
 .pod__date { font-size: var(--text-xs); color: var(--c-fg-3); }
 .pod__context:hover { color: var(--c-fg); }
-.pod__all { border: 0; background: transparent; color: var(--c-accent); cursor: pointer; min-height: 44px; }
 
 /* Phone: a few covers in a row to swipe; all of them, a grid. */
 .pod__grid {

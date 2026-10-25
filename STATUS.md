@@ -23,12 +23,17 @@
 - **Livré (2026-10-25) : le code obsolète retiré** (PR #32). Les épisodes SoJ montrent les chapitres de la lecture (`chapters.json` retiré). Sont aussi retirés : la migration de l'ancien cache IGDB, les `ALTER TABLE is_admin`, l'ancien schéma IGDB (`category`) et le code mort du frontend. Sauvegarde : `users.db.bak-obsolete`. 
 - **Livré (2026-10-25) : les tests suivent les règles** (PR #33). Doublons fusionnés, tests sur données réécrits, tests morts retirés, variantes paramétrées, contrat étendu (listes, champs imbriqués, absents), `test_games.py` découpé par module, tests d'interface sans classes CSS. Backend : 324 fonctions → 259 (378 cas → 324), frontend : 195 → 167. Couverture identique sauf `review.py` (affichage de la console, décision du 2026-10-25).
 - **Livré (2026-10-25) : un test par épisode sur une fiche** (PR #34). Deux noms d'un même jeu dans un épisode sont un seul test (`serializers.tests_of`), celui dont l'avis a été lu. En dev, une seule fiche était touchée (`assassin-s-creed-iii`).
+- **Livré (2026-10-25) : la Ludothèque refaite** (PR #35, testé en dev par l'utilisateur ; maquettes https://claude.ai/artifact/EuRL8uUJ7jFRonTtPurPvT). Sauvegarde : `users.db.bak-homelink`.
+  - La recherche a deux portées, Jeux | Épisodes, une liste à la fois (`SearchResults.vue`).
+  - `LUDO//` sur chaque barre de retour mène à l'accueil en dépilant l'historique (`lib/home.js`) ; une seule barre de retour partout. Nouveau mot-symbole (`Wordmark.vue`) et nouvelle icône de l'app installable (`L` sur le pavé, `//` jaune).
+  - L'accueil : plus de rangée de nouveaux tests ; « Reprendre » nomme le test à la position sauvegardée (`testAt`), × oublie une écoute, 3 puis « Tous · n » ; les podcasts en grille ; ↻ à la place du tirer-pour-rafraîchir ; l'esthétique « atmosphère » (halo et `//` aux couleurs du dernier jeu).
+  - La fiche s'ouvre tests repliés ; `POST /games/<slug>/igdb-refresh` retiré (seule reste la purge par podcast de l'admin).
+  - Les chapitres des descriptions entre parenthèses (ORIGAMI, 116 épisodes) et en liste (ZQSD, Game Informer) sont lus : mesuré sur les données de la prod, aucun test ne change, aucune description non plus.
 - **Ouvert.**
-  - Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début ; des chapitres Game Informer, tirés de la description, sont collés en un seul (« Introduction03:25 - … »).
+  - Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début.
   - Le paquet du labo devrait aussi porter les réponses des noms qui ne sont pas des tests, et les tâches `reviewed`, pour que la prod ne les redemande pas (prochaine livraison). Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions possibles).
   - Les 5 SoJ `djpod` en échec : acast répond 429 au téléchargement.
   - Les consoles d'admin n'ont pas été restylées. Elles héritent seulement des polices et des couleurs.
-  - Recherche unique jeux + épisodes (prévue, pas faite).
   - Pour et contre en anglais pour Triple Click, The Besties et The Game Informer Show : langue du prompt de lecture, à régler dans le labo.
   - Les épisodes « [Reportage] » sont toujours exclus du catalogue.
   - **Une mesure du labo ne garantit pas la réponse de la prod** : le labo et l'app interrogent le LLM chacun de leur côté, d'où la livraison des réponses du labo par le paquet.

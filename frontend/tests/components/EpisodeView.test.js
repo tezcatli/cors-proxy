@@ -62,9 +62,9 @@ describe('EpisodeView', () => {
     expect(w.text()).not.toContain('Des courses nerveuses')
   })
 
-  it('leads each test to its game’s page, that test open', async () => {
+  it('leads each test to its game’s page', async () => {
     const w = await mountPage()
-    expect(links(w, 'La fiche de').map(a => a.attributes('href'))).toEqual(['/game/dawnwalker?test=guid-7', '/game/racer?test=guid-7'])
+    expect(links(w, 'La fiche de').map(a => a.attributes('href'))).toEqual(['/game/dawnwalker', '/game/racer'])
   })
 
   it('plays a moment from its start', async () => {

@@ -8,7 +8,7 @@ import { verdictCounts } from '../lib/verdicts.js'
 import { podcastMeta } from '../lib/podcasts.js'
 import { useGamesStore } from '../stores/games.js'
 import { usePlayerStore } from '../stores/player.js'
-import { fetchGameDetail, refreshGameIgdb } from '../lib/games.js'
+import { fetchGameDetail } from '../lib/games.js'
 import { isAdmin } from '../lib/auth.js'
 import { useEpisodePlayer } from '../composables/useEpisodePlayer.js'
 import { playInto } from '../lib/flipTransition.js'
@@ -17,7 +17,7 @@ import BackBar from './BackBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import IgdbPickerModal from './IgdbPickerModal.vue'
 import MediaViewer from './MediaViewer.vue'
-import { RotateCw, ChevronDown, ArrowUpRight, Play, Pause, Wrench } from 'lucide-vue-next'
+import { ChevronDown, ArrowUpRight, Play, Pause, Wrench } from 'lucide-vue-next'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -75,17 +75,10 @@ const boardImages = computed(() => {
 })
 const boardMore   = computed(() => mediaImages.value.length - boardImages.value.length)
 
-// The back bar floats over the cover's backdrop until the page scrolls.
-const scrolled = ref(false)
-function onScroll(e) {
-  scrolled.value = e.target.scrollTop > 40
-}
-
 const heroCoverEl = ref(null)
 
 const episodes        = ref([])
 const episodesLoading = ref(false)
-const igdbRefreshing  = ref(false)
 // The podcast name(s) behind this entry — what the corrections API keys on.
 const nameSlugs   = ref([])
 const corrected   = ref(false)
@@ -162,28 +155,6 @@ onMounted(async () => {
   if (game.value && heroCoverEl.value) playInto(`cover:${game.value.slug}`, heroCoverEl.value)
 })
 
-async function refreshIgdb() {
-  if (!game.value) return
-  igdbRefreshing.value = true
-  try {
-    const result = await refreshGameIgdb(game.value.slug)
-    // Re-resolution can move the entry to a different igdb_slug — follow it
-    // (same as onCorrectionSaved), or we'd sit on a route with no catalog entry.
-    if (result.slug && result.slug !== route.params.slug) {
-      await gamesStore.load()
-      router.replace(`/game/${encodeURIComponent(result.slug)}`)
-      return
-    }
-    const idx = gamesStore.all.findIndex(g => g.slug === result.slug)
-    if (idx !== -1) gamesStore.all[idx].igdb = result.igdb
-    episodes.value = result.episodes
-  } catch (_) {
-    // ignore
-  } finally {
-    igdbRefreshing.value = false
-  }
-}
-
 watch(coverImageId, id => {
   if (id && playerStore.current?.slug === game.value?.slug) playerStore.setEpisodeImageUrl(igdbUrl(id, 't_cover_big'))
 })
@@ -229,26 +200,11 @@ const gameCtx = computed(() => ({
 }))
 const { isEpPlaying, playEp, togglePause } = useEpisodePlayer(gameCtx)
 
-// One test row is open on its « pour / contre »: the one playing, else the one
-// picked, else the first that has any.
-// Opened from a test (`?test=` its episode), that row is open, and scrolled
-// into view if it is below the fold.
+// The tests arrive folded; the listener opens the one they want on its
+// « pour / contre » (DECISIONS.md, « Interface »).
 const picked = ref(null)
 const detailEl = ref(null)
-watch(episodes, async eps => {
-  const slug = route.query.test
-  if (!slug || !eps.some(ep => ep.slug === slug)) return
-  picked.value = slug
-  await nextTick()
-  const row = [...(detailEl.value?.querySelectorAll('[data-test]') ?? [])].find(el => el.dataset.test === slug)
-  row?.scrollIntoView({ block: 'nearest' })
-})
-const openSlug = computed(() => {
-  if (picked.value !== null) return picked.value || null
-  const playing = episodes.value.find(ep => isEpPlaying(ep))
-  if (playing) return playing.slug
-  return episodes.value.find(ep => ep.critique?.pros?.length || ep.critique?.cons?.length)?.slug ?? null
-})
+const openSlug = computed(() => picked.value || null)
 function toggleRow(ep) { picked.value = openSlug.value === ep.slug ? '' : ep.slug }
 
 function onPlay(ep) {
@@ -339,7 +295,7 @@ const facts = computed(() => {
 
 <template>
   <div class="overlay-page" :style="[theme, { zIndex: 'var(--z-detail)' }]">
-    <BackBar :label="backLabel" :overlay="!!game" :solid="scrolled" @back="close">
+    <BackBar :label="backLabel" @back="close">
       <template #actions>
         <button
           v-if="admin && pickerTarget"
@@ -349,15 +305,6 @@ const facts = computed(() => {
           title="Corriger la fiche IGDB"
           @click="pickerOpen = true"
         ><Wrench :size="16" :stroke-width="2" /></button>
-        <button
-          v-if="admin && game"
-          type="button"
-          class="icon-action"
-          :disabled="igdbRefreshing"
-          :aria-label="igdbRefreshing ? 'Actualisation IGDB…' : 'Rafraîchir IGDB'"
-          title="Rafraîchir IGDB"
-          @click="refreshIgdb"
-        ><RotateCw :size="16" :stroke-width="2" :class="{ 'animate-spin': igdbRefreshing }" /></button>
       </template>
     </BackBar>
 
@@ -366,7 +313,7 @@ const facts = computed(() => {
       <p v-else class="cond state__title">Jeu introuvable</p>
     </div>
 
-    <div v-else ref="detailEl" class="detail scroll-area" @scroll.passive="onScroll">
+    <div v-else ref="detailEl" class="detail scroll-area">
       <!-- The cover, blurred, is the page's backdrop: the page bathes in the game. -->
       <div v-if="coverImageId && !coverFailed" class="backdrop" aria-hidden="true">
         <img :src="igdbUrl(coverImageId, 't_cover_small')" alt="" />
@@ -626,7 +573,7 @@ const facts = computed(() => {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: 18px;
-  padding: 72px 0 40px;
+  padding: 24px 0 40px;
   text-align: center;
 }
 .gamehead__cover {

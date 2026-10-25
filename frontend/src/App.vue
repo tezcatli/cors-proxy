@@ -1,15 +1,16 @@
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loggedIn, getUserEmail, logout, refresh } from './lib/auth.js'
 import { useGamesStore } from './stores/games.js'
 import { usePlayerStore } from './stores/player.js'
 import { useNavDirection } from './composables/useNavDirection.js'
-import { usePullToRefresh } from './composables/usePullToRefresh.js'
 import AppHeader    from './components/AppHeader.vue'
 import GameGrid     from './components/GameGrid.vue'
 import EpisodesFeed from './components/EpisodesFeed.vue'
 import PodcastsRow   from './components/PodcastsRow.vue'
+import SearchResults from './components/SearchResults.vue'
+import { useGameTheme } from './composables/useGameTheme.js'
 import AudioPlayer  from './components/AudioPlayer.vue'
 import AccountModal from './components/AccountModal.vue'
 
@@ -30,18 +31,28 @@ const showAccountModal = ref(false)
 // stays mounted (and scrolled) underneath.
 const BASE_ROUTES = new Set(['/'])
 
-// ── Search: one query, for the tests, the episodes and the games ───────────────────────────
+// ── Search: one query, for the games or the episodes ───────────────────────────
+// Its scope (`dans`: jeux | episodes) is the listener's choice, kept in the URL so
+// back from a game or an episode finds it; an emptied search forgets it.
+const SCOPES = new Set(['jeux', 'episodes'])
 const query = ref(route.query.q || '')
+const scope = ref(SCOPES.has(route.query.dans) ? route.query.dans : null)
 
 // URL → input (back/forward)
-watch(() => route.query.q, q => { if (route.path === '/') query.value = q || '' })
+watch(() => [route.query.q, route.query.dans], ([q, dans]) => {
+  if (route.path !== '/') return
+  query.value = q || ''
+  scope.value = SCOPES.has(dans) ? dans : null
+})
+
+watch(query, q => { if (!q.trim()) scope.value = null })
 
 // Input → URL (debounced)
 let searchTimer
-watch(query, q => {
+watch([query, scope], ([q, s]) => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    if (route.path === '/') router.replace({ query: q ? { q } : {} })
+    if (route.path === '/') router.replace({ query: q ? { q, ...(s ? { dans: s } : {}) } : {} })
   }, 350)
 })
 
@@ -53,6 +64,14 @@ watch(query, q => {
   clearTimeout(filterTimer)
   filterTimer = setTimeout(() => { debouncedQuery.value = q }, 140)
 })
+
+// The Ludothèque in the newest game's light (DECISIONS.md, « Interface » :
+// atmosphère): its accent marks the sections' //, its glow the top of the page.
+// Only these two: the page itself stays black.
+const { palette: newestPalette } = useGameTheme(() => gamesStore.newestTest?.test.coverImageId ?? null)
+const homeLight = computed(() => (newestPalette.value
+  ? { '--c-accent': newestPalette.value.accent, '--game-glow': newestPalette.value.glow }
+  : {}))
 
 // Admin only: a game with no page is a pipeline matter, not a reader's.
 const hideUnresolved = ref(true)
@@ -98,20 +117,14 @@ function handleLogout() {
 // auto-logout; close() also clears the resume snapshot.
 watch(loggedIn, v => { if (!v) playerStore.close() })
 
-// A pull-to-refresh reloads the episodes in step with the catalog.
-function handleRefresh() {
-  gamesStore.refresh()
-  gamesStore.loadEpisodes()
-}
-
-// ── Pull-to-refresh ───────────────────────────────────────────────────────────
-const PULL_THRESHOLD = 80
-const { pullY, isPulling, setScrollEl } = usePullToRefresh(handleRefresh)
-
-// Point pull-to-refresh at the Ludothèque's scroll container, so its "at the
-// top?" guard reads the right element.
-function syncPullScrollEl() {
-  nextTick(() => setScrollEl(document.querySelector('.home-scroll')))
+// The header's ↻ reloads the episodes in step with the catalog. A button, not
+// a pull: the gesture fought the page's own (DECISIONS.md, « Interface »).
+const refreshing = ref(false)
+async function handleRefresh() {
+  if (refreshing.value) return
+  refreshing.value = true
+  try { await Promise.all([gamesStore.refresh(), gamesStore.loadEpisodes()]) }
+  finally { refreshing.value = false }
 }
 
 onMounted(() => {
@@ -127,7 +140,6 @@ onMounted(() => {
     } catch (_) {}
     refresh().catch(() => {})
   }
-  syncPullScrollEl()
 })
 </script>
 
@@ -142,30 +154,33 @@ onMounted(() => {
       @set-sort="gamesStore.setSort"
       @toggle-hide-unresolved="hideUnresolved = !hideUnresolved"
       @show-account="showAccountModal = true"
+      :refreshing="refreshing"
+      @refresh="handleRefresh"
     />
 
     <main class="main-region">
-      <!-- Pull-to-refresh indicator -->
-      <div
-        class="pull"
-        :style="{ height: isPulling ? pullY + 'px' : '0px', transition: isPulling ? 'none' : 'height 0.2s ease' }"
-      >
-        <span class="lab" :style="{ opacity: Math.min(pullY / PULL_THRESHOLD, 1) }">
-          {{ pullY >= PULL_THRESHOLD ? '↻ Relâcher' : '↓ Actualiser' }}
-        </span>
-      </div>
-
-      <div class="scroll-area home-scroll">
-        <EpisodesFeed :search-query="debouncedQuery" />
-        <PodcastsRow v-if="!debouncedQuery.trim()" />
-        <GameGrid
+      <div class="scroll-area home-scroll" :style="homeLight">
+        <SearchResults
+          v-if="debouncedQuery.trim()"
+          v-model:scope="scope"
+          :query="debouncedQuery"
           :games="displayedGames"
-          :loading="gamesStore.loading"
-          :error="gamesStore.error"
-          :total="gamesStore.all.length"
+          :games-loading="gamesStore.loading"
+          :games-error="gamesStore.error"
+          :games-total="gamesStore.all.length"
           :reset-key="gridResetKey"
-          :has-query="!!debouncedQuery.trim()"
         />
+        <template v-else>
+          <EpisodesFeed />
+          <PodcastsRow />
+          <GameGrid
+            :games="displayedGames"
+            :loading="gamesStore.loading"
+            :error="gamesStore.error"
+            :total="gamesStore.all.length"
+            :reset-key="gridResetKey"
+          />
+        </template>
       </div>
     </main>
 
@@ -189,11 +204,4 @@ onMounted(() => {
 
 <style scoped>
 .home-scroll { position: relative; }   /* the tests' blurred backdrop is placed in it */
-.pull {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  flex-shrink: 0;
-}
 </style>

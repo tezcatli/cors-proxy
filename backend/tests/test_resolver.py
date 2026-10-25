@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import catalog_state as state
 import feeds
+import games
 import resolver
 from db import utcnow
 from utils import make_slug
@@ -255,8 +256,9 @@ def test_a_game_is_scraped_once_for_all_its_episodes():
     assert (state.games[7].data['metacritic'], state.games[7].data['timeToBeatHours']) == (91, 40)
 
 
-def test_an_explicit_igdb_refresh_fetches_the_games_data_again(client):
-    # The one way to get a fresh Metacritic score before the TTL.
+def test_a_purge_fetches_the_games_data_again(client):
+    # The one way to get a fresh Metacritic score before the TTL: the admin's
+    # purge (per podcast, POST /games/podcasts/<id>/igdb-refresh).
     ns = make_slug('Silent Hill 2')
     _seed(_TWO_EPISODES_SAME_NAME, {
         f'{ns}-remake': _entry(f'{ns}-remake', 1, 'silent-hill-2', 'Silent Hill 2',
@@ -268,7 +270,8 @@ def test_an_explicit_igdb_refresh_fetches_the_games_data_again(client):
          patch('resolver.metacritic.fetch_metascore', return_value=89) as mc, \
          patch('resolver.hltb.fetch_time_to_beat', return_value=None), \
          patch('resolver.fetch_time_to_beat', return_value=None):
-        r = client.post('/games/silent-hill-2/igdb-refresh', headers=auth_header())
-    assert r.status_code == 200
+        members = [(g, a) for g in state.game_index.values() for a in g.appearances]
+        games._purge_with_games(members, state.entries())
+        resolver.resolve_members(members)
     mc.assert_called_once()
     assert state.games[1].data['metacritic'] == 89

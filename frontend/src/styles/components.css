@@ -197,6 +197,20 @@
   line-height: 1.1;
 }
 @media (min-width: 768px) { .section-head h2 { font-size: var(--text-2xl); } }
+/* The Ludothèque's sections (DECISIONS.md, « Interface » : atmosphère): each
+   title marked by the mark's //, in the newest game's accent; air between. */
+.home-section { margin-bottom: 44px; }
+.home-section .section-head h2::before {
+  content: '//';
+  display: inline-block;
+  margin-right: 0.5em;
+  letter-spacing: -0.12em;
+  color: var(--c-accent);
+  transform: skewX(-12deg) scaleX(1.15);
+}
+/* « Tous · n » / « Moins », at the right of a section's heading: unfolds the
+   rest of a list in place (DECISIONS.md, « Interface »). */
+.section-more { border: 0; background: transparent; color: var(--c-accent); cursor: pointer; min-height: 44px; padding: 0; }
 
 /* Overlay pages (game, episode): full screen above the base view. */
 .overlay-page {
