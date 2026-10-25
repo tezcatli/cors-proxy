@@ -46,6 +46,22 @@ def best_member(members: list[Member],
     return max(pool, key=lambda c: c[1].resolution.decided_at)
 
 
+def tests_of(members: list[Member]) -> list[Member]:
+    """The group's tests, newest first, one per episode: two names of the game
+    heard in one episode are one test, as a page is one game. The one kept is
+    the one its opinion was read on, else the one whose start is known, else
+    the earliest."""
+    def rank(m: Member):
+        mention = m[1].mention
+        return (mention.critique is None, mention.timestamp is None, mention.timestamp_seconds)
+    kept: dict[str, Member] = {}
+    for m in sorted(members, key=lambda m: m[1].episode.pub_ts or 0, reverse=True):
+        slug = m[1].episode.slug
+        if slug not in kept or rank(m) < rank(kept[slug]):
+            kept[slug] = m
+    return list(kept.values())
+
+
 def group_members() -> tuple[dict[str, list[Member]], dict[str, IgdbEntry]]:
     """Every appearance in the catalog bucketed by group key, plus the IGDB cache
     snapshot the keys were derived from — callers must rank within a group against
@@ -243,24 +259,19 @@ def build_catalog() -> list[dict]:
             'metacritic':   entry.data.get('metacritic'),
             'coverImageId': entry.data.get('coverImageId'),
         } if entry and entry.data else None
-        # Count distinct episodes (by guid) — two name variants co-occurring in one
-        # episode must not double-count it.
-        episode_slugs = {a.episode.slug for _, a in members}
+        tests         = tests_of(members)
         pub_tss       = [a.episode.pub_ts for _, a in members if a.episode.pub_ts is not None]
         # Source podcasts that cover this game (drives badges + the header filter).
         podcasts = sorted({a.episode.podcast_id for _, a in members if a.episode.podcast_id})
-        # One verdict per test, newest first: no rule averages a game's tests.
-        tests = {}
-        for _, a in sorted(members, key=lambda m: m[1].episode.pub_ts or 0, reverse=True):
-            tests.setdefault(a.episode.slug, _verdict(a.mention))
         result.append({
             'slug':         slug,
             'name':         group_display_name(members, best),
             'igdb':         igdb_slim,
-            'episodeCount': len(episode_slugs),
+            'episodeCount': len(tests),
             'latestPubTs':  max(pub_tss) if pub_tss else None,
             'podcasts':     podcasts,
-            'verdicts':     list(tests.values()),
+            # One verdict per test, newest first: no rule averages a game's tests.
+            'verdicts':     [_verdict(a.mention) for _, a in tests],
         })
 
     return sorted(result, key=lambda g: g['name'].lower())
@@ -296,7 +307,7 @@ def load_game(slug: str) -> dict:
     members, cache, resolved = match_appearances(slug)
     # Newest first: a group can mix appearances from several name variants and
     # both podcasts, whose per-name order says nothing about the group's.
-    ordered    = sorted(members, key=lambda m: m[1].episode.pub_ts or 0, reverse=True)
+    ordered    = tests_of(members)
     correction = correction_for(members)
     payload = {
         'episodes':  [serialise_episode(a.episode, mention=a.mention) for _, a in ordered],
