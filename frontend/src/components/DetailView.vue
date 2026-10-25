@@ -279,13 +279,19 @@ const resumeEntry = computed(() =>
   playerStore.inProgress.find(p => p.gameSlug === game.value?.slug && episodes.value.some(ep => ep.slug === p.episodeSlug)) ?? null)
 const leadEp = computed(() =>
   (resumeEntry.value && episodes.value.find(ep => ep.slug === resumeEntry.value.episodeSlug)) ?? episodes.value[0] ?? null)
+// The button says the action; its context (the show, the date) is written
+// beneath it (DECISIONS.md, « Interface »).
 const leadLabel = computed(() => {
   const ep = leadEp.value
   if (!ep) return ''
-  const show = ep.podcast?.name ?? podcastMeta(ep.podcast?.id)?.name ?? ''
-  if (isEpPlaying(ep)) return playerStore.paused ? `Reprendre · ${show}` : 'Pause'
-  if (resumeEntry.value) return `Reprendre à ${formatTime(resumeEntry.value.currentTime)} · ${show}`
-  return `Écouter le dernier test · ${show}`
+  if (isEpPlaying(ep)) return playerStore.paused ? 'Reprendre' : 'Pause'
+  if (resumeEntry.value) return `Reprendre à ${formatTime(resumeEntry.value.currentTime)}`
+  return 'Écouter le dernier test'
+})
+const leadContext = computed(() => {
+  const ep = leadEp.value
+  if (!ep) return ''
+  return [ep.podcast?.name ?? podcastMeta(ep.podcast?.id)?.name, formatShortDate(ep.pubTs)].filter(Boolean).join(' · ')
 })
 
 // Other games tested in this game's episodes: the way out of the page.
@@ -439,6 +445,7 @@ const facts = computed(() => {
                 <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
                 {{ leadLabel }}
               </button>
+              <span v-if="leadEp?.audioUrl" class="gamehead__context">{{ leadContext }}</span>
             </div>
             <div v-if="heroShots.length || igdb?.trailerId" class="gamehead__shots">
               <button v-if="igdb?.trailerId" type="button" class="shot shot--trailer" aria-label="Lire la bande-annonce" @click="trailerOpen = true">
@@ -708,8 +715,9 @@ const facts = computed(() => {
 .gauge__head { display: flex; justify-content: space-between; gap: 8px; color: var(--c-fg); }
 .gauge__bar { height: 8px; margin-top: 6px; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1px var(--c-line); }
 .gauge__bar span { display: block; height: 100%; background: var(--c-accent); }
-.gamehead__actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
-.gamehead__play { min-height: 52px; flex: 1 1 100%; }
+.gamehead__actions { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.gamehead__play { min-height: 52px; width: 100%; white-space: normal; text-align: center; }
+.gamehead__context { color: var(--c-fg-2); font-size: var(--text-sm); }
 .gamehead__shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 600px; }
 .shot { aspect-ratio: 16 / 9; padding: 3px; border: 0; background: rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px var(--c-line); cursor: zoom-in; }
 .shot { position: relative; }
@@ -733,8 +741,8 @@ const facts = computed(() => {
   .gamehead { grid-template-columns: 460px minmax(0, 1fr); justify-items: stretch; align-items: center; gap: 56px; padding: 48px 0 56px; text-align: left; }
   .gamehead__cover { width: 460px; }
   .gamehead__main { align-items: flex-start; gap: 20px; }
-  .gamehead__actions { justify-content: flex-start; }
-  .gamehead__play { flex: 0 0 auto; }
+  .gamehead__actions { align-items: flex-start; }
+  .gamehead__play { width: auto; }
 }
 
 /* ─── Panels: the journal, the gallery, the facts ─────────────────────── */

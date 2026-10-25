@@ -82,3 +82,28 @@ describe('EpisodesFeed podcast filter', () => {
     expect(w.findAll('.ep')).toHaveLength(0)
   })
 })
+
+describe('EpisodesFeed on a phone', () => {
+  const mountAt = phone => {
+    vi.stubGlobal('matchMedia', () => ({ matches: phone, addEventListener() {}, removeEventListener() {} }))
+    return mount(EpisodesFeed, {
+      props: { searchQuery: '' },
+      global: {
+        plugins: [createPinia()],
+        stubs: { TestCard: { props: { item: Object, featured: Boolean }, template: '<div class="ep" :data-featured="featured ? 1 : 0">{{ item.ep.title }}</div>' } },
+      },
+    })
+  }
+
+  it('shows the newest test large on a wide screen', async () => {
+    const w = mountAt(false)
+    await flushPromises()
+    expect(w.findAll('.ep').map(e => e.attributes('data-featured'))).toEqual(['1', '0', '0'])
+  })
+
+  it('drops the showcase on a phone: the grid starts with the newest test', async () => {
+    const w = mountAt(true)
+    await flushPromises()
+    expect(w.findAll('.ep').map(e => e.attributes('data-featured'))).toEqual(['0', '0', '0'])
+  })
+})

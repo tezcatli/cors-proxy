@@ -33,6 +33,7 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 ## Interface
 - L'app rend hommage au jeu vidéo, dans toute l'interface ; chaque fiche jeu rend hommage à son jeu : ses couleurs (tirées de ses images) et ses images en vedette. Elle reste une app d'écoute : le lecteur, les tests et le verdict d'abord. La direction se choisit sur maquettes. Remplace *Studio radio* (https://claude.ai/artifact/NT5XTroWYFNjRkMEXyBNnX). (2026-10-24)
 - Direction retenue : « la pochette en vedette » (maquettes C′, https://claude.ai/artifact/8CzayrRjeDURCEjrfAwWnm). Sora (titres, libellés) et Inter (texte) ; panneaux sombres teintés de la couleur du jeu, à coins marqués ; sur la fiche, la pochette en grand, droite, sur un fond tiré d'elle (floutée) ; les tests en journal. Pas de simulation de manette, pas de police rétro. (2026-10-25)
+- Sur téléphone, un écran = une fonction : ce qui répète une autre partie de l'écran disparaît (le dernier test en grand, qui est la première carte ; la reprise en cours, qui est dans le mini-lecteur) ; les filtres d'émission passent dans un bouton de l'en-tête. Le bureau garde la vitrine. Un bouton dit une action ; son contexte (l'émission, la date) est écrit à côté. (2026-10-25)
 - Une grille de pochettes ne répète pas le nom du jeu sous la pochette : la pochette le porte déjà (il reste pour les lecteurs d'écran). (2026-10-25)
 
 - L'accueil est le flux des tests (Reprendre, puis les derniers tests) ; le catalogue des jeux est un onglet, trié par récence. (2026-10-24)
