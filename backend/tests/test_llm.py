@@ -354,9 +354,8 @@ def test_without_the_llm_an_llm_read_show_contributes_nothing(tc_feed):
 
 def test_an_llm_read_game_points_at_its_chapter():
     from models import Chapter, Episode
-    from rss import _extract_chapters
-    chapters = _extract_chapters('03:00 - Gears of War: Judgment\n29:30 -- Luigi\'s Mansion: Dark Moon')
-    assert [c.title for c in chapters] == ['Gears of War: Judgment', "Luigi's Mansion: Dark Moon"]
+    chapters = [Chapter(timestamp='03:00', timestamp_seconds=180, title='Gears of War: Judgment'),
+                Chapter(timestamp='29:30', timestamp_seconds=1770, title="Luigi's Mansion: Dark Moon")]
     ep = Episode(title='The Besties Podcast 50', slug='bes-50', audio_url='', pub_ts=None,
                  image_url=None, description='', chapters=chapters, games=[],
                  podcast_id='the-besties')

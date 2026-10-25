@@ -1,5 +1,6 @@
 """Reading a feed (`rss.py`): the names a title proposes, an item, its HTML, the channel's image."""
 from dataclasses import replace
+from html import escape
 
 import pytest
 
@@ -137,3 +138,29 @@ def test_channel_image_is_the_feed_s_own():
     assert channel_image(itunes) == 'https://example.com/show.jpg'
     assert channel_image(plain) == 'https://example.com/show.png'
     assert channel_image(b'<rss><channel></channel></rss>') is None
+
+
+def _item_chapters(description_html):
+    rss = f"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item>
+      <title>Episode</title><guid>g1</guid><enclosure url="https://example.com/a.mp3" type="audio/mpeg" length="0" />
+      <description>{escape(description_html)}</description></item></channel></rss>""".encode()
+    (episode,) = _parse_feed(rss, extractor=lambda _title: [])
+    return [(c.timestamp, c.timestamp_seconds, c.title) for c in episode.chapters]
+
+
+@pytest.mark.parametrize('description,expected', [
+    # A timecode at a line's start, then the title; the separator isn't part of it.
+    ('<p>03:00 - Gears of War: Judgment<br>29:30 -- Luigi\'s Mansion: Dark Moon</p>',
+     [('03:00', 180, 'Gears of War: Judgment'), ('29:30', 1770, "Luigi's Mansion: Dark Moon")]),
+    # In brackets (ORIGAMI), with an hour.
+    ('<p>(00:00) Sommaire</p><br><p>(46:33) Critique Planet Zoo 2</p><p>[1:21:39] Critique Final Fantasy Resonance</p>',
+     [('00:00', 0, 'Sommaire'), ('46:33', 2793, 'Critique Planet Zoo 2'),
+      ('1:21:39', 4899, 'Critique Final Fantasy Resonance')]),
+    # A list item is a line of its own (ZQSD, The Game Informer Show).
+    ('<ul><li>07:30 : La Blizzcon</li><li>37:00 : Critique 1 : Silent Hill f</li></ul>',
+     [('07:30', 450, 'La Blizzcon'), ('37:00', 2220, 'Critique 1 : Silent Hill f')]),
+    # A time inside a sentence, or glued to its title, opens no chapter.
+    ('<p>Rendez-vous à 21:00 pour le live.</p><p>1:37:02Halloween</p>', []),
+])
+def test_a_description_lists_its_chapters(description, expected):
+    assert _item_chapters(description) == expected

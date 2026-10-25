@@ -69,6 +69,9 @@ def _strip_html(html: str) -> str:
         return ''
     html = re.sub(r'</p>', '\n', html, flags=re.IGNORECASE)
     html = re.sub(r'<br\s*/?>', '\n', html, flags=re.IGNORECASE)
+    # A list item or a block is a line of its own: chapters are often listed
+    # in <ul><li> (ZQSD, The Game Informer Show, The Besties).
+    html = re.sub(r'</?(?:li|ul|ol|div|h[1-6])\b[^>]*>', '\n', html, flags=re.IGNORECASE)
     html = re.sub(r'<[^>]*>', '', html)
     # unescape handles every named/numeric entity; &nbsp; becomes U+00A0, which
     # the whitespace normalisation below must fold like a regular space.
@@ -176,18 +179,21 @@ def _parse_timestamp(ts: str) -> int:
 
 # ── Chapter extraction ────────────────────────────────────────────────────────
 
+# A chapter line: a timecode at its start, bare or in brackets — « 22:00 -
+# Shovel Knight », « (4:19) EA dans ses œuvres » (ORIGAMI), « [12:30] … » —
+# then a space and its title; the separator isn't part of the title.
+_CHAPTER_LINE = re.compile(r'^(?:(\d{1,2}:\d{2}(?::\d{2})?)|[(\[](\d{1,2}:\d{2}(?::\d{2})?)[)\]])\s+(?:[-–—:]+\s*)?(\S.*)$')
+
+
 def _extract_chapters(text: str) -> list[Chapter]:
+    """The chapters a description lists, one per line (a list item is a line)."""
     chapters = []
     for line in re.split(r'[\n\r]+', text):
-        m = re.match(r'^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$', line.strip())
+        m = _CHAPTER_LINE.match(line.strip())
         if m:
-            ts_str = m.group(1)
-            chapters.append(Chapter(
-                timestamp=ts_str,
-                timestamp_seconds=_parse_timestamp(ts_str),
-                # « 22:00 - Shovel Knight »: the separator isn't part of the title.
-                title=re.sub(r'^[-–—:]+\s*', '', m.group(2).strip()),
-            ))
+            ts_str = m.group(1) or m.group(2)
+            chapters.append(Chapter(timestamp=ts_str, timestamp_seconds=_parse_timestamp(ts_str),
+                                    title=m.group(3).strip()))
     return chapters
 
 
