@@ -24,7 +24,8 @@ The reading describes each section (`llm.KINDS`), the rules decide:
 A test starts where its critique does — its longest critique section, or the
 critique sections before it that only ads part from it (an ad break cuts a
 review in two, not into two tests), never a teaser before the intro — and goes
-on over the sections on the game after it.
+on over the sections on the game after it (`span`): its duration, shown on the
+game's page. A one-game show's test runs to the end of the reading.
 
 Two names are one game when they are spelled alike (`same`) or, both having an
 IGDB answer, when the answers are one catalog page — a title names « Wolfenstein »
@@ -99,6 +100,8 @@ def select(podcast, episode: Episode, sections: list[dict],
         # with the verdict the reading gave it.
         first = episode.chapters[0].timestamp_seconds if episode.chapters else 0
         game = GameMention(titled[0], _ts(first), first, critique=_critique(_on(titled[0], on)))
+        if sections:
+            game.duration_seconds = max(int(max(s['end'] for s in sections)) - first, 0) or None
         return [] if _dropped(game.name, sections) else [game]
     tests = []
     for g in _games([m.name for m in proposed], on, identify(podcast, episode, sections), page):
@@ -106,8 +109,9 @@ def select(podcast, episode: Episode, sections: list[dict],
             continue
         mention = next((m for m in proposed if m.name == g['proposed']), None) \
             or GameMention(g['name'], None, 0, read=True)
-        at = start(g['sections'], sections)
+        at, end = span(g['sections'], sections)
         mention.timestamp, mention.timestamp_seconds = _ts(at), int(at)
+        mention.duration_seconds = int(end - at)
         mention.critique = _critique(g['sections'])
         tests.append(mention)
     return tests
@@ -172,21 +176,30 @@ def _is_test(g: dict, titled: bool) -> bool:
     return max(s['end'] - s['start'] for s in g['sections']) >= MIN_SECONDS
 
 
-def start(sections: list[dict], reading: list[dict]) -> float:
-    """Where a test on these `sections` of the `reading` starts: its longest
-    critique section, or the first of the critique sections before it that only
-    ads part from it; its first section without a critique."""
+def span(sections: list[dict], reading: list[dict]) -> tuple[float, float]:
+    """Where a test on these `sections` of the `reading` starts and ends. It
+    starts at its longest critique section, or the first of the critique
+    sections before it that only ads part from it; at its first section without
+    a critique. It ends with the last section on the game that follows on from
+    there, ads aside."""
     judged = [s for s in sections if s['kind'] in _JUDGED]
-    if not judged:
-        return sections[0]['start']
-    main = max(judged, key=lambda s: s['end'] - s['start'])
-    ids, first = {id(s) for s in judged}, main
-    for s in reversed(reading[:next(i for i, r in enumerate(reading) if r is main)]):
+    main = max(judged, key=lambda s: s['end'] - s['start']) if judged else sections[0]
+    at = next(i for i, r in enumerate(reading) if r is main)
+    first, last = main, main
+    if judged:
+        ids = {id(s) for s in judged}
+        for s in reversed(reading[:at]):
+            if id(s) in ids:
+                first = s
+            elif not s['ad']:
+                break
+    ids = {id(s) for s in sections}
+    for s in reading[at + 1:]:
         if id(s) in ids:
-            first = s
+            last = s
         elif not s['ad']:
             break
-    return first['start']
+    return first['start'], last['end']
 
 
 def _critique(sections: list[dict]) -> dict | None:

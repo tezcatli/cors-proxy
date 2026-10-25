@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { formatShortDate, formatTime } from '../lib/utils.js'
+import { formatDuration, formatShortDate, formatTime } from '../lib/utils.js'
 import { frLabel } from '../lib/igdbLabels.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import { verdictCounts } from '../lib/verdicts.js'
@@ -476,7 +476,8 @@ const facts = computed(() => {
               <a class="test__ep" :href="epHref(ep)" @click="viewEp(ep, $event)">
                 <span class="ellipsis">{{ ep.title }}</span><ArrowUpRight :size="14" :stroke-width="2" aria-hidden="true" />
               </a>
-              <span class="test__at mono">{{ ep.timestamp != null ? formatTime(ep.timestampSeconds) : '—' }}</span>
+              <!-- How long the test lasts: its weight; where it starts is ▶'s business. -->
+              <span class="test__at mono">{{ formatDuration(ep.durationSeconds) }}</span>
               <ChevronDown :size="18" :stroke-width="2" class="test__chevron" aria-hidden="true" />
             </div>
 

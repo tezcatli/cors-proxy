@@ -28,6 +28,8 @@ class GameMention:
     # The hosts' verdict, read from the transcript (`llm.read_transcript`):
     # {verdict, pros, cons, at}. None until the episode is transcribed and read.
     critique: Optional[dict] = None
+    # How long the test lasts (`critiques.span`); None until the episode is read.
+    duration_seconds: Optional[int] = None
     # Added from the transcript's reading rather than parsed from the title, so
     # replaced by the next reading (`feeds._apply_readings`).
     read: bool = False

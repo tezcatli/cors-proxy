@@ -66,6 +66,16 @@ export function formatTime(seconds) {
 }
 
 /**
+ * A length in seconds → `18 min`, `1 h 05` past an hour; '' when unknown.
+ */
+export function formatDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '';
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  const h = Math.floor(minutes / 60);
+  return h > 0 ? `${h} h ${String(minutes % 60).padStart(2, '0')}` : `${minutes} min`;
+}
+
+/**
  * Where a test of the home feed ({ep, test}) opens: its game's page with that
  * test open (`?test=` the episode), else — a game without a page — its episode.
  */

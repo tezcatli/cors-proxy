@@ -10,7 +10,7 @@ import DetailView from '../../src/components/DetailView.vue'
 // Control Resonant's journal, two of its tests: one read, one whose start is unknown.
 const EPISODES = [
   { slug: 'tc', urlSlug: 'triple-play', title: 'Triple Play: Control Resonant', pubTs: 1792600000, audioUrl: 'tc.mp3',
-    timestamp: '02:32', timestampSeconds: 152, podcast: { id: 'triple-click', name: 'Triple Click' },
+    timestamp: '02:32', timestampSeconds: 152, durationSeconds: 1110, podcast: { id: 'triple-click', name: 'Triple Click' },
     critique: { verdict: 'mixed', pros: ['Striking visuals'], cons: ['Hard combat'] }, games: [], chapters: [] },
   { slug: 'ori', urlSlug: 's04e03', title: 'S04E03 - Ace Combat 8', pubTs: 1791100000, audioUrl: 'ori.mp3',
     timestamp: null, timestampSeconds: 0, podcast: { id: 'origami', name: "ORIGAMI L'Hebdo" },
@@ -71,9 +71,9 @@ describe('the journal of tests', () => {
     expect(rows(w)[0].find('a.test__ep').attributes('href')).toBe('/episode/triple-play?game=control-resonant--1')
   })
 
-  it('says a start it knows, and a dash for one it does not', async () => {
+  it('says how long a test lasts, and nothing for one it does not know', async () => {
     const w = await mountPage()
-    expect(rows(w).map(r => r.find('.test__at').text())).toEqual(['2:32', '—'])
+    expect(rows(w).map(r => r.find('.test__at').text())).toEqual(['19 min', ''])
     expect(rows(w)[1].find('.test__play').attributes('aria-label')).toBe("Écouter l'épisode de ORIGAMI L'Hebdo")
   })
 })
