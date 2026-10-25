@@ -184,9 +184,9 @@ def test_same_name_resolving_to_two_games_splits_into_two_entries():
     assert remake['igdb']['released']   == '2024'
 
 
-def test_names_on_one_game_are_one_entry_counted_by_episode():
-    # Two spellings landing on one igdb_slug are one entry, even both in one
-    # episode, which counts once.
+def test_names_on_one_game_are_one_entry_one_test_per_episode():
+    # Two spellings landing on one igdb_slug are one entry; both in one episode
+    # are one test there, the one its opinion was read on.
     rss = b"""<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
   <item><title>On a joue a \xc2\xabZelda\xc2\xbb</title>
     <guid>g1</guid><enclosure url="https://example.com/1.mp3" type="audio/mpeg" length="0" />
@@ -199,11 +199,15 @@ def test_names_on_one_game_are_one_entry_counted_by_episode():
     <pubDate>Mon, 29 Jan 2024 00:00:00 +0000</pubDate><description>00:30 Zelda</description></item>
 </channel></rss>""".replace(b'\xc2\xab', '«'.encode()).replace(b'\xc2\xbb', '»'.encode())
     zelda, botw = make_slug('Zelda'), make_slug('Zelda BOTW')
-    _seed(rss, {f'{name}-{guid}': _entry(guid, 1, 'zelda-botw', 'Zelda BOTW')
-                for name, guid in ((zelda, 'g1'), (botw, 'g2'), (zelda, 'g3'), (botw, 'g3'))})
-    catalog = [g for g in serializers.build_catalog() if g['slug'] == 'zelda-botw']
-    assert len(catalog) == 1
-    assert catalog[0]['episodeCount'] == 3
+    episodes = _seed(rss, {f'{name}-{guid}': _entry(guid, 1, 'zelda-botw', 'Zelda BOTW')
+                           for name, guid in ((zelda, 'g1'), (botw, 'g2'), (zelda, 'g3'), (botw, 'g3'))})
+    opinion = {'verdict': 'positive', 'pros': [], 'cons': [], 'at': 30}
+    g3 = next(e for e in episodes if e.slug == 'g3')
+    next(g for g in g3.games if g.name == 'Zelda BOTW').critique = opinion   # g3's second name
+    [entry] = [g for g in serializers.build_catalog() if g['slug'] == 'zelda-botw']
+    assert (entry['episodeCount'], entry['verdicts']) == (3, ['positive', None, None])
+    detail = serializers.load_game('zelda-botw')['episodes']
+    assert [(e['slug'], e['critique']) for e in detail] == [('g3', opinion), ('g2', None), ('g1', None)]
 
 
 def test_unresolved_appearances_group_under_name_slug():
