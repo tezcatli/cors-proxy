@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchEpisodes } from '../lib/games.js'
 import { formatTime, progressPct, testHref } from '../lib/utils.js'
@@ -55,7 +55,16 @@ const filteredEpisodes = computed(() => {
 // One card per test; an episode that tests nothing has no card.
 const tests = computed(() => filteredEpisodes.value.flatMap(ep => (ep.games ?? []).map(test => ({ ep, test }))))
 // The newest test leads, unless the list is a search's results.
-const featured = computed(() => (props.searchQuery?.trim() ? null : tests.value[0] ?? null))
+// The newest test is shown large on a wide screen only: on a phone it would
+// repeat the grid's first card (DECISIONS.md, « Interface »).
+const phoneQuery = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 767px)') : null
+const isPhone = ref(phoneQuery?.matches ?? false)
+const onPhoneChange = e => { isPhone.value = e.matches }
+phoneQuery?.addEventListener('change', onPhoneChange)
+onBeforeUnmount(() => phoneQuery?.removeEventListener('change', onPhoneChange))
+
+const lead     = computed(() => (props.searchQuery?.trim() ? null : tests.value[0] ?? null))
+const featured = computed(() => (isPhone.value ? null : lead.value))
 const rest     = computed(() => (featured.value ? tests.value.slice(1) : tests.value))
 
 // The show the list is narrowed to, said in the heading (the choice is kept
@@ -97,7 +106,10 @@ const bySlug = computed(() => new Map(episodes.value.map(ep => [ep.slug, ep])))
 
 const resumeItems = computed(() => {
   if (props.searchQuery?.trim()) return []
+  // The listening in the mini player is not repeated here.
+  const onAir = playerStore.current?.episodeSlug
   return playerStore.inProgress
+    .filter(p => p.episodeSlug !== onAir)
     .map(p => {
       const ep = bySlug.value.get(p.episodeSlug)
       if (!ep) return null
@@ -135,8 +147,8 @@ function resume(item) {
 <template>
   <div class="scroll-area feed-scroll">
     <!-- The newest test's cover, blurred, behind the top of the page -->
-    <div v-if="featured?.test.coverImageId" class="backdrop" aria-hidden="true">
-      <img :src="igdbUrl(featured.test.coverImageId, 't_cover_small')" alt="" />
+    <div v-if="lead?.test.coverImageId" class="backdrop" aria-hidden="true">
+      <img :src="igdbUrl(lead.test.coverImageId, 't_cover_small')" alt="" />
     </div>
     <div class="content feed">
       <div v-if="loading" aria-hidden="true" class="grid">
@@ -154,7 +166,7 @@ function resume(item) {
       </div>
 
       <template v-else>
-        <div class="top" :class="{ 'has-resume': resumeItems.length }">
+        <div v-if="featured || resumeItems.length" class="top" :class="{ 'has-resume': resumeItems.length }">
           <TestCard
             v-if="featured"
             :item="featured"
@@ -291,4 +303,13 @@ function resume(item) {
 .empty { padding: 64px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
 .empty__text { color: var(--c-fg-2); margin: 0; }
+/* Phone: compact, so the grid starts on the first screen — the whole card
+   resumes, the cover is small, less air. */
+@media (max-width: 767px) {
+  .feed { padding-top: 12px; }
+  .top { margin-bottom: 20px; }
+  .resume__row { flex-basis: 64%; padding: 8px 10px; gap: 10px; }
+  .resume__cover { width: 32px; height: 43px; }
+  .resume__go { display: none; }
+}
 </style>
