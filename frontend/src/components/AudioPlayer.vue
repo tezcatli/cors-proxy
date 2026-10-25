@@ -10,7 +10,8 @@ import { useGameTheme } from '../composables/useGameTheme.js'
 import SeekBar from './SeekBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import MarqueeText from './MarqueeText.vue'
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, RotateCw, Volume2, VolumeX, X, Loader2, RefreshCw, ChevronDown, ArrowUpRight } from 'lucide-vue-next'
+import JumpIcon from './JumpIcon.vue'
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X, Loader2, RefreshCw, ChevronDown, ArrowUpRight } from 'lucide-vue-next'
 
 // The mini player (a bar over the bottom of the base views) and, on a phone,
 // the full « En lecture » sheet it opens into. All audio goes through the store.
@@ -29,7 +30,7 @@ const show     = computed(() => cur.value?.podcast?.name ?? podcastMeta(cur.valu
 const title = computed(() => playerStore.onAir?.title ?? '')
 const coverId = computed(() => playerStore.onAir?.coverImageId ?? null)
 const coverSrc = computed(() => coverId.value ? igdbUrl(coverId.value, 't_cover_big') : (playerStore.onAir?.imageUrl ?? null))
-// The player wears the colours of the game on air.
+// The player is lit by the game on air (its accent; the sheet, its halo).
 const { style: theme } = useGameTheme(coverId)
 
 const nextMark = computed(() => playerStore.marks.find(m => m.timestampSeconds > playerStore.currentTime + 1) ?? null)
@@ -54,6 +55,25 @@ function rateLabel(r) { return `${String(r).replace('.', ',')}×` }
 
 // ── « En lecture » sheet (phone) ────────────────────────────────────────────
 const expanded = ref(false)
+
+// The sheet's ↺ and ↻ jump a minute at once; quick taps add up, their sum
+// shown in place of the bar's caption until a second after the last
+// (DECISIONS.md, « Interface »). A tap the other way starts the sum anew.
+const JUMP_S = 60
+const JUMP_GAP_MS = 1000
+const jumpSum = ref(0)               // minutes, signed
+let jumpTimer = null
+function jumpMinute(dir) {
+  if (Math.sign(jumpSum.value) !== dir) jumpSum.value = 0
+  jumpSum.value += dir
+  jump(dir * JUMP_S)
+  clearTimeout(jumpTimer)
+  jumpTimer = setTimeout(() => { jumpSum.value = 0 }, JUMP_GAP_MS)
+}
+const sheetCaption = computed(() => (jumpSum.value
+  ? `${jumpSum.value < 0 ? '−' : '+'}${Math.abs(jumpSum.value)} min`
+  : segmentLabel.value))
+onUnmounted(() => clearTimeout(jumpTimer))
 function openInfo() {
   if (window.matchMedia('(min-width: 768px)').matches) goEpisode()
   else expanded.value = true
@@ -156,45 +176,41 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
         <button type="button" class="icon-action" aria-label="Fermer le lecteur" @click="playerStore.close()"><X :size="20" :stroke-width="2" /></button>
       </div>
 
+      <div class="halo" aria-hidden="true"></div>
       <div class="sheet__body">
-        <img v-if="coverSrc" :src="coverSrc" alt="" class="sheet__cover" />
+        <!-- Every element keeps its place whatever is on air, a chapter or a
+             test: only its content changes, so nothing moves under the thumb. -->
+        <span class="sheet__cover corners">
+          <img v-if="coverSrc" :src="coverSrc" alt="" />
+          <span v-else class="sheet__cover-none cond">{{ show }}</span>
+        </span>
         <div class="sheet__titles">
           <h2 class="cond sheet__title"><MarqueeText :text="title" /></h2>
-          <VerdictMark v-if="test" :verdict="test.critique?.verdict ?? test.verdict ?? null" />
-          <p class="mono sheet__ep">{{ show }} · {{ cur.episode }}</p>
+          <p class="sheet__verdict"><VerdictMark v-if="test" :verdict="test.critique?.verdict ?? test.verdict ?? null" /></p>
+          <p class="mono sheet__ep clamp-2">{{ show }} · {{ cur.episode }}</p>
         </div>
 
-        <SeekBar :duration="duration" :current-time="playerStore.currentTime" :marks="playerStore.marks" :label="segmentLabel" @seek="playerStore.seek" />
+        <SeekBar :duration="duration" :current-time="playerStore.currentTime" :marks="playerStore.marks" :label="sheetCaption" @seek="playerStore.seek" />
 
+        <!-- One row: the tests at its ends, time beside ▶. -->
         <div class="sheet__controls">
-          <button type="button" class="icon-action" aria-label="Test précédent" @click="playerStore.skip(-1)"><SkipBack :size="22" :stroke-width="2" /></button>
-          <button type="button" class="icon-action" aria-label="Reculer de 30 secondes" @click="jump(-30)"><RotateCcw :size="22" :stroke-width="2" /></button>
+          <button type="button" class="icon-action" aria-label="Test précédent" @click="playerStore.skip(-1)"><SkipBack :size="24" :stroke-width="2" /></button>
+          <button type="button" class="icon-action" aria-label="Reculer d’une minute" @click="jumpMinute(-1)"><JumpIcon :dir="-1" :n="60" /></button>
           <button type="button" class="sheet__play" :aria-label="playLabel" @click="togglePlay">
             <RefreshCw v-if="playerStore.failed" :size="26" :stroke-width="2" />
             <Loader2 v-else-if="showSpinner" :size="26" :stroke-width="2" class="animate-spin" />
             <Pause v-else-if="!playerStore.paused" :size="26" fill="currentColor" :stroke-width="0" />
             <Play v-else :size="26" fill="currentColor" :stroke-width="0" />
           </button>
-          <button type="button" class="icon-action" aria-label="Avancer de 30 secondes" @click="jump(30)"><RotateCw :size="22" :stroke-width="2" /></button>
-          <button type="button" class="icon-action" aria-label="Test suivant" :disabled="!nextMark" @click="playerStore.skip(1)"><SkipForward :size="22" :stroke-width="2" /></button>
+          <button type="button" class="icon-action" aria-label="Avancer d’une minute" @click="jumpMinute(1)"><JumpIcon :dir="1" :n="60" /></button>
+          <button type="button" class="icon-action" aria-label="Test suivant" :disabled="!nextMark" @click="playerStore.skip(1)"><SkipForward :size="24" :stroke-width="2" /></button>
         </div>
 
-        <div class="sheet__rates" role="group" aria-label="Vitesse">
-          <button
-            v-for="r in RATES"
-            :key="r"
-            type="button"
-            class="chip-btn"
-            :class="{ 'is-on': playerStore.rate === r }"
-            :aria-pressed="playerStore.rate === r"
-            @click="playerStore.setRate(r)"
-          >{{ rateLabel(r) }}</button>
-        </div>
-
-        <div class="sheet__links">
-          <button v-if="test?.slug" type="button" class="btn-line" @click="goGame">La fiche <ArrowUpRight :size="14" :stroke-width="2" /></button>
-          <button type="button" class="btn-line" @click="goEpisode">L'épisode <ArrowUpRight :size="14" :stroke-width="2" /></button>
-          <button v-if="cur.podcast?.id" type="button" class="btn-line" @click="goPodcast">Le podcast <ArrowUpRight :size="14" :stroke-width="2" /></button>
+        <!-- Where it comes from: one line each -->
+        <div class="sheet__links lines">
+          <button type="button" class="sheet__link line" :disabled="!test?.slug" @click="goGame">La fiche du jeu <ArrowUpRight :size="16" :stroke-width="2" /></button>
+          <button type="button" class="sheet__link line" @click="goEpisode">L'épisode <ArrowUpRight :size="16" :stroke-width="2" /></button>
+          <button v-if="cur.podcast?.id" type="button" class="sheet__link line" @click="goPodcast">Le podcast <ArrowUpRight :size="16" :stroke-width="2" /></button>
         </div>
       </div>
     </div>
@@ -307,10 +323,13 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
   animation: slideUpPlayer var(--dur-med) var(--ease-out-soft) both;
 }
-.sheet__top { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px; border-bottom: 1px solid var(--c-line); }
-.sheet__top .lab { display: inline-flex; align-items: center; gap: 8px; }
-.sheet__body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
-.sheet__cover { width: min(64vw, 280px); aspect-ratio: 3 / 4; object-fit: cover; align-self: center; box-shadow: var(--shadow-cover); }
+.sheet__top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 4px 4px; border-bottom: 1px solid var(--c-line); }
+.sheet__top .lab { display: inline-flex; align-items: center; gap: 8px; color: var(--c-accent); }
+.sheet__body { position: relative; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
+.sheet__cover { --corner: 16px; display: block; width: min(56vw, 240px); aspect-ratio: 3 / 4; align-self: center; box-shadow: var(--shadow-cover); }
+.sheet__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sheet__cover-none { display: flex; align-items: flex-end; height: 100%; padding: 14px; box-sizing: border-box; background: var(--c-surface); color: var(--c-fg-2); font-size: 22px; }
+.sheet__verdict { margin: 0; min-height: 16px; line-height: 16px; display: flex; align-items: center; }
 .sheet__titles { display: flex; flex-direction: column; gap: 8px; }
 .sheet__title { margin: 0; font-size: 40px; font-weight: 700; line-height: 1.1; }
 .sheet__ep { margin: 0; color: var(--c-fg-3); font-size: var(--text-xs); }
@@ -326,7 +345,25 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
   color: var(--c-accent-fg);
   cursor: pointer;
 }
-.sheet__rates { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
-.sheet__links { display: flex; gap: 8px; }
-.sheet__links .btn-line { flex: 1; }
+.sheet__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--c-fg);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.sheet__link svg { color: var(--c-accent); }
+.sheet__link:disabled { color: var(--c-fg-3); cursor: default; }
+.sheet__link:disabled svg { color: var(--c-fg-3); }
 </style>

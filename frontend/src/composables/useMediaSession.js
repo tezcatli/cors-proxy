@@ -1,5 +1,6 @@
 import { watch } from 'vue'
 import { igdbUrl } from '../lib/igdbCdn.js'
+import { podcastMeta } from '../lib/podcasts.js'
 
 /**
  * Wires the browser MediaSession API (lock-screen / OS media controls) to the
@@ -50,8 +51,8 @@ export function useMediaSession(playerStore) {
     const air = playerStore.onAir
     const md  = new MediaMetadata({
       title:   air.title,                                 // the game on air, else the chapter, else the episode
-      artist:  air.title !== cur.episode ? cur.episode : '',
-      album:   cur.podcast?.name || 'Ludothèque',
+      artist:  cur.podcast?.name ?? podcastMeta(cur.podcast?.id)?.name ?? 'Ludothèque',   // Android's second line
+      album:   air.title !== cur.episode ? cur.episode : '',
       artwork: currentArtwork(),
     })
     try {
@@ -59,7 +60,7 @@ export function useMediaSession(playerStore) {
         md.chapterInformation = cur.chapters.map(c => ({
           title:     c.title,
           startTime: c.timestampSeconds,
-          artwork:   imageArtwork(c.coverImageId, cur.episodeImageUrl),
+          artwork:   imageArtwork(c.coverImageId, air.imageUrl),
         }))
       }
     } catch (_) {}
@@ -95,13 +96,9 @@ export function useMediaSession(playerStore) {
     }
   }
 
-  watch(() => playerStore.onAir && `${playerStore.onAir.coverImageId}|${playerStore.onAir.title}`, () => {
+  watch(() => playerStore.onAir && `${playerStore.onAir.coverImageId}|${playerStore.onAir.imageUrl}|${playerStore.onAir.title}`, () => {
     if (!hasMS || !playerStore.current) return
     syncMediaSessionMeta()
-  })
-
-  watch(() => playerStore.current?.episodeImageUrl, url => {
-    if (url && playerStore.current) syncMediaSessionMeta()
   })
 
   return { initMediaSession, syncMediaSessionMeta, setMSState, updatePositionState }

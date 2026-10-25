@@ -22,7 +22,7 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
 </script>
 
 <template>
-  <section class="content games" :class="{ 'home-section': !hasQuery }" aria-labelledby="h-games">
+  <section class="content games" :class="{ 'section': !hasQuery }" aria-labelledby="h-games">
     <div class="section-head" :class="{ 'sr-only': hasQuery }">
       <h2 id="h-games">{{ hasQuery ? 'Jeux' : 'La ludothèque' }}</h2>
       <span v-if="!loading && !error" class="lab">{{ games.length }} jeux</span>

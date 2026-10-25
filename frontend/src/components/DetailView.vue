@@ -155,10 +155,6 @@ onMounted(async () => {
   if (game.value && heroCoverEl.value) playInto(`cover:${game.value.slug}`, heroCoverEl.value)
 })
 
-watch(coverImageId, id => {
-  if (id && playerStore.current?.slug === game.value?.slug) playerStore.setEpisodeImageUrl(igdbUrl(id, 't_cover_big'))
-})
-
 // ── The tests ────────────────────────────────────────────────────────────────
 const counts = computed(() => verdictCounts(episodes.value.map(ep => ep.critique?.verdict ?? null)))
 // « 9 positifs · 1 mitigé »: the tests counted by verdict (never averaged).
@@ -314,10 +310,8 @@ const facts = computed(() => {
     </div>
 
     <div v-else ref="detailEl" class="detail scroll-area">
-      <!-- The cover, blurred, is the page's backdrop: the page bathes in the game. -->
-      <div v-if="coverImageId && !coverFailed" class="backdrop" aria-hidden="true">
-        <img :src="igdbUrl(coverImageId, 't_cover_small')" alt="" />
-      </div>
+      <!-- The game's light over the top of the page (DECISIONS.md, « Interface ») -->
+      <div class="halo" aria-hidden="true"></div>
 
       <div class="content">
 
@@ -374,23 +368,23 @@ const facts = computed(() => {
         </section>
 
         <!-- The tests: a journal, one row per test -->
-        <section class="panel journal" aria-labelledby="h-tests">
-          <div class="journal__head">
-            <h2 id="h-tests" class="lab journal__title">Journal des tests</h2>
-            <span class="journal__count">{{ testCount }}</span>
+        <section class="section journal" aria-labelledby="h-tests">
+          <div class="section-head">
+            <h2 id="h-tests">Journal des tests</h2>
+            <span class="lab">{{ testCount }}</span>
           </div>
 
           <div v-if="episodesLoading" aria-hidden="true">
             <div v-for="i in 3" :key="i" class="skeleton-shimmer test__skel" />
           </div>
 
-          <template v-else>
+          <div v-else class="lines">
           <article
             v-for="ep in episodes"
             :key="ep.slug"
             :data-test="ep.slug"
-            class="test"
-            :class="{ 'is-open': openSlug === ep.slug, 'is-playing': isEpPlaying(ep) }"
+            class="test line"
+            :class="{ 'is-on': openSlug === ep.slug, 'is-open': openSlug === ep.slug, 'is-playing': isEpPlaying(ep) }"
           >
             <!-- One target per action, each told by its sign: ▶ listens, ↗ leads
                  to the episode, the rest of the row (⌄) opens the opinion. -->
@@ -442,14 +436,14 @@ const facts = computed(() => {
               <p v-else class="test__empty">Pas encore de lecture de ce test : ni verdict, ni points forts, ni points faibles.</p>
             </div>
           </article>
-          </template>
+          </div>
         </section>
 
         <!-- Gallery: the trailer first, then key art and screenshots -->
-        <section v-if="igdb?.trailerId || mediaImages.length" class="panel board" aria-labelledby="h-board">
-          <div class="journal__head">
-            <h2 id="h-board" class="lab journal__title">Galerie</h2>
-            <span class="journal__count">{{ mediaImages.length }} images<template v-if="igdb?.trailerId"> · bande-annonce</template></span>
+        <section v-if="igdb?.trailerId || mediaImages.length" class="section board" aria-labelledby="h-board">
+          <div class="section-head">
+            <h2 id="h-board">Galerie</h2>
+            <span class="lab">{{ mediaImages.length }} images<template v-if="igdb?.trailerId"> · bande-annonce</template></span>
           </div>
           <div class="board__grid">
             <button v-if="igdb?.trailerId" type="button" class="board__tile board__trailer" aria-label="Lire la bande-annonce" @click="openTrailer">
@@ -477,7 +471,7 @@ const facts = computed(() => {
         </section>
 
         <!-- Way out: the other games these episodes test (covers alone) -->
-        <section v-if="sameEpisodeGames.length" class="same" aria-labelledby="h-same">
+        <section v-if="sameEpisodeGames.length" class="section same" aria-labelledby="h-same">
           <div class="section-head">
             <h2 id="h-same">Dans les mêmes épisodes</h2>
             <span class="lab">{{ sameEpisodeGames.length }}</span>
@@ -491,11 +485,11 @@ const facts = computed(() => {
         </section>
 
         <!-- Fiche technique -->
-        <section v-if="facts.length || igdb?.steamUrl || igdb?.officialUrl || igdb?.wikiUrl" class="panel facts" aria-labelledby="h-facts">
-          <div class="journal__head">
-            <h2 id="h-facts" class="lab journal__title">Fiche technique</h2>
+        <section v-if="facts.length || igdb?.steamUrl || igdb?.officialUrl || igdb?.wikiUrl" class="section facts" aria-labelledby="h-facts">
+          <div class="section-head">
+            <h2 id="h-facts">Fiche technique</h2>
           </div>
-          <dl class="facts__grid">
+          <dl class="facts__grid lines">
             <div v-for="[k, v] in facts" :key="k" class="facts__cell">
               <dt class="lab">{{ k }}</dt><dd>{{ v }}</dd>
             </div>
@@ -540,32 +534,6 @@ const facts = computed(() => {
 .state__title { font-size: var(--text-2xl); }
 
 .detail { position: relative; }
-/* ─── Backdrop: the cover, blurred, fading into the game's ground ──────── */
-.backdrop {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 900px;
-  overflow: hidden;
-  pointer-events: none;
-}
-.backdrop img {
-  position: absolute;
-  inset: -120px;
-  width: calc(100% + 240px);
-  height: calc(100% + 240px);
-  object-fit: cover;
-  filter: blur(60px) saturate(1.3);
-  opacity: 0.55;
-}
-.backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, var(--game-veil) 55%, var(--c-bg) 100%);
-}
-.detail .content { position: relative; }
 
 /* ─── Hero ────────────────────────────────────────────────────────────── */
 .gamehead {
@@ -636,16 +604,8 @@ const facts = computed(() => {
   .gamehead__play { width: auto; }
 }
 
-/* ─── Panels: the journal, the gallery, the facts ─────────────────────── */
-.panel { margin-bottom: 32px; background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
-.journal__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--c-line); }
-.journal__title { margin: 0; color: var(--c-fg); font-size: 13px; }
-.journal__count { color: var(--c-fg-2); font-size: var(--text-sm); }
-
+/* ─── The journal: one line per test (`.line`, components.css) ───────── */
 .test__skel { height: 64px; margin: 1px 0; }
-.test { border-bottom: 1px solid var(--c-line); }
-.test:last-child { border-bottom: 0; }
-.test.is-open { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
 /* A row: ▶ | podcast, date | verdict | episode ↗ | start | ⌄. The opinion
    toggle covers the whole row; ▶ and the link sit above it. */
 .test__row {
@@ -657,8 +617,9 @@ const facts = computed(() => {
     "play ep   at      chev";
   gap: 4px 12px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 10px 0;
 }
+.test.is-open .test__row { padding-left: 12px; }
 .test__toggle {
   position: absolute;
   inset: 0;
@@ -712,22 +673,23 @@ const facts = computed(() => {
     grid-template-areas: "play who verdict ep at chev";
     gap: 0 20px;
     min-height: 64px;
-    padding: 8px 20px;
+    padding: 8px 0;
   }
+  .test.is-open .test__row { padding-left: 16px; }
   .test__who { flex-direction: column; align-items: flex-start; gap: 2px; }
   .test__verdict { justify-self: start; }
-  .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 20px 20px 84px; }
+  .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 20px 20px 80px; }
 }
 
 /* ─── Gallery ─────────────────────────────────────────────────────────── */
-.board__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 16px; }
-@media (min-width: 900px) { .board__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 20px; } }
+.board__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 900px) { .board__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; } }
 .board__tile {
   position: relative;
   aspect-ratio: 16 / 9;
   padding: 0;
   border: 0;
-  background: var(--c-bg);
+  background: var(--c-surface);
   overflow: hidden;
   cursor: zoom-in;
 }
@@ -762,7 +724,6 @@ const facts = computed(() => {
 }
 
 /* ─── Dans les mêmes épisodes: covers alone ──────────────────────────── */
-.same { margin-bottom: 32px; }
 .same__grid {
   display: grid;
   grid-auto-flow: column;
@@ -781,12 +742,12 @@ const facts = computed(() => {
 /* ─── Fiche technique ─────────────────────────────────────────────────── */
 .facts__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
 @media (min-width: 900px) { .facts__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.facts__cell { padding: 14px 20px; min-width: 0; border-bottom: 1px solid var(--c-line); }
+.facts__cell { padding: 14px 20px 14px 0; min-width: 0; border-top: 1px solid var(--c-line); }
 .facts__cell dd { margin: 6px 0 0; color: var(--c-fg); overflow-wrap: anywhere; }
 .facts__links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .facts__links a { color: var(--c-fg); text-decoration: underline; text-underline-offset: 3px; }
 .facts__links a:hover { color: var(--c-accent); }
-.about { padding: 0 20px; }
+.about { border-bottom: 1px solid var(--c-line); }
 .about summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; }
 .about__src { margin-left: 8px; letter-spacing: 0.04em; text-transform: none; }
 .about p { color: var(--c-fg-2); max-width: 75ch; margin: 0 0 16px; }

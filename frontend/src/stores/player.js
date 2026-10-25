@@ -126,7 +126,7 @@ export const usePlayerStore = defineStore('player', () => {
     return {
       test,
       coverImageId: test?.coverImageId ?? null,
-      imageUrl:     cur.episodeImageUrl ?? null,
+      imageUrl:     cur.podcast?.imageUrl ?? cur.episodeImageUrl ?? null,
       title:        test ? (test.resolvedName ?? test.name) : (currentChapter.value?.title || cur.episode || ''),
     }
   })
@@ -143,10 +143,6 @@ export const usePlayerStore = defineStore('player', () => {
       const prev = [...list].reverse().find(m => m.timestampSeconds < t - BACK_GRACE)
       seek(prev ? prev.timestampSeconds : 0)
     }
-  }
-
-  function setEpisodeImageUrl(url) {
-    if (current.value) current.value = { ...current.value, episodeImageUrl: url }
   }
 
   // Reload resume: bring the track back *paused*, with the cue, so the user's
@@ -332,7 +328,7 @@ export const usePlayerStore = defineStore('player', () => {
   return {
     current, visible, currentTime, currentChapter, audioDuration, restored,
     status, paused, buffering, failed, volume, rate, marks, currentTest, onAir,
-    play, close, restore, setEpisodeImageUrl,
+    play, close, restore,
     resume, pauseAudio, togglePlayback, seek, retry, setVolume, setRate, skip,
     liveProgress, getEpisodeProgress, getGameProgress,
     resumeTimeFor, getEpisodeLatestProgress, resumeEntryFor, inProgress, forgetEpisode,

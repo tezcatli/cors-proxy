@@ -46,7 +46,7 @@ const tiles = computed(() =>
 </script>
 
 <template>
-  <section v-if="tiles.length" class="content podcasts home-section" aria-labelledby="h-podcasts">
+  <section v-if="tiles.length" class="content podcasts section" aria-labelledby="h-podcasts">
     <div class="section-head"><h2 id="h-podcasts">Les podcasts</h2></div>
     <div class="podcasts__row">
       <RouterLink v-for="t in tiles" :key="t.id" :to="`/podcast/${t.id}`" class="tile">
@@ -77,7 +77,7 @@ const tiles = computed(() =>
 .tile__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tile:hover .tile__art { box-shadow: 0 0 0 2px var(--c-accent); }
 .tile__none { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 22px; }
-.tile__dot { position: absolute; top: 8px; right: 8px; width: 12px; height: 12px; border-radius: 50%; background: var(--c-accent); box-shadow: 0 0 0 4px var(--game-veil); }
+.tile__dot { position: absolute; top: 8px; right: 8px; width: 12px; height: 12px; border-radius: 50%; background: var(--c-accent); box-shadow: 0 0 0 4px rgba(9, 9, 12, 0.75); }
 .tile__name { font-family: var(--font-display); font-weight: 600; font-size: var(--text-sm); line-height: 1.2; }
 .tile__last { font-size: var(--text-xs); color: var(--c-fg-3); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

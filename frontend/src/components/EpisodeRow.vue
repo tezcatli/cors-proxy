@@ -40,7 +40,7 @@ function onPlay() {
 </script>
 
 <template>
-  <div class="row" :class="{ 'is-on': isOnAir }">
+  <div class="row line" :class="{ 'is-on': isOnAir }">
     <RouterLink :to="`/episode/${encodeURIComponent(ep.urlSlug)}`" class="row__main">
       <span class="row__date">{{ meta }}</span>
       <span class="row__title clamp-2">{{ ep.title }}</span>
@@ -69,8 +69,8 @@ function onPlay() {
   gap: 12px;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid var(--c-line);
 }
+.row.is-on { padding-left: 12px; }
 .row__main { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--c-fg); text-decoration: none; }
 .row__main:hover .row__title { color: var(--c-accent); }
 .row__date { font-size: var(--text-xs); color: var(--c-fg-3); font-variant-numeric: tabular-nums; }
@@ -86,7 +86,8 @@ function onPlay() {
 
 /* Wide: one line — date, title, covers, ▶. */
 @media (min-width: 900px) {
-  .row { grid-template-columns: minmax(0, 1fr) 44px; padding: 14px 12px; }
+  .row { grid-template-columns: minmax(0, 1fr) 44px; padding: 14px 0; }
+  .row.is-on { padding-left: 16px; }
   .row__main { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: center; gap: 4px 16px; }
   .row__date { grid-row: 1 / span 2; }
   .row__title { font-size: 16px; }

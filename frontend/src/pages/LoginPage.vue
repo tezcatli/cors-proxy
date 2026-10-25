@@ -75,6 +75,8 @@ onMounted(() => {
 
 <template>
   <div class="login">
+    <!-- Outside any game: the mark's yellow is the page's light -->
+    <div class="halo" aria-hidden="true"></div>
     <div class="login__col">
       <div class="login__brand">
         <span class="login__mark" role="img" aria-label="Ludo"><Wordmark /></span>
@@ -157,6 +159,8 @@ onMounted(() => {
   justify-content: center;
   padding: 24px var(--gutter);
   overflow-y: auto;
+  --game-glow:   rgba(255, 255, 0, 0.13);
+  --game-glow-2: rgba(242, 242, 245, 0.06);
 }
 .login__col { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 32px; }
 .login__brand { display: flex; flex-direction: column; gap: 8px; }

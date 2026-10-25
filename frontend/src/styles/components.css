@@ -197,20 +197,42 @@
   line-height: 1.1;
 }
 @media (min-width: 768px) { .section-head h2 { font-size: var(--text-2xl); } }
-/* The Ludothèque's sections (DECISIONS.md, « Interface » : atmosphère): each
-   title marked by the mark's //, in the newest game's accent; air between. */
-.home-section { margin-bottom: 44px; }
-.home-section .section-head h2::before {
+/* Every section of every page (DECISIONS.md, « Interface » : une direction
+   pour toutes les pages): its title marked by the mark's //, in the page's
+   light; laid on the page, no frame; air between. */
+.section { margin-bottom: 44px; }
+.section-head h2::before {
   content: '//';
   display: inline-block;
   margin-right: 0.5em;
   letter-spacing: -0.12em;
-  color: var(--c-accent);
+  color: var(--c-mark);
   transform: skewX(-12deg) scaleX(1.15);
 }
 /* « Tous · n » / « Moins », at the right of a section's heading: unfolds the
    rest of a list in place (DECISIONS.md, « Interface »). */
 .section-more { border: 0; background: transparent; color: var(--c-accent); cursor: pointer; min-height: 44px; padding: 0; }
+
+/* ─── The page's light: a halo of its subject's two hues, over the black page ─ */
+.halo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 760px;
+  pointer-events: none;
+  background:
+    radial-gradient(65% 55% at 24% 22%, var(--game-glow) 0%, transparent 70%),
+    radial-gradient(55% 50% at 90% 10%, var(--game-glow-2) 0%, transparent 72%);
+}
+.halo + * { position: relative; }   /* the page's content, above its light */
+
+/* ─── A list's line (« Reprendre », a game's tests, an episode's moments, a
+   podcast's episodes): a hairline above each, the current one marked by the
+   accent on its left. A list closes with `.lines`' hairline below. ─────── */
+.line { border-top: 1px solid var(--c-line); }
+.line.is-on { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
+.lines { border-bottom: 1px solid var(--c-line); }
 
 /* Overlay pages (game, episode): full screen above the base view. */
 .overlay-page {

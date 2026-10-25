@@ -103,12 +103,14 @@ const shownGames = computed(() => (allGames.value ? games.value : games.value.sl
 
     <div v-if="!podcast" class="state"><p class="cond state__title">Podcast introuvable</p></div>
 
-    <div v-else class="scroll-area">
+    <div v-else class="scroll-area pod-scroll">
+      <!-- The podcast's light (its colour in the registry) over the top of the page -->
+      <div class="halo" aria-hidden="true"></div>
       <div class="content pod">
         <aside class="pod__side">
           <header class="pod__head">
-            <img v-if="image" :src="image" alt="" class="pod__art" />
-            <span v-else class="pod__art pod__art--none cond">{{ podcast.label }}</span>
+            <span v-if="image" class="pod__art corners"><img :src="image" alt="" /></span>
+            <span v-else class="pod__art pod__art--none corners cond">{{ podcast.label }}</span>
             <div class="pod__id">
               <h1 class="pod__name cond">{{ podcast.name }}</h1>
               <span v-if="gamesStore.episodesLoaded" class="lab">{{ episodes.length }} épisodes · {{ nTests }} tests</span>
@@ -127,7 +129,7 @@ const shownGames = computed(() => (allGames.value ? games.value : games.value.sl
             </RouterLink>
           </div>
 
-          <section v-if="games.length" class="pod__games" aria-labelledby="h-pod-games">
+          <section v-if="games.length" class="section pod__games" aria-labelledby="h-pod-games">
             <div class="section-head">
               <h2 id="h-pod-games">Ses jeux</h2>
               <button v-if="games.length > GAMES_FIRST" type="button" class="lab section-more" :aria-expanded="allGames" @click="allGames = !allGames">
@@ -148,7 +150,7 @@ const shownGames = computed(() => (allGames.value ? games.value : games.value.sl
           <p v-else-if="gamesStore.episodesError" class="pod__empty">Erreur : {{ gamesStore.episodesError }}</p>
           <p v-else-if="!episodes.length" class="pod__empty">Aucun épisode.</p>
           <template v-else>
-            <section v-for="g in years" :key="g.year" :aria-label="String(g.year)">
+            <section v-for="g in years" :key="g.year" class="lines" :aria-label="String(g.year)">
               <h3 class="lab pod__year">{{ g.year }}</h3>
               <EpisodeRow v-for="ep in g.eps" :key="ep.slug" :ep="ep" />
             </section>
@@ -164,13 +166,15 @@ const shownGames = computed(() => (allGames.value ? games.value : games.value.sl
 .state { flex: 1; display: flex; align-items: center; justify-content: center; }
 .state__title { font-size: var(--text-2xl); }
 
-.pod { display: flex; flex-direction: column; gap: 28px; padding-top: 8px; }
+.pod-scroll { position: relative; }
+.pod { display: flex; flex-direction: column; gap: 28px; padding-top: 24px; padding-bottom: 40px; }
 .pod__side { display: flex; flex-direction: column; gap: 20px; }
 .pod__head { display: flex; align-items: flex-end; gap: 16px; }
-.pod__art { width: 112px; height: 112px; object-fit: cover; flex-shrink: 0; box-shadow: var(--shadow-cover); }
+.pod__art { --corner: 12px; display: block; width: 112px; height: 112px; flex-shrink: 0; box-shadow: var(--shadow-cover); }
+.pod__art img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .pod__art--none { display: flex; align-items: center; justify-content: center; background: var(--c-surface); font-size: 24px; }
 .pod__id { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.pod__name { margin: 0; font-size: clamp(28px, 4vw, 40px); overflow-wrap: anywhere; }
+.pod__name { margin: 0; font-size: clamp(28px, 4vw, 44px); overflow-wrap: anywhere; }
 .pod__main { display: flex; flex-direction: column; gap: 8px; }
 .pod__main .btn-play { min-height: 48px; }
 .pod__context { display: flex; flex-direction: column; gap: 2px; color: var(--c-fg-2); font-size: var(--text-sm); text-decoration: none; }
@@ -191,17 +195,17 @@ const shownGames = computed(() => (allGames.value ? games.value : games.value.sl
 .pod__grid::-webkit-scrollbar { display: none; }
 .pod__grid.is-all { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-columns: auto; overflow: visible; margin: 0; padding: 0; }
 
-.pod__year { margin: 18px 0 2px; color: var(--c-accent); }
+.pod__year { margin: 18px 0 8px; color: var(--c-accent); }
 .pod__eps .section-head { margin-bottom: 0; }
 .pod__empty { color: var(--c-fg-2); }
 .skel { height: 64px; margin-bottom: 8px; }
 
 /* Wide: the podcast and its games in a column on the left, the episodes on the right. */
 @media (min-width: 900px) {
-  .pod { flex-direction: row; align-items: flex-start; gap: 56px; padding-top: 24px; }
+  .pod { flex-direction: row; align-items: flex-start; gap: 64px; padding-top: 40px; }
   .pod__side { width: 360px; flex-shrink: 0; }
   .pod__head { flex-direction: column; align-items: flex-start; }
-  .pod__art { width: 220px; height: 220px; }
+  .pod__art { --corner: 16px; width: 220px; height: 220px; }
   .pod__eps { flex: 1; min-width: 0; }
   .pod__grid, .pod__grid.is-all { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; overflow: visible; margin: 0; padding: 0; }
 }

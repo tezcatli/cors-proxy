@@ -29,6 +29,13 @@
   - L'accueil : plus de rangée de nouveaux tests ; « Reprendre » nomme le test à la position sauvegardée (`testAt`), × oublie une écoute, 3 puis « Tous · n » ; les podcasts en grille ; ↻ à la place du tirer-pour-rafraîchir ; l'esthétique « atmosphère » (halo et `//` aux couleurs du dernier jeu).
   - La fiche s'ouvre tests repliés ; `POST /games/<slug>/igdb-refresh` retiré (seule reste la purge par podcast de l'admin).
   - Les chapitres des descriptions entre parenthèses (ORIGAMI, 116 épisodes) et en liste (ZQSD, Game Informer) sont lus : mesuré sur les données de la prod, aucun test ne change, aucune description non plus.
+- **Livré (2026-10-25) : une direction pour toutes les pages** (PR #36, testé en dev par l'utilisateur ; sauvegarde : `users.db.bak-artdir` ; planches « Direction globale », « Plus de couleur », « Lecteur plein écran » sur https://claude.ai/artifact/EuRL8uUJ7jFRonTtPurPvT).
+  - Fiche, épisode, podcast, lecteur plein écran et connexion prennent la grammaire de l'accueil : halo à deux teintes sur fond noir (plus de fond teinté ni de pochette floutée), sections `//` sans cadre, une ligne de liste (`.line`), image du sujet à coins marqués.
+  - La page épisode passe en deux colonnes sur bureau, éclairée par son premier test.
+  - Lecteur plein écran : vitesses retirées ; ±1 min de part et d'autre de ▶, les appuis rapides s'additionnent ; la page ne bouge plus entre un chapitre et un test. La barre du bureau garde la vitesse.
+  - Les palettes sont relues une fois (clé `ludo.palettes.v2`).
+  - Les pochettes n'ont plus d'ombre noire (`--shadow-cover`) : elle assombrissait le titre et les boutons sous la pochette (fiche, épisode).
+  - Écran verrouillé (Android) : titre = ce qui passe, 2ᵉ ligne = le podcast, album = l'épisode ; hors d'un test, l'image du podcast (`podcast.imageUrl`), plus celle de l'épisode ni la pochette du jeu qui a lancé la lecture.
 - **Ouvert.**
   - Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début.
   - Le paquet du labo devrait aussi porter les réponses des noms qui ne sont pas des tests, et les tâches `reviewed`, pour que la prod ne les redemande pas (prochaine livraison). Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions possibles).

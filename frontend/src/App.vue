@@ -65,13 +65,9 @@ watch(query, q => {
   filterTimer = setTimeout(() => { debouncedQuery.value = q }, 140)
 })
 
-// The Ludothèque in the newest game's light (DECISIONS.md, « Interface » :
-// atmosphère): its accent marks the sections' //, its glow the top of the page.
-// Only these two: the page itself stays black.
-const { palette: newestPalette } = useGameTheme(() => gamesStore.newestTest?.test.coverImageId ?? null)
-const homeLight = computed(() => (newestPalette.value
-  ? { '--c-accent': newestPalette.value.accent, '--game-glow': newestPalette.value.glow }
-  : {}))
+// The Ludothèque in the newest game's light (DECISIONS.md, « Interface » : une
+// page = une lumière): its accent marks the sections' //, its two hues the halo.
+const { style: homeLight } = useGameTheme(() => gamesStore.newestTest?.test.coverImageId ?? null)
 
 // Admin only: a game with no page is a pipeline matter, not a reader's.
 const hideUnresolved = ref(true)
@@ -203,5 +199,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.home-scroll { position: relative; }   /* the tests' blurred backdrop is placed in it */
+.home-scroll { position: relative; }   /* the newest game's halo is placed in it */
 </style>

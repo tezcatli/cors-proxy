@@ -104,14 +104,14 @@ function resume({ ep, test, entry }) {
             @view="view"
           />
 
-          <section v-if="resumeItems.length" class="resume home-section" aria-labelledby="h-resume">
+          <section v-if="resumeItems.length" class="resume section" aria-labelledby="h-resume">
             <div class="section-head">
               <h2 id="h-resume">Reprendre</h2>
               <button v-if="resumeAll.length > RESUME_FIRST" type="button" class="lab section-more" :aria-expanded="resumeOpen" @click="resumeOpen = !resumeOpen">
                 {{ resumeOpen ? 'Moins' : `Tous · ${resumeAll.length}` }}
               </button>
             </div>
-            <div v-for="item in resumeItems" :key="item.ep.slug" class="resume__row" data-test="resume">
+            <div v-for="item in resumeItems" :key="item.ep.slug" class="resume__row line" data-test="resume">
               <button type="button" class="resume__main" :aria-label="`Reprendre ${item.name}`" @click="resume(item)">
                 <span class="resume__cover corners" :class="{ 'resume__cover--none': !item.cover }">
                   <img v-if="item.cover" :src="igdbUrl(item.cover, 't_cover_small')" alt="" />
@@ -135,23 +135,10 @@ function resume({ ep, test, entry }) {
 </template>
 
 <style scoped>
-
-.halo {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 640px;
-  pointer-events: none;
-  background:
-    radial-gradient(60% 55% at 28% 22%, var(--game-glow, transparent) 0%, transparent 70%),
-    radial-gradient(45% 40% at 88% 8%, var(--game-glow, transparent) 0%, transparent 70%);
-  opacity: 0.9;
-}
-.feed { padding-top: 16px; position: relative; }
+.feed { padding-top: 16px; }
 
 .top { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; margin-bottom: 44px; }
-.top .home-section { margin-bottom: 0; }
+.top .section { margin-bottom: 0; }
 @media (min-width: 1200px) {
   .top.has-resume { grid-template-columns: minmax(0, 1fr) 380px; align-items: end; gap: 40px; }
 }
@@ -163,7 +150,6 @@ function resume({ ep, test, entry }) {
   align-items: center;
   gap: 4px;
   padding: 10px 0;
-  border-top: 1px solid var(--c-line);
   color: var(--c-fg);
 }
 .resume__main {

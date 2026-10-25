@@ -1,9 +1,9 @@
 <script setup>
 // The mark, LUDO// (DECISIONS.md, « Interface »): LUDO on a block with sharp
-// corners, like a cover's label, and // in the accent, slanted like fast
-// forward. The // takes the colours of the subtree it sits in (a game's page,
-// the newest test on the Ludothèque). It is sized by its parent's font-size;
-// the link around it carries its name.
+// corners, like a cover's label, and // slanted like fast forward, in the
+// mark's colour (--c-mark): the light of the subtree it sits in (a game's page,
+// the newest test on the Ludothèque), else the icon's yellow. It is sized by
+// its parent's font-size; the link around it carries its name.
 </script>
 
 <template>
@@ -25,7 +25,7 @@
   padding-left: 0.16em;
   font-size: 1.18em;
   letter-spacing: -0.12em;
-  color: var(--c-accent);
+  color: var(--c-mark);
   transform: skewX(-12deg) scaleX(1.15);
 }
 </style>
