@@ -16,7 +16,8 @@ import { useGameTheme } from '../composables/useGameTheme.js'
 import BackBar from './BackBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import IgdbPickerModal from './IgdbPickerModal.vue'
-import { RotateCw, ChevronLeft, ChevronRight, X, Play, Pause, Wrench } from 'lucide-vue-next'
+import MediaViewer from './MediaViewer.vue'
+import { RotateCw, ChevronRight, Play, Pause, Wrench } from 'lucide-vue-next'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -37,8 +38,7 @@ const platforms = computed(() =>
   (igdb.value?.platforms ?? []).map(p => typeof p === 'string' ? p : p.label))
 
 const coverFailed  = ref(false)
-const lightboxAt   = ref(null)    // index into lightboxImages, null = closed
-const trailerOpen  = ref(false)
+const viewer       = ref(null)    // {start, autoplay} while the media viewer is open
 
 // Screenshots first: they show the game, where key art often repeats its logo
 // (already on the cover and in the title). Artworks follow.
@@ -50,34 +50,17 @@ const mediaImages = computed(() => [
 // Beside the cover: the trailer, then screenshots — three thumbnails in all
 // (screenshots show the game; artworks often repeat the logo).
 const heroShots = computed(() => screenshotIds.value.slice(0, igdb.value?.trailerId ? 2 : 3))
-// The lightbox runs through the cover, then the images.
-const lightboxImages = computed(() => [
-  ...(coverImageId.value && !coverFailed.value ? [coverImageId.value] : []),
-  ...mediaImages.value,
+// The viewer runs through every medium, in the page's order: the cover, the
+// trailer, the screenshots, the artworks.
+const mediaItems = computed(() => [
+  ...(coverImageId.value && !coverFailed.value ? [{ kind: 'image', id: coverImageId.value }] : []),
+  ...(igdb.value?.trailerId ? [{ kind: 'video', id: igdb.value.trailerId }] : []),
+  ...mediaImages.value.map(id => ({ kind: 'image', id })),
 ])
-// The lightbox takes the focus and gives it back to what opened it.
-const lightboxEl = ref(null)
-let lightboxOpener = null
-async function openLightbox(id) {
-  lightboxOpener = document.activeElement
-  lightboxAt.value = Math.max(0, lightboxImages.value.indexOf(id))
-  await nextTick()
-  lightboxEl.value?.querySelector('.lightbox__close')?.focus()
+function openViewer(id, { autoplay = false } = {}) {
+  viewer.value = { start: Math.max(0, mediaItems.value.findIndex(m => m.id === id)), autoplay }
 }
-function closeLightbox() {
-  lightboxAt.value = null
-  lightboxOpener?.focus?.()
-  lightboxOpener = null
-}
-// Tab stays inside the lightbox while it is open.
-function trapTab(e) {
-  const els = [...(lightboxEl.value?.querySelectorAll('button') ?? [])]
-  if (!els.length) return
-  const i = els.indexOf(document.activeElement)
-  e.preventDefault()
-  els[(i + (e.shiftKey ? -1 : 1) + els.length) % els.length].focus()
-}
-const lightboxId = computed(() => lightboxAt.value == null ? null : lightboxImages.value[lightboxAt.value])
+const openTrailer = () => openViewer(igdb.value?.trailerId, { autoplay: true })
 
 // The board shows six tiles (the trailer counts as one); the last says « +n ».
 const BOARD_TILES = 6
@@ -168,7 +151,7 @@ async function onCorrectionSaved(detail) {
 
 watch(game, g => {
   coverFailed.value = false
-  lightboxAt.value = null
+  viewer.value = null
   _loadEpisodes(g)
 }, { immediate: true })
 
@@ -329,28 +312,13 @@ function close() {
 }
 
 function onKeydown(e) {
-  if (trailerOpen.value) {
-    if (e.key === 'Escape') trailerOpen.value = false
-    return
-  }
-  if (lightboxAt.value != null) {
-    if (e.key === 'Escape')     { closeLightbox(); return }
-    if (e.key === 'Tab')        { trapTab(e); return }
-    if (e.key === 'ArrowLeft')  stepLightbox(-1)
-    if (e.key === 'ArrowRight') stepLightbox(1)
-    return
-  }
+  if (viewer.value) return   // the viewer has its own keys
   if (e.key === 'Escape' && !pickerOpen.value) close()
 }
 onUnmounted(() => {
   document.body.style.overflow = ''
   document.removeEventListener('keydown', onKeydown)
 })
-
-function stepLightbox(dir) {
-  const n = lightboxImages.value.length
-  if (n) lightboxAt.value = (lightboxAt.value + dir + n) % n
-}
 
 const facts = computed(() => {
   const d = igdb.value
@@ -414,7 +382,7 @@ const facts = computed(() => {
             type="button"
             class="gamehead__cover corners"
             aria-label="Agrandir la pochette"
-            @click="openLightbox(coverImageId)"
+            @click="openViewer(coverImageId)"
           >
             <img
               :src="igdbUrl(coverImageId, 't_cover_big_2x')"
@@ -447,11 +415,11 @@ const facts = computed(() => {
               <span v-if="leadEp?.audioUrl" class="gamehead__context">{{ leadContext }}</span>
             </div>
             <div v-if="heroShots.length || igdb?.trailerId" class="gamehead__shots">
-              <button v-if="igdb?.trailerId" type="button" class="shot shot--trailer" aria-label="Lire la bande-annonce" @click="trailerOpen = true">
+              <button v-if="igdb?.trailerId" type="button" class="shot shot--trailer" aria-label="Lire la bande-annonce" @click="openTrailer">
                 <img :src="`https://i.ytimg.com/vi/${igdb.trailerId}/mqdefault.jpg`" alt="" />
                 <span class="shot__play"><Play :size="14" fill="currentColor" :stroke-width="0" /></span>
               </button>
-              <button v-for="id in heroShots" :key="id" type="button" class="shot" aria-label="Agrandir l’image" @click="openLightbox(id)">
+              <button v-for="id in heroShots" :key="id" type="button" class="shot" aria-label="Agrandir l’image" @click="openViewer(id)">
                 <img :src="igdbUrl(id, 't_screenshot_med')" alt="" />
               </button>
             </div>
@@ -532,7 +500,7 @@ const facts = computed(() => {
             <span class="journal__count">{{ mediaImages.length }} images<template v-if="igdb?.trailerId"> · bande-annonce</template></span>
           </div>
           <div class="board__grid">
-            <button v-if="igdb?.trailerId" type="button" class="board__tile board__trailer" aria-label="Lire la bande-annonce" @click="trailerOpen = true">
+            <button v-if="igdb?.trailerId" type="button" class="board__tile board__trailer" aria-label="Lire la bande-annonce" @click="openTrailer">
               <img
                 :src="`https://i.ytimg.com/vi/${igdb.trailerId}/maxresdefault.jpg`"
                 alt=""
@@ -548,7 +516,7 @@ const facts = computed(() => {
               type="button"
               class="board__tile"
               :aria-label="boardMore && i === boardImages.length - 1 ? `Voir les ${mediaImages.length} images` : 'Agrandir l’image'"
-              @click="openLightbox(id)"
+              @click="openViewer(id)"
             >
               <img :src="igdbUrl(id, 't_screenshot_big')" :srcset="`${igdbUrl(id,'t_screenshot_med')} 569w, ${igdbUrl(id,'t_screenshot_big')} 889w, ${igdbUrl(id,'t_screenshot_huge')} 1280w`" sizes="(min-width: 900px) 33vw, 50vw" alt="" loading="lazy" />
               <span v-if="boardMore && i === boardImages.length - 1" class="board__more cond">+{{ boardMore }}</span>
@@ -598,22 +566,8 @@ const facts = computed(() => {
       </div>
     </div>
 
-    <!-- Lightbox: the cover, then the images -->
-    <Teleport to="body">
-      <div v-if="lightboxId" ref="lightboxEl" class="lightbox" role="dialog" aria-modal="true" aria-label="Images" @click.self="closeLightbox">
-        <button type="button" class="icon-action lightbox__close" aria-label="Fermer" @click="closeLightbox"><X :size="20" :stroke-width="2" /></button>
-        <button v-if="lightboxImages.length > 1" type="button" class="icon-action lightbox__prev" aria-label="Précédente" @click="stepLightbox(-1)"><ChevronLeft :size="24" :stroke-width="2" /></button>
-        <button v-if="lightboxImages.length > 1" type="button" class="icon-action lightbox__next" aria-label="Suivante" @click="stepLightbox(1)"><ChevronRight :size="24" :stroke-width="2" /></button>
-        <img
-          class="lightbox__img"
-          :src="igdbUrl(lightboxId, 't_1080p')"
-          :srcset="`${igdbUrl(lightboxId, 't_screenshot_huge')} 1280w, ${igdbUrl(lightboxId, 't_1080p')} 1920w`"
-          sizes="92vw"
-          alt=""
-        />
-        <div class="lab lightbox__count">{{ lightboxAt + 1 }} / {{ lightboxImages.length }}</div>
-      </div>
-    </Teleport>
+    <!-- The media, one after the other: cover, trailer, screenshots, artworks -->
+    <MediaViewer v-if="viewer" :items="mediaItems" :start="viewer.start" :autoplay="viewer.autoplay" @close="viewer = null" />
 
     <!-- Admin: pin the IGDB game this podcast name resolves to -->
     <Teleport to="body">
@@ -626,20 +580,6 @@ const facts = computed(() => {
       />
     </Teleport>
 
-    <!-- Trailer -->
-    <Teleport to="body">
-      <div v-if="trailerOpen && igdb?.trailerId" class="lightbox" @click.self="trailerOpen = false">
-        <button type="button" class="icon-action lightbox__close" aria-label="Fermer" @click="trailerOpen = false"><X :size="20" :stroke-width="2" /></button>
-        <div class="trailer">
-          <iframe
-            :src="`https://www.youtube-nocookie.com/embed/${igdb.trailerId}?autoplay=1&rel=0`"
-            title="Bande-annonce"
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            allowfullscreen
-          />
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -889,21 +829,4 @@ const facts = computed(() => {
 .about__src { margin-left: 8px; letter-spacing: 0.04em; text-transform: none; }
 .about p { color: var(--c-fg-2); max-width: 75ch; margin: 0 0 16px; }
 .about__story { white-space: pre-line; }
-
-.lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-lightbox);
-  background: rgba(0, 0, 0, 0.94);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.lightbox__img { max-width: 92vw; max-height: 84vh; object-fit: contain; }
-.lightbox__close { position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); right: 8px; }
-.lightbox__prev  { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); }
-.lightbox__next  { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
-.lightbox__count { position: absolute; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-.trailer { width: min(92vw, 1100px); aspect-ratio: 16 / 9; }
-.trailer iframe { width: 100%; height: 100%; border: 0; display: block; }
 </style>
