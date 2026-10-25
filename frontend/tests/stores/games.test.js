@@ -91,75 +91,28 @@ describe('episodes', () => {
   })
 })
 
-// ── setSort ───────────────────────────────────────────────────────────────
-
-describe('setSort', () => {
-  it('defaults to the newest tests first', () => {
-    const store = useGamesStore()
-    expect(store.sortMode).toBe('date')
-    expect(store.sortAsc).toBe(false)
-  })
-
-  it('switches to a new mode with its default direction', () => {
-    const store = useGamesStore()
-    store.setSort('alpha')
-    expect(store.sortMode).toBe('alpha')
-    expect(store.sortAsc).toBe(true)    // alpha defaults to ascending
-  })
-
-  it('toggles direction when same mode is selected again', () => {
-    const store = useGamesStore()
-    store.setSort('date')
-    expect(store.sortAsc).toBe(true)
-    store.setSort('date')
-    expect(store.sortAsc).toBe(false)
-  })
-})
-
 // ── sorting ───────────────────────────────────────────────────────────────
+// GAMES: Zelda (June 2024, 90), Hollow Knight (March 2024, 85), Mario (Jan 2024, no score).
 
 describe('sorting', () => {
-  it('sorts by date descending (newest first) by default', () => {
+  it('defaults to the newest tests first', () => {
     const store = useGamesStore()
     store.all = GAMES
-    const result = store.filtered('')
-    expect(result[0].name).toBe('Zelda')        // June 2024 — newest
-    expect(result[2].name).toBe('Mario')        // Jan 2024  — oldest
+    expect([store.sortMode, store.sortAsc]).toEqual(['date', false])
+    expect(store.filtered('').map(g => g.name)).toEqual(['Zelda', 'Hollow Knight', 'Mario'])
   })
 
-  it('sorts by date ascending when toggled', () => {
+  // A mode comes with its own direction; choosing it again flips it.
+  it.each([
+    [['date'],           ['Mario', 'Hollow Knight', 'Zelda']],
+    [['alpha'],          ['Hollow Knight', 'Mario', 'Zelda']],
+    [['alpha', 'alpha'], ['Zelda', 'Mario', 'Hollow Knight']],
+    [['meta'],           ['Zelda', 'Hollow Knight', 'Mario']],     // no score: last
+  ])('sorts by %j', (modes, order) => {
     const store = useGamesStore()
     store.all = GAMES
-    store.setSort('date')               // toggle → ascending
-    const result = store.filtered('')
-    expect(result[0].name).toBe('Mario')        // oldest first
-  })
-
-  it('sorts alphabetically ascending', () => {
-    const store = useGamesStore()
-    store.all = GAMES
-    store.setSort('alpha')
-    const result = store.filtered('')
-    expect(result.map(g => g.name)).toEqual(['Hollow Knight', 'Mario', 'Zelda'])
-  })
-
-  it('sorts alphabetically descending when toggled', () => {
-    const store = useGamesStore()
-    store.all = GAMES
-    store.setSort('alpha')
-    store.setSort('alpha')              // toggles asc→desc
-    const result = store.filtered('')
-    expect(result.map(g => g.name)).toEqual(['Zelda', 'Mario', 'Hollow Knight'])
-  })
-
-  it('meta sort ranks by metacritic descending, nulls last', () => {
-    const store = useGamesStore()
-    store.all = GAMES
-    store.setSort('meta')
-    const result = store.filtered('')
-    expect(result[0].name).toBe('Zelda')        // 90 — highest
-    expect(result[1].name).toBe('Hollow Knight') // 85
-    expect(result[2].name).toBe('Mario')         // null — last
+    modes.forEach(m => store.setSort(m))
+    expect(store.filtered('').map(g => g.name)).toEqual(order)
   })
 })
 

@@ -5,6 +5,7 @@ import { useGamesStore } from '../../src/stores/games.js'
 import { usePlayerStore } from '../../src/stores/player.js'
 import { setMediaFactory, resetMediaFactory } from '../../src/lib/audioEngine.js'
 import { createFakeMedia } from '../helpers/fakeMedia.js'
+import { button, byTest, links } from '../helpers/find.js'
 import PodcastView from '../../src/components/PodcastView.vue'
 import PodcastsRow from '../../src/components/PodcastsRow.vue'
 import EpisodeRow from '../../src/components/EpisodeRow.vue'
@@ -45,22 +46,23 @@ beforeEach(async () => {
 })
 afterEach(() => { vi.unstubAllGlobals(); resetMediaFactory() })
 
-const opts = stubs => ({ global: { plugins: [pinia], stubs: { BackBar: true, GameCard: true, ...stubs } } })
+const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
+const opts = stubs => ({ global: { plugins: [pinia], stubs: { BackBar: true, GameCard: true, RouterLink, ...stubs } } })
 
 describe('PodcastView', () => {
   it('lists every episode of its podcast, those without a test included, newest first, by year', async () => {
-    const w = mount(PodcastView, opts({ EpisodeRow: { props: ['ep'], template: '<div class="erow">{{ ep.title }}</div>' } }))
+    const w = mount(PodcastView, opts({ EpisodeRow: { props: ['ep'], template: '<div data-test="episode">{{ ep.title }}</div>' } }))
     await flushPromises()
-    expect(w.findAll('.erow').map(e => e.text())).toEqual(['ZQSD #115', 'ZQSDeux #59', 'ZQSD #113'])
-    expect(w.findAll('.pod__year').map(e => e.text())).toEqual(['2026', '2025', '2024'])
+    expect(byTest(w, 'episode').map(e => e.text())).toEqual(['ZQSD #115', 'ZQSDeux #59', 'ZQSD #113'])
+    expect(w.findAll('[aria-labelledby="h-pod-eps"] section').map(y => y.attributes('aria-label')))
+      .toEqual(['2026', '2025', '2024'])
     expect(w.text()).toContain('3 épisodes · 3 tests')
   })
 
   it('plays the newest episode from its start', async () => {
     const w = mount(PodcastView, opts({ EpisodeRow: true }))
     await flushPromises()
-    const main = w.find('.pod__main .btn-play')
-    expect(main.text()).toContain('Écouter le dernier épisode')
+    const main = button(w, 'Écouter le dernier épisode')
     await main.trigger('click')
     expect(usePlayerStore().current).toMatchObject({ episodeSlug: 'z3', ts: 0, url: 'z3.mp3' })
   })
@@ -73,8 +75,8 @@ describe('PodcastView', () => {
     await useGamesStore().loadEpisodes()
     const w = mount(PodcastView, opts({ EpisodeRow: true }))
     await flushPromises()
-    expect(w.find('.pod__main .btn-play').text()).toContain('Reprendre à 10:00')
-    expect(w.find('.pod__context').text()).toContain('ZQSDeux #59')
+    expect(button(w, 'Reprendre à 10:00')).toBeDefined()
+    expect(links(w, 'ZQSDeux #59')[0].attributes('href')).toMatch(/^\/episode\//)
   })
 })
 
@@ -88,8 +90,8 @@ describe('EpisodeRow', () => {
   it('shows the covers of its tests, four at most', async () => {
     const many = { ...EPISODES[0], games: Array.from({ length: 6 }, (_, i) => ({ name: `G${i}` })) }
     const w = mount(EpisodeRow, { props: { ep: many }, ...opts() })
-    expect(w.findAll('.row__cover')).toHaveLength(4)
-    expect(w.find('.row__more').text()).toBe('+2')
+    expect(byTest(w, 'cover')).toHaveLength(4)
+    expect(w.find('[aria-label="6 tests"]').text()).toBe('+2')
   })
 })
 
@@ -97,8 +99,8 @@ describe('PodcastsRow', () => {
   it('has a tile per podcast, newest episode first, leading to its page', async () => {
     const w = mount(PodcastsRow, opts())
     await flushPromises()
-    expect(w.findAll('.tile').map(t => t.attributes('href'))).toEqual(['/podcast/zqsd', '/podcast/silence-on-joue'])
-    expect(w.findAll('.tile__dot')).toHaveLength(0)   // first sight: nothing is new
+    expect(links(w).map(t => t.attributes('href'))).toEqual(['/podcast/zqsd', '/podcast/silence-on-joue'])
+    expect(links(w, 'nouvel épisode')).toHaveLength(0)   // first sight: nothing is new
   })
 
   it('marks a podcast whose newest episode came out since its page was seen', async () => {
@@ -107,7 +109,6 @@ describe('PodcastsRow', () => {
     const { default: Row } = await import('../../src/components/PodcastsRow.vue')
     const w = mount(Row, opts())
     await flushPromises()
-    expect(w.findAll('.tile__dot')).toHaveLength(1)
-    expect(w.find('.tile').attributes('href')).toBe('/podcast/zqsd')
+    expect(links(w, 'nouvel épisode').map(t => t.attributes('href'))).toEqual(['/podcast/zqsd'])
   })
 })

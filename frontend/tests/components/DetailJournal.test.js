@@ -6,6 +6,7 @@ import { usePlayerStore } from '../../src/stores/player.js'
 import { setMediaFactory, resetMediaFactory } from '../../src/lib/audioEngine.js'
 import { createFakeMedia } from '../helpers/fakeMedia.js'
 import DetailView from '../../src/components/DetailView.vue'
+import { button, links } from '../helpers/find.js'
 
 // Control Resonant's journal, two of its tests: one read, one whose start is unknown.
 const EPISODES = [
@@ -46,34 +47,39 @@ async function mountPage() {
   await flushPromises()
   return w
 }
-const rows = w => w.findAll('.test')
+// A test's row, its toggle (« L'avis de … »), its ▶ (« Écouter … »).
+const rows   = w => w.findAll('article[data-test]')
+const toggle = row => button(row, /^L'avis de/)
+const play   = row => button(row, /^Écouter/)
+const UNREAD = 'Pas encore de lecture de ce test'     // the opinion of a test not read yet
 
 describe('the journal of tests', () => {
-  it('opens a test’s opinion from anywhere on its row, the chevron turned', async () => {
+  it('opens a test’s opinion from anywhere on its row', async () => {
     const w = await mountPage()
-    const toggle = rows(w)[1].find('.test__toggle')
-    expect(toggle.attributes('aria-expanded')).toBe('false')
-    await toggle.trigger('click')
-    expect(rows(w)[1].classes()).toContain('is-open')
-    expect(rows(w)[1].find('.test__toggle').attributes('aria-expanded')).toBe('true')
+    expect(toggle(rows(w)[1]).attributes('aria-expanded')).toBe('false')
+    await toggle(rows(w)[1]).trigger('click')
+    expect(toggle(rows(w)[1]).attributes('aria-expanded')).toBe('true')
+    expect(rows(w)[1].text()).toContain(UNREAD)
   })
 
   it('plays with ▶, which never reaches the opinion’s toggle under it', async () => {
     const w = await mountPage()
-    await rows(w)[1].find('.test__toggle').trigger('click')       // open
-    await rows(w)[1].find('.test__play').trigger('click')         // play: the toggle would close it
+    await toggle(rows(w)[1]).trigger('click')       // open
+    await play(rows(w)[1]).trigger('click')         // play: the toggle would close it
     expect(usePlayerStore().current).toMatchObject({ url: 'ori.mp3' })
-    expect(rows(w)[1].classes()).toContain('is-open')
+    expect(rows(w)[1].text()).toContain(UNREAD)
   })
 
   it('leads to the episode’s page, this game named', async () => {
     const w = await mountPage()
-    expect(rows(w)[0].find('a.test__ep').attributes('href')).toBe('/episode/triple-play?game=control-resonant--1')
+    const toEpisode = links(rows(w)[0]).find(a => a.attributes('href').startsWith('/episode/'))
+    expect(toEpisode.attributes('href')).toBe('/episode/triple-play?game=control-resonant--1')
   })
 
   it('says how long a test lasts, and nothing for one it does not know', async () => {
     const w = await mountPage()
-    expect(rows(w).map(r => r.find('.test__at').text())).toEqual(['19 min', ''])
-    expect(rows(w)[1].find('.test__play').attributes('aria-label')).toBe("Écouter l'épisode de ORIGAMI L'Hebdo")
+    expect(rows(w)[0].text()).toContain('19 min')
+    expect(rows(w)[1].text()).not.toMatch(/\d+ min/)
+    expect(play(rows(w)[1]).attributes('aria-label')).toBe("Écouter l'épisode de ORIGAMI L'Hebdo")
   })
 })

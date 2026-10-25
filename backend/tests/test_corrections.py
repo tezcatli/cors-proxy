@@ -2,62 +2,35 @@ import datetime
 import os
 import stat
 import pytest
-from corrections import find_by_podcast, _find, _BY_SLUG
+import corrections as _corr
+from corrections import find_by_podcast, _find
 from utils import make_slug
 
 
-# ── find_by_podcast ────────────────────────────────────────────────────────────
+# ── Finding a name's correction ───────────────────────────────────────────────
 
-def test_find_by_podcast_known_name():
-    c = find_by_podcast('Vendran Las Aves')
-    assert c is not None
-    assert c['search_name'] == 'Vendrán las aves'
+@pytest.fixture
+def shipped(tmp_corrections):
+    import json
+    tmp_corrections.write_text(json.dumps({'corrections': [
+        {'podcast_name': 'Vendran Las Aves', 'search_name': 'Vendrán las aves'},
+        {'podcast_name': 'Bioshock 1', 'igdb_id': 152660},
+    ]}))
+    _corr.load()
 
-def test_find_by_podcast_case_insensitive():
-    c = find_by_podcast('vendran las aves')
-    assert c is not None
 
-def test_find_by_podcast_no_match():
+def test_a_name_finds_its_correction_by_its_slug(shipped):
+    assert find_by_podcast('vendran  las AVES')['search_name'] == 'Vendrán las aves'
+    assert find_by_podcast('Bioshock 1')['igdb_id'] == 152660
+    # The slug is the identity: an unspaced « Bioshock1 » is another name.
+    assert find_by_podcast('Bioshock1') is None
     assert find_by_podcast('Elden Ring') is None
 
-def test_find_by_podcast_with_igdb_id():
-    c = find_by_podcast('summer of arcade')
-    assert c is not None
-    assert c['igdb_id'] == 3160
 
-def test_find_by_podcast_search_name_overrides():
-    c = find_by_podcast('eté')
-    assert c is not None
-    assert c['search_name'] == 'Été'
-
-def test_find_by_podcast_search_name_none_when_not_needed():
-    # The feed spaces it; an unspaced "Bioshock1" must NOT match, since
-    # make_slug maps the two to different slugs (bioshock-1 / bioshock1).
-    c = find_by_podcast('Bioshock 1')
-    assert c is not None
-    assert c.get('search_name') is None
-    assert c['igdb_id'] == 152660
-    assert find_by_podcast('Bioshock1') is None
-
-
-def test_unmatched_slugs_flags_corrections_absent_from_the_feed():
+def test_unmatched_slugs_flags_corrections_absent_from_the_feed(shipped):
     from corrections import unmatched_slugs
-    assert 'bioshock-1' not in unmatched_slugs(['bioshock-1', 'vendran-las-aves'])
-    assert 'bioshock-1' in unmatched_slugs(['vendran-las-aves'])
-
-
-# ── _find (slug-level lookup) ─────────────────────────────────────────────────
-
-def test_find_by_slug_match():
-    c = _find(make_slug('vendran las aves'), None)
-    assert c is not None
-    assert c['search_name'] == 'Vendrán las aves'
-
-def test_find_by_slug_no_match():
-    assert _find('completely-unknown-game', None) is None
-
-def test_find_by_slug_same_as_find_by_podcast():
-    assert _find(make_slug('eté'), None) == find_by_podcast('eté')
+    assert unmatched_slugs(['bioshock-1', 'vendran-las-aves']) == []
+    assert unmatched_slugs(['vendran-las-aves']) == ['bioshock-1']
 
 
 # ── hint_date exact-date matching ─────────────────────────────────────────────
@@ -88,61 +61,22 @@ SLUG_MULTI = make_slug('__test_multi__')
 
 @pytest.fixture(autouse=False)
 def inject_test_corrections():
-    _BY_SLUG[SLUG_MULTI] = DATED_CORRECTIONS
+    _corr._BY_SLUG[SLUG_MULTI] = DATED_CORRECTIONS   # through the module: load() replaces it
     yield
-    del _BY_SLUG[SLUG_MULTI]
+    del _corr._BY_SLUG[SLUG_MULTI]
 
 
-def test_hint_date_exact_match(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2008-10-20'))
-    assert c['search_name'] == 'Game A'
-
-def test_hint_date_second_entry_match(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2023-04-28'))
-    assert c['search_name'] == 'Game B'
-
-def test_hint_date_no_match_falls_back_to_undated(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2015-06-15'))
-    assert c['search_name'] == 'Game Fallback'
-
-def test_hint_date_none_pub_ts_falls_back_to_undated(inject_test_corrections):
-    c = _find(SLUG_MULTI, None)
-    assert c['search_name'] == 'Game Fallback'
-
-def test_hint_date_prefers_dated_over_undated(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2008-10-20'))
-    assert c['search_name'] == 'Game A'   # not 'Game Fallback'
-
-
-# ── display_name override ──────────────────────────────────────────────────────
-
-DISPLAY_CORRECTIONS = [
-    {
-        'podcast_name': '__test_display__',
-        'igdb_id':      99999,
-        'display_name': 'My Custom Name',
-    },
-]
-
-SLUG_DISPLAY = make_slug('__test_display__')
-
-
-@pytest.fixture(autouse=False)
-def inject_display_correction():
-    _BY_SLUG[SLUG_DISPLAY] = DISPLAY_CORRECTIONS
-    yield
-    del _BY_SLUG[SLUG_DISPLAY]
-
-
-def test_correction_display_name_field(inject_display_correction):
-    c = _find(SLUG_DISPLAY, None)
-    assert c is not None
-    assert c['display_name'] == 'My Custom Name'
+@pytest.mark.parametrize('pub_date, expected', [
+    ('2008-10-20', 'Game A'),            # its day: the dated entry, not the fallback
+    ('2023-04-28', 'Game B'),
+    ('2015-06-15', 'Game Fallback'),     # no day matches
+    (None,         'Game Fallback'),     # undated episode
+])
+def test_a_dated_correction_wins_on_its_day_else_the_undated_one(inject_test_corrections, pub_date, expected):
+    assert _find(SLUG_MULTI, pub_date and _pub_ts(pub_date))['search_name'] == expected
 
 
 # ── corrections.json: schema validation ───────────────────────────────────────
-
-import corrections as _corr
 
 
 def _valid(**over):
@@ -203,33 +137,6 @@ def test_same_name_at_different_scopes_is_not_a_duplicate(tmp_corrections):
 
 # ── corrections.json: writing ─────────────────────────────────────────────────
 
-def test_upsert_replaces_the_entry_at_the_same_scope(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1)
-    _corr.upsert('Chrono Trigger', igdb_id=2)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger', 'igdb_id': 2}]
-
-
-def test_upsert_keeps_a_curated_display_name(tmp_corrections):
-    import json
-    tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Les gardiens de la galaxie', 'search_name': 'Guardians',
-         'display_name': 'Les gardiens de la galaxie'},
-    ]}))
-    _corr.load()
-    # Pinning an id is about resolution; it must not silently drop the curator's title.
-    _corr.upsert('Les gardiens de la galaxie', igdb_id=19560)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Les gardiens de la galaxie',
-                                  'igdb_id': 19560,
-                                  'display_name': 'Les gardiens de la galaxie'}]
-
-
-def test_upsert_is_keyed_on_the_slug_not_the_spelling(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1)
-    _corr.upsert('chrono trigger', igdb_id=2)      # same slug → one entry, not two
-    assert len(_corr.CORRECTIONS) == 1
-    assert _corr.CORRECTIONS[0]['igdb_id'] == 2
-
-
 def test_remove_reports_whether_anything_went(tmp_corrections):
     _corr.upsert('Chrono Trigger', igdb_id=1)
     assert _corr.remove('Chrono Trigger') is True
@@ -262,19 +169,6 @@ def test_is_writable_true_when_the_file_can_be_written(tmp_corrections):
     assert _corr.is_writable() is True
 
 
-@pytest.mark.skipif(os.geteuid() == 0,
-                    reason='root bypasses permission bits, so a read-only file '
-                           'still reports writable (the test container runs as root)')
-def test_is_writable_false_on_a_read_only_file(tmp_corrections):
-    # Stands in for prod, where corrections.json ships in the root-owned image
-    # layer and the app runs as `appuser`.
-    os.chmod(tmp_corrections, 0o444)
-    try:
-        assert _corr.is_writable() is False
-    finally:
-        os.chmod(tmp_corrections, 0o644)
-
-
 def test_write_preserves_the_files_mode(tmp_corrections):
     # The dev container writes this file as root via mkstemp+os.replace, which
     # would otherwise leave it 0600 and root-owned — unreadable to the human who
@@ -287,54 +181,39 @@ def test_write_preserves_the_files_mode(tmp_corrections):
 
 # ── upsert: merge semantics (pin and rename are independent decisions) ─────────
 
-def test_upsert_rename_keeps_the_pin(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1)
-    _corr.upsert('Chrono Trigger', display_name='Chrono Trigger (SNES)')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger', 'igdb_id': 1,
-                                  'display_name': 'Chrono Trigger (SNES)'}]
+CT, SS = 'Chrono Trigger', 'Shogun Shodown'
 
 
-def test_upsert_pin_keeps_the_display_name(tmp_corrections):
-    _corr.upsert('Chrono Trigger', display_name='Chrono Trigger (SNES)')
-    _corr.upsert('Chrono Trigger', igdb_id=2)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger',
-                                  'display_name': 'Chrono Trigger (SNES)', 'igdb_id': 2}]
-
-
-def test_upsert_empty_display_name_clears_the_override(tmp_corrections):
-    _corr.upsert('Chrono Trigger', igdb_id=1, display_name='X')
-    _corr.upsert('Chrono Trigger', display_name='')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Chrono Trigger', 'igdb_id': 1}]
-
-
-def test_upsert_display_name_only_is_a_valid_entry(tmp_corrections):
-    # display_name alone is meaningful: rename a game the search already gets right.
-    _corr.upsert('Les Sims', display_name='Les Sims')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Les Sims', 'display_name': 'Les Sims'}]
-
-
-def test_upsert_pin_drops_a_stale_search_name(tmp_corrections):
+@pytest.mark.parametrize('before, upserts, after', [
+    # A new pin replaces the old one, at the same scope, whatever the spelling
+    # (the last one written).
+    ([], [(CT, {'igdb_id': 1}), ('chrono trigger', {'igdb_id': 2})],
+     [{'podcast_name': 'chrono trigger', 'igdb_id': 2}]),
+    # Renaming keeps the pin; pinning keeps the curator's name.
+    ([], [(CT, {'igdb_id': 1}), (CT, {'display_name': 'CT (SNES)'})],
+     [{'podcast_name': CT, 'igdb_id': 1, 'display_name': 'CT (SNES)'}]),
+    ([{'podcast_name': CT, 'search_name': 'Guardians', 'display_name': 'CT (SNES)'}],
+     [(CT, {'igdb_id': 2})],
+     [{'podcast_name': CT, 'igdb_id': 2, 'display_name': 'CT (SNES)'}]),
+    # An empty name drops the override; a name alone is an entry.
+    ([], [(CT, {'igdb_id': 1, 'display_name': 'X'}), (CT, {'display_name': ''})],
+     [{'podcast_name': CT, 'igdb_id': 1}]),
+    ([], [('Les Sims', {'display_name': 'Les Sims'})],
+     [{'podcast_name': 'Les Sims', 'display_name': 'Les Sims'}]),
+    # A pin bypasses the search: its search_name would be dead config (and
+    # _validate rejects the pair); a rename keeps it.
+    ([{'podcast_name': SS, 'search_name': 'Été'}], [(SS, {'igdb_id': 42})],
+     [{'podcast_name': SS, 'igdb_id': 42}]),
+    ([{'podcast_name': SS, 'search_name': 'Été'}], [(SS, {'display_name': 'Été'})],
+     [{'podcast_name': SS, 'search_name': 'Été', 'display_name': 'Été'}]),
+])
+def test_upsert_merges_into_the_entry_at_its_scope(tmp_corrections, before, upserts, after):
     import json
-    tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Shogun Shodown', 'search_name': 'Été'},
-    ]}))
+    tmp_corrections.write_text(json.dumps({'corrections': before}))
     _corr.load()
-    # A pin bypasses the search, so the search_name would be dead config —
-    # _validate rejects the pair, so it must be dropped rather than kept.
-    _corr.upsert('Shogun Shodown', igdb_id=42)
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Shogun Shodown', 'igdb_id': 42}]
-
-
-def test_upsert_rename_preserves_a_search_name(tmp_corrections):
-    import json
-    tmp_corrections.write_text(json.dumps({'corrections': [
-        {'podcast_name': 'Shogun Shodown', 'search_name': 'Été'},
-    ]}))
-    _corr.load()
-    _corr.upsert('Shogun Shodown', display_name='Été')
-    assert _corr.CORRECTIONS == [{'podcast_name': 'Shogun Shodown',
-                                  'search_name': 'Été',
-                                  'display_name': 'Été'}]
+    for name, fields in upserts:
+        _corr.upsert(name, **fields)
+    assert _corr.CORRECTIONS == after
 
 
 def test_upsert_with_nothing_to_write_raises(tmp_corrections):

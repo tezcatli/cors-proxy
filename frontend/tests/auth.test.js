@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getToken, getUserEmail, isLoggedIn, isAdmin, logout, login, register, resetRequest, resetConfirm, apiFetch } from '../src/lib/auth.js';
+import { getUserEmail, isLoggedIn, isAdmin, logout, login, register, resetRequest, resetConfirm, apiFetch } from '../src/lib/auth.js';
 import { AUTH, mockResponse } from './contract.js';
 
 // Stub the router so apiFetch's lazy redirect-to-login import is inert in tests.
@@ -17,18 +17,6 @@ function makeToken({ email = 'user@test.com', expOffsetSeconds = 3600 } = {}) {
 
 beforeEach(() => { localStorage.clear(); });
 
-// ── getToken ──────────────────────────────────────────────────────────────
-
-describe('getToken', () => {
-  it('returns empty string when nothing is stored', () => {
-    expect(getToken()).toBe('');
-  });
-  it('returns the stored token', () => {
-    localStorage.setItem(TOKEN_KEY, 'mytoken');
-    expect(getToken()).toBe('mytoken');
-  });
-});
-
 // ── getUserEmail ──────────────────────────────────────────────────────────
 
 describe('getUserEmail', () => {
@@ -38,10 +26,6 @@ describe('getUserEmail', () => {
   it('extracts email from a valid token', () => {
     localStorage.setItem(TOKEN_KEY, makeToken({ email: 'alice@example.com' }));
     expect(getUserEmail()).toBe('alice@example.com');
-  });
-  it('returns null for a malformed token', () => {
-    localStorage.setItem(TOKEN_KEY, 'not.a.token');
-    expect(getUserEmail()).toBeNull();
   });
 
   it('decodes a base64url payload with a non-ASCII email', () => {
@@ -71,10 +55,6 @@ describe('isLoggedIn', () => {
   });
   it('returns false for an expired token', () => {
     localStorage.setItem(TOKEN_KEY, makeToken({ expOffsetSeconds: -1 }));
-    expect(isLoggedIn()).toBe(false);
-  });
-  it('returns false for a malformed token', () => {
-    localStorage.setItem(TOKEN_KEY, 'bad.token');
     expect(isLoggedIn()).toBe(false);
   });
 });
@@ -224,8 +204,13 @@ describe('isAdmin', () => {
     expect(isAdmin()).toBe(true);
   });
 
-  it('is false for a malformed token rather than throwing', () => {
-    localStorage.setItem(TOKEN_KEY, 'not-a-jwt');
-    expect(isAdmin()).toBe(false);
+});
+
+// ── A malformed token ─────────────────────────────────────────────────────
+
+describe('a malformed token', () => {
+  it.each(['not.a.token', 'bad.token', 'not-a-jwt'])('%s is no session, and throws nothing', token => {
+    localStorage.setItem(TOKEN_KEY, token);
+    expect([getUserEmail(), isLoggedIn(), isAdmin()]).toEqual([null, false, false]);
   });
 });

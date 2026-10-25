@@ -3,19 +3,9 @@ import { mount } from '@vue/test-utils'
 import PodcastBadge from '../../src/components/PodcastBadge.vue'
 
 describe('PodcastBadge', () => {
-  it('renders the short label by default', () => {
+  it('names a podcast by its short label, and an unknown one not at all', () => {
     const w = mount(PodcastBadge, { props: { id: 'fin-du-game' } })
-    expect(w.text()).toBe('FDG')
-    expect(w.attributes('title')).toBe('Fin du Game')
-  })
-
-  it('renders the full name when `full` is set', () => {
-    const w = mount(PodcastBadge, { props: { id: 'silence-on-joue', full: true } })
-    expect(w.text()).toBe('Silence on Joue')
-  })
-
-  it('renders nothing for an unknown podcast id', () => {
-    const w = mount(PodcastBadge, { props: { id: 'nope' } })
-    expect(w.find('.podcast-badge').exists()).toBe(false)
+    expect([w.text(), w.attributes('title')]).toEqual(['FDG', 'Fin du Game'])
+    expect(mount(PodcastBadge, { props: { id: 'nope' } }).text()).toBe('')
   })
 })

@@ -32,32 +32,13 @@ function seedProgress(currentTime) {
   }))
 }
 
+// When to resume is the store's rule (`resumeTimeFor`, tested there).
 describe('useEpisodePlayer · resume from saved progress', () => {
-  it('resumes mid-chapter from the saved position', () => {
+  it('starts where the store says to resume', () => {
     seedProgress(150)                       // 50% through the chapter
     const { playEp, playerStore } = useEpisodePlayer()
     playEp(ep)
     expect(playerStore.current.ts).toBe(150)
-  })
-
-  it('restarts at the chapter start when the chapter is finished', () => {
-    seedProgress(199)                       // ~99% → done
-    const { playEp, playerStore } = useEpisodePlayer()
-    playEp(ep)
-    expect(playerStore.current.ts).toBe(100)
-  })
-
-  it('restarts when there is barely any progress', () => {
-    seedProgress(100.5)                     // < MIN
-    const { playEp, playerStore } = useEpisodePlayer()
-    playEp(ep)
-    expect(playerStore.current.ts).toBe(100)
-  })
-
-  it('starts at the chapter start when no progress is saved', () => {
-    const { playEp, playerStore } = useEpisodePlayer()
-    playEp(ep)
-    expect(playerStore.current.ts).toBe(100)
   })
 })
 

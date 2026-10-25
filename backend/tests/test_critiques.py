@@ -74,14 +74,9 @@ def test_a_one_game_show_holds_the_title_s_game_over_the_whole_episode():
     assert (t.name, t.timestamp_seconds) == ('Dragon Age: Origins', 25)
 
 
-def test_a_test_starts_at_its_critique_not_a_teaser():
-    sections = [section('TLOU2', 'impressions', 0, 2), section(None, None, 120, 1),
-                section('TLOU2', 'review', 162, 31), section('Other', 'review', 2045, 6)]
-    [t, _] = critiques.select(SOJ, episode(read=['TLOU2', 'Other']), sections)
-    assert t.timestamp_seconds == 162
-
-
-def test_a_test_lasts_over_the_sections_on_its_game_after_its_critique_ads_aside():
+def test_a_test_runs_from_its_critique_over_its_game_s_sections_after_it_ads_aside():
+    # Not from the teaser before the intro; on after the ad, until the show
+    # turns to another game.
     ad = {**section(None, None, 2022, 2), 'ad': True}
     sections = [section('TLOU2', 'impressions', 0, 2), section(None, None, 120, 1),
                 section('TLOU2', 'review', 162, 31), ad, section('TLOU2', 'discussion', 2142, 5),

@@ -11,6 +11,7 @@
 - **When the user decides something, add the line to `DECISIONS.md` in the same turn.** Conversations are compacted and decisions in them get lost; the file isn't.
 - **When the state changes** (a deploy, a job started or finished, a next step agreed), rewrite `STATUS.md`.
 - **One fact, one place.** The detail of a module lives in its docstring and comments, next to the code; this file only maps and holds what crosses modules. Change the docstring, not a copy here.
+- **A test holds a rule, not a change** (a decision, an invariant, the contract, security) or a bug that can come back the same way. Before adding one, find the test that already holds the rule and rewrite it; code that goes takes its tests; a shape is the contract's, never a hand-written key list; the interface is found by what the listener sees (`frontend/tests/helpers/find.js`), never by a styling class.
 - The user writes in French; code, comments and commits are in English, `DECISIONS.md` / `STATUS.md` / `lab/` in French.
 
 ## Stack

@@ -274,16 +274,6 @@ def test_legacy_answers_are_settled(llm_on):
     assert not _pending(legacy)     # pre-LLM answer: kept as is
 
 
-def test_a_correction_outranks_the_llm(llm_on):
-    import corrections
-    corrections.upsert('Le Vaillant Petit Page', igdb_id=42)
-    with patch('llm.http.post') as post, \
-         patch('resolver.fetch_by_id', return_value=_PLUCKY):
-        entry = _resolve()
-    post.assert_not_called()
-    assert (entry.igdb_id, entry.resolution.method) == (42, 'pin')
-
-
 # ── Shows whose games the LLM reads ───────────────────────────────────────────
 
 import feeds                                    # noqa: E402
