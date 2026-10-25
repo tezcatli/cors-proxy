@@ -5,6 +5,7 @@ import { login, register, resetRequest, resetConfirm, apiFetch } from '../lib/au
 import { useAuthForm } from '../composables/useAuthForm.js'
 import FormAlerts from '../components/FormAlerts.vue'
 import SubmitBtn  from '../components/SubmitBtn.vue'
+import Wordmark   from '../components/Wordmark.vue'
 
 const router = useRouter()
 const route  = useRoute()
@@ -76,7 +77,7 @@ onMounted(() => {
   <div class="login">
     <div class="login__col">
       <div class="login__brand">
-        <span class="cond login__mark">Ludo<span>//</span></span>
+        <span class="login__mark" role="img" aria-label="Ludo"><Wordmark /></span>
         <span class="lab">Les tests de jeux vidéo de vos podcasts</span>
       </div>
 
@@ -159,8 +160,7 @@ onMounted(() => {
 }
 .login__col { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 32px; }
 .login__brand { display: flex; flex-direction: column; gap: 8px; }
-.login__mark { font-size: 72px; font-weight: 700; line-height: 0.85; }
-.login__mark span { color: var(--c-accent); }
+.login__mark { font-size: 56px; }
 .login__box { border-top: 1px solid var(--c-line); padding-top: 24px; display: flex; flex-direction: column; gap: 16px; }
 .login__title { margin: 0; font-size: var(--text-2xl); }
 .login__form { display: flex; flex-direction: column; gap: 16px; }

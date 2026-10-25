@@ -22,7 +22,7 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
 </script>
 
 <template>
-  <section class="content games" aria-labelledby="h-games">
+  <section class="content games" :class="{ 'home-section': !hasQuery }" aria-labelledby="h-games">
     <div class="section-head" :class="{ 'sr-only': hasQuery }">
       <h2 id="h-games">{{ hasQuery ? 'Jeux' : 'La ludothèque' }}</h2>
       <span v-if="!loading && !error" class="lab">{{ games.length }} jeux</span>
@@ -35,7 +35,7 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
     <div v-else-if="error || games.length === 0" class="empty">
       <p class="cond empty__title">{{ error ? 'Hors antenne' : 'Rien ici' }}</p>
       <p v-if="error" class="empty__text">{{ error }}</p>
-      <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Tirez vers le bas pour actualiser.</p>
+      <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Touchez ↻ pour actualiser.</p>
       <p v-else-if="hasQuery" class="empty__text">Aucun jeu ne correspond à votre recherche.</p>
     </div>
 

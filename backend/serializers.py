@@ -133,7 +133,7 @@ def _chapter_resolutions(episode: Episode) -> list[tuple[str, str, str | None] |
     own. A start up to `CHAPTER_SNAP` seconds before a chapter is that
     chapter's: the transcript's clock runs a few seconds ahead of the feed's.
     The player shows the game on air in every chapter of its test
-    (DECISIONS.md, « Interface »; `stores/player.js` applies the same rule)."""
+    (DECISIONS.md, « Interface »; `testAt` in frontend/src/lib/timeline.js applies the same rule)."""
     tests   = [(m, r) for m in episode.games if (r := _resolution(m, episode))]
     by_name = {make_slug(m.name): r for m, r in tests}
     by_page = {r[1]: r for _, r in tests}

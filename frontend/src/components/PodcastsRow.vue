@@ -5,7 +5,7 @@ import { useGamesStore } from '../stores/games.js'
 import { PODCASTS } from '../lib/podcasts.js'
 import { usePodcastsSeen } from '../composables/usePodcastsSeen.js'
 
-// « Les podcasts », between the newest tests and the games (DECISIONS.md,
+// « Les podcasts », between « Reprendre » and the games (DECISIONS.md,
 // « Interface »): one tile per podcast — its image, when its newest episode
 // came out, a dot when that is newer than the last visit — leading to its page.
 const gamesStore = useGamesStore()
@@ -46,7 +46,7 @@ const tiles = computed(() =>
 </script>
 
 <template>
-  <section v-if="tiles.length" class="content podcasts" aria-labelledby="h-podcasts">
+  <section v-if="tiles.length" class="content podcasts home-section" aria-labelledby="h-podcasts">
     <div class="section-head"><h2 id="h-podcasts">Les podcasts</h2></div>
     <div class="podcasts__row">
       <RouterLink v-for="t in tiles" :key="t.id" :to="`/podcast/${t.id}`" class="tile">
@@ -63,22 +63,15 @@ const tiles = computed(() =>
 </template>
 
 <style scoped>
-.podcasts { position: relative; margin-bottom: 36px; }   /* above the tests' blurred backdrop */
+.podcasts { position: relative; }   /* above the tests' blurred backdrop */
+/* All of them at once, few as they are: a grid, never a row to swipe. */
 .podcasts__row {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 27%;
-  gap: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  margin: 0 calc(var(--gutter) * -1);
-  padding: 4px var(--gutter) 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 10px;
+  padding: 4px 0 8px;
 }
-.podcasts__row::-webkit-scrollbar { display: none; }
-@media (min-width: 600px) { .podcasts__row { grid-auto-columns: 18%; } }
-@media (min-width: 900px) {
-  .podcasts__row { grid-auto-flow: row; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 24px; overflow: visible; margin: 0; padding: 4px 0 8px; }
-}
+@media (min-width: 900px) { .podcasts__row { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 24px; } }
 .tile { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--c-fg); text-decoration: none; }
 .tile__art { position: relative; display: block; aspect-ratio: 1 / 1; background: var(--c-surface); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14); }
 .tile__art img { width: 100%; height: 100%; object-fit: cover; display: block; }

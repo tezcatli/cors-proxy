@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PCT } from '../lib/utils.js'
 import { createAudioEngine } from '../lib/audioEngine.js'
 import { fetchEpisodeDetail } from '../lib/games.js'
+import { testAt } from '../lib/timeline.js'
 
 // Track metadata, listening progress, and the only driver of `lib/audioEngine.js`:
 // components issue commands (play, resume, pauseAudio, togglePlayback, seek, retry,
@@ -111,28 +112,8 @@ export const usePlayerStore = defineStore('player', () => {
     return [...list].sort((a, b) => a.timestampSeconds - b.timestampSeconds)
   })
 
-  // The test on air, by position: the last test started within the chapter
-  // playing; else the test whose page that chapter carries (the chapter a test
-  // starts in, the one it goes on in after an ad); else none — a chapter on
-  // anything else is no test's. An episode without chapters (unread) falls back
-  // to the last test started. A test starting up to CHAPTER_SNAP s before a
-  // chapter is that chapter's (the transcript's clock runs ahead of the feed's;
-  // `serializers._chapter_resolutions` applies the same rule).
-  const CHAPTER_SNAP = 30
-  const currentTest = computed(() => {
-    const cur = current.value
-    if (!cur) return null
-    const ch = currentChapter.value
-    const from = cur.chapters?.length ? (ch ? ch.timestampSeconds - CHAPTER_SNAP : Infinity) : -Infinity
-    let active = null
-    for (const t of cur.tests ?? []) {
-      if (t.timestamp == null || t.timestampSeconds < from || t.timestampSeconds > currentTime.value) continue   // no known start: never on air
-      if (!active || t.timestampSeconds >= active.timestampSeconds) active = t
-    }
-    if (active || !ch?.slug) return active
-    return cur.tests.find(t => t.slug === ch.slug)
-      ?? { name: ch.title, resolvedName: ch.resolvedName, slug: ch.slug, coverImageId: ch.coverImageId, timestampSeconds: ch.timestampSeconds }
-  })
+  // The test on air, by position (`testAt`, lib/timeline.js).
+  const currentTest = computed(() => (current.value ? testAt(current.value, currentTime.value) : null))
 
   // What is on air — the one rule the player and the lock screen follow
   // (DECISIONS.md, « Interface »): the test's cover and game, else the
@@ -317,6 +298,14 @@ export const usePlayerStore = defineStore('player', () => {
       .filter(e => !seen.has(e.episodeSlug) && seen.add(e.episodeSlug))
   })
 
+  // Forget where an episode was left (« Reprendre »'s ×): it is no longer in
+  // progress anywhere, and its next listening starts at its test.
+  function forgetEpisode(episodeSlug) {
+    const prefix = `${episodeSlug}|`
+    progressMap.value = Object.fromEntries(Object.entries(progressMap.value).filter(([k]) => !k.startsWith(prefix)))
+    _saveProgressMap()
+  }
+
   // ── Persistence ─────────────────────────────────────────────────────────────
   const STORAGE_KEY = 'soj-player'
 
@@ -346,6 +335,6 @@ export const usePlayerStore = defineStore('player', () => {
     play, close, restore, setEpisodeImageUrl,
     resume, pauseAudio, togglePlayback, seek, retry, setVolume, setRate, skip,
     liveProgress, getEpisodeProgress, getGameProgress,
-    resumeTimeFor, getEpisodeLatestProgress, resumeEntryFor, inProgress,
+    resumeTimeFor, getEpisodeLatestProgress, resumeEntryFor, inProgress, forgetEpisode,
   }
 })

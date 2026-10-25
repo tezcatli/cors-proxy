@@ -1,24 +1,36 @@
 <script setup>
+import { useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
+import { goHome } from '../lib/home.js'
+import Wordmark from './Wordmark.vue'
 
-// The top bar of an overlay page (game, episode): back on the left, the page's
-// own tools in the `actions` slot on the right. `overlay` floats it over a
-// band of art (no fill, no rule) until `solid` says the page scrolled past it.
+// The top bar of an overlay page (game, episode, podcast), the same on every
+// one: back one step on the left; on the right the page's own tools (`actions`
+// slot), then LUDO//, home in one step (lib/home.js) — a real link, so a middle
+// click still opens it.
 defineProps({
-  label:   String,
-  overlay: Boolean,
-  solid:   Boolean,
+  label: String,
 })
 const emit = defineEmits(['back'])
+
+const router = useRouter()
+function onHome(e) {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  e.preventDefault()
+  goHome(router)
+}
 </script>
 
 <template>
-  <div class="backbar" :class="{ 'backbar--overlay': overlay, 'is-solid': solid }">
+  <div class="backbar">
     <button type="button" class="backbar__back lab" @click="emit('back')">
       <ArrowLeft :size="16" :stroke-width="2" aria-hidden="true" />
       <span class="ellipsis">{{ label }}</span>
     </button>
-    <div class="backbar__actions"><slot name="actions" /></div>
+    <div class="backbar__actions">
+      <slot name="actions" />
+      <a href="/" class="backbar__home" aria-label="Ludothèque, accueil" @click="onHome"><Wordmark /></a>
+    </div>
   </div>
 </template>
 
@@ -34,18 +46,7 @@ const emit = defineEmits(['back'])
   box-sizing: content-box;
   background: var(--c-bg);
   border-bottom: 1px solid var(--c-line);
-  transition: background var(--dur-fast), border-color var(--dur-fast);
 }
-.backbar--overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  background: transparent;
-  border-bottom-color: transparent;
-}
-.backbar--overlay.is-solid { background: var(--c-bg); border-bottom-color: var(--c-line); }
 .backbar__back {
   display: inline-flex;
   align-items: center;
@@ -59,8 +60,15 @@ const emit = defineEmits(['back'])
   cursor: pointer;
 }
 .backbar__back:hover { background: var(--c-raised); }
-/* Over art, the label sits on a black chip so it reads on any image. */
-.backbar--overlay:not(.is-solid) .backbar__back,
-.backbar--overlay:not(.is-solid) .backbar__actions :deep(.icon-action) { background: rgba(11, 11, 11, 0.72); }
 .backbar__actions { display: flex; align-items: center; gap: 4px; }
+.backbar__home {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background var(--dur-fast);
+}
+.backbar__home:hover { background: var(--c-raised); }
 </style>

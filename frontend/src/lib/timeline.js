@@ -1,7 +1,7 @@
 // An episode's timeline (DECISIONS.md, « Interface »): its chapters in order,
 // its tests among them, each once. A test starts in the chapter its start falls
 // in — up to SNAP seconds before it counts, the transcript's clock running ahead
-// of the feed's (`stores/player.js`, `serializers._chapter_resolutions`). A
+// of the feed's (`testAt` below, `serializers._chapter_resolutions`). A
 // chapter that bears the test's name *is* the test: the test's row takes its
 // place. A chapter on something else (« Le com des coms ») stays, the test right
 // under it. A test with no known start closes the list.
@@ -41,4 +41,29 @@ export function episodeTimeline(chapters = [], tests = []) {
     for (const test of within[i]) rows.push({ kind: 'test', test, chapter })
   })
   return [...rows, ...untimed]
+}
+
+/**
+ * The test on air at `time` in a track (`{tests, chapters}`) — the one rule the
+ * player, the lock screen and « Reprendre » follow (DECISIONS.md, « Interface »):
+ * the last test started within the chapter playing; else the test whose page
+ * that chapter carries (the chapter a test starts in, the one it goes on in
+ * after an ad); else none — a chapter on anything else is no test's. Without
+ * chapters, the last test started. A test with no known start is never on air.
+ */
+export function testAt({ tests = [], chapters = [] }, time) {
+  let ch = null
+  for (const c of chapters) {
+    if (c.timestampSeconds <= time) ch = c
+    else break
+  }
+  const from = chapters.length ? (ch ? ch.timestampSeconds - SNAP : Infinity) : -Infinity
+  let active = null
+  for (const t of tests) {
+    if (t.timestamp == null || t.timestampSeconds < from || t.timestampSeconds > time) continue
+    if (!active || t.timestampSeconds >= active.timestampSeconds) active = t
+  }
+  if (active || !ch?.slug) return active
+  return tests.find(t => t.slug === ch.slug)
+    ?? { name: ch.title, resolvedName: ch.resolvedName, slug: ch.slug, coverImageId: ch.coverImageId, timestampSeconds: ch.timestampSeconds }
 }
