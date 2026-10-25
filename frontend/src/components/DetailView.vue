@@ -17,7 +17,7 @@ import BackBar from './BackBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import IgdbPickerModal from './IgdbPickerModal.vue'
 import MediaViewer from './MediaViewer.vue'
-import { RotateCw, ChevronRight, Play, Pause, Wrench } from 'lucide-vue-next'
+import { RotateCw, ChevronDown, ArrowUpRight, Play, Pause, Wrench } from 'lucide-vue-next'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -445,35 +445,39 @@ const facts = computed(() => {
             class="test"
             :class="{ 'is-open': openSlug === ep.slug, 'is-playing': isEpPlaying(ep) }"
           >
+            <!-- One target per action, each told by its sign: ▶ listens, ↗ leads
+                 to the episode, the rest of the row (⌄) opens the opinion. -->
             <div class="test__row">
               <button
                 type="button"
                 class="test__toggle"
                 :aria-expanded="openSlug === ep.slug"
+                :aria-label="`L'avis de ${ep.podcast?.name ?? ''}, ${formatShortDate(ep.pubTs)}`"
                 @click="toggleRow(ep)"
-              >
-                <span class="test__mark" aria-hidden="true">{{ openSlug === ep.slug ? '▾' : '▸' }}</span>
-                <span class="test__who">
-                  <span class="test__show">{{ ep.podcast?.name ?? '' }}</span>
-                  <span class="test__when mono">{{ formatShortDate(ep.pubTs) }}</span>
-                </span>
-                <VerdictMark :verdict="ep.critique?.verdict ?? null" class="test__verdict" />
-              </button>
-              <a class="test__ep" :href="epHref(ep)" @click="viewEp(ep, $event)">
-                <span class="ellipsis">{{ ep.title }}</span><ChevronRight :size="14" :stroke-width="2" aria-hidden="true" />
-              </a>
+              ></button>
               <button
                 type="button"
-                class="test__play mono"
-                :class="isEpPlaying(ep) ? 'btn-play' : 'btn-line'"
+                class="icon-action icon-action--boxed test__play"
+                :class="{ 'is-on': isEpPlaying(ep) }"
                 :disabled="!ep.audioUrl"
-                :aria-label="isEpPlaying(ep) && !playerStore.paused ? 'Pause' : `Écouter le test de ${ep.podcast?.name ?? ''}, à ${formatTime(ep.timestampSeconds)}`"
+                :aria-label="isEpPlaying(ep) && !playerStore.paused ? 'Pause'
+                  : ep.timestamp != null ? `Écouter le test de ${ep.podcast?.name ?? ''}, à ${formatTime(ep.timestampSeconds)}`
+                  : `Écouter l'épisode de ${ep.podcast?.name ?? ''}`"
                 @click="onPlay(ep)"
               >
-                <Pause v-if="isEpPlaying(ep) && !playerStore.paused" :size="12" fill="currentColor" :stroke-width="0" />
-                <Play v-else :size="12" fill="currentColor" :stroke-width="0" />
-                {{ formatTime(ep.timestampSeconds) }}
+                <Pause v-if="isEpPlaying(ep) && !playerStore.paused" :size="14" fill="currentColor" :stroke-width="0" />
+                <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
               </button>
+              <span class="test__who">
+                <span class="test__show">{{ ep.podcast?.name ?? '' }}</span>
+                <span class="test__when mono">{{ formatShortDate(ep.pubTs) }}</span>
+              </span>
+              <span class="test__verdict"><VerdictMark :verdict="ep.critique?.verdict ?? null" /></span>
+              <a class="test__ep" :href="epHref(ep)" @click="viewEp(ep, $event)">
+                <span class="ellipsis">{{ ep.title }}</span><ArrowUpRight :size="14" :stroke-width="2" aria-hidden="true" />
+              </a>
+              <span class="test__at mono">{{ ep.timestamp != null ? formatTime(ep.timestampSeconds) : '—' }}</span>
+              <ChevronDown :size="18" :stroke-width="2" class="test__chevron" aria-hidden="true" />
             </div>
 
             <div v-if="openSlug === ep.slug" class="test__opinion">
@@ -694,48 +698,57 @@ const facts = computed(() => {
 .test { border-bottom: 1px solid var(--c-line); }
 .test:last-child { border-bottom: 0; }
 .test.is-open { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
+/* A row: ▶ | podcast, date | verdict | episode ↗ | start | ⌄. The opinion
+   toggle covers the whole row; ▶ and the link sit above it. */
 .test__row {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "toggle play" "ep ep";
-  gap: 6px 12px;
+  grid-template-columns: 44px minmax(0, 1fr) auto 20px;
+  grid-template-areas:
+    "play who  verdict chev"
+    "play ep   at      chev";
+  gap: 4px 12px;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 12px;
 }
 .test__toggle {
-  grid-area: toggle;
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  min-width: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
   border: 0;
   background: transparent;
-  color: var(--c-fg);
-  text-align: left;
-  padding: 0;
   cursor: pointer;
 }
-.test__mark { color: var(--c-accent); }
-.test__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.test__show { font-weight: 600; font-size: var(--text-md); }
-.test__when { color: var(--c-fg-2); font-size: var(--text-xs); }
-.test__toggle:hover .test__show { text-decoration: underline; text-underline-offset: 3px; }
+.test__toggle:hover { background: rgba(255, 255, 255, 0.04); }
+.test__play, .test__ep { position: relative; z-index: 1; }
+.test__play { grid-area: play; align-self: center; }
+.test__play.is-on { background: var(--c-accent); color: var(--c-accent-fg); box-shadow: none; }
+.test__who, .test__verdict, .test__at, .test__chevron { pointer-events: none; }
+.test__who { grid-area: who; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.test__show { font-weight: 600; font-size: var(--text-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.test__when { color: var(--c-fg-2); font-size: var(--text-xs); white-space: nowrap; }
+.test__verdict { grid-area: verdict; justify-self: end; }
 .test__ep {
   grid-area: ep;
-  display: flex;
+  justify-self: start;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-width: 0;
-  padding-left: 26px;
+  max-width: 100%;
+  min-height: 32px;
   color: var(--c-fg-2);
   font-size: var(--text-sm);
   text-decoration: none;
 }
 .test__ep:hover { color: var(--c-fg); text-decoration: underline; text-underline-offset: 3px; }
-.test__play { grid-area: play; min-height: 40px; padding: 0 14px; font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: 0; }
+.test__ep svg { flex-shrink: 0; color: var(--c-accent); }
+.test__at { grid-area: at; justify-self: end; color: var(--c-fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.test__chevron { grid-area: chev; color: var(--c-fg-2); transition: transform var(--dur-fast); }
+.test.is-open .test__chevron { transform: rotate(180deg); color: var(--c-accent); }
 
-.test__opinion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 0 16px 18px 42px; }
+/* The opinion starts under the podcast's column. */
+.test__opinion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 0 16px 18px 68px; }
 .test__side { color: var(--c-fg-2); }
 .test__side--pro { color: var(--c-accent); }
 .test__opinion ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -744,17 +757,18 @@ const facts = computed(() => {
 .test__opinion div:first-child .sign { color: var(--c-accent); }
 .test__empty { margin: 0; color: var(--c-fg-2); }
 
+/* Wide: one line, fixed columns, the start aligned right. */
 @media (min-width: 900px) {
   .test__row {
-    grid-template-columns: 380px minmax(0, 1fr) 120px;
-    grid-template-areas: "toggle ep play";
-    gap: 24px;
-    min-height: 60px;
+    grid-template-columns: 44px 200px 96px minmax(0, 1fr) 80px 20px;
+    grid-template-areas: "play who verdict ep at chev";
+    gap: 0 20px;
+    min-height: 64px;
     padding: 8px 20px;
   }
-  .test__toggle { grid-template-columns: 16px minmax(0, 1fr) 100px; gap: 16px; }
-  .test__ep { padding-left: 0; }
-  .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 20px 20px 52px; }
+  .test__who { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .test__verdict { justify-self: start; }
+  .test__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0 20px 20px 84px; }
 }
 
 /* ─── Gallery ─────────────────────────────────────────────────────────── */
