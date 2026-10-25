@@ -70,7 +70,6 @@
   --z-detail:   150;
   --z-episode:  200;
   --z-player:   300;
-  --z-tabbar:   310;
   --z-modal:    350;
   --z-lightbox: 400;
 
@@ -78,7 +77,6 @@
   --gutter:    16px;
   --content-w: 1760px;
   --topbar-h:  56px;
-  --tabbar-h:  64px;   /* mobile only; 0 from md */
   --player-h:  64px;   /* mini player; set to 0 by App.vue while nothing plays */
 
   /* ─── Motion ───────────────────────────────────────────────────────── */
@@ -91,7 +89,7 @@
 }
 
 @media (min-width: 768px) {
-  :root { --gutter: 32px; --tabbar-h: 0px; --player-h: 80px; --topbar-h: 64px; }
+  :root { --gutter: 32px; --player-h: 80px; --topbar-h: 64px; }
 }
 @media (min-width: 1200px) {
   :root { --gutter: 48px; }

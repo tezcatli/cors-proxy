@@ -4,17 +4,17 @@ import { useRouter } from 'vue-router'
 import { fetchEpisodes } from '../lib/games.js'
 import { formatTime, progressPct, testHref } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
-import { useInfiniteScroll } from '../composables/useInfiniteScroll.js'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
 import { podcastMeta } from '../lib/podcasts.js'
 import TestCard from './TestCard.vue'
 import { Play } from 'lucide-vue-next'
 
-// The home (« Tests »): the newest test in large, what was started, then every
-// test newest first, one card each — a game an episode tests, told by its cover.
-// Shares `selectedPodcast` with the catalog: one choice of show, applied wherever
-// the user is.
+// The top of the Ludothèque (DECISIONS.md, « Interface »): the newest test in
+// large (wide screens), what was started, then the newest tests in a row to
+// swipe, one card each — a game an episode tests, told by its cover. The games
+// follow (GameGrid), in the same scroll. Shares the show filter and the search
+// with them.
 const props = defineProps({
   searchQuery:   String,
   refreshSignal: { type: Number, default: 0 },
@@ -71,7 +71,9 @@ const rest     = computed(() => (featured.value ? tests.value.slice(1) : tests.v
 // across visits, so it must not go unnoticed).
 const showName = computed(() => (gamesStore.selectedPodcast !== 'all' ? podcastMeta(gamesStore.selectedPodcast)?.name ?? '' : ''))
 
-const { visibleItems: visibleTests, sentinel } = useInfiniteScroll(rest, { pageSize: 48 })
+// The row: the newest tests; the rest of the history is reached by its games.
+const ROW_MAX = 30
+const rowTests = computed(() => rest.value.slice(0, ROW_MAX))
 
 function isPlaying({ ep, test }) {
   const cur = playerStore.current
@@ -145,24 +147,19 @@ function resume(item) {
 </script>
 
 <template>
-  <div class="scroll-area feed-scroll">
+  <div class="home-top">
     <!-- The newest test's cover, blurred, behind the top of the page -->
     <div v-if="lead?.test.coverImageId" class="backdrop" aria-hidden="true">
       <img :src="igdbUrl(lead.test.coverImageId, 't_cover_small')" alt="" />
     </div>
     <div class="content feed">
-      <div v-if="loading" aria-hidden="true" class="grid">
-        <div v-for="i in 12" :key="i" class="skeleton-shimmer skel" />
+      <div v-if="loading" aria-hidden="true" class="row">
+        <div v-for="i in 8" :key="i" class="skeleton-shimmer skel" />
       </div>
 
       <div v-else-if="error" class="empty">
         <p class="cond empty__title">Hors antenne</p>
         <p class="empty__text">{{ error }}</p>
-      </div>
-
-      <div v-else-if="!tests.length" class="empty">
-        <p class="cond empty__title">Rien ici</p>
-        <p class="empty__text">Aucun test trouvé.</p>
       </div>
 
       <template v-else>
@@ -195,17 +192,14 @@ function resume(item) {
           </section>
         </div>
 
-        <section aria-labelledby="h-latest" class="latest">
+        <section v-if="rowTests.length || showName" aria-labelledby="h-latest" class="latest">
           <div class="section-head">
-            <h2 id="h-latest">{{ searchQuery?.trim() ? 'Résultats' : 'Derniers tests' }}<span v-if="showName" class="filter-name"> · {{ showName }}</span></h2>
-            <span class="head-side">
-              <button v-if="showName" type="button" class="chip-btn" @click="gamesStore.setPodcast('all')">✕ Toutes les émissions</button>
-              <span class="lab">{{ tests.length }} tests</span>
-            </span>
+            <h2 id="h-latest">{{ searchQuery?.trim() ? 'Tests' : 'Nouveaux tests' }}<span v-if="showName" class="filter-name"> · {{ showName }}</span></h2>
+            <button v-if="showName" type="button" class="chip-btn" @click="gamesStore.setPodcast('all')">✕ Toutes les émissions</button>
           </div>
-          <div class="grid">
+          <div v-if="rowTests.length" class="row">
             <TestCard
-              v-for="item in visibleTests"
+              v-for="item in rowTests"
               :key="item.ep.slug + '|' + (item.test.slug ?? item.test.name)"
               :item="item"
               :is-playing="isPlaying(item)"
@@ -215,7 +209,7 @@ function resume(item) {
               @view="view"
             />
           </div>
-          <div ref="sentinel" class="h-1" />
+          <p v-else class="empty__text">Aucun test.</p>
         </section>
       </template>
     </div>
@@ -223,7 +217,7 @@ function resume(item) {
 </template>
 
 <style scoped>
-.feed-scroll { position: relative; }
+
 .backdrop { position: absolute; left: 0; right: 0; top: 0; height: 720px; overflow: hidden; pointer-events: none; }
 .backdrop img { position: absolute; inset: -120px; width: calc(100% + 240px); height: calc(100% + 240px); object-fit: cover; filter: blur(70px) saturate(1.3); opacity: 0.45; }
 .backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9, 9, 12, 0.2) 0%, var(--c-bg) 100%); }
@@ -283,27 +277,36 @@ function resume(item) {
   color: var(--c-accent-fg);
 }
 
-.grid {
+/* The newest tests: a row to swipe, the next card peeking at the edge. */
+.latest { margin-bottom: 36px; }
+.row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px 14px;
+  grid-auto-flow: column;
+  grid-auto-columns: 40%;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin: 0 calc(var(--gutter) * -1);
+  padding: 4px var(--gutter) 8px;
+  scroll-padding: 0 var(--gutter);
 }
-@media (min-width: 600px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 28px 24px; } }
+.row::-webkit-scrollbar { display: none; }
+.row > * { scroll-snap-align: start; }
+@media (min-width: 600px) { .row { grid-auto-columns: 26%; } }
+@media (min-width: 900px) { .row { grid-auto-columns: 180px; gap: 24px; } }
 .skel { aspect-ratio: 3 / 4; }
 
 .filter-name { color: var(--c-fg-2); }
-.head-side { display: flex; align-items: center; gap: 12px; }
-/* Phone: the heading on its own line, the filter and the count beneath. */
+/* Phone: the heading on its own line, the way back to all shows beneath. */
 @media (max-width: 767px) {
   .latest .section-head { flex-wrap: wrap; }
   .latest .section-head h2 { flex-basis: 100%; }
-  .head-side { flex: 1; justify-content: space-between; }
 }
 .empty { padding: 64px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
 .empty__text { color: var(--c-fg-2); margin: 0; }
-/* Phone: compact, so the grid starts on the first screen — the whole card
+/* Phone: compact, so the tests start on the first screen — the whole card
    resumes, the cover is small, less air. */
 @media (max-width: 767px) {
   .feed { padding-top: 12px; }
