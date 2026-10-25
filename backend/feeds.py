@@ -142,7 +142,7 @@ def _apply_readings(episodes: list[Episode], readings: dict[str, list[dict]]) ->
         if ep.proposed is None:
             ep.proposed = list(ep.games)
         for mention in ep.proposed:
-            mention.critique = None
+            mention.critique = mention.duration_seconds = None
         sections = readings.get(ep.slug)
         if not sections:
             ep.games, ep.identified = list(ep.proposed), []

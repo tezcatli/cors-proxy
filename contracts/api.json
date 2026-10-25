@@ -488,6 +488,7 @@
           "podcast",
           "timestamp",
           "timestampSeconds",
+          "durationSeconds",
           "critique"
         ]
       },

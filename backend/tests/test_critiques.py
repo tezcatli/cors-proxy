@@ -81,6 +81,22 @@ def test_a_test_starts_at_its_critique_not_a_teaser():
     assert t.timestamp_seconds == 162
 
 
+def test_a_test_lasts_over_the_sections_on_its_game_after_its_critique_ads_aside():
+    ad = {**section(None, None, 2022, 2), 'ad': True}
+    sections = [section('TLOU2', 'impressions', 0, 2), section(None, None, 120, 1),
+                section('TLOU2', 'review', 162, 31), ad, section('TLOU2', 'discussion', 2142, 5),
+                section('Other', 'review', 2442, 6), section('TLOU2', 'news', 2802, 1)]
+    [t, o] = critiques.select(SOJ, episode(read=['TLOU2', 'Other']), sections)
+    assert (t.timestamp_seconds, t.duration_seconds) == (162, 2142 + 300 - 162)
+    assert o.duration_seconds == 360
+
+
+def test_a_one_game_show_s_test_lasts_to_the_end_of_the_reading():
+    ep = episode('Astrobot', chapters=[Chapter('0:25', 25, 'Intro')])
+    [t] = critiques.select(FDG, ep, [section('Astrobot', 'review', 236, 30)])
+    assert t.duration_seconds == 236 + 1800 - 25
+
+
 def test_a_palmares_format_is_known_by_its_title():
     assert critiques.palmares(TC, 'Triple Click Picks: The Games You Should Play (2026 Edition)')
     assert critiques.palmares(SOJ, "S19E19 - Les «Silences d'or» 2025")

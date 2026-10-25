@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  formatDate, timeAgo, getScoreClass, formatEpisodeCount, progressPct, formatTime, testHref,
+  formatDate, timeAgo, getScoreClass, formatEpisodeCount, progressPct, formatTime, formatDuration, testHref,
 } from '../src/lib/utils.js';
 
 // ── getScoreClass ─────────────────────────────────────────────────────────
@@ -124,3 +124,16 @@ describe('testHref', () => {
     expect(testHref({ ep: { slug: 'g/1', urlSlug: 'ep-1' }, test: { name: 'Inconnu' } })).toBe('/episode/ep-1')
   })
 })
+
+describe('formatDuration', () => {
+  it('says minutes, then hours and minutes past an hour', () => {
+    expect(formatDuration(20)).toBe('1 min');
+    expect(formatDuration(1110)).toBe('19 min');
+    expect(formatDuration(3900)).toBe('1 h 05');
+  });
+  it('says nothing for an unknown length', () => {
+    expect(formatDuration(null)).toBe('');
+    expect(formatDuration(undefined)).toBe('');
+    expect(formatDuration(0)).toBe('');
+  });
+});

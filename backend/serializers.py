@@ -189,6 +189,7 @@ def serialise_episode(episode: Episode, mention=None) -> dict:
         'podcast':          _podcast(episode),
         'timestamp':        mention.timestamp        if mention else None,
         'timestampSeconds': mention.timestamp_seconds if mention else 0,
+        'durationSeconds':  mention.duration_seconds  if mention else None,
         # That game's test: {verdict, pros, cons, at}; None outside a game's
         # context, or while the episode is unread.
         'critique':         mention.critique          if mention else None,
