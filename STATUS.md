@@ -19,7 +19,7 @@
   - La page épisode : une liste de moments au même gabarit ; un test y mène à sa fiche, où est l'avis.
   - La recherche trouve aussi les épisodes par leur titre. Un titre trop long défile dans le lecteur.
   - Fiche jeu : on glisse entre la pochette, la bande-annonce et les images (`MediaViewer`) ; le journal des tests est aligné, une cible par action (▶, ↗, ⌄).
-- **Livré (2026-10-25) : la durée des tests** sur la fiche jeu (« 13 min »), à la place de l'heure de début (`critiques.span`, recalculée des lectures, sans migration). En dev, ORIGAMI, ZQSD et Game Informer n'ont aucune lecture dans `llm_cache`, donc ni début ni durée.
+- **Livré (2026-10-25) : la durée des tests** sur la fiche jeu (« 13 min »), à la place de l'heure de début (PR #31, `critiques.span`, recalculée des lectures, sans migration). En prod, tous les tests contrôlés (763 sur 400 fiches) ont une durée. La base de dev n'a pas les lectures d'ORIGAMI, ZQSD et Game Informer (la prod en a 122, 208 et 93) : `pull-prod-data.sh` les ramènerait. Sauvegarde : `users.db.bak-duration`.
 - **Ouvert.**
   - Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début ; des chapitres Game Informer, tirés de la description, sont collés en un seul (« Introduction03:25 - … »).
   - Le paquet du labo devrait aussi porter les réponses des noms qui ne sont pas des tests, et les tâches `reviewed`, pour que la prod ne les redemande pas (prochaine livraison). Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions possibles).
