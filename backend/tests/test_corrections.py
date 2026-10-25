@@ -2,62 +2,35 @@ import datetime
 import os
 import stat
 import pytest
-from corrections import find_by_podcast, _find, _BY_SLUG
+import corrections as _corr
+from corrections import find_by_podcast, _find
 from utils import make_slug
 
 
-# ── find_by_podcast ────────────────────────────────────────────────────────────
+# ── Finding a name's correction ───────────────────────────────────────────────
 
-def test_find_by_podcast_known_name():
-    c = find_by_podcast('Vendran Las Aves')
-    assert c is not None
-    assert c['search_name'] == 'Vendrán las aves'
+@pytest.fixture
+def shipped(tmp_corrections):
+    import json
+    tmp_corrections.write_text(json.dumps({'corrections': [
+        {'podcast_name': 'Vendran Las Aves', 'search_name': 'Vendrán las aves'},
+        {'podcast_name': 'Bioshock 1', 'igdb_id': 152660},
+    ]}))
+    _corr.load()
 
-def test_find_by_podcast_case_insensitive():
-    c = find_by_podcast('vendran las aves')
-    assert c is not None
 
-def test_find_by_podcast_no_match():
+def test_a_name_finds_its_correction_by_its_slug(shipped):
+    assert find_by_podcast('vendran  las AVES')['search_name'] == 'Vendrán las aves'
+    assert find_by_podcast('Bioshock 1')['igdb_id'] == 152660
+    # The slug is the identity: an unspaced « Bioshock1 » is another name.
+    assert find_by_podcast('Bioshock1') is None
     assert find_by_podcast('Elden Ring') is None
 
-def test_find_by_podcast_with_igdb_id():
-    c = find_by_podcast('summer of arcade')
-    assert c is not None
-    assert c['igdb_id'] == 3160
 
-def test_find_by_podcast_search_name_overrides():
-    c = find_by_podcast('eté')
-    assert c is not None
-    assert c['search_name'] == 'Été'
-
-def test_find_by_podcast_search_name_none_when_not_needed():
-    # The feed spaces it; an unspaced "Bioshock1" must NOT match, since
-    # make_slug maps the two to different slugs (bioshock-1 / bioshock1).
-    c = find_by_podcast('Bioshock 1')
-    assert c is not None
-    assert c.get('search_name') is None
-    assert c['igdb_id'] == 152660
-    assert find_by_podcast('Bioshock1') is None
-
-
-def test_unmatched_slugs_flags_corrections_absent_from_the_feed():
+def test_unmatched_slugs_flags_corrections_absent_from_the_feed(shipped):
     from corrections import unmatched_slugs
-    assert 'bioshock-1' not in unmatched_slugs(['bioshock-1', 'vendran-las-aves'])
-    assert 'bioshock-1' in unmatched_slugs(['vendran-las-aves'])
-
-
-# ── _find (slug-level lookup) ─────────────────────────────────────────────────
-
-def test_find_by_slug_match():
-    c = _find(make_slug('vendran las aves'), None)
-    assert c is not None
-    assert c['search_name'] == 'Vendrán las aves'
-
-def test_find_by_slug_no_match():
-    assert _find('completely-unknown-game', None) is None
-
-def test_find_by_slug_same_as_find_by_podcast():
-    assert _find(make_slug('eté'), None) == find_by_podcast('eté')
+    assert unmatched_slugs(['bioshock-1', 'vendran-las-aves']) == []
+    assert unmatched_slugs(['vendran-las-aves']) == ['bioshock-1']
 
 
 # ── hint_date exact-date matching ─────────────────────────────────────────────
@@ -88,9 +61,9 @@ SLUG_MULTI = make_slug('__test_multi__')
 
 @pytest.fixture(autouse=False)
 def inject_test_corrections():
-    _BY_SLUG[SLUG_MULTI] = DATED_CORRECTIONS
+    _corr._BY_SLUG[SLUG_MULTI] = DATED_CORRECTIONS   # through the module: load() replaces it
     yield
-    del _BY_SLUG[SLUG_MULTI]
+    del _corr._BY_SLUG[SLUG_MULTI]
 
 
 @pytest.mark.parametrize('pub_date, expected', [
@@ -103,35 +76,7 @@ def test_a_dated_correction_wins_on_its_day_else_the_undated_one(inject_test_cor
     assert _find(SLUG_MULTI, pub_date and _pub_ts(pub_date))['search_name'] == expected
 
 
-# ── display_name override ──────────────────────────────────────────────────────
-
-DISPLAY_CORRECTIONS = [
-    {
-        'podcast_name': '__test_display__',
-        'igdb_id':      99999,
-        'display_name': 'My Custom Name',
-    },
-]
-
-SLUG_DISPLAY = make_slug('__test_display__')
-
-
-@pytest.fixture(autouse=False)
-def inject_display_correction():
-    _BY_SLUG[SLUG_DISPLAY] = DISPLAY_CORRECTIONS
-    yield
-    del _BY_SLUG[SLUG_DISPLAY]
-
-
-def test_correction_display_name_field(inject_display_correction):
-    c = _find(SLUG_DISPLAY, None)
-    assert c is not None
-    assert c['display_name'] == 'My Custom Name'
-
-
 # ── corrections.json: schema validation ───────────────────────────────────────
-
-import corrections as _corr
 
 
 def _valid(**over):
