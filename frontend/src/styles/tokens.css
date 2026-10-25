@@ -1,9 +1,10 @@
-/* The homage system (DECISIONS.md, « Interface »): near-black ground, square
+/* The homage system (DECISIONS.md, « Interface »): a black page, square
    panels, Sora for titles and labels, Inter for text. Colour belongs to the
-   games: a game's page, its tiles and the player take their accent, ground and
-   panels from its cover (`useGameTheme`, which overrides the --c-* tokens on
-   its subtree). Outside a game, the accent is a neutral near-white. Verdicts
-   are told by their word, never by a hue. */
+   games: a page takes its subject's light, the accent and the halo's two hues,
+   from its cover (`useGameTheme`, which overrides those tokens on its subtree);
+   the ground stays black. Outside a game, the accent is a neutral near-white
+   and the mark's // the icon's yellow. Verdicts are told by their word, never
+   by a hue. */
 :root {
   /* ─── Surfaces & lines ─────────────────────────────────────────────── */
   --c-bg:          #09090c;
@@ -21,8 +22,9 @@
   --c-accent:    #f2f2f5;
   --c-accent-fg: #09090c;
   --c-danger:    #ff6b4a;
-  --game-glow:   rgba(242, 242, 245, 0.16);
-  --game-veil:   rgba(9, 9, 12, 0.75);
+  --c-mark:      #ffff00;   /* the // of the mark and of section titles, outside a game */
+  --game-glow:   rgba(242, 242, 245, 0.10);
+  --game-glow-2: rgba(242, 242, 245, 0.05);
 
   /* Older names, still read by the admin consoles' scoped styles (and the
      IGDB picker): aliases onto the system above. Resolution status keeps
@@ -63,8 +65,9 @@
   --text-2xl:   28px;
   --text-hero:  clamp(40px, 6vw, 72px);
 
-  /* ─── Elevation: covers float, glowing in their own colour ─────────── */
-  --shadow-cover: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 0 60px var(--game-glow), 0 30px 70px rgba(0, 0, 0, 0.7);
+  /* ─── Covers glow in their own colour; no dark drop, which shaded what
+     follows them over the halo ─────────────────────────────────────── */
+  --shadow-cover: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 0 60px var(--game-glow);
 
   /* ─── Z-index layers ───────────────────────────────────────────────── */
   --z-detail:   150;

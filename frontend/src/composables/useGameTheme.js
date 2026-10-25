@@ -1,14 +1,14 @@
 import { ref, computed, watch, unref } from 'vue'
 import { igdbUrl } from '../lib/igdbCdn.js'
 
-// A game's colours, read from its cover (DECISIONS.md, « Interface »: each game
-// page pays homage to its game). The cover's most vivid hue becomes the accent,
-// lifted until it reads at 4.5:1 on the game's own panel; the ground and the
-// panels are that hue, nearly black. `style` overrides the --c-* tokens on the
-// subtree it is bound to, so everything there that reads --c-accent, --c-bg,
-// --c-surface or --c-line takes the game's colours. IGDB's CDN allows reading
-// the pixels (Access-Control-Allow-Origin: *); when it can't be read the tokens
-// stay neutral.
+// A game's light, read from its cover (DECISIONS.md, « Interface »: one page,
+// one light, the page itself black). The cover's most vivid hue becomes the
+// accent, lifted until it reads at 4.5:1 on the black ground; it and a second
+// hue of the cover, far enough from the first, colour the halo (--game-glow,
+// --game-glow-2). `style` overrides those tokens on the subtree it is bound to;
+// the ground and the panels stay neutral. IGDB's CDN allows reading the pixels
+// (Access-Control-Allow-Origin: *); when it can't be read the tokens stay
+// neutral.
 //
 // A palette is read once per cover and kept (memory, then localStorage), so a
 // game seen before opens in its colours at once. A tile that shows the cover
@@ -16,7 +16,7 @@ import { igdbUrl } from '../lib/igdbCdn.js'
 
 const SAMPLE_W = 36
 const SAMPLE_H = 48
-const STORE_KEY = 'ludo.palettes'
+const STORE_KEY = 'ludo.palettes.v2'  // v2: the second hue (glow2)
 const STORE_MAX = 800                // ~200 bytes each
 const cache = new Map()              // cover id → palette (null: unreadable), or the promise of one
 let stored = null                    // localStorage's palettes, read on first use
@@ -49,7 +49,7 @@ function remember(id, palette) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch { /* full or blocked: memory only */ }
 }
 
-/** The palette of RGBA pixels (an ImageData's data): {accent, on, bg, panel, line, glow, veil}. */
+/** The palette of RGBA pixels (an ImageData's data): {accent, on, glow, glow2}. */
 export function paletteOf(pixels) {
   const bins = Array.from({ length: 24 }, () => ({ n: 0, w: 0, r: 0, g: 0, b: 0 }))
   for (let i = 0; i < pixels.length; i += 4) {
@@ -61,13 +61,15 @@ export function paletteOf(pixels) {
     bin.w += s * (1 - Math.abs(l - 0.5))              // vivid, mid-light pixels weigh most
     bin.r += r; bin.g += g; bin.b += b
   }
-  const best = bins.reduce((a, b) => (b.w > a.w ? b : a))
-  let accent = [0, 0, 0.9]                             // no hue to speak of: near-white
-  if (best.n >= 8) {
-    const [h, s, l] = hsl(best.r / best.n, best.g / best.n, best.b / best.n)
-    accent = [h, Math.max(s, 0.55), Math.min(Math.max(l, 0.55), 0.7)]
-  }
-  return paletteAround(accent)
+  const vivid = bin => (bin && bin.n >= 8 ? lift(hsl(bin.r / bin.n, bin.g / bin.n, bin.b / bin.n)) : null)
+  const at = bins.indexOf(bins.reduce((a, b) => (b.w > a.w ? b : a)))
+  const accent = vivid(bins[at]) ?? [0, 0, 0.9]       // no hue to speak of: near-white
+  // The halo's second colour: the weightiest hue at least 45° from the first
+  // (and worth a tenth of it), else the first again.
+  const far = bins
+    .filter((b, i) => Math.min(Math.abs(i - at), 24 - Math.abs(i - at)) >= 3 && b.w >= bins[at].w / 10)
+    .reduce((a, b) => (!a || b.w > a.w ? b : a), null)
+  return paletteAround(accent, vivid(far) ?? accent)
 }
 
 /**
@@ -77,39 +79,36 @@ export function paletteOf(pixels) {
 export function paletteFromAccent(color) {
   if (!color) return null
   const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16))
-  const [h, s, l] = hsl(r, g, b)
-  return paletteAround([h, Math.max(s, 0.55), Math.min(Math.max(l, 0.55), 0.7)])
+  const accent = lift(hsl(r, g, b))
+  return paletteAround(accent, accent)
 }
 
-function paletteAround(accent) {
-  const sat   = Math.min(accent[1], 0.45) * 0.5
-  const bg    = rgb([accent[0], sat, 0.06])
-  const panel = rgb([accent[0], sat, 0.1])
+// A hue made vivid enough to light a page.
+function lift([h, s, l]) { return [h, Math.max(s, 0.55), Math.min(Math.max(l, 0.55), 0.7)] }
+
+const GROUND = [9, 9, 12]   // --c-bg: the page stays black
+
+function paletteAround(accent, second) {
   const a = [...accent]
-  while (contrast(rgb(a), panel) < 4.5 && a[2] < 0.95) a[2] += 0.03
+  while (contrast(rgb(a), GROUND) < 4.5 && a[2] < 0.95) a[2] += 0.03
   const ar = rgb(a)
   return {
     accent: hex(ar),
-    on:     contrast(ar, [9, 9, 12]) >= contrast(ar, [255, 255, 255]) ? '#09090c' : '#ffffff',
-    bg:     hex(bg),
-    panel:  hex(panel),
-    line:   `rgba(${ar.join(',')}, 0.35)`,
-    glow:   `rgba(${ar.join(',')}, 0.4)`,
-    veil:   `rgba(${bg.join(',')}, 0.75)`,
+    on:     contrast(ar, GROUND) >= contrast(ar, [255, 255, 255]) ? '#09090c' : '#ffffff',
+    glow:   `rgba(${ar.join(',')}, 0.5)`,
+    glow2:  `rgba(${rgb(second).join(',')}, 0.4)`,
   }
 }
 
-/** The CSS variables a palette sets on a subtree; {} for none (the neutral tokens). */
+/** The CSS variables a palette sets on a subtree: its light only, never the ground; {} for none. */
 export function themeStyle(p) {
   if (!p) return {}
   return {
     '--c-accent':    p.accent,
     '--c-accent-fg': p.on,
-    '--c-bg':        p.bg,
-    '--c-surface':   p.panel,
-    '--c-line':      p.line,
     '--game-glow':   p.glow,
-    '--game-veil':   p.veil,
+    '--game-glow-2': p.glow2 ?? p.glow,
+    '--c-mark':      p.accent,
   }
 }
 

@@ -68,11 +68,15 @@ const timeline = computed(() => episodeTimeline(episode.value?.chapters ?? [], t
 // The test we came for, from a game's page.
 const leadTest = computed(() => (fromGame ? tests.value.find(t => t.slug === fromGame) ?? null : null))
 
-// Its game's colours when we came for a test; else the podcast's.
-const { style: gameTheme } = useGameTheme(() => leadTest.value?.coverImageId ?? null)
-const theme = computed(() => (leadTest.value ? gameTheme.value : themeStyle(paletteFromAccent(podcastMeta(podcast.value?.id)?.accent))))
-const backdrop = computed(() => (leadTest.value?.coverImageId
-  ? igdbUrl(leadTest.value.coverImageId, 't_cover_small')
+// The page's light and image (DECISIONS.md, « Interface » : une page = une
+// lumière): the test we came for, else the episode's first test; else the podcast.
+const lightTest = computed(() => leadTest.value?.coverImageId ? leadTest.value
+  : [...tests.value].filter(t => t.coverImageId)
+      .sort((a, b) => (a.timestampSeconds ?? Infinity) - (b.timestampSeconds ?? Infinity))[0] ?? null)
+const { style: gameTheme } = useGameTheme(() => lightTest.value?.coverImageId ?? null)
+const theme = computed(() => (lightTest.value ? gameTheme.value : themeStyle(paletteFromAccent(podcastMeta(podcast.value?.id)?.accent))))
+const sceneArt = computed(() => (lightTest.value
+  ? igdbUrl(lightTest.value.coverImageId, 't_cover_big')
   : podcast.value?.imageUrl ?? null))
 
 const isThisTrack = computed(() =>
@@ -167,9 +171,10 @@ const rows = computed(() => {
     </div>
 
     <div v-else class="scroll-area ep-scroll">
-      <div v-if="backdrop" class="backdrop" aria-hidden="true"><img :src="backdrop" alt="" /></div>
+      <div class="halo" aria-hidden="true"></div>
       <div class="content ep">
         <header class="ep__head">
+          <span v-if="sceneArt" class="ep__scene corners" :class="{ 'ep__scene--pod': !lightTest }"><img :src="sceneArt" alt="" /></span>
           <RouterLink v-if="podcast" :to="`/podcast/${podcast.id}`" class="ep__show">
             <img v-if="podcast.imageUrl" :src="podcast.imageUrl" alt="" class="ep__art" />
             <span class="lab">{{ podcast.name }} · {{ formatShortDate(episode.pubTs) }}</span>
@@ -185,12 +190,13 @@ const rows = computed(() => {
           </div>
         </header>
 
-        <section v-if="rows.length" class="block" aria-labelledby="h-programme">
+        <div class="ep__body">
+        <section v-if="rows.length" class="section" aria-labelledby="h-programme">
           <div class="section-head">
             <h2 id="h-programme">Au programme</h2>
           </div>
-          <ol class="tl">
-            <li v-for="row in rows" :key="row.key" class="mo" :class="{ 'is-on': row.on, 'is-lead': row.lead }">
+          <ol class="tl lines">
+            <li v-for="row in rows" :key="row.key" class="mo line" :class="{ 'is-on': row.on, 'is-lead': row.lead }">
               <button type="button" class="mo__btn" :title="row.title" :aria-label="row.label" :disabled="!row.play" @click="row.play?.()">
                 <span class="mono mo__ts">{{ row.ts }}</span>
                 <img v-if="row.cover" :src="igdbUrl(row.cover, 't_cover_small')" alt="" class="mo__cover" loading="lazy" />
@@ -213,6 +219,7 @@ const rows = computed(() => {
           <summary class="lab">Description de l'épisode</summary>
           <div class="about__body" v-html="episode.description" />
         </details>
+        </div>
       </div>
     </div>
   </div>
@@ -224,32 +231,34 @@ const rows = computed(() => {
 .state__text { color: var(--c-fg-2); }
 
 .ep-scroll { position: relative; }
-.backdrop { position: absolute; left: 0; right: 0; top: 0; height: 640px; overflow: hidden; pointer-events: none; }
-.backdrop img { position: absolute; inset: -120px; width: calc(100% + 240px); height: calc(100% + 240px); object-fit: cover; filter: blur(60px) saturate(1.3); opacity: 0.45; }
-.backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, var(--game-veil) 55%, var(--c-bg) 100%); }
-.ep { position: relative; max-width: 1040px; }
+.ep { padding-bottom: 40px; }
+/* The scene: the light's cover, framed; then the podcast, the title, the play. */
 .ep__head { padding: 28px 0 40px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.ep__scene { --corner: 14px; display: block; width: 132px; aspect-ratio: 3 / 4; margin-bottom: 8px; box-shadow: var(--shadow-cover); }
+.ep__scene img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ep__scene--pod { aspect-ratio: 1 / 1; }
+@media (min-width: 900px) {
+  .ep { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 64px; align-items: start; }
+  .ep__head { position: sticky; top: 0; padding-top: 40px; }
+  .ep__scene { width: 240px; }
+  .ep__body { padding-top: 40px; }
+}
 .ep__show { display: flex; align-items: center; gap: 12px; min-height: 44px; text-decoration: none; }
 .ep__show .lab { color: var(--c-accent); }
 .ep__show:hover .lab { text-decoration: underline; text-underline-offset: 3px; }
 .ep__art { width: 48px; height: 48px; object-fit: cover; }
-.ep__title { margin: 0; font-size: clamp(26px, 5vw, 56px); line-height: 1.05; overflow-wrap: anywhere; }
+.ep__title { margin: 0; font-size: clamp(26px, 4vw, 40px); line-height: 1.08; overflow-wrap: anywhere; }
 .ep__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ep__main { min-width: 200px; }
 
-/* The moments: one panel, every row alike — time, a cover column (a test's
-   cover, else empty, so the titles line up), the title on two lines at most,
-   its state, and the way to a test's game. The time and the state sit on the
-   title's first line. */
-.block { margin-bottom: 32px; background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
-.block .section-head { margin: 0; padding: 14px 20px; border-bottom: 1px solid var(--c-line); }
-.block .section-head h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+/* The moments: one line each (`.line`, components.css), every row alike —
+   time, a cover column (a test's cover, else empty, so the titles line up),
+   the title on two lines at most, its state, and the way to a test's game. The
+   time and the state sit on the title's first line. */
 .tl { list-style: none; margin: 0; padding: 0; }
 
-.mo { display: flex; align-items: flex-start; border-bottom: 1px solid var(--c-line); }
-.mo:last-child { border-bottom: 0; }
+.mo { display: flex; align-items: flex-start; }
 .mo.is-lead { background: rgba(255, 255, 255, 0.03); }
-.mo.is-on { background: rgba(255, 255, 255, 0.05); box-shadow: inset 3px 0 0 var(--c-accent); }
 .mo__btn {
   flex: 1;
   min-width: 0;
@@ -258,7 +267,7 @@ const rows = computed(() => {
   align-items: start;
   column-gap: 14px;
   min-height: 52px;
-  padding: 8px 0 8px 20px;
+  padding: 8px 0 8px 12px;
   border: 0;
   background: transparent;
   color: var(--c-fg-2);
@@ -288,7 +297,7 @@ img.mo__cover { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16); }
   .mo__go { width: 44px; }
 }
 
-.about { box-shadow: inset 0 0 0 1px var(--c-line); padding: 0 16px; margin-bottom: 40px; }
+.about { border-bottom: 1px solid var(--c-line); }
 .about summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .about__body { color: var(--c-fg-2); padding-bottom: 16px; max-width: 75ch; overflow-wrap: anywhere; }
 .about__body :deep(a) { color: var(--c-fg); text-decoration: underline; text-underline-offset: 2px; }

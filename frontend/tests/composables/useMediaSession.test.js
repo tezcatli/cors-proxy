@@ -91,7 +91,7 @@ describe('useMediaSession', () => {
   it('shows the chapter title even when the chapter has no artwork', () => {
     const store = usePlayerStore()
     store.play({
-      game: 'Multi', episode: 'Ep 1', url: 'u', episodeImageUrl: 'ep.jpg',
+      game: 'Multi', episode: 'Ep 1', url: 'u', podcast: { id: 'soj', name: 'Silence on Joue', imageUrl: 'show.jpg' },
       chapters: [
         { title: 'Chapter A', timestampSeconds: 0,   slug: 'a', coverImageId: 111 },
         { title: 'Chapter B', timestampSeconds: 100, slug: 'b', coverImageId: null },
@@ -106,8 +106,9 @@ describe('useMediaSession', () => {
 
     const meta = navigator.mediaSession.metadata
     expect(meta.title).toBe('Chapter B')        // chapter title, not the episode
-    expect(meta.artist).toBe('Ep 1')
-    expect(meta.artwork[0].src).toBe('ep.jpg')  // episode-image fallback
+    expect(meta.artist).toBe('Silence on Joue') // the podcast on Android's second line
+    expect(meta.album).toBe('Ep 1')
+    expect(meta.artwork[0].src).toBe('show.jpg')  // the podcast's image
   })
 
   it('uses the chapter cover when the chapter has one', () => {
@@ -153,7 +154,8 @@ describe('useMediaSession', () => {
       { title: 'Hades II, suite', timestampSeconds: 300, slug: 'hades', coverImageId: 'coA' },
       { title: 'Silksong',       timestampSeconds: 400, slug: 'silk', coverImageId: 'coB' },
     ]
-    const track = extra => ({ game: 'Ep 1', episode: 'Ep 1', url: 'u', episodeImageUrl: 'show.jpg', tests: [A, B], ...extra })
+    const podcast = { id: 'silence-on-joue', name: 'Silence on Joue', imageUrl: 'show.jpg' }
+    const track = extra => ({ game: 'Ep 1', episode: 'Ep 1', url: 'u', podcast, tests: [A, B], ...extra })
     const art   = () => navigator.mediaSession.metadata.artwork[0].src
     const at    = async t => { media.emit('timeupdate', { currentTime: t }); await nextTick() }
 
@@ -170,7 +172,8 @@ describe('useMediaSession', () => {
         ['show.jpg', 'Intro'], ['A', 'Hades II'], ['show.jpg', 'Le courrier'],
         ['A', 'Hades II'], ['B', 'Hollow Knight: Silksong'],
       ])
-      expect(navigator.mediaSession.metadata.artist).toBe('Ep 1')
+      expect(navigator.mediaSession.metadata.artist).toBe('Silence on Joue')
+      expect(navigator.mediaSession.metadata.album).toBe('Ep 1')
     })
 
     it('shows test A when the track started at test B is taken back to A', async () => {
@@ -184,10 +187,10 @@ describe('useMediaSession', () => {
 
     it('never shows the game the track was started for outside its test', async () => {
       const store = usePlayerStore()
-      store.play(track({ chapters, game: 'Silksong', slug: 'silk', coverImageId: 'coB', ts: 400 }))
+      store.play(track({ chapters, game: 'Silksong', slug: 'silk', coverImageId: 'coB', ts: 400, episodeImageUrl: 'coB.jpg' }))
       useMediaSession(store).initMediaSession(store.current)
       await at(10)
-      expect(art()).toBe('show.jpg')
+      expect(art()).toBe('show.jpg')     // the podcast's, not the episode's own image
     })
 
     it('loads the chapters of a track started from a list', async () => {
