@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- LUDO// mark: a white L and the two on-air slashes. Full-bleed square so
-       the maskable crop keeps it whole (content inside the 80 % safe zone). -->
-  <rect width="512" height="512" fill="#0b0b0b"/>
-  <path d="M106 150h52v160h92v52H106z" fill="#f5f5f5"/>
-  <path d="M250 362h44l58-212h-44zM312 362h44l58-212h-44z" fill="#ffd23f"/>
+  <!-- The mark's icon (DECISIONS.md, « Interface »): an L on the light block,
+       and the slanted // in yellow. Shapes, not text: no font to load. Full-bleed
+       square so the maskable crop keeps it whole (inside the 80 % safe circle). -->
+  <rect width="512" height="512" fill="#09090c"/>
+  <rect x="91" y="146" width="156" height="220" fill="#f2f2f5"/>
+  <path d="M125 182h44v104h48v44h-92z" fill="#09090c"/>
+  <path d="M255 366h42l64-220h-42zM315 366h42l64-220h-42z" fill="#ffff00"/>
 </svg>
