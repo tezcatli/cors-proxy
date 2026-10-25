@@ -23,7 +23,7 @@ export function useMediaSession(playerStore) {
     return []
   }
 
-  // What is on air (the store's `onAir`): the test's cover, else the podcast's
+  // What is on air (the store's `onAir`): the test's cover, else the episode's
   // image — the same as the player's.
   function currentArtwork() {
     const air = playerStore.onAir

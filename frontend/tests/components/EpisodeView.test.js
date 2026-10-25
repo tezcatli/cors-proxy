@@ -4,12 +4,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { usePlayerStore } from '../../src/stores/player.js'
 import { setMediaFactory, resetMediaFactory } from '../../src/lib/audioEngine.js'
 import { createFakeMedia } from '../helpers/fakeMedia.js'
-import { button, links } from '../helpers/find.js'
+import { button, links, byTest } from '../helpers/find.js'
 import EpisodeView from '../../src/components/EpisodeView.vue'
 
 // SoJ S20E07's shape: the feed's chapters, the tests at their critique.
 const EPISODE = {
-  title: 'S20E07', slug: 'guid-7', urlSlug: 's20e07', audioUrl: 's.mp3', pubTs: 1790500000,
+  title: 'S20E07', slug: 'guid-7', urlSlug: 's20e07', audioUrl: 's.mp3', pubTs: 1790500000, imageUrl: 's20e07.jpg',
   podcast: { id: 'silence-on-joue', name: 'Silence on Joue', imageUrl: 'soj.jpg' },
   chapters: [
     { timestamp: '0:00',    timestampSeconds: 0,    title: 'Intro' },
@@ -60,6 +60,16 @@ describe('EpisodeView', () => {
     expect(moments(w).filter(m => m.find('img').exists())).toHaveLength(2)
     expect(w.text()).not.toContain('Positif')
     expect(w.text()).not.toContain('Des courses nerveuses')
+  })
+
+  it('heads the page with the episode’s image, else its podcast’s — never a game’s cover', async () => {
+    const w = await mountPage()
+    expect(byTest(w, 'scene')[0].find('img').attributes('src')).toBe('s20e07.jpg')
+    expect(w.findAll('img').filter(i => i.attributes('src') === 'soj.jpg')).toHaveLength(0)
+    EPISODE.imageUrl = null
+    const bare = await mountPage()
+    EPISODE.imageUrl = 's20e07.jpg'
+    expect(byTest(bare, 'scene')[0].find('img').attributes('src')).toBe('soj.jpg')
   })
 
   it('leads each test to its game’s page', async () => {
