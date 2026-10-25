@@ -117,8 +117,8 @@ export const usePlayerStore = defineStore('player', () => {
 
   // What is on air — the one rule the player and the lock screen follow
   // (DECISIONS.md, « Interface »): the test's cover and game, else the
-  // podcast's image and the chapter (or the episode). Never the game the track
-  // was started for.
+  // episode's image (its podcast's when it has none) and the chapter (or the
+  // episode). Never the game the track was started for.
   const onAir = computed(() => {
     const cur = current.value
     if (!cur) return null
@@ -126,7 +126,7 @@ export const usePlayerStore = defineStore('player', () => {
     return {
       test,
       coverImageId: test?.coverImageId ?? null,
-      imageUrl:     cur.podcast?.imageUrl ?? cur.episodeImageUrl ?? null,
+      imageUrl:     cur.episodeImageUrl ?? cur.podcast?.imageUrl ?? null,
       title:        test ? (test.resolvedName ?? test.name) : (currentChapter.value?.title || cur.episode || ''),
     }
   })

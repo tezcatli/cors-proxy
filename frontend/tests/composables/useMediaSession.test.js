@@ -187,10 +187,10 @@ describe('useMediaSession', () => {
 
     it('never shows the game the track was started for outside its test', async () => {
       const store = usePlayerStore()
-      store.play(track({ chapters, game: 'Silksong', slug: 'silk', coverImageId: 'coB', ts: 400, episodeImageUrl: 'coB.jpg' }))
+      store.play(track({ chapters, game: 'Silksong', slug: 'silk', coverImageId: 'coB', ts: 400, episodeImageUrl: 'ep.jpg' }))
       useMediaSession(store).initMediaSession(store.current)
       await at(10)
-      expect(art()).toBe('show.jpg')     // the podcast's, not the episode's own image
+      expect(art()).toBe('ep.jpg')       // the episode's own image, before its podcast's
     })
 
     it('loads the chapters of a track started from a list', async () => {

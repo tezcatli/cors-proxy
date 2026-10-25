@@ -68,16 +68,15 @@ const timeline = computed(() => episodeTimeline(episode.value?.chapters ?? [], t
 // The test we came for, from a game's page.
 const leadTest = computed(() => (fromGame ? tests.value.find(t => t.slug === fromGame) ?? null : null))
 
-// The page's light and image (DECISIONS.md, « Interface » : une page = une
-// lumière): the test we came for, else the episode's first test; else the podcast.
+// The page's light (DECISIONS.md, « Interface » : une page = une lumière): the
+// test we came for, else the episode's first test; else the podcast. Its image
+// is the episode's own, else its podcast's — never a game's cover.
 const lightTest = computed(() => leadTest.value?.coverImageId ? leadTest.value
   : [...tests.value].filter(t => t.coverImageId)
       .sort((a, b) => (a.timestampSeconds ?? Infinity) - (b.timestampSeconds ?? Infinity))[0] ?? null)
 const { style: gameTheme } = useGameTheme(() => lightTest.value?.coverImageId ?? null)
 const theme = computed(() => (lightTest.value ? gameTheme.value : themeStyle(paletteFromAccent(podcastMeta(podcast.value?.id)?.accent))))
-const sceneArt = computed(() => (lightTest.value
-  ? igdbUrl(lightTest.value.coverImageId, 't_cover_big')
-  : podcast.value?.imageUrl ?? null))
+const sceneArt = computed(() => episode.value?.imageUrl ?? podcast.value?.imageUrl ?? null)
 
 const isThisTrack = computed(() =>
   !!playerStore.current && playerStore.current.url === episode.value?.audioUrl)
@@ -174,9 +173,8 @@ const rows = computed(() => {
       <div class="halo" aria-hidden="true"></div>
       <div class="content ep">
         <header class="ep__head">
-          <span v-if="sceneArt" class="ep__scene corners" :class="{ 'ep__scene--pod': !lightTest }"><img :src="sceneArt" alt="" /></span>
+          <span v-if="sceneArt" class="ep__scene corners" data-test="scene"><img :src="sceneArt" alt="" /></span>
           <RouterLink v-if="podcast" :to="`/podcast/${podcast.id}`" class="ep__show">
-            <img v-if="podcast.imageUrl" :src="podcast.imageUrl" alt="" class="ep__art" />
             <span class="lab">{{ podcast.name }} · {{ formatShortDate(episode.pubTs) }}</span>
           </RouterLink>
           <h1 class="ep__title cond">{{ episode.title }}</h1>
@@ -232,21 +230,19 @@ const rows = computed(() => {
 
 .ep-scroll { position: relative; }
 .ep { padding-bottom: 40px; }
-/* The scene: the light's cover, framed; then the podcast, the title, the play. */
+/* The scene: the episode's image, framed; then the podcast, the title, the play. */
 .ep__head { padding: 28px 0 40px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
-.ep__scene { --corner: 14px; display: block; width: 132px; aspect-ratio: 3 / 4; margin-bottom: 8px; box-shadow: var(--shadow-cover); }
+.ep__scene { --corner: 14px; display: block; width: 132px; aspect-ratio: 1 / 1; margin-bottom: 8px; box-shadow: var(--shadow-cover); }
 .ep__scene img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.ep__scene--pod { aspect-ratio: 1 / 1; }
 @media (min-width: 900px) {
   .ep { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 64px; align-items: start; }
   .ep__head { position: sticky; top: 0; padding-top: 40px; }
   .ep__scene { width: 240px; }
   .ep__body { padding-top: 40px; }
 }
-.ep__show { display: flex; align-items: center; gap: 12px; min-height: 44px; text-decoration: none; }
+.ep__show { display: flex; align-items: center; min-height: 44px; text-decoration: none; }
 .ep__show .lab { color: var(--c-accent); }
 .ep__show:hover .lab { text-decoration: underline; text-underline-offset: 3px; }
-.ep__art { width: 48px; height: 48px; object-fit: cover; }
 .ep__title { margin: 0; font-size: clamp(26px, 4vw, 40px); line-height: 1.08; overflow-wrap: anywhere; }
 .ep__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ep__main { min-width: 200px; }

@@ -26,7 +26,7 @@ const duration = computed(() => playerStore.audioDuration)
 const show     = computed(() => cur.value?.podcast?.name ?? podcastMeta(cur.value?.podcast?.id)?.name ?? '')
 
 // What is on air (the store's `onAir`, shared with the lock screen): the test
-// being heard, else the podcast and the chapter.
+// being heard, else the episode's image and the chapter.
 const title = computed(() => playerStore.onAir?.title ?? '')
 const coverId = computed(() => playerStore.onAir?.coverImageId ?? null)
 const coverSrc = computed(() => coverId.value ? igdbUrl(coverId.value, 't_cover_big') : (playerStore.onAir?.imageUrl ?? null))
