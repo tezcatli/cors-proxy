@@ -68,4 +68,6 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 ## Façon de travailler
 - Rien ne part en prod (merge sur `main`) avant que l'utilisateur ait testé en dev : le travail reste sur une branche locale jusqu'à son feu vert. (2026-10-25)
 - Un test garde une règle (une décision, un invariant, le contrat, la sécurité) ou un bug qui peut revenir : quand une règle change, on réécrit son test plutôt que d'en ajouter un ; le code qui part emporte ses tests. On retire d'abord le code obsolète, puis on fait l'inventaire des tests. (2026-10-25)
+- Le contrat (`contracts/api.json`) décrit aussi les éléments des listes et les champs imbriqués : une forme ne s'écrit qu'à cet endroit, jamais à la main dans un test. (2026-10-25)
+- Les consoles d'admin (outils de dev) : on teste ce qui protège, l'accès et l'écriture des corrections, pas le détail de leur affichage. (2026-10-25)
 - Projet perso, serveur de hobby : une fois le feu vert donné pour une étape en prod, Claude la fait lui-même (sauvegarde avant, vérification après), sans renvoyer les commandes. (2026-10-23)

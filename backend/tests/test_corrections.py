@@ -93,25 +93,14 @@ def inject_test_corrections():
     del _BY_SLUG[SLUG_MULTI]
 
 
-def test_hint_date_exact_match(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2008-10-20'))
-    assert c['search_name'] == 'Game A'
-
-def test_hint_date_second_entry_match(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2023-04-28'))
-    assert c['search_name'] == 'Game B'
-
-def test_hint_date_no_match_falls_back_to_undated(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2015-06-15'))
-    assert c['search_name'] == 'Game Fallback'
-
-def test_hint_date_none_pub_ts_falls_back_to_undated(inject_test_corrections):
-    c = _find(SLUG_MULTI, None)
-    assert c['search_name'] == 'Game Fallback'
-
-def test_hint_date_prefers_dated_over_undated(inject_test_corrections):
-    c = _find(SLUG_MULTI, _pub_ts('2008-10-20'))
-    assert c['search_name'] == 'Game A'   # not 'Game Fallback'
+@pytest.mark.parametrize('pub_date, expected', [
+    ('2008-10-20', 'Game A'),            # its day: the dated entry, not the fallback
+    ('2023-04-28', 'Game B'),
+    ('2015-06-15', 'Game Fallback'),     # no day matches
+    (None,         'Game Fallback'),     # undated episode
+])
+def test_a_dated_correction_wins_on_its_day_else_the_undated_one(inject_test_corrections, pub_date, expected):
+    assert _find(SLUG_MULTI, pub_date and _pub_ts(pub_date))['search_name'] == expected
 
 
 # ── display_name override ──────────────────────────────────────────────────────
