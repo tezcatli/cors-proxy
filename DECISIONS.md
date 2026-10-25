@@ -63,6 +63,7 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - L'icône de l'app installable : un `L` noir sur le pavé clair et `//` penché en jaune `#ffff00`, sur le fond `#09090c` (maquettes, planche « Icône », variante 2). Remplace l'icône de *Studio radio*. (2026-10-25)
 - Le mot-symbole : `LUDO` en noir sur un pavé clair à coins marqués, `//` penché (avance rapide) à la couleur du jeu, celle du dernier test sur la Ludothèque (maquettes https://claude.ai/artifact/EuRL8uUJ7jFRonTtPurPvT, variante 3 avec le `//` de la 2). Le `//` blanc d'avant ne ressortait pas. (2026-10-25)
 - Toute page par-dessus la Ludothèque a deux sorties : ← (un cran) à gauche, `LUDO//` (l'accueil) à droite ; l'accueil dépile l'historique au lieu d'y ajouter une page, et retrouve la Ludothèque telle qu'on l'a laissée. (2026-10-25)
+- Dans l'app installée, le retour s'arrête à la Ludothèque, il ne quitte pas l'app : une entrée de garde sous l'accueil, posée au premier appui (Chrome saute au retour une entrée ajoutée avant toute interaction). Une app ouverte directement sur une page la quitte toujours depuis cette page. (2026-10-25)
 - Une seule barre en haut des pages par-dessus la Ludothèque, pleine, avec son filet, fiche comprise : la barre flottante de la fiche (sans fond, des pastilles sur la pochette) ne ressemblait pas aux autres, et la pochette transparaissait au travers en défilant. (2026-10-25)
 
 - Fiche jeu : un artwork en bandeau et une grande pochette qui le chevauche ; les images en planche après les tests, bande-annonce en tête. (2026-10-24)
