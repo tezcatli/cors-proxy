@@ -15,11 +15,6 @@ export async function refreshCatalog() {
   return r.json()
 }
 
-export async function refreshGameIgdb(slug) {
-  const r = await apiFetch(`/games/${encodeURIComponent(slug)}/igdb-refresh`, { method: 'POST' })
-  return r.json()
-}
-
 export async function fetchEpisodes() {
   const r = await apiFetch('/games/episodes')
   return r.json()

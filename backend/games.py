@@ -26,7 +26,6 @@ from models import PodcastGame
 from podcasts import PODCAST_BY_ID
 from questions import question_for
 from serializers import Member
-from utils import make_slug
 
 logger = logging.getLogger(__name__)
 
@@ -133,28 +132,15 @@ def refresh():
     return jsonify({'games': serializers.build_catalog()})
 
 
-def _purge_and_resolve(members: list[Member], cache) -> None:
-    _purge_with_games(members, cache)
-    resolver.resolve_members(members)
-
-
 def _purge_with_games(members: list[Member], cache) -> int:
-    """An explicit IGDB refresh: ask these appearances' questions again, and
-    re-fetch the games they were answered with — the one way to get a game's data
-    (and its Metacritic score) again before the TTL. Returns how many questions."""
+    """An explicit IGDB refresh (an admin's, per podcast): ask these appearances'
+    questions again, and re-fetch the games they were answered with — the one way
+    to get a game's data (and its Metacritic score) again before the TTL. Returns
+    how many questions."""
     state.expire_games(e.igdb_id for _, a in members if (e := cache.get(a.podcast_slug)))
     keys = {question_for(g, a.episode).key for g, a in members}
     state.purge_cache(keys)
     return len(keys)
-
-
-@games_bp.route('/<string:slug>/igdb-refresh', methods=['POST'])
-@limiter.limit("10 per minute")
-def game_igdb_refresh(slug):
-    # This entry's appearances (by igdb_slug, or the name_slug fallback).
-    members, cache, _ = serializers.match_appearances(slug)
-    worker.call(_purge_and_resolve, members, cache)
-    return jsonify(serializers.load_members(members, make_slug(slug)))
 
 
 # ── Admin: resolution stats & corrections ─────────────────────────────────────

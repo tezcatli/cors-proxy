@@ -118,20 +118,6 @@ def test_catalog_does_not_refetch_once_loaded(client):
     mock_get.assert_called_once()
 
 
-def test_igdb_refresh_returns_game_detail(client):
-    episodes = _parse_feed(MINIMAL_RSS)
-    episode_index, game_index = feeds.build_indexes(episodes)
-    state.episodes = episodes
-    state.episode_index   = episode_index
-    state.game_index      = game_index
-    with patch('resolver.resolve'):
-        r = client.post('/games/Zelda/igdb-refresh', headers=auth_header())
-    assert_contract(r, GAMES['igdb_refresh']['success'])
-    data = r.get_json()
-    assert data['name'] == 'Zelda'
-    assert isinstance(data['episodes'], list)
-
-
 def test_episodes_returns_list_with_slim_shape(client):
     with patch('feeds.http.get', return_value=mock_rss_response()), \
          patch('resolver.schedule_resolve'):

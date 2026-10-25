@@ -339,33 +339,6 @@
         ]
       }
     },
-    "igdb_refresh": {
-      "success": {
-        "status": 200,
-        "fields": [
-          "name",
-          "slug",
-          "igdb",
-          "episodes",
-          "nameSlugs",
-          "corrected",
-          "displayName",
-          "igdbName"
-        ]
-      },
-      "not_found": {
-        "status": 404,
-        "fields": [
-          "error"
-        ]
-      },
-      "unauthorized": {
-        "status": 401,
-        "fields": [
-          "error"
-        ]
-      }
-    },
     "resolution_stats": {
       "success": {
         "status": 200,

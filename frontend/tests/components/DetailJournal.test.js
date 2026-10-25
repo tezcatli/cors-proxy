@@ -20,7 +20,6 @@ const EPISODES = [
 
 vi.mock('../../src/lib/games.js', () => ({
   fetchGameDetail:  vi.fn(async () => ({ episodes: EPISODES, nameSlugs: ['control-resonant'] })),
-  refreshGameIgdb:  vi.fn(),
   fetchEpisodeDetail: vi.fn(() => Promise.reject(new Error('not here'))),
 }))
 vi.mock('../../src/lib/auth.js', async orig => ({ ...(await orig()), isAdmin: () => false }))
@@ -54,9 +53,9 @@ const play   = row => button(row, /^Écouter/)
 const UNREAD = 'Pas encore de lecture de ce test'     // the opinion of a test not read yet
 
 describe('the journal of tests', () => {
-  it('opens a test’s opinion from anywhere on its row', async () => {
+  it('arrives with every test folded, and opens one’s opinion from anywhere on its row', async () => {
     const w = await mountPage()
-    expect(toggle(rows(w)[1]).attributes('aria-expanded')).toBe('false')
+    expect(rows(w).map(r => toggle(r)?.attributes('aria-expanded') ?? 'false')).not.toContain('true')
     await toggle(rows(w)[1]).trigger('click')
     expect(toggle(rows(w)[1]).attributes('aria-expanded')).toBe('true')
     expect(rows(w)[1].text()).toContain(UNREAD)
