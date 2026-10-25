@@ -9,6 +9,7 @@ import { useMediaSession } from '../composables/useMediaSession.js'
 import { useGameTheme } from '../composables/useGameTheme.js'
 import SeekBar from './SeekBar.vue'
 import VerdictMark from './VerdictMark.vue'
+import MarqueeText from './MarqueeText.vue'
 import { Play, Pause, SkipBack, SkipForward, RotateCcw, RotateCw, Volume2, VolumeX, X, Loader2, RefreshCw, ChevronDown, ArrowUpRight } from 'lucide-vue-next'
 
 // The mini player (a bar over the bottom of the base views) and, on a phone,
@@ -110,7 +111,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
         <span class="onair" :class="{ 'is-off': playerStore.paused }" aria-hidden="true"></span>
         <img v-if="coverSrc" :src="coverSrc" alt="" class="bar__cover" />
         <span class="bar__text">
-          <span class="cond bar__title ellipsis">{{ title }}</span>
+          <MarqueeText class="cond bar__title" :text="title" />
           <span class="mono bar__sub ellipsis">{{ show }} · {{ formatTime(playerStore.currentTime) }}<span class="bar__ep"> · {{ cur.episode }}</span></span>
         </span>
       </button>
@@ -158,7 +159,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
       <div class="sheet__body">
         <img v-if="coverSrc" :src="coverSrc" alt="" class="sheet__cover" />
         <div class="sheet__titles">
-          <h2 class="cond sheet__title">{{ title }}</h2>
+          <h2 class="cond sheet__title"><MarqueeText :text="title" /></h2>
           <VerdictMark v-if="test" :verdict="test.critique?.verdict ?? test.verdict ?? null" />
           <p class="mono sheet__ep">{{ show }} · {{ cur.episode }}</p>
         </div>
@@ -311,7 +312,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
 .sheet__body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
 .sheet__cover { width: min(64vw, 280px); aspect-ratio: 3 / 4; object-fit: cover; align-self: center; box-shadow: var(--shadow-cover); }
 .sheet__titles { display: flex; flex-direction: column; gap: 8px; }
-.sheet__title { margin: 0; font-size: 40px; font-weight: 700; line-height: 0.92; }
+.sheet__title { margin: 0; font-size: 40px; font-weight: 700; line-height: 1.1; }
 .sheet__ep { margin: 0; color: var(--c-fg-3); font-size: var(--text-xs); }
 .sheet__controls { display: flex; align-items: center; justify-content: space-between; }
 .sheet__play {
