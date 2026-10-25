@@ -22,7 +22,7 @@ const EPISODES = [
     podcast: { id: 'silence-on-joue', name: 'Silence on Joue' } },
   { slug: 'd', urlSlug: 'd', title: 'Bande-annonce : Zelda arrive', pubTs: 0, games: [],
     podcast: { id: 'silence-on-joue', name: 'Silence on Joue' } },
-  { slug: 'e', urlSlug: 'e', title: 'Star Wars et Dawnwalker', pubTs: -1, audioUrl: 'https://example.com/e.mp3',
+  { slug: 'e', urlSlug: 'e', title: 'Star Wars et Dawnwalker', pubTs: -1, audioUrl: 'https://example.com/e.mp3', imageUrl: 'e.jpg',
     games: [
       { name: 'Star Wars Galactic Racer', slug: 'racer', timestamp: '20:00', timestampSeconds: 1200, coverImageId: 'c1' },
       { name: 'The Blood of Dawnwalker', slug: 'dawn', timestamp: '40:00', timestampSeconds: 2400, coverImageId: 'c2' },
@@ -90,6 +90,15 @@ describe('EpisodesFeed’s « Reprendre »', () => {
     const play = vi.spyOn(player, 'play').mockImplementation(() => {})
     await button(w, 'Reprendre The Blood of Dawnwalker').trigger('click')
     expect(play).toHaveBeenCalledWith(expect.objectContaining({ game: 'The Blood of Dawnwalker', ts: 2600, episodeSlug: 'e' }))
+  })
+
+  it('shows the episode’s image when left outside a test', async () => {
+    localStorage.setItem('soj-progress', JSON.stringify({
+      'e|0': { currentTime: 300, chapterEnd: 3600, ts: 0, savedAt: Date.now() },
+    }))
+    const w = await mountFeed({ phone: true })
+    expect(byTest(w, 'resume')[0].find('img').attributes('src')).toBe('e.jpg')
+    expect(button(w, 'Reprendre Star Wars et Dawnwalker').exists()).toBe(true)
   })
 
   it('shows the three most recent, and unfolds the others with « Tous · n »', async () => {

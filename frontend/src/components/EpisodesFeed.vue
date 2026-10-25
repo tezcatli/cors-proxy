@@ -50,7 +50,8 @@ function view(item) {
 // ── Reprendre ────────────────────────────────────────────────────────────────
 // Each episode left partway, told by what it resumes on (DECISIONS.md,
 // « Interface »): the test at the saved position (`testAt`), not the game the
-// listening was started for — it goes on from test to test. × forgets it.
+// listening was started for — it goes on from test to test; outside a test, the
+// episode with its image (its podcast's when it has none). × forgets it.
 const bySlug = computed(() => new Map(episodes.value.map(ep => [ep.slug, ep])))
 
 const resumeAll = computed(() => {
@@ -65,7 +66,7 @@ const resumeAll = computed(() => {
       return {
         ep, test, entry: p,
         name:  test ? (test.resolvedName ?? test.name) : ep.title,
-        cover: test?.coverImageId ?? null,
+        image: test?.coverImageId ? igdbUrl(test.coverImageId, 't_cover_small') : (ep.imageUrl ?? ep.podcast?.imageUrl ?? null),
         pct:   progressPct(p.currentTime, p.ts ?? 0, p.chapterEnd),
       }
     })
@@ -113,8 +114,8 @@ function resume({ ep, test, entry }) {
             </div>
             <div v-for="item in resumeItems" :key="item.ep.slug" class="resume__row line" data-test="resume">
               <button type="button" class="resume__main" :aria-label="`Reprendre ${item.name}`" @click="resume(item)">
-                <span class="resume__cover corners" :class="{ 'resume__cover--none': !item.cover }">
-                  <img v-if="item.cover" :src="igdbUrl(item.cover, 't_cover_small')" alt="" />
+                <span class="resume__cover corners" :class="{ 'resume__cover--none': !item.image, 'resume__cover--ep': !item.test }">
+                  <img v-if="item.image" :src="item.image" alt="" />
                 </span>
                 <span class="resume__text">
                   <span class="resume__name ellipsis">{{ item.name }}</span>
@@ -171,6 +172,7 @@ function resume({ ep, test, entry }) {
 .resume__cover { --corner: 9px; --corner-out: 4px; width: 36px; height: 48px; flex-shrink: 0; }
 .resume__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .resume__cover--none { background: var(--c-raised); }
+.resume__cover--ep { height: 36px; margin: 6px 0; }
 .resume__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .resume__name { font-weight: 600; font-size: 15px; }
 .resume__meta { color: var(--c-fg-2); font-size: 12px; }

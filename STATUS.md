@@ -36,7 +36,7 @@
   - Les palettes sont relues une fois (clé `ludo.palettes.v2`).
   - Les pochettes n'ont plus d'ombre noire (`--shadow-cover`) : elle assombrissait le titre et les boutons sous la pochette (fiche, épisode).
   - Écran verrouillé (Android) : titre = ce qui passe, 2ᵉ ligne = le podcast, album = l'épisode ; hors d'un test, l'image du podcast (`podcast.imageUrl`), plus celle de l'épisode ni la pochette du jeu qui a lancé la lecture.
-- **Livré (2026-10-25) : l'image de l'épisode** (PR #37). Page épisode : en tête, l'image de l'épisode (sinon du podcast), plus la pochette du premier test ni la vignette du podcast. Lecteur et écran verrouillé : la pochette du test en cours, sinon l'image de l'épisode, sinon celle du podcast. Sauvegarde : `users.db.bak-epart`.
+- **Livré (2026-10-25) : l'image de l'épisode** (PR #37). Page épisode : en tête, l'image de l'épisode (sinon du podcast), plus la pochette du premier test ni la vignette du podcast. Lecteur et écran verrouillé : la pochette du test en cours, sinon l'image de l'épisode, sinon celle du podcast ; « Reprendre » de même (PR #38). Sauvegardes : `users.db.bak-epart`, `users.db.bak-resumeart`.
 - **Ouvert.**
   - Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début.
   - Le paquet du labo devrait aussi porter les réponses des noms qui ne sont pas des tests, et les tâches `reviewed`, pour que la prod ne les redemande pas (prochaine livraison). Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions possibles).
