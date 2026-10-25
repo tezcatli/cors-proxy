@@ -21,10 +21,8 @@ IgdbResult = namedtuple('IgdbResult', ['id', 'name', 'slug', 'data', 'is_child']
 
 _IGDB_BASE = 'https://api.igdb.com/v4'
 _TWITCH    = 'https://id.twitch.tv/oauth2/token'
-# ESRB labels keyed by the legacy age_ratings.rating enum…
-_ESRB      = {6: 'RP', 7: 'EC', 8: 'E', 9: 'E10+', 10: 'T', 11: 'M', 12: 'AO'}
-# …and by the new age_ratings.rating_category ids (organization 1 = ESRB).
-_ESRB_NEW  = {1: 'RP', 2: 'EC', 3: 'E', 4: 'E10+', 5: 'T', 6: 'M', 7: 'AO'}
+# ESRB labels keyed by age_ratings.rating_category (organization 1 = ESRB).
+_ESRB      = {1: 'RP', 2: 'EC', 3: 'E', 4: 'E10+', 5: 'T', 6: 'M', 7: 'AO'}
 _session   = requests.Session()
 
 
@@ -205,12 +203,8 @@ def _to_game_data(game: dict) -> dict:
 
     esrb = None
     for age_rating in (game.get('age_ratings') or []):
-        # New schema: organization 1 = ESRB, rating_category id → label.
         if age_rating.get('organization') == 1:
-            esrb = _ESRB_NEW.get(age_rating.get('rating_category'))
-        # Legacy schema: category 1 = ESRB, rating enum → label.
-        elif age_rating.get('category') == 1:
-            esrb = _ESRB.get(age_rating.get('rating'))
+            esrb = _ESRB.get(age_rating.get('rating_category'))
         if esrb:
             break
 
@@ -243,10 +237,10 @@ def _to_game_data(game: dict) -> dict:
               or next((v for v in videos if v.get('video_id')), None)
     trailer_id = trailer.get('video_id') if trailer else None
 
-    # Websites — category/type ids: 1 official, 3 wikipedia, 13 steam.
+    # Websites — type ids: 1 official, 3 wikipedia, 13 steam.
     steam_url = official_url = wiki_url = None
     for website in (game.get('websites') or []):
-        cat = website.get('type') if website.get('type') is not None else website.get('category')
+        cat = website.get('type')
         url = website.get('url')
         if not url:
             continue
@@ -288,16 +282,15 @@ def _resolve_canonical(game: dict) -> dict:
 
     One catalog page per game: its DLCs and expansions, its editions and ports,
     and its remasters join it (Dark Souls: Remastered is Dark Souls to the
-    catalog); only a remake (category 8) is a game of its own.
+    catalog); only a remake (game type 8) is a game of its own.
     """
-    category = game.get('category') if game.get('category') is not None \
-               else (game.get('game_type') or {}).get('id', 0)
+    game_type = (game.get('game_type') or {}).get('id', 0)
 
     version_parent = game.get('version_parent')
     if isinstance(version_parent, dict) and version_parent.get('id'):
         return version_parent
 
-    if category != 8:
+    if game_type != 8:
         parent_game = game.get('parent_game')
         if isinstance(parent_game, dict) and parent_game.get('id'):
             return parent_game
@@ -326,12 +319,12 @@ def _build_result(game: dict, canonical: bool = True) -> IgdbResult:
 # request the SAME set inline (plus their own id) so canonical resolution never
 # needs a second API call — generated from one base list instead of by hand.
 _GAME_FIELDS = (
-    'name, slug, category, game_type.id, '
+    'name, slug, game_type.id, '
     'aggregated_rating, aggregated_rating_count, rating, first_release_date, summary, '
     'genres.name, platforms.name, cover.image_id, screenshots.image_id, '
-    'age_ratings.category, age_ratings.rating, age_ratings.organization, age_ratings.rating_category, '
+    'age_ratings.organization, age_ratings.rating_category, '
     'involved_companies.developer, involved_companies.publisher, involved_companies.company.name, '
-    'game_modes.name, websites.category, websites.type, websites.url, '
+    'game_modes.name, websites.type, websites.url, '
     'videos.video_id, videos.name, artworks.image_id, themes.name, '
     'player_perspectives.name, collection.name, franchises.name, storyline, '
     'platforms.abbreviation'

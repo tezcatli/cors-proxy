@@ -62,13 +62,13 @@ db.get_db = _lab
 
 def load() -> None:
     """Build the app's catalog in memory from the snapshot and the live feeds —
-    what the app shows now. The reconciliation that would prune the database is
+    what the app shows now. The pruning of the database is
     skipped: the snapshot is read-only."""
     import catalog_state as state
     import feeds
     import transcribe
     logging.getLogger('feeds').setLevel(logging.ERROR)
-    state.reconcile = lambda complete: None
+    state.prune_igdb_cache = lambda: None
     # The snapshot's transcripts don't change while the lab runs; listing them
     # scans every transcript (0.2 s), once per episode shown otherwise.
     transcribe.rows = functools.cache(transcribe.rows)
