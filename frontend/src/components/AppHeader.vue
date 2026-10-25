@@ -14,7 +14,7 @@ const emit = defineEmits(['update:searchQuery', 'setSort', 'toggle-hide-unresolv
 
 const admin = isAdmin()
 
-// One search, for the Ludothèque's tests, episodes and games. The podcasts
+// One search, for the Ludothèque's games or its episodes. The podcasts
 // are pages of their own (« Les podcasts »), not a filter.
 const searchPlaceholder = 'Rechercher un jeu, un épisode'
 

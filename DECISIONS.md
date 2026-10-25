@@ -49,6 +49,8 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - Le verdict s'écrit en mot seul : « Positif », « Mitigé », « Négatif » ; un test sans verdict n'affiche rien. Les glyphes (▲ ◆ ▼ ○) n'étaient pas compris. (2026-10-25)
 - Une carte de test (la rangée des nouveaux tests) mène à la fiche du jeu, ce test ouvert dans le journal ; l'épisode est un lien du journal. (2026-10-25)
 
+- La recherche a deux portées, Jeux et Épisodes, une seule liste à la fois (on sait si l'on cherche un jeu ou un épisode : ce sont les deux portes de l'écoute) ; par défaut Jeux, sinon celle qui trouve quelque chose ; le choix de l'auditeur tient tant que la recherche n'est pas vidée (`?dans=`). Pas de cartes de test pendant une recherche : un test se trouve par son jeu ou son épisode. Remplace le mélange tests + épisodes + jeux. (2026-10-25)
+
 - Le nom : « Ludothèque », « Ludo » en court (écran d'accueil, mot-symbole `LUDO//`). (2026-10-24)
 
 - Fiche jeu : un artwork en bandeau et une grande pochette qui le chevauche ; les images en planche après les tests, bande-annonce en tête. (2026-10-24)

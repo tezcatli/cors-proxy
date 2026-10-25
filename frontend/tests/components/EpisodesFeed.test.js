@@ -37,17 +37,15 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllGlobals() })
 
-// The feed reads the store's episodes (App loads them); the cards and rows are stubbed.
-async function mountFeed(searchQuery = '', { phone = false } = {}) {
+// The feed reads the store's episodes (App loads them); the cards are stubbed.
+async function mountFeed({ phone = false } = {}) {
   vi.stubGlobal('matchMedia', () => ({ matches: phone, addEventListener() {}, removeEventListener() {} }))
   await useGamesStore().loadEpisodes()
   const w = mount(EpisodesFeed, {
-    props: { searchQuery },
     global: {
       plugins: [pinia],
       stubs: {
         TestCard:   { props: { item: Object, featured: Boolean }, template: '<div data-test="card" :data-featured="featured ? 1 : 0">{{ item.test.name }}</div>' },
-        EpisodeRow: { props: ['ep'], template: '<div data-test="episode">{{ ep.title }}</div>' },
       },
     },
   })
@@ -55,37 +53,22 @@ async function mountFeed(searchQuery = '', { phone = false } = {}) {
   return w
 }
 const cards = w => byTest(w, 'card').map(e => e.text())
-const rows  = w => byTest(w, 'episode').map(e => e.text())
 
 describe('EpisodesFeed', () => {
   it('shows every podcast’s tests, one card each; an episode without a test has none', async () => {
-    const w = await mountFeed('', { phone: true })
+    const w = await mountFeed({ phone: true })
     expect(cards(w)).toEqual(['Zelda', 'Chrono Trigger', 'Mario'])
-    expect(rows(w)).toEqual([])
-  })
-
-  it('searches the tests by their game, and the episodes by their title', async () => {
-    const w = await mountFeed('zelda')
-    expect(cards(w)).toEqual(['Zelda'])
-    // The episode that tests nothing is found by its title.
-    expect(rows(w)).toEqual(['Zelda chez SoJ', 'Bande-annonce : Zelda arrive'])
-  })
-
-  it('finds an episode by its title though none of its tests matches', async () => {
-    const w = await mountFeed('chez fdg')
-    expect(cards(w)).toEqual([])
-    expect(rows(w)).toEqual(['Chrono chez FDG'])
   })
 })
 
 describe('EpisodesFeed on a phone', () => {
   it('shows the newest test large on a wide screen', async () => {
-    const w = await mountFeed('', { phone: false })
+    const w = await mountFeed({ phone: false })
     expect(byTest(w, 'card').map(e => e.attributes('data-featured'))).toEqual(['1', '0', '0'])
   })
 
   it('drops the showcase on a phone: the row starts with the newest test', async () => {
-    const w = await mountFeed('', { phone: true })
+    const w = await mountFeed({ phone: true })
     expect(byTest(w, 'card').map(e => e.attributes('data-featured'))).toEqual(['0', '0', '0'])
   })
 })
@@ -98,7 +81,7 @@ describe('EpisodesFeed’s row of new tests', () => {
       podcast: { id: 'silence-on-joue', name: 'Silence on Joue' },
     }))
     fetchEpisodes.mockResolvedValueOnce(many)
-    const w = await mountFeed('', { phone: true })
+    const w = await mountFeed({ phone: true })
     expect(byTest(w, 'card')).toHaveLength(30)
   })
 })

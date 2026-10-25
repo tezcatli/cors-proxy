@@ -6,18 +6,13 @@ import { igdbUrl } from '../lib/igdbCdn.js'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
 import TestCard from './TestCard.vue'
-import EpisodeRow from './EpisodeRow.vue'
 import { Play } from 'lucide-vue-next'
 
 // The top of the Ludothèque (DECISIONS.md, « Interface »): the newest test in
 // large (wide screens), what was started, then the newest tests in a row to
 // swipe, one card each — a game an episode tests, told by its cover. The games
-// follow (« Les podcasts », then GameGrid), in the same scroll. During a search:
-// the tests whose game matches, then the episodes whose title does — those that
-// test nothing included, the way to an episode by its name.
-const props = defineProps({
-  searchQuery: String,
-})
+// follow (« Les podcasts », then GameGrid), in the same scroll. A search shows
+// SearchResults instead: a test is found by its game or by its episode.
 
 const router      = useRouter()
 const gamesStore  = useGamesStore()
@@ -26,22 +21,11 @@ const playerStore = usePlayerStore()
 const episodes = computed(() => gamesStore.episodes)
 const loading  = computed(() => gamesStore.episodesLoading)
 const error    = computed(() => gamesStore.episodesError)
-const q        = computed(() => props.searchQuery?.trim().toLowerCase() ?? '')
 
-// One card per test; an episode that tests nothing has no card. A search keeps
-// the tests whose game matches.
-const matches = test => (test.resolvedName ?? test.name).toLowerCase().includes(q.value) || test.name.toLowerCase().includes(q.value)
-const tests = computed(() => episodes.value.flatMap(ep => (ep.games ?? [])
-  .filter(test => !q.value || matches(test))
-  .map(test => ({ ep, test }))))
+// One card per test; an episode that tests nothing has no card.
+const tests = computed(() => episodes.value.flatMap(ep => (ep.games ?? []).map(test => ({ ep, test }))))
 
-// A search's episodes: those whose title matches.
-const EPISODES_MAX = 20
-const foundEpisodes = computed(() => (q.value
-  ? episodes.value.filter(ep => ep.title.toLowerCase().includes(q.value)).slice(0, EPISODES_MAX)
-  : []))
-// The newest test leads, unless the list is a search's results.
-// The newest test is shown large on a wide screen only: on a phone it would
+// The newest test leads. It is shown large on a wide screen only: on a phone it would
 // repeat the grid's first card (DECISIONS.md, « Interface »).
 const phoneQuery = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 767px)') : null
 const isPhone = ref(phoneQuery?.matches ?? false)
@@ -49,7 +33,7 @@ const onPhoneChange = e => { isPhone.value = e.matches }
 phoneQuery?.addEventListener('change', onPhoneChange)
 onBeforeUnmount(() => phoneQuery?.removeEventListener('change', onPhoneChange))
 
-const lead     = computed(() => (props.searchQuery?.trim() ? null : tests.value[0] ?? null))
+const lead     = computed(() => tests.value[0] ?? null)
 const featured = computed(() => (isPhone.value ? null : lead.value))
 const rest     = computed(() => (featured.value ? tests.value.slice(1) : tests.value))
 
@@ -75,7 +59,6 @@ function view(item) {
 const bySlug = computed(() => new Map(episodes.value.map(ep => [ep.slug, ep])))
 
 const resumeItems = computed(() => {
-  if (props.searchQuery?.trim()) return []
   // The listening in the mini player is not repeated here.
   const onAir = playerStore.current?.episodeSlug
   return playerStore.inProgress
@@ -146,9 +129,9 @@ function resume({ ep, test, entry }) {
           </section>
         </div>
 
-        <section v-if="rowTests.length || !q" aria-labelledby="h-latest" class="latest">
+        <section aria-labelledby="h-latest" class="latest">
           <div class="section-head">
-            <h2 id="h-latest">{{ q ? 'Tests' : 'Nouveaux tests' }}</h2>
+            <h2 id="h-latest">Nouveaux tests</h2>
           </div>
           <div v-if="rowTests.length" class="row">
             <TestCard
@@ -163,11 +146,6 @@ function resume({ ep, test, entry }) {
             />
           </div>
           <p v-else class="empty__text">Aucun test.</p>
-        </section>
-
-        <section v-if="foundEpisodes.length" aria-labelledby="h-found-eps" class="found">
-          <div class="section-head"><h2 id="h-found-eps">Épisodes</h2></div>
-          <EpisodeRow v-for="ep in foundEpisodes" :key="ep.slug" :ep="ep" show-podcast />
         </section>
       </template>
     </div>
@@ -255,7 +233,6 @@ function resume({ ep, test, entry }) {
 @media (min-width: 900px) { .row { grid-auto-columns: 180px; gap: 24px; } }
 .skel { aspect-ratio: 3 / 4; }
 
-.found { margin-bottom: 36px; }
 .empty { padding: 64px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
 .empty__text { color: var(--c-fg-2); margin: 0; }

@@ -10,6 +10,7 @@ import AppHeader    from './components/AppHeader.vue'
 import GameGrid     from './components/GameGrid.vue'
 import EpisodesFeed from './components/EpisodesFeed.vue'
 import PodcastsRow   from './components/PodcastsRow.vue'
+import SearchResults from './components/SearchResults.vue'
 import AudioPlayer  from './components/AudioPlayer.vue'
 import AccountModal from './components/AccountModal.vue'
 
@@ -30,18 +31,28 @@ const showAccountModal = ref(false)
 // stays mounted (and scrolled) underneath.
 const BASE_ROUTES = new Set(['/'])
 
-// ── Search: one query, for the tests, the episodes and the games ───────────────────────────
+// ── Search: one query, for the games or the episodes ───────────────────────────
+// Its scope (`dans`: jeux | episodes) is the listener's choice, kept in the URL so
+// back from a game or an episode finds it; an emptied search forgets it.
+const SCOPES = new Set(['jeux', 'episodes'])
 const query = ref(route.query.q || '')
+const scope = ref(SCOPES.has(route.query.dans) ? route.query.dans : null)
 
 // URL → input (back/forward)
-watch(() => route.query.q, q => { if (route.path === '/') query.value = q || '' })
+watch(() => [route.query.q, route.query.dans], ([q, dans]) => {
+  if (route.path !== '/') return
+  query.value = q || ''
+  scope.value = SCOPES.has(dans) ? dans : null
+})
+
+watch(query, q => { if (!q.trim()) scope.value = null })
 
 // Input → URL (debounced)
 let searchTimer
-watch(query, q => {
+watch([query, scope], ([q, s]) => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    if (route.path === '/') router.replace({ query: q ? { q } : {} })
+    if (route.path === '/') router.replace({ query: q ? { q, ...(s ? { dans: s } : {}) } : {} })
   }, 350)
 })
 
@@ -156,16 +167,27 @@ onMounted(() => {
       </div>
 
       <div class="scroll-area home-scroll">
-        <EpisodesFeed :search-query="debouncedQuery" />
-        <PodcastsRow v-if="!debouncedQuery.trim()" />
-        <GameGrid
+        <SearchResults
+          v-if="debouncedQuery.trim()"
+          v-model:scope="scope"
+          :query="debouncedQuery"
           :games="displayedGames"
-          :loading="gamesStore.loading"
-          :error="gamesStore.error"
-          :total="gamesStore.all.length"
+          :games-loading="gamesStore.loading"
+          :games-error="gamesStore.error"
+          :games-total="gamesStore.all.length"
           :reset-key="gridResetKey"
-          :has-query="!!debouncedQuery.trim()"
         />
+        <template v-else>
+          <EpisodesFeed />
+          <PodcastsRow />
+          <GameGrid
+            :games="displayedGames"
+            :loading="gamesStore.loading"
+            :error="gamesStore.error"
+            :total="gamesStore.all.length"
+            :reset-key="gridResetKey"
+          />
+        </template>
       </div>
     </main>
 

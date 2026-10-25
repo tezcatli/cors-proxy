@@ -23,12 +23,12 @@
 - **Livré (2026-10-25) : le code obsolète retiré** (PR #32). Les épisodes SoJ montrent les chapitres de la lecture (`chapters.json` retiré). Sont aussi retirés : la migration de l'ancien cache IGDB, les `ALTER TABLE is_admin`, l'ancien schéma IGDB (`category`) et le code mort du frontend. Sauvegarde : `users.db.bak-obsolete`. 
 - **Livré (2026-10-25) : les tests suivent les règles** (PR #33). Doublons fusionnés, tests sur données réécrits, tests morts retirés, variantes paramétrées, contrat étendu (listes, champs imbriqués, absents), `test_games.py` découpé par module, tests d'interface sans classes CSS. Backend : 324 fonctions → 259 (378 cas → 324), frontend : 195 → 167. Couverture identique sauf `review.py` (affichage de la console, décision du 2026-10-25).
 - **Livré (2026-10-25) : un test par épisode sur une fiche** (PR #34). Deux noms d'un même jeu dans un épisode sont un seul test (`serializers.tests_of`), celui dont l'avis a été lu. En dev, une seule fiche était touchée (`assassin-s-creed-iii`).
+- **En cours (branche `feat/search-scopes`, à tester en dev) : la recherche à deux portées**, Jeux | Épisodes (`SearchResults.vue`), une liste à la fois, sans cartes de test.
 - **Ouvert.**
   - Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début ; des chapitres Game Informer, tirés de la description, sont collés en un seul (« Introduction03:25 - … »).
   - Le paquet du labo devrait aussi porter les réponses des noms qui ne sont pas des tests, et les tâches `reviewed`, pour que la prod ne les redemande pas (prochaine livraison). Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions possibles).
   - Les 5 SoJ `djpod` en échec : acast répond 429 au téléchargement.
   - Les consoles d'admin n'ont pas été restylées. Elles héritent seulement des polices et des couleurs.
-  - Recherche unique jeux + épisodes (prévue, pas faite).
   - Pour et contre en anglais pour Triple Click, The Besties et The Game Informer Show : langue du prompt de lecture, à régler dans le labo.
   - Les épisodes « [Reportage] » sont toujours exclus du catalogue.
   - **Une mesure du labo ne garantit pas la réponse de la prod** : le labo et l'app interrogent le LLM chacun de leur côté, d'où la livraison des réponses du labo par le paquet.
