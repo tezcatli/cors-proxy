@@ -186,13 +186,19 @@ def serialise_episode(episode: Episode, mention=None) -> dict:
         'description':      episode.description,
         'chapters':         chapters,
         'games':            games,
-        'podcast':          podcast_meta(episode.podcast_id),
+        'podcast':          _podcast(episode),
         'timestamp':        mention.timestamp        if mention else None,
         'timestampSeconds': mention.timestamp_seconds if mention else 0,
         # That game's test: {verdict, pros, cons, at}; None outside a game's
         # context, or while the episode is unread.
         'critique':         mention.critique          if mention else None,
     }
+
+
+def _podcast(episode: Episode) -> dict | None:
+    """The episode's podcast: who it is, and its own image (its feed's)."""
+    meta = podcast_meta(episode.podcast_id)
+    return {**meta, 'imageUrl': state.podcast_images.get(episode.podcast_id)} if meta else None
 
 
 def _verdict(mention) -> str | None:
@@ -218,7 +224,7 @@ def serialise_episode_slim(episode: Episode) -> dict:
         'imageUrl':         episode.image_url,
         'games':            [{**_game(g, episode), 'verdict': _verdict(g)}
                              for g in episode.games],
-        'podcast':          podcast_meta(episode.podcast_id),
+        'podcast':          _podcast(episode),
         'timestamp':        None,
         'timestampSeconds': 0,
     }

@@ -4,8 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import EpisodesFeed from '../../src/components/EpisodesFeed.vue'
 import { useGamesStore } from '../../src/stores/games.js'
 
-// jsdom has no IntersectionObserver; the feed's infinite scroll constructs one.
-// Inert stub — every episode in these fixtures fits in the first page anyway.
+// jsdom has no IntersectionObserver; the rows' infinite scroll constructs one.
 class NoopIO {
   observe() {}
   unobserve() {}
@@ -19,106 +18,86 @@ const EPISODES = [
     podcast: { id: 'fin-du-game', name: 'Fin du Game' } },
   { slug: 'c', urlSlug: 'c', title: 'Mario chez SoJ',   pubTs: 1, games: [{ name: 'Mario' }],
     podcast: { id: 'silence-on-joue', name: 'Silence on Joue' } },
+  { slug: 'd', urlSlug: 'd', title: 'Bande-annonce : Zelda arrive', pubTs: 0, games: [],
+    podcast: { id: 'silence-on-joue', name: 'Silence on Joue' } },
 ]
 
 vi.mock('../../src/lib/games.js', () => ({
   fetchEpisodes: vi.fn(() => Promise.resolve(EPISODES)),
 }))
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }), RouterLink: { template: '<a><slot /></a>' } }))
 
-// The feed only needs to render titles here (one card per test); stub the card.
-const mountFeed = () => mount(EpisodesFeed, {
-  props: { searchQuery: '' },
-  global: {
-    plugins: [createPinia()],
-    stubs: { TestCard: { props: ['item'], template: '<div class="ep">{{ item.ep.title }}</div>' } },
-    mocks: { $router: { push: vi.fn() } },
-  },
-})
-
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
-
+let pinia
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', NoopIO)
   localStorage.clear()
-  setActivePinia(createPinia())
+  pinia = createPinia()
+  setActivePinia(pinia)
 })
 afterEach(() => { vi.unstubAllGlobals() })
 
-async function titlesWith(podcast) {
-  const w = mountFeed()
-  await flushPromises()
-  useGamesStore().setPodcast(podcast)
-  await flushPromises()
-  return w.findAll('.ep').map(e => e.text())
-}
-
-describe('EpisodesFeed podcast filter', () => {
-  it('shows every episode by default', async () => {
-    const w = mountFeed()
-    await flushPromises()
-    expect(w.findAll('.ep')).toHaveLength(3)
-  })
-
-  it('narrows the feed to the selected podcast', async () => {
-    expect(await titlesWith('fin-du-game')).toEqual(['Chrono chez FDG'])
-  })
-
-  it('shares the selection with the games tab', async () => {
-    expect(await titlesWith('silence-on-joue')).toEqual(['Zelda chez SoJ', 'Mario chez SoJ'])
-  })
-
-  it('combines the podcast filter with the search query', async () => {
-    const w = mount(EpisodesFeed, {
-      props: { searchQuery: 'zelda' },
-      global: {
-        plugins: [createPinia()],
-        stubs: { TestCard: { props: ['item'], template: '<div class="ep">{{ item.ep.title }}</div>' } },
+// The feed reads the store's episodes (App loads them); the cards and rows are stubbed.
+async function mountFeed(searchQuery = '', { phone = false } = {}) {
+  vi.stubGlobal('matchMedia', () => ({ matches: phone, addEventListener() {}, removeEventListener() {} }))
+  await useGamesStore().loadEpisodes()
+  const w = mount(EpisodesFeed, {
+    props: { searchQuery },
+    global: {
+      plugins: [pinia],
+      stubs: {
+        TestCard:   { props: { item: Object, featured: Boolean }, template: '<div class="ep" :data-featured="featured ? 1 : 0">{{ item.test.name }}</div>' },
+        EpisodeRow: { props: ['ep'], template: '<div class="erow">{{ ep.title }}</div>' },
       },
-    })
-    await flushPromises()
-    useGamesStore().setPodcast('fin-du-game')
-    await flushPromises()
-    // Zelda is a Silence on Joue episode → excluded by the FDG filter.
-    expect(w.findAll('.ep')).toHaveLength(0)
+    },
+  })
+  await flushPromises()
+  return w
+}
+const cards = w => w.findAll('.ep').map(e => e.text())
+const rows  = w => w.findAll('.erow').map(e => e.text())
+
+describe('EpisodesFeed', () => {
+  it('shows every podcast’s tests, one card each; an episode without a test has none', async () => {
+    const w = await mountFeed('', { phone: true })
+    expect(cards(w)).toEqual(['Zelda', 'Chrono Trigger', 'Mario'])
+    expect(rows(w)).toEqual([])
+  })
+
+  it('searches the tests by their game, and the episodes by their title', async () => {
+    const w = await mountFeed('zelda')
+    expect(cards(w)).toEqual(['Zelda'])
+    // The episode that tests nothing is found by its title.
+    expect(rows(w)).toEqual(['Zelda chez SoJ', 'Bande-annonce : Zelda arrive'])
+  })
+
+  it('finds an episode by its title though none of its tests matches', async () => {
+    const w = await mountFeed('chez fdg')
+    expect(cards(w)).toEqual([])
+    expect(rows(w)).toEqual(['Chrono chez FDG'])
   })
 })
 
 describe('EpisodesFeed on a phone', () => {
-  const mountAt = phone => {
-    vi.stubGlobal('matchMedia', () => ({ matches: phone, addEventListener() {}, removeEventListener() {} }))
-    return mount(EpisodesFeed, {
-      props: { searchQuery: '' },
-      global: {
-        plugins: [createPinia()],
-        stubs: { TestCard: { props: { item: Object, featured: Boolean }, template: '<div class="ep" :data-featured="featured ? 1 : 0">{{ item.ep.title }}</div>' } },
-      },
-    })
-  }
-
   it('shows the newest test large on a wide screen', async () => {
-    const w = mountAt(false)
-    await flushPromises()
+    const w = await mountFeed('', { phone: false })
     expect(w.findAll('.ep').map(e => e.attributes('data-featured'))).toEqual(['1', '0', '0'])
   })
 
-  it('drops the showcase on a phone: the grid starts with the newest test', async () => {
-    const w = mountAt(true)
-    await flushPromises()
+  it('drops the showcase on a phone: the row starts with the newest test', async () => {
+    const w = await mountFeed('', { phone: true })
     expect(w.findAll('.ep').map(e => e.attributes('data-featured'))).toEqual(['0', '0', '0'])
   })
 })
 
 describe('EpisodesFeed’s row of new tests', () => {
-  it('holds the 30 newest tests; the rest of the history is reached by its games', async () => {
+  it('holds the 30 newest tests; the rest of the history is reached by its games and podcasts', async () => {
     const { fetchEpisodes } = await import('../../src/lib/games.js')
     const many = Array.from({ length: 40 }, (_, i) => ({
       slug: `e${i}`, urlSlug: `e${i}`, title: `Ep ${i}`, pubTs: 100 - i, games: [{ name: `G${i}` }],
       podcast: { id: 'silence-on-joue', name: 'Silence on Joue' },
     }))
     fetchEpisodes.mockResolvedValueOnce(many)
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
-    const w = mountFeed()
-    await flushPromises()
+    const w = await mountFeed('', { phone: true })
     expect(w.findAll('.ep')).toHaveLength(30)
   })
 })

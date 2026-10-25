@@ -32,6 +32,7 @@ episodes:      list[Episode] = []           # source of truth; owns all Episode 
 episode_index: dict[str, Episode] = {}      # episode.slug AND url_slug → same Episode
 game_index:    dict[str, PodcastGame] = {}  # name_slug → PodcastGame
 cached_at:     datetime.datetime | None = None
+podcast_images: dict[str, str] = {}        # podcast id → its feed's own image (the channel's)
 
 # Loaded from DB at startup; written as questions are answered and games fetched.
 resolutions: dict[str, Resolution] = {}     # question key → its answer

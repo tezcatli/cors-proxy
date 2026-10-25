@@ -1,8 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Search, X, ArrowUp, ArrowDown, ArrowUpDown, User, ListFilter } from 'lucide-vue-next'
-import { PODCASTS } from '../lib/podcasts.js'
+import { Search, X, ArrowUp, ArrowDown, ArrowUpDown, User } from 'lucide-vue-next'
 import { isAdmin } from '../lib/auth.js'
 
 defineProps({
@@ -10,16 +9,14 @@ defineProps({
   sortMode:        String,
   sortAsc:         Boolean,
   hideUnresolved:  Boolean,
-  selectedPodcast: String,
 })
-const emit = defineEmits(['update:searchQuery', 'setSort', 'setPodcast', 'toggle-hide-unresolved', 'show-account'])
+const emit = defineEmits(['update:searchQuery', 'setSort', 'toggle-hide-unresolved', 'show-account'])
 
 const admin = isAdmin()
 
-const podcastOptions = [{ id: 'all', label: 'Tous' }, ...PODCASTS.map(p => ({ id: p.id, label: p.name }))]
-
-// One search, for the Ludothèque's tests and games.
-const searchPlaceholder = 'Rechercher un jeu, un test'
+// One search, for the Ludothèque's tests, episodes and games. The podcasts
+// are pages of their own (« Les podcasts »), not a filter.
+const searchPlaceholder = 'Rechercher un jeu, un épisode'
 
 const sortOptions = [
   { mode: 'date',  label: 'Récents' },
@@ -27,22 +24,14 @@ const sortOptions = [
   { mode: 'meta',  label: 'Metacritic' },
 ]
 
-// ── Sort popover (Jeux only) ────────────────────────────────────────────────
+// ── Sort popover (the games) ────────────────────────────────────────────────
 const popoverOpen = ref(false)
 const popoverRoot = ref(null)
 function onDocClick(e) {
   if (popoverOpen.value && popoverRoot.value && !popoverRoot.value.contains(e.target)) popoverOpen.value = false
-  if (showsOpen.value && showsRoot.value && !showsRoot.value.contains(e.target)) showsOpen.value = false
 }
-function onEsc(e) { if (e.key === 'Escape') { popoverOpen.value = false; showsOpen.value = false; searchOpen.value = false } }
+function onEsc(e) { if (e.key === 'Escape') { popoverOpen.value = false; searchOpen.value = false } }
 
-// ── Show filter (phone): one header button instead of a row of chips ────────
-const showsOpen = ref(false)
-const showsRoot = ref(null)
-function pickShow(id) {
-  emit('setPodcast', id)
-  showsOpen.value = false
-}
 onMounted(() => {
   document.addEventListener('click', onDocClick)
   document.addEventListener('keydown', onEsc)
@@ -83,33 +72,6 @@ async function openSearch() {
           <X :size="14" :stroke-width="2.25" />
         </button>
       </label>
-
-      <div ref="showsRoot" class="shows mobile-only">
-        <button
-          type="button"
-          class="icon-action"
-          :class="{ 'is-active': selectedPodcast !== 'all' }"
-          aria-label="Émission"
-          :aria-expanded="showsOpen"
-          @click="showsOpen = !showsOpen"
-        >
-          <ListFilter :size="18" :stroke-width="2" />
-          <span v-if="selectedPodcast !== 'all'" class="icon-action__dot"></span>
-        </button>
-        <div v-if="showsOpen" class="sort__menu panel" role="menu" aria-label="Émission">
-          <div class="lab sort__title">Émission</div>
-          <button
-            v-for="opt in podcastOptions"
-            :key="opt.id"
-            type="button"
-            role="menuitemradio"
-            :aria-checked="selectedPodcast === opt.id"
-            class="sort__row"
-            :class="{ 'is-on': selectedPodcast === opt.id }"
-            @click="pickShow(opt.id)"
-          ><span>{{ opt.label }}</span></button>
-        </div>
-      </div>
 
       <button type="button" class="icon-action mobile-only" :class="{ 'is-active': !!searchQuery }" aria-label="Rechercher" @click="openSearch">
         <Search :size="18" :stroke-width="2" />
@@ -153,18 +115,6 @@ async function openSearch() {
       <button type="button" class="icon-action" aria-label="Mon compte" @click="emit('show-account')">
         <User :size="18" :stroke-width="2" />
       </button>
-    </div>
-
-    <div class="chips" role="group" aria-label="Émission">
-      <button
-        v-for="opt in podcastOptions"
-        :key="opt.id"
-        type="button"
-        class="chip-btn"
-        :class="{ 'is-on': selectedPodcast === opt.id }"
-        :aria-pressed="selectedPodcast === opt.id"
-        @click="emit('setPodcast', opt.id)"
-      >{{ opt.label }}</button>
     </div>
 
     <div v-if="searchOpen" class="search-overlay">
@@ -243,7 +193,6 @@ async function openSearch() {
 .search__clear:hover { color: var(--c-fg); }
 
 .sort { position: relative; }
-.shows { position: relative; }
 .sort__menu {
   position: absolute;
   right: 0;
@@ -272,16 +221,6 @@ async function openSearch() {
 .sort__row:hover { background: var(--c-raised); color: var(--c-fg); }
 .sort__row.is-on { color: var(--c-fg); box-shadow: inset 2px 0 0 var(--c-accent); }
 
-/* Phone: the show filter is the header's « Émission » button. */
-.chips {
-  display: none;
-  gap: 6px;
-  padding: 0 var(--gutter) 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.chips::-webkit-scrollbar { display: none; }
-
 .search-overlay {
   position: absolute;
   inset: 0 0 auto 0;
@@ -299,6 +238,5 @@ async function openSearch() {
 @media (min-width: 768px) {
   .search { display: flex; }
   .mobile-only, .search-overlay { display: none; }
-  .chips { display: flex; }
 }
 </style>

@@ -22,7 +22,7 @@ from db import utcnow
 from models import Chapter, Episode, GameAppearance, GameMention, PodcastGame
 from podcasts import PODCASTS, PODCAST_BY_ID
 from questions import question_for
-from rss import parse_feed, assign_url_slugs, is_game_catalog_excluded, find_chapter_for_game
+from rss import parse_feed, channel_image, assign_url_slugs, is_game_catalog_excluded, find_chapter_for_game
 from utils import make_slug, plain_text
 
 logger = logging.getLogger(__name__)
@@ -216,6 +216,7 @@ def build_indexes(episodes: list[Episode]) -> tuple[dict, dict]:
 # feed is re-parsed — every refresh recombines all feeds into one catalog.
 _feed_meta:     dict[str, dict] = {}            # podcast_id -> {etag, last_modified}
 _feed_episodes: dict[str, list[Episode]] = {}   # podcast_id -> last parsed episodes
+_feed_images:   dict[str, str] = {}             # podcast_id -> its channel's image
 
 
 def _fetch_feed(podcast) -> bool:
@@ -240,6 +241,8 @@ def _fetch_feed(podcast) -> bool:
     }
     _feed_episodes[podcast.id] = parse_feed(
         resp.content, extractor=podcast.extractor, podcast_id=podcast.id)
+    if image := channel_image(resp.content):
+        _feed_images[podcast.id] = image
     return True
 
 
@@ -301,6 +304,7 @@ def _rebuild(errors: list[str]) -> None:
         state.episode_index = episode_index
         state.game_index    = game_index
         state.cached_at     = utcnow()
+        state.podcast_images = dict(_feed_images)
         state.data_version += 1
     dead = unmatched_slugs(game_index.keys())
     if dead:

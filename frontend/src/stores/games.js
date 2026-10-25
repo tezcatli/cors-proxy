@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchCatalog, refreshCatalog } from '../lib/games.js'
+import { fetchCatalog, refreshCatalog, fetchEpisodes } from '../lib/games.js'
 
 const DEFAULT_ASC = { alpha: true, date: false, meta: false }
 
@@ -14,7 +14,6 @@ export const useGamesStore = defineStore('games', () => {
   // Newest tests first by default: what's new is the first question.
   const sortMode        = ref(localStorage.getItem('soj-sort-mode') || 'date')
   const sortAsc         = ref(localStorage.getItem('soj-sort-asc') === 'true')
-  const selectedPodcast = ref(localStorage.getItem('soj-podcast-filter') || 'all')
   const loading         = ref(false)
   const error           = ref(null)
 
@@ -36,10 +35,11 @@ export const useGamesStore = defineStore('games', () => {
     })
   }
 
-  function filtered(query = '') {
+  // The catalog, searched, narrowed to one podcast's games on its page.
+  function filtered(query = '', podcast = null) {
     let games = all.value
-    if (selectedPodcast.value !== 'all')
-      games = games.filter(g => g.podcasts?.includes(selectedPodcast.value))
+    if (podcast)
+      games = games.filter(g => g.podcasts?.includes(podcast))
     if (query)
       games = games.filter(g => g.name.toLowerCase().includes(query.toLowerCase()))
     return _sort(games)
@@ -83,10 +83,34 @@ export const useGamesStore = defineStore('games', () => {
     localStorage.setItem('soj-sort-asc', String(sortAsc.value))
   }
 
-  function setPodcast(id) {
-    selectedPodcast.value = id
-    localStorage.setItem('soj-podcast-filter', id)
+  // ── Episodes: every podcast's, those that test nothing included ────────────
+  // One list, read by the Ludothèque (its tests, its podcasts, the search) and
+  // by the podcasts' pages. Kept on reload, so a refresh never empties it.
+  const episodes        = ref([])
+  const episodesLoading = ref(false)
+  const episodesError   = ref(null)
+  const episodesLoaded  = ref(false)
+  let _episodesInflight = null
+  function loadEpisodes() {
+    if (_episodesInflight) return _episodesInflight
+    episodesLoading.value = !episodesLoaded.value
+    _episodesInflight = (async () => {
+      try {
+        episodes.value        = await fetchEpisodes()
+        episodesError.value   = null
+        episodesLoaded.value  = true
+      } catch (err) {
+        episodesError.value = err.message
+      } finally {
+        episodesLoading.value = false
+        _episodesInflight     = null
+      }
+    })()
+    return _episodesInflight
   }
 
-  return { all, lastFetch, sortMode, sortAsc, selectedPodcast, loading, error, filtered, load, refresh, setSort, setPodcast }
+  return {
+    all, lastFetch, sortMode, sortAsc, loading, error, filtered, load, refresh, setSort,
+    episodes, episodesLoading, episodesError, episodesLoaded, loadEpisodes,
+  }
 })

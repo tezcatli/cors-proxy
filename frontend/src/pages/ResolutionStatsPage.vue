@@ -37,9 +37,7 @@ const picking = ref(null)
 const refreshingPodcast = ref(null)
 
 // ── Filter state ────────────────────────────────────────────────────────────
-// Local, deliberately: `gamesStore.selectedPodcast` is shared with the Jeux and
-// Épisodes tabs, and an admin filter silently re-filtering the user's browsing
-// would be a surprise.
+// The console's own filters.
 const query         = ref('')
 const status        = ref('all')
 const podcastId     = ref('all')

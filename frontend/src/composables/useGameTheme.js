@@ -67,6 +67,21 @@ export function paletteOf(pixels) {
     const [h, s, l] = hsl(best.r / best.n, best.g / best.n, best.b / best.n)
     accent = [h, Math.max(s, 0.55), Math.min(Math.max(l, 0.55), 0.7)]
   }
+  return paletteAround(accent)
+}
+
+/**
+ * The palette around a colour given by hand (a podcast's, `lib/podcasts.js`,
+ * whose image can't be read: its host sends no CORS header); null for none.
+ */
+export function paletteFromAccent(color) {
+  if (!color) return null
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16))
+  const [h, s, l] = hsl(r, g, b)
+  return paletteAround([h, Math.max(s, 0.55), Math.min(Math.max(l, 0.55), 0.7)])
+}
+
+function paletteAround(accent) {
   const sat   = Math.min(accent[1], 0.45) * 0.5
   const bg    = rgb([accent[0], sat, 0.06])
   const panel = rgb([accent[0], sat, 0.1])

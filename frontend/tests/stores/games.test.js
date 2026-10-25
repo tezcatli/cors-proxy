@@ -5,8 +5,9 @@ import { useGamesStore } from '../../src/stores/games.js'
 vi.mock('../../src/lib/games.js', () => ({
   fetchCatalog:         vi.fn(),
   refreshCatalog:       vi.fn(),
+  fetchEpisodes:        vi.fn(),
 }))
-import { fetchCatalog, refreshCatalog } from '../../src/lib/games.js'
+import { fetchCatalog, refreshCatalog, fetchEpisodes } from '../../src/lib/games.js'
 
 const GAMES = [
   { name: 'Zelda',         slug: 'zelda',         latestPubTs: 1717200000, episodeCount: 3, igdb: { metacritic: 90 } },
@@ -51,34 +52,42 @@ const MULTI = [
   { name: 'Balatro', slug: 'balatro', podcasts: ['fin-du-game'],                  igdb: null },
 ]
 
-describe('podcast filter', () => {
-  it('defaults to all podcasts', () => {
+// A podcast's page narrows the catalog to its games; the Ludothèque shows them all.
+describe("a podcast's games", () => {
+  it('are every game without a podcast', () => {
     const store = useGamesStore()
     store.all = MULTI
-    expect(store.selectedPodcast).toBe('all')
     expect(store.filtered('')).toHaveLength(3)
   })
 
-  it('filters to a single podcast', () => {
+  it("are the games a podcast tested, on its page", () => {
     const store = useGamesStore()
     store.all = MULTI
-    store.setPodcast('fin-du-game')
-    const names = store.filtered('').map(g => g.name).sort()
+    const names = store.filtered('', 'fin-du-game').map(g => g.name).sort()
     expect(names).toEqual(['Balatro', 'Zelda'])   // Zelda is in both → still included
   })
 
-  it('combines podcast filter with a name query', () => {
+  it('combine with a name query', () => {
     const store = useGamesStore()
     store.all = MULTI
-    store.setPodcast('silence-on-joue')
-    expect(store.filtered('zelda')).toHaveLength(1)
-    expect(store.filtered('balatro')).toHaveLength(0)   // FDG-only, excluded by SoJ filter
+    expect(store.filtered('zelda', 'silence-on-joue')).toHaveLength(1)
+    expect(store.filtered('balatro', 'silence-on-joue')).toHaveLength(0)
   })
+})
 
-  it('persists the selection to localStorage', () => {
+describe('episodes', () => {
+  it('load once for every reader, and keep the list on a failed reload', async () => {
     const store = useGamesStore()
-    store.setPodcast('fin-du-game')
-    expect(localStorage.getItem('soj-podcast-filter')).toBe('fin-du-game')
+    fetchEpisodes.mockResolvedValueOnce([{ slug: 'a' }])
+    await Promise.all([store.loadEpisodes(), store.loadEpisodes()])
+    expect(fetchEpisodes).toHaveBeenCalledTimes(1)
+    expect(store.episodesLoaded).toBe(true)
+
+    fetchEpisodes.mockRejectedValueOnce(new Error('down'))
+    await store.loadEpisodes()
+    expect(store.episodes).toEqual([{ slug: 'a' }])
+    expect(store.episodesError).toBe('down')
+    expect(store.episodesLoading).toBe(false)
   })
 })
 

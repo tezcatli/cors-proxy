@@ -38,9 +38,11 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 
 - Un seul écran, la Ludothèque : la vitrine du dernier test (bureau) et Reprendre, puis les nouveaux tests en rangée (une carte par test), puis tous les jeux en grille de pochettes seules (une par jeu ; recherche, filtre d'émission et tri). Les onglets Tests et Jeux montraient le même écran en double. (2026-10-25)
 - Vocabulaire : un **podcast** est l'émission (ZQSD, Silence on Joue…), un **épisode** l'un de ses fichiers audio, un **test** un passage d'un épisode. L'app dit « podcast », jamais « émission ». (2026-10-25)
-- Une seule écoute : un épisode est une ligne de temps, ses tests en sont des points d'entrée. Écouter un test, c'est entrer dans l'épisode à ce test ; la lecture continue. Deux portes : par jeu (fiche → test) et par podcast (page du podcast → épisode) ; la page épisode est le pivot, une seule ligne de temps où les tests sont des lignes riches. (2026-10-25)
+- Une seule écoute : un épisode est une ligne de temps, ses tests en sont des points d'entrée. Écouter un test, c'est entrer dans l'épisode à ce test ; la lecture continue. Deux portes : par jeu (fiche → test) et par podcast (page du podcast → épisode) ; la page épisode est le pivot : une seule liste de moments, au même gabarit (heure, pochette pour un test, titre sur deux lignes au plus) ; un test y mène à sa fiche, où est l'avis (verdict, pour et contre). (2026-10-25)
 - Chaque podcast a sa page : ses épisodes (tous, ceux sans test compris, du plus récent au plus ancien), puis ses jeux. Elle remplace le filtre de l'en-tête : la Ludothèque montre toujours tout, et y mène par la rangée « Les podcasts » ; le nom d'un podcast y mène partout où il est écrit. (2026-10-25)
 - Ce que montrent le lecteur et la session média (écran verrouillé) suit la position : la pochette du test en cours (tous ses chapitres), sinon le visuel du podcast ; jamais le jeu qui a lancé la lecture. (2026-10-25)
+- Page du podcast (maquettes https://claude.ai/artifact/BZBqq7njbYNcYAN2fhYvWD) : sur bureau, l'en-tête et « Ses jeux » en colonne à gauche, les épisodes à droite (variante 2B) ; sur téléphone, « Ses jeux » en rangée avant les épisodes. Page épisode : un chapitre qui contient un test sans en porter le nom reste, le test vient dessous. (2026-10-25)
+- Un titre trop long défile seulement dans le lecteur (un seul titre sur une ligne), jamais dans une liste ; coupé avec `prefers-reduced-motion`. (2026-10-25)
 - Un verdict par test, jamais de moyenne par jeu : la fiche le compte par verdict. (2026-10-24)
 - Le verdict s'écrit en mot seul : « Positif », « Mitigé », « Négatif » ; un test sans verdict n'affiche rien. Les glyphes (▲ ◆ ▼ ○) n'étaient pas compris. (2026-10-25)
 - Une carte de test (la rangée des nouveaux tests) mène à la fiche du jeu, ce test ouvert dans le journal ; l'épisode est un lien du journal. (2026-10-25)
@@ -62,4 +64,5 @@ Ce qui a été tranché, une ligne par décision, avec la date. **À relire avan
 - Une table `resolution_overrides` à côté de `corrections.json` : un seul endroit, versionné.
 
 ## Façon de travailler
+- Rien ne part en prod (merge sur `main`) avant que l'utilisateur ait testé en dev : le travail reste sur une branche locale jusqu'à son feu vert. (2026-10-25)
 - Projet perso, serveur de hobby : une fois le feu vert donné pour une étape en prod, Claude la fait lui-même (sauvegarde avant, vérification après), sans renvoyer les commandes. (2026-10-23)

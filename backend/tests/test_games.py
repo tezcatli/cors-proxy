@@ -1715,3 +1715,25 @@ def test_every_chapter_of_a_test_carries_its_page():
     # and its news chapter is its by name.
     assert [c.get('slug') for c in chapters] == [None, 'hades-ii', 'hades-ii', 'hades-ii', 'silksong', 'silksong']
     assert chapters[2]['coverImageId'] == 'co1'
+
+
+# ── A podcast's own image ─────────────────────────────────────────────────────
+
+def test_channel_image_is_the_feed_s_own():
+    from rss import channel_image
+    itunes = b'''<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+      <itunes:image href="https://example.com/show.jpg"/><image><url>https://example.com/other.jpg</url></image>
+      <item><itunes:image href="https://example.com/ep.jpg"/></item></channel></rss>'''
+    plain = b'<rss><channel><image><url> https://example.com/show.png </url></image></channel></rss>'
+    assert channel_image(itunes) == 'https://example.com/show.jpg'
+    assert channel_image(plain) == 'https://example.com/show.png'
+    assert channel_image(b'<rss><channel></channel></rss>') is None
+
+
+def test_an_episode_s_podcast_carries_the_feed_s_image(client):
+    rss = MINIMAL_RSS.replace(b'<channel>', b'<channel><image><url>https://example.com/show.jpg</url></image>', 1)
+    with patch('feeds.http.get', return_value=mock_rss_response(rss)), \
+         patch('resolver.schedule_resolve'):
+        client.get('/games', headers=auth_header())
+    ep = client.get('/games/episodes', headers=auth_header()).get_json()[0]
+    assert ep['podcast']['imageUrl'] == 'https://example.com/show.jpg'

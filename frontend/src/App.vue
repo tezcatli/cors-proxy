@@ -9,6 +9,7 @@ import { usePullToRefresh } from './composables/usePullToRefresh.js'
 import AppHeader    from './components/AppHeader.vue'
 import GameGrid     from './components/GameGrid.vue'
 import EpisodesFeed from './components/EpisodesFeed.vue'
+import PodcastsRow   from './components/PodcastsRow.vue'
 import AudioPlayer  from './components/AudioPlayer.vue'
 import AccountModal from './components/AccountModal.vue'
 
@@ -24,12 +25,12 @@ const { navDir } = useNavDirection(route, router)
 
 const showAccountModal = ref(false)
 
-// ── The Ludothèque: one base view (/), its tests then its games ─────────────
-// Overlay routes (/game/:slug, /episode/:slug, /login) slide in over it; it
+// ── The Ludothèque: one base view (/), its tests, its podcasts, its games ───
+// Overlay routes (/game/:slug, /episode/:slug, /podcast/:id, /login) slide in over it; it
 // stays mounted (and scrolled) underneath.
 const BASE_ROUTES = new Set(['/'])
 
-// ── Search: one query, for the tests and the games ───────────────────────────
+// ── Search: one query, for the tests, the episodes and the games ───────────────────────────
 const query = ref(route.query.q || '')
 
 // URL → input (back/forward)
@@ -63,7 +64,7 @@ const displayedGames = computed(() => {
 })
 
 const gridResetKey = computed(() =>
-  `${debouncedQuery.value.trim()}|${hideUnresolved.value}|${gamesStore.sortMode}|${gamesStore.sortAsc}|${gamesStore.selectedPodcast}`
+  `${debouncedQuery.value.trim()}|${hideUnresolved.value}|${gamesStore.sortMode}|${gamesStore.sortAsc}`
 )
 
 // A new sort shows the games from their start.
@@ -74,8 +75,9 @@ watch(
 
 // Auto-load the catalog after login
 watch(() => route.path, path => {
-  if (BASE_ROUTES.has(path) && loggedIn.value && !gamesStore.all.length && !gamesStore.loading)
-    gamesStore.load()
+  if (!BASE_ROUTES.has(path) || !loggedIn.value) return
+  if (!gamesStore.all.length && !gamesStore.loading) gamesStore.load()
+  if (!gamesStore.episodesLoaded) gamesStore.loadEpisodes()
 })
 
 // The mini player floats over the bottom of the base views: they clear it
@@ -96,11 +98,10 @@ function handleLogout() {
 // auto-logout; close() also clears the resume snapshot.
 watch(loggedIn, v => { if (!v) playerStore.close() })
 
-// Bumped on every pull-to-refresh so the tests reload in step with the catalog.
-const feedRefreshSignal = ref(0)
+// A pull-to-refresh reloads the episodes in step with the catalog.
 function handleRefresh() {
   gamesStore.refresh()
-  feedRefreshSignal.value++
+  gamesStore.loadEpisodes()
 }
 
 // ── Pull-to-refresh ───────────────────────────────────────────────────────────
@@ -116,6 +117,7 @@ function syncPullScrollEl() {
 onMounted(() => {
   if (loggedIn.value) {
     gamesStore.load()
+    gamesStore.loadEpisodes()
     try {
       const raw = localStorage.getItem('soj-player')
       if (raw) {
@@ -136,10 +138,8 @@ onMounted(() => {
       :sort-mode="gamesStore.sortMode"
       :sort-asc="gamesStore.sortAsc"
       :hide-unresolved="hideUnresolved"
-      :selected-podcast="gamesStore.selectedPodcast"
       @update:searchQuery="query = $event"
       @set-sort="gamesStore.setSort"
-      @set-podcast="gamesStore.setPodcast"
       @toggle-hide-unresolved="hideUnresolved = !hideUnresolved"
       @show-account="showAccountModal = true"
     />
@@ -156,10 +156,8 @@ onMounted(() => {
       </div>
 
       <div class="scroll-area home-scroll">
-        <EpisodesFeed
-          :search-query="debouncedQuery"
-          :refresh-signal="feedRefreshSignal"
-        />
+        <EpisodesFeed :search-query="debouncedQuery" />
+        <PodcastsRow v-if="!debouncedQuery.trim()" />
         <GameGrid
           :games="displayedGames"
           :loading="gamesStore.loading"
