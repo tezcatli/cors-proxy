@@ -1,59 +1,45 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchEpisodes } from '../lib/games.js'
-import { formatTime, progressPct, testHref } from '../lib/utils.js'
+import { formatTime, progressPct, testHref, episodeTrack } from '../lib/utils.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
-import { podcastMeta } from '../lib/podcasts.js'
 import TestCard from './TestCard.vue'
+import EpisodeRow from './EpisodeRow.vue'
 import { Play } from 'lucide-vue-next'
 
 // The top of the Ludothèque (DECISIONS.md, « Interface »): the newest test in
 // large (wide screens), what was started, then the newest tests in a row to
 // swipe, one card each — a game an episode tests, told by its cover. The games
-// follow (GameGrid), in the same scroll. Shares the show filter and the search
-// with them.
+// follow (« Les podcasts », then GameGrid), in the same scroll. During a search:
+// the tests whose game matches, then the episodes whose title does — those that
+// test nothing included, the way to an episode by its name.
 const props = defineProps({
-  searchQuery:   String,
-  refreshSignal: { type: Number, default: 0 },
+  searchQuery: String,
 })
 
 const router      = useRouter()
 const gamesStore  = useGamesStore()
 const playerStore = usePlayerStore()
 
-const episodes = ref([])
-const loading  = ref(true)
-const error    = ref(null)
+const episodes = computed(() => gamesStore.episodes)
+const loading  = computed(() => gamesStore.episodesLoading)
+const error    = computed(() => gamesStore.episodesError)
+const q        = computed(() => props.searchQuery?.trim().toLowerCase() ?? '')
 
-async function load() {
-  try { episodes.value = await fetchEpisodes(); error.value = null }
-  catch (e) { error.value = e.message }
-  finally   { loading.value = false }
-}
+// One card per test; an episode that tests nothing has no card. A search keeps
+// the tests whose game matches.
+const matches = test => (test.resolvedName ?? test.name).toLowerCase().includes(q.value) || test.name.toLowerCase().includes(q.value)
+const tests = computed(() => episodes.value.flatMap(ep => (ep.games ?? [])
+  .filter(test => !q.value || matches(test))
+  .map(test => ({ ep, test }))))
 
-onMounted(load)
-// Reload when the pull-to-refresh signal bumps (keeps the existing list visible).
-watch(() => props.refreshSignal, (v, prev) => { if (v !== prev) load() })
-
-const filteredEpisodes = computed(() => {
-  const q       = props.searchQuery?.trim().toLowerCase()
-  const podcast = gamesStore.selectedPodcast
-  let list = episodes.value
-  if (podcast !== 'all')
-    list = list.filter(ep => ep.podcast?.id === podcast)
-  if (q)
-    list = list.filter(ep =>
-      ep.title.toLowerCase().includes(q) ||
-      ep.games?.some(g => (g.resolvedName ?? g.name).toLowerCase().includes(q) || g.name.toLowerCase().includes(q))
-    )
-  return list
-})
-
-// One card per test; an episode that tests nothing has no card.
-const tests = computed(() => filteredEpisodes.value.flatMap(ep => (ep.games ?? []).map(test => ({ ep, test }))))
+// A search's episodes: those whose title matches.
+const EPISODES_MAX = 20
+const foundEpisodes = computed(() => (q.value
+  ? episodes.value.filter(ep => ep.title.toLowerCase().includes(q.value)).slice(0, EPISODES_MAX)
+  : []))
 // The newest test leads, unless the list is a search's results.
 // The newest test is shown large on a wide screen only: on a phone it would
 // repeat the grid's first card (DECISIONS.md, « Interface »).
@@ -67,10 +53,6 @@ const lead     = computed(() => (props.searchQuery?.trim() ? null : tests.value[
 const featured = computed(() => (isPhone.value ? null : lead.value))
 const rest     = computed(() => (featured.value ? tests.value.slice(1) : tests.value))
 
-// The show the list is narrowed to, said in the heading (the choice is kept
-// across visits, so it must not go unnoticed).
-const showName = computed(() => (gamesStore.selectedPodcast !== 'all' ? podcastMeta(gamesStore.selectedPodcast)?.name ?? '' : ''))
-
 // The row: the newest tests; the rest of the history is reached by its games.
 const ROW_MAX = 30
 const rowTests = computed(() => rest.value.slice(0, ROW_MAX))
@@ -81,22 +63,8 @@ function isPlaying({ ep, test }) {
 }
 
 function play({ ep, test }) {
-  playerStore.play({
-    game:            test.resolvedName ?? test.name,
-    slug:            test.slug ?? null,
-    episode:         ep.title,
-    url:             ep.audioUrl,
-    // Resume from saved progress when partway through; untouched/finished starts at the test.
-    ts:              playerStore.resumeTimeFor(ep.slug, test.timestampSeconds || 0),
-    timestamp:       test.timestamp || null,
-    episodeImageUrl: ep.imageUrl ?? null,
-    pubTs:           ep.pubTs,
-    episodeSlug:     ep.slug,
-    episodeUrlSlug:  ep.urlSlug ?? null,
-    coverImageId:    test.coverImageId ?? null,
-    podcast:         ep.podcast ?? null,
-    tests:           ep.games ?? [],
-  })
+  // Resume from saved progress when partway through; untouched/finished starts at the test.
+  playerStore.play(episodeTrack(ep, { test, ts: playerStore.resumeTimeFor(ep.slug, test.timestampSeconds || 0) }))
 }
 
 function view(item) {
@@ -127,22 +95,8 @@ const resumeItems = computed(() => {
     .slice(0, 3)
 })
 
-function resume(item) {
-  const { ep, test, entry } = item
-  playerStore.play({
-    game:            item.name,
-    slug:            test?.slug ?? entry.gameSlug ?? null,
-    episode:         ep.title,
-    url:             ep.audioUrl,
-    ts:              entry.currentTime,
-    episodeImageUrl: ep.imageUrl ?? null,
-    pubTs:           ep.pubTs,
-    episodeSlug:     ep.slug,
-    episodeUrlSlug:  ep.urlSlug ?? null,
-    coverImageId:    item.cover,
-    podcast:         ep.podcast ?? null,
-    tests:           ep.games ?? [],
-  })
+function resume({ ep, test, entry }) {
+  playerStore.play(episodeTrack(ep, { test, ts: entry.currentTime }))
 }
 </script>
 
@@ -192,10 +146,9 @@ function resume(item) {
           </section>
         </div>
 
-        <section v-if="rowTests.length || showName" aria-labelledby="h-latest" class="latest">
+        <section v-if="rowTests.length || !q" aria-labelledby="h-latest" class="latest">
           <div class="section-head">
-            <h2 id="h-latest">{{ searchQuery?.trim() ? 'Tests' : 'Nouveaux tests' }}<span v-if="showName" class="filter-name"> · {{ showName }}</span></h2>
-            <button v-if="showName" type="button" class="chip-btn" @click="gamesStore.setPodcast('all')">✕ Toutes les émissions</button>
+            <h2 id="h-latest">{{ q ? 'Tests' : 'Nouveaux tests' }}</h2>
           </div>
           <div v-if="rowTests.length" class="row">
             <TestCard
@@ -210,6 +163,11 @@ function resume(item) {
             />
           </div>
           <p v-else class="empty__text">Aucun test.</p>
+        </section>
+
+        <section v-if="foundEpisodes.length" aria-labelledby="h-found-eps" class="found">
+          <div class="section-head"><h2 id="h-found-eps">Épisodes</h2></div>
+          <EpisodeRow v-for="ep in foundEpisodes" :key="ep.slug" :ep="ep" show-podcast />
         </section>
       </template>
     </div>
@@ -297,12 +255,7 @@ function resume(item) {
 @media (min-width: 900px) { .row { grid-auto-columns: 180px; gap: 24px; } }
 .skel { aspect-ratio: 3 / 4; }
 
-.filter-name { color: var(--c-fg-2); }
-/* Phone: the heading on its own line, the way back to all shows beneath. */
-@media (max-width: 767px) {
-  .latest .section-head { flex-wrap: wrap; }
-  .latest .section-head h2 { flex-basis: 100%; }
-}
+.found { margin-bottom: 36px; }
 .empty { padding: 64px 0; text-align: center; }
 .empty__title { font-size: var(--text-2xl); margin: 0 0 8px; }
 .empty__text { color: var(--c-fg-2); margin: 0; }

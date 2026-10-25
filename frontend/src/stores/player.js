@@ -293,6 +293,15 @@ export const usePlayerStore = defineStore('player', () => {
     return entries.sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))[0]
   }
 
+  // Where an episode is to resume: its latest saved position, while partway
+  // through its chapter; null when untouched or that chapter is done.
+  function resumeEntryFor(episodeSlug) {
+    const e = getEpisodeLatestProgress(episodeSlug)
+    if (!e?.chapterEnd) return null
+    const pct = progressPct(e.currentTime, e.ts ?? 0, e.chapterEnd)
+    return (pct >= PROGRESS_MIN_PCT && pct < PROGRESS_DONE_PCT) ? e : null
+  }
+
   // Episodes started and not finished, most recent first (one entry each): the
   // home's « Reprendre » shelf.
   const inProgress = computed(() => {
@@ -337,6 +346,6 @@ export const usePlayerStore = defineStore('player', () => {
     play, close, restore, setEpisodeImageUrl,
     resume, pauseAudio, togglePlayback, seek, retry, setVolume, setRate, skip,
     liveProgress, getEpisodeProgress, getGameProgress,
-    resumeTimeFor, getEpisodeLatestProgress, inProgress,
+    resumeTimeFor, getEpisodeLatestProgress, resumeEntryFor, inProgress,
   }
 })

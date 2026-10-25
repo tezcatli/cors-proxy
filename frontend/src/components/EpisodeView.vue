@@ -4,14 +4,20 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { useGamesStore } from '../stores/games.js'
 import { fetchEpisodeDetail } from '../lib/games.js'
-import { formatShortDate, formatTime, progressPct, PROGRESS_MIN_PCT, PROGRESS_DONE_PCT } from '../lib/utils.js'
+import { episodeTrack, formatShortDate, formatTime, PROGRESS_MIN_PCT } from '../lib/utils.js'
+import { episodeTimeline } from '../lib/timeline.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
+import { podcastMeta } from '../lib/podcasts.js'
 import BackBar from './BackBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import { useProgress } from '../composables/useProgress.js'
-import { useGameTheme } from '../composables/useGameTheme.js'
+import { useGameTheme, paletteFromAccent, themeStyle } from '../composables/useGameTheme.js'
 import { Play, Pause, Check, ArrowUpRight } from 'lucide-vue-next'
 
+// An episode's page — where the two ways in meet (DECISIONS.md, « Interface » :
+// une seule écoute): from a game's page (`?game=`), its test first; from its
+// podcast, the episode from its start or where it was left. Below, one
+// timeline: the chapters in order, the tests among them, each once.
 const route       = useRoute()
 const router      = useRouter()
 const playerStore = usePlayerStore()
@@ -19,8 +25,6 @@ const gamesStore  = useGamesStore()
 
 const { episodeProgress } = useProgress()
 
-// Opened from a game's page, `?game=` names that game: the back label and the
-// main button follow it.
 const fromGame    = route.query.game ?? null
 const episodeSlug = route.params.episodeSlug
 
@@ -40,8 +44,8 @@ onMounted(async () => {
   }
 })
 
-const fromGameName = computed(() =>
-  fromGame ? (gamesStore.all.find(g => g.slug === fromGame)?.name ?? 'Retour') : 'Ludothèque')
+const backLabel = computed(() =>
+  fromGame ? (gamesStore.all.find(g => g.slug === fromGame)?.name ?? 'Retour') : 'Retour')
 
 function back() {
   if (router.options.history.state?.back) router.back()
@@ -56,89 +60,66 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
 })
 
-const tests = computed(() => episode.value?.games ?? [])
+const tests    = computed(() => episode.value?.games ?? [])
+const podcast  = computed(() => episode.value?.podcast ?? null)
+const timeline = computed(() => episodeTimeline(episode.value?.chapters ?? [], tests.value))
 
-// The test the main button plays: the game we came from, else the first.
-const leadTest = computed(() =>
-  tests.value.find(t => fromGame && t.slug === fromGame) ?? tests.value[0] ?? null)
-// The page wears that game's colours, and its cover is the backdrop.
-const leadCover = computed(() => leadTest.value?.coverImageId ?? null)
-const { style: theme } = useGameTheme(leadCover)
+// The test we came for, from a game's page.
+const leadTest = computed(() => (fromGame ? tests.value.find(t => t.slug === fromGame) ?? null : null))
+
+// Its game's colours when we came for a test; else the podcast's.
+const { style: gameTheme } = useGameTheme(() => leadTest.value?.coverImageId ?? null)
+const theme = computed(() => (leadTest.value ? gameTheme.value : themeStyle(paletteFromAccent(podcastMeta(podcast.value?.id)?.accent))))
+const backdrop = computed(() => (leadTest.value?.coverImageId
+  ? igdbUrl(leadTest.value.coverImageId, 't_cover_small')
+  : podcast.value?.imageUrl ?? null))
 
 const isThisTrack = computed(() =>
   !!playerStore.current && playerStore.current.url === episode.value?.audioUrl)
 const activeChapter = computed(() => isThisTrack.value ? playerStore.currentChapter : null)
 const activeTest    = computed(() => isThisTrack.value ? playerStore.currentTest : null)
+const isActive = t => !!activeTest.value && activeTest.value.slug === t.slug && activeTest.value.timestampSeconds === t.timestampSeconds
 
-function playFrom(ts, test = leadTest.value) {
+function playFrom(ts, test = null) {
   const ep = episode.value
   if (!ep?.audioUrl) return
-  playerStore.play({
-    game:            test ? (test.resolvedName ?? test.name) : ep.title,
-    slug:            test?.slug ?? null,
-    episode:         ep.title,
-    url:             ep.audioUrl,
-    // Resume from saved progress when partway through; untouched/finished starts at `ts`.
-    ts:              playerStore.resumeTimeFor(ep.slug, ts),
-    timestamp:       test?.timestamp ?? null,
-    episodeImageUrl: ep.imageUrl,
-    pubTs:           ep.pubTs,
-    episodeSlug:     ep.slug,
-    episodeUrlSlug:  ep.urlSlug,
-    coverImageId:    test?.coverImageId ?? null,
-    chapters:        ep.chapters ?? [],
-    podcast:         ep.podcast ?? null,
-    tests:           ep.games ?? [],
-  })
+  playerStore.play(episodeTrack(ep, { test, ts }))
 }
 
 function playTest(t) {
-  if (isThisTrack.value && activeTest.value?.timestampSeconds === t.timestampSeconds) playerStore.togglePlayback()
-  else playFrom(t.timestampSeconds ?? 0, t)
+  if (isActive(t)) playerStore.togglePlayback()
+  // Resume from saved progress when partway through; untouched/finished starts at the test.
+  else playFrom(playerStore.resumeTimeFor(episode.value.slug, t.timestampSeconds ?? 0), t)
 }
 
-// The latest saved position in this episode, when partway: « Reprendre à … ».
-const resumeEntry = computed(() => {
-  if (isThisTrack.value) return null
-  const e = playerStore.getEpisodeLatestProgress(episode.value?.slug)
-  if (!e?.chapterEnd) return null
-  const pct = progressPct(e.currentTime, e.ts ?? 0, e.chapterEnd)
-  return (pct >= PROGRESS_MIN_PCT && pct < PROGRESS_DONE_PCT) ? e : null
-})
+function playChapter(ch) {
+  playFrom(ch.timestampSeconds, tests.value.find(x => x.slug && x.slug === ch.slug) ?? null)
+}
+
+// ── The main button: our test, else where the episode was left, else its start
+const resumeEntry = computed(() => (isThisTrack.value ? null : playerStore.resumeEntryFor(episode.value?.slug)))
 
 const mainLabel = computed(() => {
   if (isThisTrack.value) return playerStore.paused ? 'Reprendre' : 'Pause'
+  if (leadTest.value) return `Écouter le test${leadTest.value.timestamp ? ' · ' + leadTest.value.timestamp : ''}`
   if (resumeEntry.value) return `Reprendre à ${formatTime(resumeEntry.value.currentTime)}`
-  if (leadTest.value?.timestamp) return `Écouter le test · ${leadTest.value.timestamp}`
-  return 'Écouter'
+  return "Écouter l'épisode"
 })
+// From a game's page, the whole episode is one tap away.
+const showFromStart = computed(() => !isThisTrack.value && !!leadTest.value)
 
 function onMain() {
   if (isThisTrack.value) { playerStore.togglePlayback(); return }
-  if (resumeEntry.value) {
-    const t = tests.value.find(x => x.slug && x.slug === resumeEntry.value.gameSlug) ?? leadTest.value
-    playFrom(resumeEntry.value.ts ?? 0, t)
-    return
-  }
-  playFrom(leadTest.value?.timestampSeconds ?? 0)
+  if (leadTest.value) { playTest(leadTest.value); return }
+  playFrom(resumeEntry.value?.currentTime ?? 0)
 }
 
-const chapterRows = computed(() =>
-  (episode.value?.chapters ?? []).map(ch => ({
-    ...ch,
-    progress: episodeProgress(episode.value.slug, ch.timestampSeconds ?? 0),
-  }))
-)
-
-function playChapter(ch) {
-  const t = tests.value.find(x => x.slug && x.slug === ch.slug) ?? null
-  playFrom(ch.timestampSeconds, t)
-}
+const progressOf = ch => (ch ? episodeProgress(episode.value.slug, ch.timestampSeconds ?? 0) : null)
 </script>
 
 <template>
   <div class="overlay-page" :style="[theme, { zIndex: 'var(--z-episode)' }]">
-    <BackBar :label="fromGameName" @back="back" />
+    <BackBar :label="backLabel" @back="back" />
 
     <div v-if="loading || error || !episode" class="state">
       <span v-if="loading" class="lab">Chargement…</span>
@@ -147,88 +128,82 @@ function playChapter(ch) {
     </div>
 
     <div v-else class="scroll-area ep-scroll">
-      <div v-if="leadCover" class="backdrop" aria-hidden="true"><img :src="igdbUrl(leadCover, 't_cover_small')" alt="" /></div>
+      <div v-if="backdrop" class="backdrop" aria-hidden="true"><img :src="backdrop" alt="" /></div>
       <div class="content ep">
         <header class="ep__head">
-          <div class="ep__show">
-            <img v-if="episode.imageUrl" :src="episode.imageUrl" alt="" class="ep__art" />
-            <span class="lab">{{ episode.podcast?.name }} · {{ formatShortDate(episode.pubTs) }}</span>
-          </div>
+          <RouterLink v-if="podcast" :to="`/podcast/${podcast.id}`" class="ep__show">
+            <img v-if="podcast.imageUrl" :src="podcast.imageUrl" alt="" class="ep__art" />
+            <span class="lab">{{ podcast.name }} · {{ formatShortDate(episode.pubTs) }}</span>
+          </RouterLink>
           <h1 class="ep__title cond">{{ episode.title }}</h1>
-          <button v-if="episode.audioUrl" type="button" class="btn-play ep__main" @click="onMain">
-            <Pause v-if="isThisTrack && !playerStore.paused" :size="14" fill="currentColor" :stroke-width="0" />
-            <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
-            {{ mainLabel }}
-          </button>
+          <div v-if="episode.audioUrl" class="ep__actions">
+            <button type="button" class="btn-play ep__main" @click="onMain">
+              <Pause v-if="isThisTrack && !playerStore.paused" :size="14" fill="currentColor" :stroke-width="0" />
+              <Play v-else :size="14" fill="currentColor" :stroke-width="0" />
+              {{ mainLabel }}
+            </button>
+            <button v-if="showFromStart" type="button" class="btn-line" @click="playFrom(0)">Depuis le début</button>
+          </div>
         </header>
 
-        <section v-if="tests.length" class="block" aria-labelledby="h-tests">
+        <section v-if="timeline.length" class="block" aria-labelledby="h-programme">
           <div class="section-head">
-            <h2 id="h-tests">Les tests de l'épisode</h2>
-            <span class="lab">{{ tests.length }}</span>
+            <h2 id="h-programme">Au programme</h2>
+            <span v-if="tests.length" class="lab">{{ tests.length }} test{{ tests.length > 1 ? 's' : '' }}</span>
           </div>
-          <article
-            v-for="t in tests"
-            :key="t.name + t.timestampSeconds"
-            class="t"
-            :class="{ 'is-playing': activeTest && activeTest.timestampSeconds === t.timestampSeconds }"
-          >
-            <div class="t__row">
-              <img v-if="t.coverImageId" :src="igdbUrl(t.coverImageId, 't_cover_big')" alt="" class="t__cover" />
-              <span v-else class="t__cover t__cover--none"></span>
-              <div class="t__main">
-                <span class="t__name cond clamp-2">{{ t.resolvedName ?? t.name }}</span>
-                <span class="t__meta">
-                  <VerdictMark :verdict="t.critique?.verdict ?? null" />
-                  <span class="mono t__start">{{ t.timestamp ?? '0:00' }}</span>
-                </span>
-              </div>
-              <div class="t__actions">
-                <button
-                  type="button"
-                  class="icon-action"
-                  :class="activeTest && activeTest.timestampSeconds === t.timestampSeconds ? 't__play is-on' : 't__play'"
-                  :disabled="!episode.audioUrl"
-                  :aria-label="`Écouter le test de ${t.resolvedName ?? t.name}`"
-                  @click="playTest(t)"
-                >
-                  <Pause v-if="activeTest && activeTest.timestampSeconds === t.timestampSeconds && !playerStore.paused" :size="16" fill="currentColor" :stroke-width="0" />
-                  <Play v-else :size="16" fill="currentColor" :stroke-width="0" />
+          <ol class="tl">
+            <template v-for="row in timeline" :key="row.kind + (row.kind === 'test' ? row.test.name + row.test.timestampSeconds : row.chapter.timestamp)">
+              <li v-if="row.kind === 'test'" class="t" :class="{ 'is-playing': isActive(row.test), 'is-lead': leadTest === row.test }">
+                <div class="t__row">
+                  <span class="mono t__ts">{{ row.test.timestamp ?? '—' }}</span>
+                  <img v-if="row.test.coverImageId" :src="igdbUrl(row.test.coverImageId, 't_cover_big')" alt="" class="t__cover" />
+                  <span v-else class="t__cover t__cover--none"></span>
+                  <div class="t__main">
+                    <RouterLink v-if="row.test.slug" :to="`/game/${encodeURIComponent(row.test.slug)}`" class="t__name cond clamp-2">{{ row.test.resolvedName ?? row.test.name }}</RouterLink>
+                    <span v-else class="t__name cond clamp-2">{{ row.test.resolvedName ?? row.test.name }}</span>
+                    <span class="t__meta">
+                      <VerdictMark :verdict="row.test.critique?.verdict ?? null" />
+                      <Check v-if="progressOf(row.chapter)?.done" :size="14" :stroke-width="3" class="track__done" aria-label="Écouté" />
+                    </span>
+                  </div>
+                  <div class="t__actions">
+                    <button
+                      type="button"
+                      class="icon-action t__play"
+                      :class="{ 'is-on': isActive(row.test) }"
+                      :aria-label="`Écouter le test de ${row.test.resolvedName ?? row.test.name}`"
+                      @click="playTest(row.test)"
+                    >
+                      <Pause v-if="isActive(row.test) && !playerStore.paused" :size="16" fill="currentColor" :stroke-width="0" />
+                      <Play v-else :size="16" fill="currentColor" :stroke-width="0" />
+                    </button>
+                    <RouterLink v-if="row.test.slug" :to="`/game/${encodeURIComponent(row.test.slug)}`" class="icon-action icon-action--boxed" :aria-label="`La fiche de ${row.test.resolvedName ?? row.test.name}`">
+                      <ArrowUpRight :size="16" :stroke-width="2" />
+                    </RouterLink>
+                  </div>
+                </div>
+                <details v-if="row.test.critique?.pros?.length || row.test.critique?.cons?.length" class="t__opinion" :open="leadTest === row.test">
+                  <summary class="lab">Pour et contre</summary>
+                  <div class="t__lists">
+                    <ul v-if="row.test.critique.pros?.length"><li v-for="p in row.test.critique.pros" :key="p"><span class="mono sign">+</span>{{ p }}</li></ul>
+                    <ul v-if="row.test.critique.cons?.length"><li v-for="c in row.test.critique.cons" :key="c"><span class="mono sign sign--minus">−</span>{{ c }}</li></ul>
+                  </div>
+                </details>
+              </li>
+              <li v-else class="track" :class="{ 'is-on': activeChapter?.timestamp === row.chapter.timestamp }">
+                <button type="button" class="track__btn" @click="playChapter(row.chapter)">
+                  <span class="mono track__ts">{{ row.chapter.timestamp }}</span>
+                  <span class="track__title ellipsis">{{ row.chapter.title }}</span>
+                  <Check v-if="progressOf(row.chapter).done" :size="14" :stroke-width="3" class="track__done" aria-label="Écouté" />
+                  <span v-else-if="progressOf(row.chapter).pct > PROGRESS_MIN_PCT" class="track__bar"><span :style="{ width: progressOf(row.chapter).pct + '%' }"></span></span>
                 </button>
-                <RouterLink v-if="t.slug" :to="`/game/${encodeURIComponent(t.slug)}`" class="icon-action icon-action--boxed" :aria-label="`La fiche de ${t.resolvedName ?? t.name}`">
-                  <ArrowUpRight :size="16" :stroke-width="2" />
-                </RouterLink>
-              </div>
-            </div>
-            <div v-if="t.critique?.pros?.length || t.critique?.cons?.length" class="t__opinion">
-              <ul v-if="t.critique.pros?.length"><li v-for="p in t.critique.pros" :key="p"><span class="mono sign">+</span>{{ p }}</li></ul>
-              <ul v-if="t.critique.cons?.length"><li v-for="c in t.critique.cons" :key="c"><span class="mono sign sign--minus">−</span>{{ c }}</li></ul>
-            </div>
-          </article>
-        </section>
-
-        <section v-if="chapterRows.length" class="block" aria-labelledby="h-chapters">
-          <div class="section-head">
-            <h2 id="h-chapters">Chapitres</h2>
-            <span class="lab">{{ chapterRows.length }}</span>
-          </div>
-          <ol class="tracks">
-            <li v-for="ch in chapterRows" :key="ch.timestamp" class="track" :class="{ 'is-on': activeChapter?.timestamp === ch.timestamp }">
-              <button type="button" class="track__btn" :disabled="!episode.audioUrl" @click="playChapter(ch)">
-                <span class="mono track__ts">{{ ch.timestamp }}</span>
-                <span class="track__title ellipsis">{{ ch.title }}</span>
-                <Check v-if="ch.progress.done" :size="14" :stroke-width="3" class="track__done" aria-label="Écouté" />
-                <span v-if="ch.progress.pct > PROGRESS_MIN_PCT && !ch.progress.done" class="track__bar"><span :style="{ width: ch.progress.pct + '%' }"></span></span>
-              </button>
-              <RouterLink v-if="ch.slug" :to="`/game/${encodeURIComponent(ch.slug)}`" class="icon-action" :aria-label="`La fiche de ${ch.resolvedName ?? ch.title}`">
-                <ArrowUpRight :size="16" :stroke-width="2" />
-              </RouterLink>
-            </li>
+              </li>
+            </template>
           </ol>
         </section>
 
         <details v-if="episode.description" class="about">
-          <summary class="lab">Description de l'émission</summary>
+          <summary class="lab">Description de l'épisode</summary>
           <div class="about__body" v-html="episode.description" />
         </details>
       </div>
@@ -247,37 +222,48 @@ function playChapter(ch) {
 .backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, var(--game-veil) 55%, var(--c-bg) 100%); }
 .ep { position: relative; max-width: 1040px; }
 .ep__head { padding: 28px 0 40px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
-.ep__show { display: flex; align-items: center; gap: 12px; }
+.ep__show { display: flex; align-items: center; gap: 12px; min-height: 44px; text-decoration: none; }
+.ep__show .lab { color: var(--c-accent); }
+.ep__show:hover .lab { text-decoration: underline; text-underline-offset: 3px; }
 .ep__art { width: 48px; height: 48px; object-fit: cover; }
-.ep__title { margin: 0; font-size: clamp(28px, 5vw, 56px); line-height: 1.05; overflow-wrap: anywhere; }
+.ep__title { margin: 0; font-size: clamp(26px, 5vw, 56px); line-height: 1.05; overflow-wrap: anywhere; }
+.ep__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ep__main { min-width: 200px; }
 
-/* The tests and the chapters: panels, like the game page's journal. */
+/* The timeline: one panel, like the game page's journal. */
 .block { margin-bottom: 32px; background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
 .block .section-head { margin: 0; padding: 14px 20px; border-bottom: 1px solid var(--c-line); }
 .block .section-head h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.tl { list-style: none; margin: 0; padding: 0; }
 
-.t { border-bottom: 1px solid var(--c-line); padding: 14px 20px; }
+.t { border-bottom: 1px solid var(--c-line); padding: 12px 20px; background: rgba(255, 255, 255, 0.025); }
 .t:last-child { border-bottom: 0; }
-.t.is-playing { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
+.t.is-lead { box-shadow: inset 0 0 0 1px var(--c-accent); }
+.t.is-playing { background: rgba(255, 255, 255, 0.05); box-shadow: inset 3px 0 0 var(--c-accent); }
 .t__row { display: flex; align-items: center; gap: 14px; }
-.t__cover { width: 72px; height: 96px; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 1px var(--c-line), 0 10px 24px rgba(0, 0, 0, 0.5); }
-.t__cover--none { background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-line); }
+.t__ts { width: 64px; flex-shrink: 0; color: var(--c-accent); }
+.t__cover { width: 54px; height: 72px; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 1px var(--c-line), 0 10px 24px rgba(0, 0, 0, 0.5); }
+.t__cover--none { background: var(--c-raised); box-shadow: inset 0 0 0 1px var(--c-line); }
 .t__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.t__name { font-size: 20px; line-height: 1.1; }
-.t__meta { display: flex; align-items: center; gap: 16px; }
-.t__start { color: var(--c-fg-2); }
+.t__name { font-size: 18px; line-height: 1.15; color: var(--c-fg); text-decoration: none; }
+a.t__name:hover { color: var(--c-accent); }
+.t__meta { display: flex; align-items: center; gap: 12px; }
 .t__actions { display: flex; gap: 6px; }
 .t__play { box-shadow: inset 0 0 0 1px var(--c-line-strong); }
 .t__play.is-on { background: var(--c-accent); color: var(--c-accent-fg); box-shadow: none; }
-.t__opinion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 0 0 86px; }
-@media (min-width: 768px) { .t__opinion { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; } .t__name { font-size: 24px; } }
+.t__opinion { padding: 8px 0 0 78px; }
+.t__opinion summary { min-height: 36px; display: flex; align-items: center; cursor: pointer; }
+.t__lists { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-bottom: 4px; }
+@media (min-width: 768px) {
+  .t__lists { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+  .t__name { font-size: 22px; }
+  .t__opinion { padding-left: 146px; }
+}
 .t__opinion ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .t__opinion li { display: flex; gap: 10px; color: var(--c-fg-2); line-height: 1.45; }
 .sign { color: var(--c-accent); font-weight: 700; }
 .sign--minus { color: var(--c-fg); }
 
-.tracks { list-style: none; margin: 0; padding: 0; }
 .track { display: flex; align-items: center; border-bottom: 1px solid var(--c-line); }
 .track:last-child { border-bottom: 0; }
 .track.is-on { background: rgba(255, 255, 255, 0.04); box-shadow: inset 3px 0 0 var(--c-accent); }
@@ -286,22 +272,32 @@ function playChapter(ch) {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   min-height: 48px;
   padding: 0 20px;
   border: 0;
   background: transparent;
-  color: var(--c-fg);
+  color: var(--c-fg-2);
   text-align: left;
   cursor: pointer;
 }
-.track__btn:hover:not(:disabled) { background: var(--c-raised); }
-.track__ts { width: 72px; flex-shrink: 0; color: var(--c-fg-3); }
+.track__btn:hover { background: var(--c-raised); color: var(--c-fg); }
+.track__ts { width: 64px; flex-shrink: 0; color: var(--c-fg-3); }
 .track.is-on .track__ts { color: var(--c-accent); }
 .track__title { flex: 1; min-width: 0; }
 .track__done { color: var(--c-fg-2); flex-shrink: 0; }
 .track__bar { width: 48px; height: 3px; background: var(--c-line-strong); flex-shrink: 0; }
 .track__bar span { display: block; height: 100%; background: var(--c-accent); }
+
+/* Phone: the time above nothing — a narrower column. */
+@media (max-width: 599px) {
+  .t, .track__btn { padding-left: 12px; padding-right: 12px; }
+  .t__ts, .track__ts { width: 52px; font-size: 12px; }
+  .t__cover { width: 40px; height: 53px; }
+  .t__name { font-size: 15px; }
+  .t__opinion { padding-left: 0; }
+  .t__actions .icon-action--boxed { display: none; }   /* the name leads to the game's page */
+}
 
 .about { box-shadow: inset 0 0 0 1px var(--c-line); padding: 0 16px; margin-bottom: 40px; }
 .about summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }

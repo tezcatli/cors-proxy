@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { isAdmin, isLoggedIn } from './lib/auth.js'
 import DetailView  from './components/DetailView.vue'
 import EpisodeView from './components/EpisodeView.vue'
+import PodcastView from './components/PodcastView.vue'
+import { PODCAST_BY_ID } from './lib/podcasts.js'
 import LoginPage   from './pages/LoginPage.vue'
 
 const Empty = { render: () => null }
@@ -16,6 +18,9 @@ const router = createRouter({
     { path: '/episodes',                          redirect: '/' },
     { path: '/game/:slug',                        component: DetailView,  meta: { depth: 1 } },
     { path: '/episode/:episodeSlug',              component: EpisodeView, meta: { depth: 1 } },
+    // A podcast's page; an unknown one leads back to the Ludothèque.
+    { path: '/podcast/:id',                       component: PodcastView, meta: { depth: 1 },
+      beforeEnter: to => (PODCAST_BY_ID[to.params.id] ? true : { path: '/' }) },
     { path: '/login',                             component: LoginPage,   meta: { depth: 1 } },
     // Admin-only, and lazily loaded — no reason to ship the dashboard to the
     // readers who make up every ordinary session.

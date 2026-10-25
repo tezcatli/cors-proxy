@@ -11,8 +11,8 @@ const props = defineProps({
   hasQuery: Boolean,
 })
 
-// The Ludothèque's games, below its newest tests (EpisodesFeed) in the same
-// scroll: one cover per game. The show filter is said once, above the tests.
+// The Ludothèque's games, below its newest tests and its podcasts in the same
+// scroll: one cover per game, all of them (a podcast's are on its page).
 const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
   () => props.games,
   { pageSize: 60, resetKey: () => props.resetKey },
@@ -35,7 +35,6 @@ const { visibleItems: visibleGames, sentinel } = useInfiniteScroll(
       <p v-if="error" class="empty__text">{{ error }}</p>
       <p v-else-if="total === 0" class="empty__text">Aucun jeu dans le catalogue. Tirez vers le bas pour actualiser.</p>
       <p v-else-if="hasQuery" class="empty__text">Aucun jeu ne correspond à votre recherche.</p>
-      <p v-else class="empty__text">Aucun jeu pour cette émission.</p>
     </div>
 
     <div v-else class="grid">

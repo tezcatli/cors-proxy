@@ -328,6 +328,18 @@ def assign_url_slugs(episodes: list[Episode]) -> None:
         ep.url_slug = base if n == 0 else f'{base}-{n + 1}'
 
 
+def channel_image(xml_bytes: bytes) -> str | None:
+    """The podcast's own image, the channel's (an episode's may be its own)."""
+    root    = ET.fromstring(xml_bytes)
+    channel = root.find('channel')
+    if channel is None:
+        channel = root
+    img = channel.find(f'{{{_NS_ITUNES}}}image')
+    if img is not None and img.get('href'):
+        return img.get('href')
+    return (channel.findtext('image/url') or '').strip() or None
+
+
 def parse_feed(xml_bytes: bytes, extractor=extract_game_names,
                podcast_id: str = '') -> list[Episode]:
     """Parse an RSS feed and return one Episode per RSS item.

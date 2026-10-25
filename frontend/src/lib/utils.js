@@ -12,6 +12,12 @@ export function formatShortDate(ts) {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
+/** « 22 oct. »: a date within a year already said (an intertitle, a row). */
+export function formatDayMonth(ts) {
+  if (!ts) return '';
+  return new Date(ts * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
 export function timeAgo(iso) {
   if (!iso) return '';
   const mins = Math.floor((Date.now() - new Date(iso)) / 60000);
@@ -67,4 +73,30 @@ export function testHref({ ep, test }) {
   return test.slug
     ? `/game/${encodeURIComponent(test.slug)}?test=${encodeURIComponent(ep.slug)}`
     : `/episode/${encodeURIComponent(ep.urlSlug)}`;
+}
+
+/**
+ * The track `playerStore.play` takes for an episode — a list's or a detail's
+ * payload — entered at `ts`: its test's start, a saved position, or 0 for the
+ * whole episode. One shape, whatever starts the listening (DECISIONS.md,
+ * « Interface » : une seule écoute). A list's episode has no chapters: the
+ * player loads them.
+ */
+export function episodeTrack(ep, { test = null, ts = 0 } = {}) {
+  return {
+    game:            test ? (test.resolvedName ?? test.name) : ep.title,
+    slug:            test?.slug ?? null,
+    episode:         ep.title,
+    url:             ep.audioUrl,
+    ts,
+    timestamp:       test?.timestamp ?? null,
+    episodeImageUrl: ep.imageUrl ?? null,
+    pubTs:           ep.pubTs ?? null,
+    episodeSlug:     ep.slug,
+    episodeUrlSlug:  ep.urlSlug ?? null,
+    coverImageId:    test?.coverImageId ?? null,
+    chapters:        ep.chapters ?? [],
+    podcast:         ep.podcast ?? null,
+    tests:           ep.games ?? [],
+  };
 }

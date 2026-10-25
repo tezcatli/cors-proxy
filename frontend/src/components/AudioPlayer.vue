@@ -66,6 +66,12 @@ function goEpisode() {
   else if (test.value?.slug)
     router.push('/game/' + encodeURIComponent(test.value.slug))
 }
+function goPodcast() {
+  const id = cur.value?.podcast?.id
+  if (!id) return
+  expanded.value = false
+  router.push('/podcast/' + id)
+}
 function goGame() {
   const slug = test.value?.slug
   if (!slug) return
@@ -187,6 +193,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
         <div class="sheet__links">
           <button v-if="test?.slug" type="button" class="btn-line" @click="goGame">La fiche <ArrowUpRight :size="14" :stroke-width="2" /></button>
           <button type="button" class="btn-line" @click="goEpisode">L'épisode <ArrowUpRight :size="14" :stroke-width="2" /></button>
+          <button v-if="cur.podcast?.id" type="button" class="btn-line" @click="goPodcast">Le podcast <ArrowUpRight :size="14" :stroke-width="2" /></button>
         </div>
       </div>
     </div>
