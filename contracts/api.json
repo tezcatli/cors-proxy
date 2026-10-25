@@ -249,8 +249,21 @@
       "success": {
         "status": 200,
         "fields": [
-          "games"
-        ]
+          "games",
+          "games[].slug",
+          "games[].name",
+          "games[].igdb",
+          "games[].episodeCount",
+          "games[].latestPubTs",
+          "games[].podcasts",
+          "games[].verdicts"
+        ],
+        "only": {
+          "games[].igdb": [
+            "metacritic",
+            "coverImageId"
+          ]
+        }
       },
       "unauthorized": {
         "status": 401,
@@ -276,7 +289,21 @@
           "nameSlugs",
           "corrected",
           "displayName",
-          "igdbName"
+          "igdbName",
+          "episodes[].title",
+          "episodes[].slug",
+          "episodes[].urlSlug",
+          "episodes[].audioUrl",
+          "episodes[].pubTs",
+          "episodes[].imageUrl",
+          "episodes[].description",
+          "episodes[].chapters",
+          "episodes[].games",
+          "episodes[].podcast",
+          "episodes[].timestamp",
+          "episodes[].timestampSeconds",
+          "episodes[].durationSeconds",
+          "episodes[].critique"
         ]
       },
       "not_found": {
@@ -348,7 +375,23 @@
           "writable",
           "pending",
           "resolving",
-          "transcription"
+          "transcription",
+          "games[].status",
+          "games[].corrected",
+          "games[].displayName",
+          "games[].slug",
+          "games[].name",
+          "games[].nameSlug",
+          "games[].nameSlugs",
+          "games[].igdbName",
+          "games[].igdbSlug",
+          "games[].coverImageId",
+          "games[].released",
+          "games[].podcasts",
+          "games[].episodeCount",
+          "games[].latestPubTs",
+          "games[].episodeSlug",
+          "games[].episodeTitle"
         ]
       },
       "unauthorized": {
@@ -463,7 +506,24 @@
     },
     "episodes": {
       "success": {
-        "status": 200
+        "status": 200,
+        "fields": [
+          "[].title",
+          "[].slug",
+          "[].urlSlug",
+          "[].audioUrl",
+          "[].pubTs",
+          "[].imageUrl",
+          "[].games",
+          "[].podcast",
+          "[].timestamp",
+          "[].timestampSeconds",
+          "[].games[].verdict"
+        ],
+        "absent": [
+          "[].description",
+          "[].chapters"
+        ]
       },
       "unauthorized": {
         "status": 401,

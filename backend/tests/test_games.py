@@ -296,19 +296,13 @@ def test_no_auth_returns_401(client):
 def test_catalog_returns_list(client):
     with patch('feeds.http.get', return_value=mock_rss_response()), \
          patch('resolver.schedule_resolve'):
-        r = client.get('/games', headers=auth_header())
-    assert_contract(r, GAMES['catalog']['success'])
-    data = r.get_json()
-    assert isinstance(data['games'], list)
-    assert any(g['name'] == 'Zelda' for g in data['games'])
-
-
-def test_catalog_response_has_igdb_field(client):
-    with patch('feeds.http.get', return_value=mock_rss_response()), \
-         patch('resolver.schedule_resolve'):
-        r = client.get('/games', headers=auth_header())
-    data = r.get_json()
-    assert all('igdb' in g for g in data['games'])
+        client.get('/games', headers=auth_header())
+    zelda = next(a for a in state.game_index[make_slug('Zelda')].appearances)
+    set_cache({zelda.podcast_slug: cache_entry('z', 1, 'zelda', 'Zelda', {'metacritic': 90, 'genres': ['x']})})
+    state.data_version += 1
+    r = client.get('/games', headers=auth_header())
+    assert_contract(r, GAMES['catalog']['success'])      # a resolved game's igdb, slim
+    assert any(g['name'] == 'Zelda' and g['igdb'] for g in r.get_json()['games'])
 
 
 def test_refresh_serves_cache_on_parse_error(client):
@@ -346,16 +340,6 @@ def test_revalidation_accepts_the_weak_etag_gzip_leaves(client, url):
     etag = client.get(url, headers=auth_header()).headers['ETag']
     r = client.get(url, headers={**auth_header(), 'If-None-Match': f'W/{etag}'})
     assert r.status_code == 304
-
-
-def test_catalog_igdb_is_slim(client):
-    with patch('feeds.http.get', return_value=mock_rss_response()), \
-         patch('resolver.schedule_resolve'):
-        r = client.get('/games', headers=auth_header())
-    data = r.get_json()['games']
-    for game in data:
-        if game['igdb'] is not None:
-            assert set(game['igdb'].keys()) == {'metacritic', 'coverImageId'}
 
 
 # ── GET /games/<slug> ─────────────────────────────────────────────────────────
@@ -490,26 +474,13 @@ def test_igdb_refresh_returns_game_detail(client):
 
 # ── GET /games/episodes ───────────────────────────────────────────────────────
 
-_UNIFIED_EPISODE_KEYS = ('title', 'slug', 'urlSlug', 'audioUrl', 'pubTs', 'imageUrl',
-                         'description', 'chapters', 'games', 'podcast', 'timestamp', 'timestampSeconds')
-
-# The feed *list* is a slim shape: `description` and `chapters` are omitted (they're
-# served by the single-episode detail) to keep the payload small.
-_SLIM_EPISODE_KEYS = tuple(k for k in _UNIFIED_EPISODE_KEYS if k not in ('description', 'chapters'))
-
 def test_episodes_returns_list_with_slim_shape(client):
     with patch('feeds.http.get', return_value=mock_rss_response()), \
          patch('resolver.schedule_resolve'):
         client.get('/games', headers=auth_header())
     r = client.get('/games/episodes', headers=auth_header())
-    assert_contract(r, GAMES['episodes']['success'])
-    data = r.get_json()
-    assert isinstance(data, list) and len(data) > 0
-    for key in _SLIM_EPISODE_KEYS:
-        assert key in data[0], f"missing '{key}' in feed episode"
-    # Heavy fields must NOT be in the list payload — they belong to the detail endpoint.
-    assert 'description' not in data[0]
-    assert 'chapters'    not in data[0]
+    assert_contract(r, GAMES['episodes']['success'])     # slim: no description, no chapters
+    assert len(r.get_json()) > 0
 
 
 # ── GET /games/episode ────────────────────────────────────────────────────────
@@ -520,11 +491,7 @@ def test_episode_detail_returns_unified_shape(client):
         client.get('/games', headers=auth_header())
     slug = client.get('/games/episodes', headers=auth_header()).get_json()[0]['slug']
     r = client.get(f'/games/episode?slug={slug}', headers=auth_header())
-    assert_contract(r, GAMES['episode']['success'])
-    # The single-episode endpoint keeps the FULL shape (incl. description + chapters).
-    body = r.get_json()
-    for key in _UNIFIED_EPISODE_KEYS:
-        assert key in body, f"missing '{key}' in episode detail"
+    assert_contract(r, GAMES['episode']['success'])      # the full shape
 
 def test_episode_missing_slug_returns_400(client):
     r = client.get('/games/episode', headers=auth_header())
