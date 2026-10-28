@@ -1,51 +1,45 @@
 # Où on en est
 
-À **réécrire** (pas à compléter) quand l'état change. Dernière mise à jour : 2026-10-25.
+À **réécrire** (pas à compléter) quand l'état change. Il ne dit que l'état présent : ce qui a été livré est dans `git log` et les PR, le pourquoi dans `DECISIONS.md`. Dernière mise à jour : 2026-10-28.
 
-- **Livré.** La chaîne du labo est portée (PR #14, #15), la transcription par morceaux au-delà de 190 Mio (PR #22), le début d'un test coupé par une pub (PR #23).
-- **Livré (2026-10-24) : trois nouvelles émissions**, ORIGAMI L'Hebdo, ZQSD et The Game Informer Show (PR #24). The Back Page est mis de côté.
-  - La résolution v9 est portée (`resolver._unsearched`).
-  - L'historique a été transcrit, lu et résolu en dev, puis livré par `push-lab-data.sh`.
-  - Revue de `/changements` : 7 corrections ajoutées. Les cas à risque ont été relus, mais pas les quelque 1 100 autres tests un par un.
-  - `INGEST=true` ; l'ingestion n'a retranscrit aucun épisode de l'historique. Le sweep de la prod a répondu aux 1 019 noms que le paquet ne portait pas, avec 954 jeux trouvés et aucune erreur.
-  - Sauvegardes : `backend_secrets.env.bak-shows`, `users.db.bak-shows`.
-- **Livré (2026-10-25) : l'interface « hommage »** (PR #26), qui remplace Studio radio. Elle a été choisie sur maquettes : https://claude.ai/artifact/8CzayrRjeDURCEjrfAwWnm, rangée C′.
-  - Chaque fiche, tuile, page épisode et le lecteur prennent les couleurs de la pochette de leur jeu (`useGameTheme`, palettes gardées en `localStorage`).
-  - La fiche montre la pochette en vedette et les tests en journal. Le verdict s'écrit en mot seul.
-  - Un seul écran, la Ludothèque (PR #28), à la place des onglets Tests et Jeux qui montraient le même écran en double : la vitrine du dernier test (bureau) et Reprendre, les nouveaux tests en rangée (une carte par test, qui mène à la fiche), puis tous les jeux en grille. Une seule recherche, le filtre d'émission et le tri dans l'en-tête ; plus de barre d'onglets sur téléphone.
-- **Livré (2026-10-25) : ce qui passe** (PR #29) : le lecteur et la session média suivent la position, la pochette du test en cours sinon le visuel du podcast.
-- **Livré (2026-10-25) : une page par podcast et une seule écoute** (PR #30, testé en dev par l'utilisateur avant la prod ; maquettes https://claude.ai/artifact/BZBqq7njbYNcYAN2fhYvWD).
-  - La rangée « Les podcasts » sur la Ludothèque remplace le filtre de l'en-tête ; la page du podcast (`/podcast/:id`) : écouter le dernier épisode ou reprendre, tous ses épisodes par année, ses jeux. L'image d'un podcast vient de son flux, sa couleur du registre (`lib/podcasts.js`).
-  - La page épisode : une liste de moments au même gabarit ; un test y mène à sa fiche, où est l'avis.
-  - La recherche trouve aussi les épisodes par leur titre. Un titre trop long défile dans le lecteur.
-  - Fiche jeu : on glisse entre la pochette, la bande-annonce et les images (`MediaViewer`) ; le journal des tests est aligné, une cible par action (▶, ↗, ⌄).
-- **Livré (2026-10-25) : la durée des tests** sur la fiche jeu (« 13 min »), à la place de l'heure de début (PR #31, `critiques.span`, recalculée des lectures, sans migration). En prod, tous les tests contrôlés (763 sur 400 fiches) ont une durée. La base de dev n'a pas les lectures d'ORIGAMI, ZQSD et Game Informer (la prod en a 122, 208 et 93) : `pull-prod-data.sh` les ramènerait. Sauvegarde : `users.db.bak-duration`.
-- **Livré (2026-10-25) : le code obsolète retiré** (PR #32). Les épisodes SoJ montrent les chapitres de la lecture (`chapters.json` retiré). Sont aussi retirés : la migration de l'ancien cache IGDB, les `ALTER TABLE is_admin`, l'ancien schéma IGDB (`category`) et le code mort du frontend. Sauvegarde : `users.db.bak-obsolete`. 
-- **Livré (2026-10-25) : les tests suivent les règles** (PR #33). Doublons fusionnés, tests sur données réécrits, tests morts retirés, variantes paramétrées, contrat étendu (listes, champs imbriqués, absents), `test_games.py` découpé par module, tests d'interface sans classes CSS. Backend : 324 fonctions → 259 (378 cas → 324), frontend : 195 → 167. Couverture identique sauf `review.py` (affichage de la console, décision du 2026-10-25).
-- **Livré (2026-10-25) : un test par épisode sur une fiche** (PR #34). Deux noms d'un même jeu dans un épisode sont un seul test (`serializers.tests_of`), celui dont l'avis a été lu. En dev, une seule fiche était touchée (`assassin-s-creed-iii`).
-- **Livré (2026-10-25) : la Ludothèque refaite** (PR #35, testé en dev par l'utilisateur ; maquettes https://claude.ai/artifact/EuRL8uUJ7jFRonTtPurPvT). Sauvegarde : `users.db.bak-homelink`.
-  - La recherche a deux portées, Jeux | Épisodes, une liste à la fois (`SearchResults.vue`).
-  - `LUDO//` sur chaque barre de retour mène à l'accueil en dépilant l'historique (`lib/home.js`) ; une seule barre de retour partout. Nouveau mot-symbole (`Wordmark.vue`) et nouvelle icône de l'app installable (`L` sur le pavé, `//` jaune).
-  - L'accueil : plus de rangée de nouveaux tests ; « Reprendre » nomme le test à la position sauvegardée (`testAt`), × oublie une écoute, 3 puis « Tous · n » ; les podcasts en grille ; ↻ à la place du tirer-pour-rafraîchir ; l'esthétique « atmosphère » (halo et `//` aux couleurs du dernier jeu).
-  - La fiche s'ouvre tests repliés ; `POST /games/<slug>/igdb-refresh` retiré (seule reste la purge par podcast de l'admin).
-  - Les chapitres des descriptions entre parenthèses (ORIGAMI, 116 épisodes) et en liste (ZQSD, Game Informer) sont lus : mesuré sur les données de la prod, aucun test ne change, aucune description non plus.
-- **Livré (2026-10-25) : une direction pour toutes les pages** (PR #36, testé en dev par l'utilisateur ; sauvegarde : `users.db.bak-artdir` ; planches « Direction globale », « Plus de couleur », « Lecteur plein écran » sur https://claude.ai/artifact/EuRL8uUJ7jFRonTtPurPvT).
-  - Fiche, épisode, podcast, lecteur plein écran et connexion prennent la grammaire de l'accueil : halo à deux teintes sur fond noir (plus de fond teinté ni de pochette floutée), sections `//` sans cadre, une ligne de liste (`.line`), image du sujet à coins marqués.
-  - La page épisode passe en deux colonnes sur bureau, éclairée par son premier test.
-  - Lecteur plein écran : vitesses retirées ; ±1 min de part et d'autre de ▶, les appuis rapides s'additionnent ; la page ne bouge plus entre un chapitre et un test. La barre du bureau garde la vitesse.
-  - Les palettes sont relues une fois (clé `ludo.palettes.v2`).
-  - Les pochettes n'ont plus d'ombre noire (`--shadow-cover`) : elle assombrissait le titre et les boutons sous la pochette (fiche, épisode).
-  - Écran verrouillé (Android) : titre = ce qui passe, 2ᵉ ligne = le podcast, album = l'épisode ; hors d'un test, l'image du podcast (`podcast.imageUrl`), plus celle de l'épisode ni la pochette du jeu qui a lancé la lecture.
-- **Livré (2026-10-25) : l'image de l'épisode** (PR #37). Page épisode : en tête, l'image de l'épisode (sinon du podcast), plus la pochette du premier test ni la vignette du podcast. Lecteur et écran verrouillé : la pochette du test en cours, sinon l'image de l'épisode, sinon celle du podcast ; « Reprendre » de même (PR #38). Sauvegardes : `users.db.bak-epart`, `users.db.bak-resumeart`.
-- **Livré (2026-10-25) : le retour s'arrête à la Ludothèque** dans l'app installée (PR #39, `lib/home.js` `guardHome`). Pas testable en dev (le mode installé demande du HTTPS) : livré pour être essayé sur le téléphone ; retour arrière vers `c5bafd5` si besoin. Sauvegarde : `users.db.bak-backguard`.
-- **Ouvert.**
-  - Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début.
-  - Le paquet du labo devrait aussi porter les réponses des noms qui ne sont pas des tests, et les tâches `reviewed`, pour que la prod ne les redemande pas (prochaine livraison). Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions possibles).
-  - Les 5 SoJ `djpod` en échec : acast répond 429 au téléchargement.
-  - Les consoles d'admin n'ont pas été restylées. Elles héritent seulement des polices et des couleurs.
-  - Pour et contre en anglais pour Triple Click, The Besties et The Game Informer Show : langue du prompt de lecture, à régler dans le labo.
-  - Les épisodes « [Reportage] » sont toujours exclus du catalogue.
-  - **Une mesure du labo ne garantit pas la réponse de la prod** : le labo et l'app interrogent le LLM chacun de leur côté, d'où la livraison des réponses du labo par le paquet.
-  - Corrections : 34. `les-tortues-ninja` ne correspond plus à aucun nom.
-  - Le catalogue regroupe par nom : une mauvaise fiche d'une émission entraîne celle d'une autre (Symphonia, SoJ et ORIGAMI).
-- **Pour plus tard.** La prochaine relecture de tout l'historique passera par l'API batch d'OpenRouter (−50 %), avec un mode `--batch` dans `lab/read.py`. The Back Page et la langue des pour et contre la rejoindront.
+## La prod
+- En prod : `main` à `efef68f` (PR #39, le retour s'arrête à la Ludothèque dans l'app installée). Elle n'a pas pu être testée en dev, parce que le mode installé demande du HTTPS : c'est à essayer sur le téléphone, avec retour à `c5bafd5` si besoin.
+- Podcasts : Silence on Joue, Fin du Game, Triple Click, The Besties, ORIGAMI L'Hebdo, ZQSD et The Game Informer Show. `INGEST=true`.
+- Sauvegardes sur le serveur (`~/opt/silence`) : `users.db.bak-<étape>`. La plus récente est `users.db.bak-virtue` (2026-10-28).
+- La base de dev n'a pas les lectures d'ORIGAMI, ZQSD et Game Informer (la prod en a 122, 208 et 93) : `./pull-prod-data.sh` les ramène.
+
+## En cours
+- Livraison (2026-10-28) de la branche `chore/token-economy`. Elle apporte deux choses.
+  - **Les gestes du lecteur sur téléphone** :
+    - le retour ferme le plein écran ;
+    - on le réduit en le glissant vers le bas ;
+    - on ferme le mini-lecteur en le glissant de côté, on l'ouvre en le glissant vers le haut.
+
+    Testés en jsdom et dans un Chromium tactile ; à confirmer sur le téléphone.
+  - **Moins de tokens par session** : les décisions d'interface dans `frontend/DECISIONS.md`, `./peek.sh`, `tools/shot.sh`, des tests silencieux. Plus `pack_for_prod.py`, qui ne livre plus de réponse vide.
+
+## Ouvert
+- **Les réponses vides du paquet sont rouvertes** (2026-10-28). Le paquet du labo du 2026-10-24 avait livré 222 réponses « aucune fiche », figées jusqu'au TTL. Elles ont été effacées en prod (sauvegarde `users.db.bak-reopen`), puis reposées : 32 fiches trouvées, aucune erreur. `pack_for_prod.py` ne livre plus de réponse vide (branche `chore/token-economy`).
+  - Dans le catalogue, 4 fiches changent :
+    - « Virtue and a Sledgehammer » (SoJ S20E08) : trouvée ;
+    - « Pokémon Diamant Étincelant et Perle Scintillante » : passe de Pokémon Perle au remake ;
+    - « Voidbreaker » (Game Informer) : devient Void Breaker 2025 ;
+    - « Jump! » (SoJ 2009) : était tombée sur Koron de Jump!!, remise à « aucune fiche » à la main (IGDB n'a pas ce jeu).
+  - Les 28 autres fiches trouvées vont à des noms qui ne sont pas des tests. Certaines sont fausses (« crise » → Tricolore Crise, « jeu vidéo » → Ghostbusters, « demo », « 2010 », « riveting rooms » → Riven) ; elles ne se voient pas, mais seraient à revoir si l'un de ces noms devenait un test.
+- Tests sans début connu (`timestamp` nul, jamais « en cours ») : ORIGAMI 115 sur 115 dans l'échantillon, ZQSD 28 sur 50, Game Informer 26. Des tests ZQSD partagent un même début.
+- Le paquet du labo devrait aussi porter deux choses, pour que la prod ne les redemande pas (prochaine livraison) :
+  - les réponses aux noms qui ne sont pas des tests ;
+  - les tâches `reviewed`.
+
+  Il reste à mesurer ce que ces noms ont changé dans les tests de la prod (des fusions sont possibles).
+- **Une mesure du labo ne garantit pas la réponse de la prod** : le labo et l'app interrogent le LLM chacun de leur côté. C'est pour cela que le paquet livre les réponses du labo.
+- Les 5 épisodes SoJ hébergés sur `djpod` sont en échec : acast répond 429 au téléchargement.
+- Pour et contre en anglais pour Triple Click, The Besties et The Game Informer Show : c'est la langue du prompt de lecture, à régler dans le labo.
+- Les épisodes « [Reportage] » sont toujours exclus du catalogue.
+- Corrections : 34. `les-tortues-ninja` ne correspond plus à aucun nom.
+- Le catalogue regroupe par nom : une mauvaise fiche dans un podcast entraîne la même dans un autre (Symphonia, entre SoJ et ORIGAMI).
+- Les consoles d'admin n'ont pas été restylées : elles héritent seulement des polices et des couleurs.
+- Revue de `/changements` à la livraison des nouveaux podcasts : les cas à risque ont été relus, pas les quelque 1 100 autres tests un par un.
+
+## Pour plus tard
+- La prochaine relecture de tout l'historique passera par l'API batch d'OpenRouter (−50 %), avec un mode `--batch` dans `lab/read.py`. Deux sujets la rejoindront : The Back Page et la langue des pour et contre.

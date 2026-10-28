@@ -12,6 +12,7 @@
 - **When the state changes** (a deploy, a job started or finished, a next step agreed), rewrite `STATUS.md`.
 - **One fact, one place.** The detail of a module lives in its docstring and comments, next to the code; this file only maps and holds what crosses modules. Change the docstring, not a copy here.
 - **A test holds a rule, not a change** (a decision, an invariant, the contract, security) or a bug that can come back the same way. Before adding one, find the test that already holds the rule and rewrite it; code that goes takes its tests; a shape is the contract's, never a hand-written key list; the interface is found by what the listener sees (`frontend/tests/helpers/find.js`), never by a styling class.
+- **Spend context sparingly.** One session per task: once it is delivered and `STATUS.md` rewritten, the next starts from `/clear`. Look at dev data with `./peek.sh`, at the app with `tools/shot.sh --text` (an image only to judge looks, never Chrome screenshots for that), and query the big data files (`reference.json`, `lab/spec.json`) with `jq`/`peek`, never read them whole. Mechanical tasks can run on `/model sonnet`.
 - The user writes in French; code, comments and commits are in English, `DECISIONS.md` / `STATUS.md` / `lab/` in French.
 
 ## Stack
@@ -22,9 +23,11 @@ Flask (Python) + SQLite, Gunicorn in prod · Vue 3 + Pinia + Vue Router, Vite, T
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build   # dev: http://localhost:5173 (Vite), API :5000
-./test-backend.sh  ./test-frontend.sh  ./test-integration.sh
-docker compose -f docker-compose.test.yml run --rm backend-test pytest tests/test_auth.py::test_login_success
-cd frontend && npx vitest run tests/auth.test.js
+./test-backend.sh  ./test-frontend.sh  ./test-integration.sh   # quiet; -v / --reporter=default for names
+./test-backend.sh tests/test_auth.py::test_login_success      # arguments go to pytest / vitest
+./test-frontend.sh tests/auth.test.js
+./peek.sh game <slug> | episode <slug> | search <text> | question <key> | llm <task> [text] | transcript <guid> [from] [to] | ref <guid> | catalog
+tools/shot.sh <route> [phone|desktop] [--text] [--full]     # headless shot → shots/*.jpg, or the a11y tree
 ./pull-prod-data.sh                                   # prod's produced tables → dev DB (allowlist, no users)
 docker compose -f docker-compose.dev.yml up lab       # the lab, http://localhost:5050 — see lab/README.md
 python invite.py [--admin] alice@example.com          # $ADMIN_KEY, $RESET_BASE_URL
@@ -75,7 +78,7 @@ Request flow: `edge-nginx (ludo.tezcat.fr) → / silence-web (static SPA) · /au
 
 **Lab (`lab/`)** — not part of the app (never imported, not in the image): where the reading chain is defined against the curator's judgments, measured, then ported and delivered. `lab/README.md`.
 
-**Tools** — `tools/prod_data.py` (allowlisted export for `pull-prod-data.sh`), `tools/push_lab_data.py` (`push-lab-data.sh`).
+**Tools** — `tools/peek.py` (`./peek.sh`, read-only dev data), `tools/shot.py` (`tools/shot.sh`), `tools/prod_data.py` (allowlisted export for `pull-prod-data.sh`), `tools/push_lab_data.py` (`push-lab-data.sh`).
 
 ## Slugs
 

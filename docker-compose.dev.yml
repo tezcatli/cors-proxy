@@ -50,6 +50,19 @@ services:
     working_dir: /lab
     command: ["python", "server.py"]
 
+  # tools/shot.sh: a screenshot of the dev app, headless (tools/shot.py). Run on demand.
+  shot:
+    build:
+      context: ./tools
+      # The image has the browsers but not the package, at the same version.
+      dockerfile_inline: |
+        FROM mcr.microsoft.com/playwright/python:v1.49.1-noble
+        RUN pip install --no-cache-dir --break-system-packages playwright==1.49.1
+    profiles: [tools]
+    volumes:
+      - ./tools:/tools:ro
+      - ./shots:/shots
+
   frontend:
     build:
       context: ./frontend

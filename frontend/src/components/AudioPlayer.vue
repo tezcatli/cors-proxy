@@ -1,12 +1,13 @@
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { igdbUrl } from '../lib/igdbCdn.js'
 import { formatTime } from '../lib/utils.js'
 import { podcastMeta } from '../lib/podcasts.js'
 import { useMediaSession } from '../composables/useMediaSession.js'
 import { useGameTheme } from '../composables/useGameTheme.js'
+import { useSwipe } from '../composables/useSwipe.js'
 import SeekBar from './SeekBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import MarqueeText from './MarqueeText.vue'
@@ -18,6 +19,7 @@ import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X, Loader2, Refre
 const RATES = [1, 1.25, 1.5, 1.75, 2]
 
 const router      = useRouter()
+const route       = useRoute()
 const playerStore = usePlayerStore()
 
 const cur      = computed(() => playerStore.current)
@@ -54,7 +56,81 @@ function cycleRate() {
 function rateLabel(r) { return `${String(r).replace('.', ',')}×` }
 
 // ── « En lecture » sheet (phone) ────────────────────────────────────────────
-const expanded = ref(false)
+// A step of the way (DECISIONS.md, « Interface »): `?lecteur=1` on the page
+// under it, pushed on opening and marked in the entry's state, so the system's
+// back closes it like any screen. Leaving it for a page replaces its entry:
+// back from there returns to the page under the sheet.
+const SHEET = 'lecteur'
+const isPhone  = () => !window.matchMedia('(min-width: 768px)').matches
+const sheetAsked = computed(() => route.query[SHEET] !== undefined)
+const expanded = computed(() => route.query[SHEET] === '1' && playerStore.visible && !!cur.value && isPhone())
+const sheetPushed = () => !!router.options.history.state?.ludoSheet
+
+function withoutSheet() {
+  const { [SHEET]: _, ...query } = route.query
+  return { path: route.path, query, hash: route.hash }
+}
+function openSheet() {
+  if (!expanded.value)
+    router.push({ path: route.path, query: { ...route.query, [SHEET]: '1' }, hash: route.hash, state: { ludoSheet: true } })
+}
+function closeSheet() {
+  if (!sheetAsked.value) return
+  if (sheetPushed()) router.back()
+  else router.replace(withoutSheet())
+}
+function leaveSheetFor(to) {
+  if (!sheetAsked.value) return router.push(to)
+  if (sheetPushed()) return router.replace(to)
+  return router.replace(withoutSheet()).then(() => router.push(to))   // opened as such (a reload)
+}
+// Asked with nothing to show (nothing playing, a desktop): the address is wrong.
+watch(() => sheetAsked.value && !expanded.value, stale => { if (stale) router.replace(withoutSheet()) })
+
+function onKey(e) { if (e.key === 'Escape' && expanded.value) closeSheet() }
+onMounted(() => window.addEventListener('keydown', onKey))
+onUnmounted(() => window.removeEventListener('keydown', onKey))
+
+// Gestures: the sheet is pulled down to shrink it (from its top while its body
+// is scrolled); the bar is swiped up to open it, aside to close the player.
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const sheetEl = ref(null)
+const sheetBody = ref(null)
+const barEl = ref(null)
+const { offset: sheetOffset, dragging: sheetDragging, reset: resetSheet } = useSwipe(sheetEl, {
+  directions: ['down'],
+  commitAt: () => (sheetEl.value?.offsetHeight || window.innerHeight) * 0.25,
+  ignore: '.seek',
+  scroller: () => sheetBody.value,
+  onCommit: closeSheet,
+})
+const barLeaving = ref(false)
+const { offset: barOffset, dragging: barDragging, reset: resetBar } = useSwipe(barEl, {
+  directions: ['left', 'right', 'up'],
+  commitAt: dir => dir === 'up' ? 40 : (barEl.value?.offsetWidth || window.innerWidth) * 0.4,
+  onCommit: dir => {
+    if (dir === 'up') { resetBar(); openSheet(); return }
+    barLeaving.value = true
+    setTimeout(() => playerStore.close(), reduceMotion() ? 0 : 180)
+  },
+})
+watch(expanded, v => { if (!v) resetSheet() })
+watch(() => playerStore.visible, v => { if (v) { barLeaving.value = false; resetBar() } })
+
+const sheetStyle = computed(() => sheetOffset.value.y
+  ? { transform: `translateY(${sheetOffset.value.y}px)`, transition: sheetDragging.value ? 'none' : undefined }
+  : {})
+const barStyle = computed(() => {
+  const x = barLeaving.value ? Math.sign(barOffset.value.x || 1) * window.innerWidth : barOffset.value.x
+  const y = barOffset.value.y
+  if (!x && !y) return {}
+  const width = barEl.value?.offsetWidth || window.innerWidth
+  return {
+    transform: `translate(${x}px, ${y}px)`,
+    opacity: x ? Math.max(0, 1 - Math.abs(x) / width) : 1,
+    transition: barDragging.value ? 'none' : undefined,
+  }
+})
 
 // The sheet's ↺ and ↻ jump a minute at once; quick taps add up, their sum
 // shown in place of the bar's caption until a second after the last
@@ -75,29 +151,26 @@ const sheetCaption = computed(() => (jumpSum.value
   : segmentLabel.value))
 onUnmounted(() => clearTimeout(jumpTimer))
 function openInfo() {
-  if (window.matchMedia('(min-width: 768px)').matches) goEpisode()
-  else expanded.value = true
+  if (isPhone()) openSheet()
+  else goEpisode()
 }
 function goEpisode() {
   const c = cur.value
   if (!c) return
-  expanded.value = false
   if (c.episodeUrlSlug || c.episodeSlug)
-    router.push({ path: `/episode/${encodeURIComponent(c.episodeUrlSlug ?? c.episodeSlug)}`, query: test.value?.slug ? { game: test.value.slug } : {} })
+    leaveSheetFor({ path: `/episode/${encodeURIComponent(c.episodeUrlSlug ?? c.episodeSlug)}`, query: test.value?.slug ? { game: test.value.slug } : {} })
   else if (test.value?.slug)
-    router.push('/game/' + encodeURIComponent(test.value.slug))
+    leaveSheetFor('/game/' + encodeURIComponent(test.value.slug))
 }
 function goPodcast() {
   const id = cur.value?.podcast?.id
   if (!id) return
-  expanded.value = false
-  router.push('/podcast/' + id)
+  leaveSheetFor('/podcast/' + id)
 }
 function goGame() {
   const slug = test.value?.slug
   if (!slug) return
-  expanded.value = false
-  router.push('/game/' + encodeURIComponent(slug))
+  leaveSheetFor('/game/' + encodeURIComponent(slug))
 }
 
 // ── MediaSession (lock-screen / OS controls) ─────────────────────────────────
@@ -115,7 +188,7 @@ watch(() => playerStore.status, s => {
 watch(() => playerStore.currentTime, () => updatePositionState())
 watch(() => playerStore.visible, v => {
   if (!v) {
-    expanded.value = false
+    closeSheet()
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null
   }
 })
@@ -126,7 +199,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
 <template>
   <div v-if="playerStore.visible && cur" class="player" :style="theme" :class="{ 'is-resume': playerStore.restored && playerStore.paused }">
     <!-- Mini bar -->
-    <div class="bar">
+    <div ref="barEl" class="bar" :style="barStyle">
       <button type="button" class="bar__info" :aria-label="`En lecture : ${title}. Ouvrir`" @click="openInfo">
         <span class="onair" :class="{ 'is-off': playerStore.paused }" aria-hidden="true"></span>
         <img v-if="coverSrc" :src="coverSrc" alt="" class="bar__cover" />
@@ -169,15 +242,17 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
     <!-- « En lecture » sheet (phone). Teleported: the bar's entry transform
          would otherwise be the containing block of its `position: fixed`. -->
     <Teleport to="body">
-    <div v-if="expanded" class="sheet" :style="theme" role="dialog" aria-modal="true" aria-label="En lecture">
+    <Transition name="sheet">
+    <div v-if="expanded" ref="sheetEl" class="sheet" :style="[theme, sheetStyle]" role="dialog" aria-modal="true" aria-label="En lecture">
+      <span class="sheet__grip" aria-hidden="true"></span>
       <div class="sheet__top">
-        <button type="button" class="icon-action" aria-label="Réduire" @click="expanded = false"><ChevronDown :size="22" :stroke-width="2" /></button>
+        <button type="button" class="icon-action" aria-label="Réduire" @click="closeSheet"><ChevronDown :size="22" :stroke-width="2" /></button>
         <span class="lab"><span class="onair" :class="{ 'is-off': playerStore.paused }"></span> En lecture</span>
         <button type="button" class="icon-action" aria-label="Fermer le lecteur" @click="playerStore.close()"><X :size="20" :stroke-width="2" /></button>
       </div>
 
       <div class="halo" aria-hidden="true"></div>
-      <div class="sheet__body">
+      <div ref="sheetBody" class="sheet__body">
         <!-- Every element keeps its place whatever is on air, a chapter or a
              test: only its content changes, so nothing moves under the thumb. -->
         <span class="sheet__cover corners">
@@ -214,6 +289,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
         </div>
       </div>
     </div>
+    </Transition>
     </Teleport>
   </div>
 </template>
@@ -238,6 +314,8 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
   padding: 0 4px 0 12px;
   background: var(--c-surface);
   border-top: 1px solid var(--c-line);
+  touch-action: none;      /* its swipes are its own (useSwipe) */
+  transition: transform var(--dur-fast, 150ms) var(--ease-out-soft), opacity var(--dur-fast, 150ms);
 }
 .bar__info {
   flex: 1;
@@ -321,11 +399,28 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
   flex-direction: column;
   background: var(--c-bg);
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
-  animation: slideUpPlayer var(--dur-med) var(--ease-out-soft) both;
+  transition: transform var(--dur-med) var(--ease-out-soft);
+}
+/* Up on opening, down on closing — from wherever a pull left it. */
+.sheet-enter-from, .sheet-leave-to { transform: translateY(100%) !important; }
+.sheet-enter-active, .sheet-leave-active { transition: transform var(--dur-med) var(--ease-out-soft); }
+.sheet__grip {
+  position: absolute;
+  z-index: 2;
+  top: calc(env(safe-area-inset-top, 0px) + 5px);
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  margin-left: -18px;
+  border-radius: 2px;
+  background: var(--c-fg-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar, .sheet, .sheet-enter-active, .sheet-leave-active { transition: none; }
 }
 .sheet__top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 4px 4px; border-bottom: 1px solid var(--c-line); }
 .sheet__top .lab { display: inline-flex; align-items: center; gap: 8px; color: var(--c-accent); }
-.sheet__body { position: relative; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
+.sheet__body { position: relative; flex: 1; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
 .sheet__cover { --corner: 16px; display: block; width: min(56vw, 240px); aspect-ratio: 3 / 4; align-self: center; box-shadow: var(--shadow-cover); }
 .sheet__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sheet__cover-none { display: flex; align-items: flex-end; height: 100%; padding: 14px; box-sizing: border-box; background: var(--c-surface); color: var(--c-fg-2); font-size: 22px; }

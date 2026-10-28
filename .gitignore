@@ -8,6 +8,9 @@ __pycache__
 backend/data/users.db
 backend/data/users.db-shm
 backend/data/users.db-wal
+backend/data/peek-*.json
 
 node_modules
 frontend/dist/
+.coverage
+shots/
