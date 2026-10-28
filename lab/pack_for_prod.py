@@ -9,7 +9,10 @@ loads it, `push-lab-data.sh` ships it):
   (`fiches.DEFAULT`) when it decided it, else the answer the snapshot has — each brought onto
   its catalog page by the app's rule (`igdb._resolve_canonical`: a remaster
   joins its game, a remake stands apart), with that game's data (unenriched:
-  prod's sweep scrapes Metacritic and HowLongToBeat as usual).
+  prod's sweep scrapes Metacritic and HowLongToBeat as usual). Never "no
+  game": in prod that is an answer, kept for the TTL (`resolver.resolution_pending`),
+  while a game IGDB lacked when the lab asked (« Virtue and a Sledgehammer »,
+  dated days after) is one prod's own sweep finds — 222 questions were frozen so.
 
     docker compose -f docker-compose.dev.yml run --rm lab python pack_for_prod.py  → data/prod-pack.json.gz
 """
@@ -42,31 +45,30 @@ def main() -> None:
             "WHERE task = 'transcript' AND version = ?", (llm._TRANSCRIPT_V,))]
     logging.info('%d transcripts, %d readings', len(transcripts), len(readings))
 
-    chosen: dict[str, tuple[int | None, str | None]] = {}
+    chosen: dict[str, tuple[int, str | None]] = {}
     for key, q in state.asked().items():
         if q.kind != 'name':
             continue
         decided, fiche = fiches.lookup(q.name, SimpleNamespace(podcast_id=q.podcast_id, pub_ts=q.dated))
-        if decided:
-            chosen[key] = (fiche and fiche['id'], 'llm')
+        if decided and fiche:
+            chosen[key] = (fiche['id'], 'llm')
         elif (r := state.resolutions.get(key)) is not None and r.igdb_id:
             chosen[key] = (r.igdb_id, r.method)
     logging.info('%d answers (%d from the lab\'s resolution)', len(chosen),
                  sum(1 for i, m in chosen.values() if m == 'llm'))
 
-    ids = sorted({i for i, _ in chosen.values() if i})
+    ids = sorted({i for i, _ in chosen.values()})
     with ThreadPoolExecutor(8) as pool:   # IGDB's 4 req/s, shared
         results = dict(zip(ids, pool.map(lambda i: igdb.fetch_by_id(i), ids)))
     now = db.utcnow().isoformat()
     answers, games = [], {}
     for key, (i, method) in chosen.items():
-        res = results.get(i) if i else None
-        if i and res is None:
+        res = results.get(i)
+        if res is None:
             logging.warning('IGDB has no %s any more (%s): left to prod', i, key)
             continue
-        answers.append([key, res.id if res else None, int(res.is_child) if res else 0, now, method])
-        if res:
-            games[res.id] = [res.id, res.slug, res.name, json.dumps(res.data, ensure_ascii=False), now, 0]
+        answers.append([key, res.id, int(res.is_child), now, method])
+        games[res.id] = [res.id, res.slug, res.name, json.dumps(res.data, ensure_ascii=False), now, 0]
     logging.info('%d answers on %d games', len(answers), len(games))
 
     with gzip.open(OUT, 'wt', encoding='utf-8') as f:

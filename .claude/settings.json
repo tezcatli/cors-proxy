@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./peek.sh *)",
+      "Bash(tools/shot.sh *)",
+      "Bash(./test-backend.sh)",
+      "Bash(./test-backend.sh *)",
+      "Bash(./test-frontend.sh)",
+      "Bash(./test-frontend.sh *)"
+    ],
+    "deny": [
+      "Read(backend/tests/fixtures/reference.json)",
+      "Read(lab/spec.json)",
+      "Read(lab/reference.json)",
+      "Read(lab/frozen.json)",
+      "Read(**/package-lock.json)",
+      "Read(backend/.coverage)"
+    ]
+  }
+}
