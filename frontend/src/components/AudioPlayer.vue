@@ -12,7 +12,7 @@ import SeekBar from './SeekBar.vue'
 import VerdictMark from './VerdictMark.vue'
 import MarqueeText from './MarqueeText.vue'
 import JumpIcon from './JumpIcon.vue'
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X, Loader2, RefreshCw, ChevronDown, ArrowUpRight } from 'lucide-vue-next'
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X, Loader2, RefreshCw, ArrowUpRight } from 'lucide-vue-next'
 
 // The mini player (a bar over the bottom of the base views) and, on a phone,
 // the full « En lecture » sheet it opens into. All audio goes through the store.
@@ -198,6 +198,8 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
 
 <template>
   <div v-if="playerStore.visible && cur" class="player" :style="theme" :class="{ 'is-resume': playerStore.restored && playerStore.paused }">
+    <!-- Above the bar: below it would sit in the system's gesture area. -->
+    <button v-if="playerStore.failed" type="button" class="failed lab" @click="playerStore.retry()">Lecture interrompue — toucher pour réessayer</button>
     <!-- Mini bar -->
     <div ref="barEl" class="bar" :style="barStyle">
       <button type="button" class="bar__info" :aria-label="`En lecture : ${title}. Ouvrir`" @click="openInfo">
@@ -237,7 +239,6 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
       <span class="bar__hair" aria-hidden="true"><span :style="{ width: (duration ? playerStore.currentTime / duration * 100 : 0) + '%' }"></span></span>
     </div>
 
-    <button v-if="playerStore.failed" type="button" class="failed lab" @click="playerStore.retry()">Lecture interrompue — toucher pour réessayer</button>
 
     <!-- « En lecture » sheet (phone). Teleported: the bar's entry transform
          would otherwise be the containing block of its `position: fixed`. -->
@@ -245,10 +246,9 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
     <Transition name="sheet">
     <div v-if="expanded" ref="sheetEl" class="sheet" :style="[theme, sheetStyle]" role="dialog" aria-modal="true" aria-label="En lecture">
       <span class="sheet__grip" aria-hidden="true"></span>
+      <!-- No buttons: back and the pull down shrink it (DECISIONS, frontend). -->
       <div class="sheet__top">
-        <button type="button" class="icon-action" aria-label="Réduire" @click="closeSheet"><ChevronDown :size="22" :stroke-width="2" /></button>
         <span class="lab"><span class="onair" :class="{ 'is-off': playerStore.paused }"></span> En lecture</span>
-        <button type="button" class="icon-action" aria-label="Fermer le lecteur" @click="playerStore.close()"><X :size="20" :stroke-width="2" /></button>
       </div>
 
       <div class="halo" aria-hidden="true"></div>
@@ -299,7 +299,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
   position: fixed;
   left: 0;
   right: 0;
-  bottom: env(safe-area-inset-bottom, 0px);
+  bottom: 0;
   z-index: var(--z-player);
   animation: slideUpPlayer var(--dur-med) var(--ease-out-soft) both;
 }
@@ -310,8 +310,10 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
   display: flex;
   align-items: center;
   gap: 8px;
-  height: var(--player-h);
-  padding: 0 4px 0 12px;
+  /* Down to the screen's edge; its content above the system's gesture area. */
+  height: calc(var(--player-h) + env(safe-area-inset-bottom, 0px));
+  padding: 0 4px env(safe-area-inset-bottom, 0px) 12px;
+  box-sizing: border-box;
   background: var(--c-surface);
   border-top: 1px solid var(--c-line);
   touch-action: none;      /* its swipes are its own (useSwipe) */
@@ -418,7 +420,7 @@ onUnmounted(() => document.body.classList.remove('player-expanded'))
 @media (prefers-reduced-motion: reduce) {
   .bar, .sheet, .sheet-enter-active, .sheet-leave-active { transition: none; }
 }
-.sheet__top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 4px 4px; border-bottom: 1px solid var(--c-line); }
+.sheet__top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 4px 4px; border-bottom: 1px solid var(--c-line); }
 .sheet__top .lab { display: inline-flex; align-items: center; gap: 8px; color: var(--c-accent); }
 .sheet__body { position: relative; flex: 1; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 22px; padding: 24px var(--gutter); }
 .sheet__cover { --corner: 16px; display: block; width: min(56vw, 240px); aspect-ratio: 3 / 4; align-self: center; box-shadow: var(--shadow-cover); }

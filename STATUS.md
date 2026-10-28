@@ -3,20 +3,15 @@
 À **réécrire** (pas à compléter) quand l'état change. Il ne dit que l'état présent : ce qui a été livré est dans `git log` et les PR, le pourquoi dans `DECISIONS.md`. Dernière mise à jour : 2026-10-28.
 
 ## La prod
-- En prod : `main` à `efef68f` (PR #39, le retour s'arrête à la Ludothèque dans l'app installée). Elle n'a pas pu être testée en dev, parce que le mode installé demande du HTTPS : c'est à essayer sur le téléphone, avec retour à `c5bafd5` si besoin.
+- En prod : `main` à `8d437e0` (PR #40, livrée le 2026-10-28), puis PR #41 (2026-10-29) : le mini-lecteur descend jusqu'au bord de l'écran (sans vide au-dessus de la barre de gestes), le plein écran n'a plus de bouton ⌄ ni ×, et le bandeau d'erreur est au-dessus de la barre.
+  - Les gestes du lecteur sur téléphone : le retour ferme le plein écran ; on le réduit en le glissant vers le bas ; on ferme le mini-lecteur en le glissant de côté, on l'ouvre en le glissant vers le haut. Testés en jsdom et dans un Chromium tactile, à confirmer sur le téléphone.
+  - Les outils pour économiser les tokens (`./peek.sh`, `tools/shot.sh`, `frontend/DECISIONS.md`).
+  - `pack_for_prod.py` sans réponse vide.
+
+  Retour arrière : `efef68f`. PR #39 (le retour s'arrête à la Ludothèque dans l'app installée) est toujours à essayer sur le téléphone.
 - Podcasts : Silence on Joue, Fin du Game, Triple Click, The Besties, ORIGAMI L'Hebdo, ZQSD et The Game Informer Show. `INGEST=true`.
-- Sauvegardes sur le serveur (`~/opt/silence`) : `users.db.bak-<étape>`. La plus récente est `users.db.bak-virtue` (2026-10-28).
+- Sauvegardes sur le serveur (`~/opt/silence`) : `users.db.bak-<étape>`. La plus récente est `users.db.bak-gestures` (2026-10-28).
 - La base de dev n'a pas les lectures d'ORIGAMI, ZQSD et Game Informer (la prod en a 122, 208 et 93) : `./pull-prod-data.sh` les ramène.
-
-## En cours
-- Livraison (2026-10-28) de la branche `chore/token-economy`. Elle apporte deux choses.
-  - **Les gestes du lecteur sur téléphone** :
-    - le retour ferme le plein écran ;
-    - on le réduit en le glissant vers le bas ;
-    - on ferme le mini-lecteur en le glissant de côté, on l'ouvre en le glissant vers le haut.
-
-    Testés en jsdom et dans un Chromium tactile ; à confirmer sur le téléphone.
-  - **Moins de tokens par session** : les décisions d'interface dans `frontend/DECISIONS.md`, `./peek.sh`, `tools/shot.sh`, des tests silencieux. Plus `pack_for_prod.py`, qui ne livre plus de réponse vide.
 
 ## Ouvert
 - **Les réponses vides du paquet sont rouvertes** (2026-10-28). Le paquet du labo du 2026-10-24 avait livré 222 réponses « aucune fiche », figées jusqu'au TTL. Elles ont été effacées en prod (sauvegarde `users.db.bak-reopen`), puis reposées : 32 fiches trouvées, aucune erreur. `pack_for_prod.py` ne livre plus de réponse vide (branche `chore/token-economy`).
